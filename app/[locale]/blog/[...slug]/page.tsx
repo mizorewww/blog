@@ -10,8 +10,8 @@ import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { getPostImageUrls } from '@/lib/postImages'
-import { defaultLocale, localeConfig } from '@/lib/i18n'
 import { getPostByLocaleAndSlug, getPostsByLocale } from '@/lib/blog'
+import { isLocale, localeConfig, locales, localizePath } from '@/lib/i18n'
 
 const defaultLayout = 'PostLayout'
 const layouts = {
@@ -21,11 +21,16 @@ const layouts = {
 }
 
 export async function generateMetadata(props: {
-  params: Promise<{ slug: string[] }>
+  params: Promise<{ locale: string; slug: string[] }>
 }): Promise<Metadata | undefined> {
   const params = await props.params
+
+  if (!isLocale(params.locale)) {
+    return
+  }
+
   const slug = decodeURI(params.slug.join('/'))
-  const post = getPostByLocaleAndSlug(allBlogs, defaultLocale, slug)
+  const post = getPostByLocaleAndSlug(allBlogs, params.locale, slug)
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
@@ -47,18 +52,28 @@ export async function generateMetadata(props: {
     siteUrl: siteMetadata.siteUrl,
   })
   const ogImages = imageUrls.map((url) => ({ url, alt: post.title }))
+  const languages = locales.reduce<Record<string, string>>((alternates, locale) => {
+    const alternatePost = getPostByLocaleAndSlug(allBlogs, locale, slug)
+
+    if (alternatePost) {
+      alternates[localeConfig[locale].htmlLang] = localizePath(`/blog/${slug}`, locale)
+    }
+
+    return alternates
+  }, {})
 
   return {
     title: post.title,
     description: post.summary,
     alternates: {
       canonical: canonicalUrl,
+      languages,
     },
     openGraph: {
       title: post.title,
       description: post.summary,
       siteName: siteMetadata.title,
-      locale: localeConfig[defaultLocale].htmlLang.replace('-', '_'),
+      locale: localeConfig[params.locale].htmlLang.replace('-', '_'),
       type: 'article',
       publishedTime: publishedAt,
       modifiedTime: modifiedAt,
@@ -76,25 +91,32 @@ export async function generateMetadata(props: {
 }
 
 export const generateStaticParams = async () => {
-  return getPostsByLocale(allBlogs, defaultLocale).map((p) => ({
-    slug: p.slug.split('/').map((name) => decodeURI(name)),
-  }))
+  return locales.flatMap((locale) =>
+    getPostsByLocale(allBlogs, locale).map((post) => ({
+      locale,
+      slug: post.slug.split('/').map((name) => decodeURI(name)),
+    }))
+  )
 }
 
-export default async function Page(props: { params: Promise<{ slug: string[] }> }) {
+export default async function Page(props: { params: Promise<{ locale: string; slug: string[] }> }) {
   const params = await props.params
+
+  if (!isLocale(params.locale)) {
+    return notFound()
+  }
+
   const slug = decodeURI(params.slug.join('/'))
-  // Filter out drafts in production
-  const localeBlogs = getPostsByLocale(allBlogs, defaultLocale)
+  const localeBlogs = getPostsByLocale(allBlogs, params.locale)
   const sortedCoreContents = allCoreContent(sortPosts(localeBlogs))
-  const postIndex = sortedCoreContents.findIndex((p) => p.slug === slug)
+  const postIndex = sortedCoreContents.findIndex((post) => post.slug === slug)
   if (postIndex === -1) {
     return notFound()
   }
 
   const prev = sortedCoreContents[postIndex + 1]
   const next = sortedCoreContents[postIndex - 1]
-  const post = getPostByLocaleAndSlug(allBlogs, defaultLocale, slug) as Blog
+  const post = getPostByLocaleAndSlug(allBlogs, params.locale, slug) as Blog
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)

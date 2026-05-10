@@ -9,6 +9,8 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { getPostLocale } from '@/lib/blog'
+import { ui } from '@/lib/i18n'
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -19,6 +21,8 @@ interface LayoutProps {
 
 export default function PostMinimal({ content, next, prev, children }: LayoutProps) {
   const { slug, title, images } = content
+  const locale = getPostLocale(content)
+  const labels = ui[locale]
   const displayImage =
     images && images.length > 0 ? images[0] : 'https://picsum.photos/seed/picsum/800/400'
 
@@ -52,7 +56,7 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
                   <Link
                     href={`/${prev.path}`}
                     className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Previous post: ${prev.title}`}
+                    aria-label={labels.previousPost(prev.title)}
                   >
                     &larr; {prev.title}
                   </Link>
@@ -63,7 +67,7 @@ export default function PostMinimal({ content, next, prev, children }: LayoutPro
                   <Link
                     href={`/${next.path}`}
                     className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                    aria-label={`Next post: ${next.title}`}
+                    aria-label={labels.nextPost(next.title)}
                   >
                     {next.title} &rarr;
                   </Link>

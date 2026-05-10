@@ -1,85 +1,66 @@
 'use client'
 
-import { useState } from 'react'
-import { usePathname } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import { formatDate } from 'pliny/utils/formatDate'
 import { CoreContent } from 'pliny/utils/contentlayer'
 import type { Blog } from 'contentlayer/generated'
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
-import siteMetadata from '@/data/siteMetadata'
+import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
 
-interface PaginationProps {
-  totalPages: number
-  currentPage: number
-}
 interface ListLayoutProps {
   posts: CoreContent<Blog>[]
   title: string
+  locale?: Locale
   initialDisplayPosts?: CoreContent<Blog>[]
-  pagination?: PaginationProps
 }
 
-function Pagination({ totalPages, currentPage }: PaginationProps) {
-  const pathname = usePathname()
-  const segments = pathname.split('/')
-  const lastSegment = segments[segments.length - 1]
-  const basePath = pathname
-    .replace(/^\//, '') // Remove leading slash
-    .replace(/\/page\/\d+\/?$/, '') // Remove any trailing /page
-    .replace(/\/$/, '') // Remove trailing slash
-  const prevPage = currentPage - 1 > 0
-  const nextPage = currentPage + 1 <= totalPages
-
-  return (
-    <div className="space-y-2 pt-6 pb-8 md:space-y-5">
-      <nav className="flex justify-between">
-        {!prevPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!prevPage}>
-            Previous
-          </button>
-        )}
-        {prevPage && (
-          <Link
-            href={currentPage - 1 === 1 ? `/${basePath}/` : `/${basePath}/page/${currentPage - 1}`}
-            rel="prev"
-          >
-            Previous
-          </Link>
-        )}
-        <span>
-          {currentPage} of {totalPages}
-        </span>
-        {!nextPage && (
-          <button className="cursor-auto disabled:opacity-50" disabled={!nextPage}>
-            Next
-          </button>
-        )}
-        {nextPage && (
-          <Link href={`/${basePath}/page/${currentPage + 1}`} rel="next">
-            Next
-          </Link>
-        )}
-      </nav>
-    </div>
-  )
-}
+const POSTS_PER_BATCH = 5
 
 export default function ListLayout({
   posts,
   title,
+  locale = defaultLocale,
   initialDisplayPosts = [],
-  pagination,
 }: ListLayoutProps) {
   const [searchValue, setSearchValue] = useState('')
+  const [visibleCount, setVisibleCount] = useState(
+    Math.max(initialDisplayPosts.length || POSTS_PER_BATCH, POSTS_PER_BATCH)
+  )
+  const loadMoreRef = useRef<HTMLDivElement | null>(null)
+  const labels = ui[locale]
+  const dateLocale = localeConfig[locale].dateLocale
   const filteredBlogPosts = posts.filter((post) => {
-    const searchContent = post.title + post.summary + post.tags?.join(' ')
+    const searchContent = `${post.title} ${post.summary || ''} ${post.tags?.join(' ') || ''}`
     return searchContent.toLowerCase().includes(searchValue.toLowerCase())
   })
+  const displayPosts = filteredBlogPosts.slice(0, visibleCount)
+  const hasMore = visibleCount < filteredBlogPosts.length
 
-  // If initialDisplayPosts exist, display it if no searchValue is specified
-  const displayPosts =
-    initialDisplayPosts.length > 0 && !searchValue ? initialDisplayPosts : filteredBlogPosts
+  useEffect(() => {
+    setVisibleCount(Math.max(initialDisplayPosts.length || POSTS_PER_BATCH, POSTS_PER_BATCH))
+  }, [initialDisplayPosts.length, searchValue])
+
+  useEffect(() => {
+    const loadMoreElement = loadMoreRef.current
+
+    if (!loadMoreElement || !hasMore) {
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setVisibleCount((count) => Math.min(count + POSTS_PER_BATCH, filteredBlogPosts.length))
+        }
+      },
+      { rootMargin: '240px 0px' }
+    )
+
+    observer.observe(loadMoreElement)
+
+    return () => observer.disconnect()
+  }, [filteredBlogPosts.length, hasMore])
 
   return (
     <>
@@ -90,12 +71,12 @@ export default function ListLayout({
           </h1>
           <div className="relative max-w-lg">
             <label>
-              <span className="sr-only">Search articles</span>
+              <span className="sr-only">{labels.searchArticles}</span>
               <input
-                aria-label="Search articles"
+                aria-label={labels.searchArticles}
                 type="text"
                 onChange={(e) => setSearchValue(e.target.value)}
-                placeholder="Search articles"
+                placeholder={labels.searchArticles}
                 className="focus:border-primary-500 focus:ring-primary-500 block w-full rounded-md border border-gray-300 bg-white px-4 py-2 text-gray-900 dark:border-gray-900 dark:bg-gray-800 dark:text-gray-100"
               />
             </label>
@@ -116,16 +97,16 @@ export default function ListLayout({
           </div>
         </div>
         <ul>
-          {!filteredBlogPosts.length && 'No posts found.'}
+          {!filteredBlogPosts.length && labels.noPosts}
           {displayPosts.map((post) => {
             const { path, date, title, summary, tags } = post
             return (
               <li key={path} className="py-4">
                 <article className="space-y-2 xl:grid xl:grid-cols-4 xl:items-baseline xl:space-y-0">
                   <dl>
-                    <dt className="sr-only">Published on</dt>
+                    <dt className="sr-only">{labels.publishedOn}</dt>
                     <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                      <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
+                      <time dateTime={date}>{formatDate(date, dateLocale)}</time>
                     </dd>
                   </dl>
                   <div className="space-y-3 xl:col-span-3">
@@ -136,7 +117,9 @@ export default function ListLayout({
                         </Link>
                       </h3>
                       <div className="flex flex-wrap">
-                        {tags?.map((tag) => <Tag key={tag} text={tag} />)}
+                        {tags?.map((tag) => (
+                          <Tag key={tag} text={tag} locale={locale} />
+                        ))}
                       </div>
                     </div>
                     <div className="prose max-w-none text-gray-500 dark:text-gray-400">
@@ -149,9 +132,7 @@ export default function ListLayout({
           })}
         </ul>
       </div>
-      {pagination && pagination.totalPages > 1 && !searchValue && (
-        <Pagination currentPage={pagination.currentPage} totalPages={pagination.totalPages} />
-      )}
+      {hasMore && <div ref={loadMoreRef} className="h-12" aria-hidden="true" />}
     </>
   )
 }

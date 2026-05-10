@@ -23,6 +23,8 @@ import rehypeCitation from 'rehype-citation'
 import rehypePrismPlus from 'rehype-prism-plus'
 import rehypePresetMinify from 'rehype-preset-minify'
 import siteMetadata from './data/siteMetadata'
+import { getPostImageUrls } from './lib/postImages'
+import { defaultLocale, isLocale } from './lib/i18n'
 import { allCoreContent, sortPosts } from 'pliny/utils/contentlayer.js'
 import prettier from 'prettier'
 
@@ -51,6 +53,57 @@ const computedFields: ComputedFields = {
   path: {
     type: 'string',
     resolve: (doc) => doc._raw.flattenedPath,
+  },
+  filePath: {
+    type: 'string',
+    resolve: (doc) => doc._raw.sourceFilePath,
+  },
+  toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+}
+
+const rawBlogSlug = (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
+
+const blogLocale = (doc) => {
+  const frontmatterLocale = doc.language
+  const firstSegment = rawBlogSlug(doc).split('/')[0]
+
+  if (isLocale(frontmatterLocale)) {
+    return frontmatterLocale
+  }
+
+  if (isLocale(firstSegment)) {
+    return firstSegment
+  }
+
+  return defaultLocale
+}
+
+const blogSlug = (doc) => {
+  const rawSlug = rawBlogSlug(doc)
+  const [firstSegment, ...rest] = rawSlug.split('/')
+
+  if (isLocale(firstSegment) && rest.length > 0) {
+    return rest.join('/')
+  }
+
+  return rawSlug
+}
+
+const blogPath = (doc) => `${blogLocale(doc)}/blog/${blogSlug(doc)}`
+
+const blogComputedFields: ComputedFields = {
+  readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
+  slug: {
+    type: 'string',
+    resolve: (doc) => blogSlug(doc),
+  },
+  locale: {
+    type: 'string',
+    resolve: (doc) => blogLocale(doc),
+  },
+  path: {
+    type: 'string',
+    resolve: (doc) => blogPath(doc),
   },
   filePath: {
     type: 'string',
@@ -104,6 +157,9 @@ export const Blog = defineDocumentType(() => ({
     lastmod: { type: 'date' },
     draft: { type: 'boolean' },
     summary: { type: 'string' },
+    language: { type: 'string' },
+    translationKey: { type: 'string' },
+    image: { type: 'string' },
     images: { type: 'json' },
     authors: { type: 'list', of: { type: 'string' } },
     layout: { type: 'string' },
@@ -111,19 +167,29 @@ export const Blog = defineDocumentType(() => ({
     canonicalUrl: { type: 'string' },
   },
   computedFields: {
-    ...computedFields,
+    ...blogComputedFields,
     structuredData: {
       type: 'json',
-      resolve: (doc) => ({
-        '@context': 'https://schema.org',
-        '@type': 'BlogPosting',
-        headline: doc.title,
-        datePublished: doc.date,
-        dateModified: doc.lastmod || doc.date,
-        description: doc.summary,
-        image: doc.images ? doc.images[0] : siteMetadata.socialBanner,
-        url: `${siteMetadata.siteUrl}/${doc._raw.flattenedPath}`,
-      }),
+      resolve: (doc) => {
+        const url = `${siteMetadata.siteUrl}/${blogPath(doc)}`
+
+        return {
+          '@context': 'https://schema.org',
+          '@type': 'BlogPosting',
+          headline: doc.title,
+          datePublished: doc.date,
+          dateModified: doc.lastmod || doc.date,
+          description: doc.summary,
+          image: getPostImageUrls({
+            image: doc.image,
+            images: doc.images,
+            fallback: siteMetadata.socialBanner,
+            siteUrl: siteMetadata.siteUrl,
+          }),
+          url,
+          mainEntityOfPage: url,
+        }
+      },
     },
   },
 }))
@@ -138,9 +204,8 @@ export const Authors = defineDocumentType(() => ({
     occupation: { type: 'string' },
     company: { type: 'string' },
     email: { type: 'string' },
-    twitter: { type: 'string' },
-    bluesky: { type: 'string' },
-    linkedin: { type: 'string' },
+    x: { type: 'string' },
+    telegram: { type: 'string' },
     github: { type: 'string' },
     layout: { type: 'string' },
   },

@@ -1,0 +1,22 @@
+---
+title: 多语言博客示例
+date: 2026-05-09
+summary: 这篇文章展示同一个 slug 如何分别写中文和英文版本，并在站点中通过 Header 切换语言。
+tags: ['多语言', '博客']
+language: zh
+translationKey: multilingual-demo
+authors: ['default']
+image: /static/images/twitter-card.png
+---
+
+欢迎来到 `mizorewww` 的第一篇多语言示例文章。
+
+现在博客支持把不同语言的文章放在不同目录里：
+
+- 中文文章放在 `data/blog/zh/`
+- 英文文章放在 `data/blog/en/`
+- 同一篇文章的不同语言版本使用相同文件名，例如 `multilingual-demo.mdx`
+
+当前这篇中文文章的访问路径是 `/zh/blog/multilingual-demo`。对应的英文版本路径是 `/en/blog/multilingual-demo`。Header 里的语言切换会保留当前路径，所以读者可以在两种语言之间直接切换。
+
+你写新文章时，只需要复制这组文件结构，改掉标题、摘要、标签和正文即可。

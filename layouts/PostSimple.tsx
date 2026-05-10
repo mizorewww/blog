@@ -8,6 +8,8 @@ import PageTitle from '@/components/PageTitle'
 import SectionContainer from '@/components/SectionContainer'
 import siteMetadata from '@/data/siteMetadata'
 import ScrollTopAndComment from '@/components/ScrollTopAndComment'
+import { getPostLocale } from '@/lib/blog'
+import { localeConfig, ui } from '@/lib/i18n'
 
 interface LayoutProps {
   content: CoreContent<Blog>
@@ -18,6 +20,8 @@ interface LayoutProps {
 
 export default function PostLayout({ content, next, prev, children }: LayoutProps) {
   const { path, slug, date, title } = content
+  const locale = getPostLocale(content)
+  const labels = ui[locale]
 
   return (
     <SectionContainer>
@@ -28,9 +32,9 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
             <div className="space-y-1 border-b border-gray-200 pb-10 text-center dark:border-gray-700">
               <dl>
                 <div>
-                  <dt className="sr-only">Published on</dt>
+                  <dt className="sr-only">{labels.publishedOn}</dt>
                   <dd className="text-base leading-6 font-medium text-gray-500 dark:text-gray-400">
-                    <time dateTime={date}>{formatDate(date, siteMetadata.locale)}</time>
+                    <time dateTime={date}>{formatDate(date, localeConfig[locale].dateLocale)}</time>
                   </dd>
                 </div>
               </dl>
@@ -55,7 +59,7 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                     <Link
                       href={`/${prev.path}`}
                       className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                      aria-label={`Previous post: ${prev.title}`}
+                      aria-label={labels.previousPost(prev.title)}
                     >
                       &larr; {prev.title}
                     </Link>
@@ -66,7 +70,7 @@ export default function PostLayout({ content, next, prev, children }: LayoutProp
                     <Link
                       href={`/${next.path}`}
                       className="text-primary-500 hover:text-primary-600 dark:hover:text-primary-400"
-                      aria-label={`Next post: ${next.title}`}
+                      aria-label={labels.nextPost(next.title)}
                     >
                       {next.title} &rarr;
                     </Link>
