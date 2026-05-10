@@ -9,8 +9,9 @@
 @theme {
   /* Font families */
   --font-sans:
-    var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
-    'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Microsoft YaHei', sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+    'Noto Color Emoji';
 
   /* Colors */
   /* Copied from https://tailwindcss.com/docs/theme#default-theme-variable-reference */
@@ -59,6 +60,16 @@
   color utility to any element that depends on these defaults.
 */
 @layer base {
+  html {
+    scrollbar-color: #94a3b8 transparent;
+    overflow-anchor: none;
+  }
+
+  body {
+    min-width: 320px;
+    overflow-anchor: none;
+  }
+
   *,
   ::after,
   ::before,
@@ -69,14 +80,14 @@
 
   a,
   button {
-    outline-color: var(--color-primary-500);
+    outline-color: var(--color-sky-500);
   }
 
   a:focus-visible,
   button:focus-visible {
     outline: 2px solid;
     border-radius: var(--radius-sm);
-    outline-color: var(--color-primary-500);
+    outline-color: var(--color-sky-500);
   }
 }
 
@@ -115,6 +126,68 @@
     }
     & :where(h1, h2, h3, h4, h5, h6) {
       color: var(--color-gray-100);
+    }
+  }
+}
+
+@layer components {
+  .blog-shell {
+    --blog-gap: clamp(22.5px, 1.18vw, 45px);
+    --blog-wide-width: clamp(1184px, 71.7vw, 2752px);
+    max-width: min(calc(100% - 30px), var(--blog-wide-width));
+  }
+
+  .blog-frame {
+    --blog-gap: clamp(22.5px, 1.18vw, 45px);
+    --blog-wide-width: clamp(1184px, 71.7vw, 2752px);
+    max-width: min(100%, 680px);
+  }
+
+  .blog-main-column,
+  .blog-sidebar-left,
+  .blog-sidebar-left-sticky,
+  .blog-sidebar-right {
+    min-width: 0;
+    background: transparent;
+  }
+
+  .blog-main-column,
+  .blog-main-column [data-post-shell] {
+    overflow-anchor: none;
+  }
+
+  @media (min-width: 1280px) and (min-height: 760px) {
+    .blog-frame {
+      max-width: min(calc(100% - 30px), var(--blog-wide-width));
+      grid-template-columns: 23fr minmax(0, 54fr) 23fr;
+      column-gap: var(--blog-gap);
+      align-items: start;
+    }
+
+    .blog-main-column {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .blog-sidebar-left {
+      grid-column: 1;
+      grid-row: 1;
+      align-self: stretch;
+    }
+
+    .blog-sidebar-left-sticky,
+    .blog-sidebar-right {
+      position: sticky;
+      top: 96px;
+      z-index: 20;
+      width: auto;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .blog-sidebar-right {
+      grid-column: 3;
+      grid-row: 1;
     }
   }
 }

@@ -7,6 +7,7 @@ type BlogLike = {
   language?: string
   slug: string
   path?: string
+  categories?: string[]
   tags?: string[]
 }
 
@@ -38,15 +39,29 @@ export function getPostByLocaleAndSlug<T extends BlogLike>(
   return getPostsByLocale(posts, locale).find((post) => post.slug === postSlug)
 }
 
-export function getTagCounts(posts: BlogLike[]): Record<string, number> {
+function getTermCounts(posts: BlogLike[], field: 'categories' | 'tags'): Record<string, number> {
   return posts.reduce<Record<string, number>>((counts, post) => {
-    post.tags?.forEach((tag) => {
-      const formattedTag = slug(tag)
-      counts[formattedTag] = (counts[formattedTag] || 0) + 1
+    post[field]?.forEach((term) => {
+      const formattedTerm = slug(term)
+      counts[formattedTerm] = (counts[formattedTerm] || 0) + 1
     })
 
     return counts
   }, {})
+}
+
+export function getCategoryCounts(posts: BlogLike[]): Record<string, number> {
+  return getTermCounts(posts, 'categories')
+}
+
+export function getTagCounts(posts: BlogLike[]): Record<string, number> {
+  return getTermCounts(posts, 'tags')
+}
+
+export function getPostsByCategory<T extends BlogLike>(posts: T[], category: string): T[] {
+  return posts.filter((post) =>
+    post.categories?.map((postCategory) => slug(postCategory)).includes(category)
+  )
 }
 
 export function getPostsByTag<T extends BlogLike>(posts: T[], tag: string): T[] {

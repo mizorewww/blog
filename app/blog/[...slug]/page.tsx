@@ -1,24 +1,19 @@
-import { components } from '@/components/MDXComponents'
-import { MDXLayoutRenderer } from 'pliny/mdx-components'
 import { sortPosts, coreContent, allCoreContent } from 'pliny/utils/contentlayer'
 import { allBlogs, allAuthors } from 'contentlayer/generated'
-import type { Authors, Blog } from 'contentlayer/generated'
-import PostSimple from '@/layouts/PostSimple'
-import PostLayout from '@/layouts/PostLayout'
-import PostBanner from '@/layouts/PostBanner'
+import type { Authors } from 'contentlayer/generated'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { getPostImageUrls } from '@/lib/postImages'
-import { defaultLocale, localeConfig } from '@/lib/i18n'
-import { getPostByLocaleAndSlug, getPostsByLocale } from '@/lib/blog'
-
-const defaultLayout = 'PostLayout'
-const layouts = {
-  PostSimple,
-  PostLayout,
-  PostBanner,
-}
+import { defaultLocale, localeConfig, locales, localizePath, ui } from '@/lib/i18n'
+import {
+  getCategoryCounts,
+  getPostByLocaleAndSlug,
+  getPostsByLocale,
+  getTagCounts,
+} from '@/lib/blog'
+import ListLayout from '@/layouts/ListLayoutWithTags'
+import { toListPosts } from '@/lib/listPosts'
 
 export async function generateMetadata(props: {
   params: Promise<{ slug: string[] }>
@@ -47,12 +42,25 @@ export async function generateMetadata(props: {
     siteUrl: siteMetadata.siteUrl,
   })
   const ogImages = imageUrls.map((url) => ({ url, alt: post.title }))
+  const languages = locales.reduce<Record<string, string>>((alternates, locale) => {
+    const alternatePost = getPostByLocaleAndSlug(allBlogs, locale, slug)
+
+    if (alternatePost) {
+      alternates[localeConfig[locale].htmlLang] = localizePath(`/blog/${slug}`, locale)
+    }
+
+    return alternates
+  }, {})
 
   return {
     title: post.title,
     description: post.summary,
+    authors: authors.map((name) => ({ name })),
+    keywords: [...(post.categories || []), ...(post.tags || [])],
+    category: post.categories?.[0],
     alternates: {
       canonical: canonicalUrl,
+      languages,
     },
     openGraph: {
       title: post.title,
@@ -92,24 +100,27 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
     return notFound()
   }
 
-  const prev = sortedCoreContents[postIndex + 1]
-  const next = sortedCoreContents[postIndex - 1]
-  const post = getPostByLocaleAndSlug(allBlogs, defaultLocale, slug) as Blog
+  const post = getPostByLocaleAndSlug(allBlogs, defaultLocale, slug)
+
+  if (!post) {
+    return notFound()
+  }
+
   const authorList = post?.authors || ['default']
   const authorDetails = authorList.map((author) => {
     const authorResults = allAuthors.find((p) => p.slug === author)
     return coreContent(authorResults as Authors)
   })
-  const mainContent = coreContent(post)
-  const jsonLd = post.structuredData
-  jsonLd['author'] = authorDetails.map((author) => {
-    return {
+  const jsonLd = {
+    ...post.structuredData,
+    articleSection: post.categories,
+    keywords: post.tags,
+    author: authorDetails.map((author) => ({
       '@type': 'Person',
       name: author.name,
-    }
-  })
-
-  const Layout = layouts[post.layout || defaultLayout]
+    })),
+  }
+  const posts = toListPosts(sortPosts(localeBlogs))
 
   return (
     <>
@@ -117,9 +128,14 @@ export default async function Page(props: { params: Promise<{ slug: string[] }> 
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Layout content={mainContent} authorDetails={authorDetails} next={next} prev={prev}>
-        <MDXLayoutRenderer code={post.body.code} components={components} toc={post.toc} />
-      </Layout>
+      <ListLayout
+        posts={posts}
+        title={ui[defaultLocale].allPosts}
+        locale={defaultLocale}
+        categoryCounts={getCategoryCounts(localeBlogs)}
+        tagCounts={getTagCounts(localeBlogs)}
+        initialExpandedPath={post.path}
+      />
     </>
   )
 }

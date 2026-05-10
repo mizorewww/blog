@@ -11,18 +11,24 @@ const HeaderNavLinks = () => {
   const labels = ui[locale]
 
   return (
-    <div className="no-scrollbar hidden max-w-40 items-center gap-x-4 overflow-x-auto sm:flex md:max-w-72 lg:max-w-96">
-      {headerNavLinks
-        .filter((link) => link.href !== '/')
-        .map((link) => (
+    <div className="no-scrollbar flex items-center gap-x-5 overflow-x-auto text-slate-700 sm:gap-x-7 dark:text-white/90">
+      {headerNavLinks.map((link) => {
+        const isExternal = link.href.startsWith('http')
+        const href = isExternal ? link.href : localizePath(link.href, locale)
+        const active =
+          !isExternal &&
+          (pathname === href || (link.href !== '/' && pathname.startsWith(`${href}/`)))
+
+        return (
           <Link
             key={link.key}
-            href={localizePath(link.href, locale)}
-            className="hover:text-primary-500 dark:hover:text-primary-400 m-1 font-medium text-gray-900 dark:text-gray-100"
+            href={href}
+            className={`font-medium transition hover:text-sky-500 ${active ? 'text-sky-500' : ''}`}
           >
             {labels[link.key]}
           </Link>
-        ))}
+        )
+      })}
     </div>
   )
 }

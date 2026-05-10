@@ -15,8 +15,9 @@ import {
 function getLanguageHref(pathname: string, locale: Locale) {
   const strippedPath = stripLocaleFromPathname(pathname)
 
-  if (/^\/tags\/[^/]+/.test(strippedPath)) {
-    return localizePath('/tags', locale)
+  if (/^\/(categories|tags)\/[^/]+/.test(strippedPath)) {
+    const section = strippedPath.split('/')[1]
+    return localizePath(`/${section}`, locale)
   }
 
   return switchLocalePath(pathname, locale)

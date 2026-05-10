@@ -118,7 +118,7 @@ const blogComputedFields: ComputedFields = {
 async function createTagCount(allBlogs) {
   const tagCount: Record<string, number> = {}
   allBlogs.forEach((file) => {
-    if (file.tags && (!isProduction || file.draft !== true)) {
+    if (file.tags && file.draft !== true) {
       file.tags.forEach((tag) => {
         const formattedTag = slug(tag)
         if (formattedTag in tagCount) {
@@ -138,9 +138,11 @@ function createSearchIndex(allBlogs) {
     siteMetadata?.search?.provider === 'kbar' &&
     siteMetadata.search.kbarConfig.searchDocumentsPath
   ) {
+    const indexedBlogs = allBlogs.filter((post) => !isProduction || post.draft !== true)
+
     writeFileSync(
       `public/${path.basename(siteMetadata.search.kbarConfig.searchDocumentsPath)}`,
-      JSON.stringify(allCoreContent(sortPosts(allBlogs)))
+      JSON.stringify(allCoreContent(sortPosts(indexedBlogs)))
     )
     console.log('Local search index generated...')
   }
@@ -153,6 +155,7 @@ export const Blog = defineDocumentType(() => ({
   fields: {
     title: { type: 'string', required: true },
     date: { type: 'date', required: true },
+    categories: { type: 'list', of: { type: 'string' }, default: [] },
     tags: { type: 'list', of: { type: 'string' }, default: [] },
     lastmod: { type: 'date' },
     draft: { type: 'boolean' },
@@ -180,6 +183,8 @@ export const Blog = defineDocumentType(() => ({
           datePublished: doc.date,
           dateModified: doc.lastmod || doc.date,
           description: doc.summary,
+          articleSection: doc.categories,
+          keywords: doc.tags,
           image: getPostImageUrls({
             image: doc.image,
             images: doc.images,

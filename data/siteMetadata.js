@@ -5,7 +5,7 @@ const siteMetadata = {
   headerTitle: 'mizorewww',
   description: 'mizorewww 的个人博客',
   language: 'zh-CN',
-  theme: 'system', // system, dark or light
+  theme: 'dark', // system, dark or light
   siteUrl: 'https://mizore.blog',
   siteRepo: 'https://github.com/mizorewww/blog',
   siteLogo: `${process.env.BASE_PATH || ''}/static/images/logo.png`,
