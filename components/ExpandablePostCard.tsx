@@ -13,11 +13,16 @@ import type { MouseEvent, ReactNode } from 'react'
 const cardClass =
   'rounded-[8px] bg-white shadow-[0_14px_36px_rgba(21,30,43,0.07)] dark:bg-[#252d38] dark:shadow-none'
 const BODY_MOTION_DURATION = 560
+const BLOG_PATH_CHANGE_EVENT = 'blog-pathchange'
 
 function getHistoryState() {
   return typeof window.history.state === 'object' && window.history.state !== null
     ? window.history.state
     : {}
+}
+
+function notifyBlogPathChange() {
+  window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
 }
 
 function renderInline(text: string) {
@@ -214,6 +219,7 @@ export default function ExpandablePostCard({
       const previousScrollY = previousScrollYRef.current
 
       window.history.pushState(null, '', previousUrl)
+      notifyBlogPathChange()
       previousUrlRef.current = null
       previousScrollYRef.current = null
       const previousCardTop = previousCardTopRef.current
@@ -252,6 +258,7 @@ export default function ExpandablePostCard({
         '',
         postHref
       )
+      notifyBlogPathChange()
     }
 
     onExpandedChange(true, {

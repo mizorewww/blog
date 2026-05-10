@@ -6,8 +6,7 @@ import 'remark-github-blockquote-alert/alert.css'
 import { Space_Grotesk } from 'next/font/google'
 import { Analytics, AnalyticsConfig } from 'pliny/analytics'
 import { SearchProvider, SearchConfig } from 'pliny/search'
-import Header from '@/components/Header'
-import Footer from '@/components/Footer'
+import AppShell from '@/components/AppShell'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
@@ -98,14 +97,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
       <body className="min-h-screen overflow-y-scroll bg-[#f2f5f8] text-slate-900 antialiased dark:bg-[#181c27] dark:text-white/90">
         <ThemeProviders>
-          <div className="flex min-h-screen flex-col">
-            <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
-            <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-              <Header />
-              <main className="flex-1 pt-[72px] sm:pt-[96px]">{children}</main>
-            </SearchProvider>
-            <Footer />
-          </div>
+          <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
+          <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
+            <AppShell>{children}</AppShell>
+          </SearchProvider>
         </ThemeProviders>
       </body>
     </html>

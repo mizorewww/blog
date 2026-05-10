@@ -20,7 +20,8 @@ interface ListLayoutProps {
 
 const POSTS_PER_BATCH = 5
 const MOTION_DURATION = 560
-const EXPANDED_TARGET_OFFSET = 96
+const DESKTOP_EXPANDED_TARGET_OFFSET = 96
+const MOBILE_EXPANDED_TARGET_OFFSET = 24
 
 type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
 type MotionContext = {
@@ -83,6 +84,12 @@ function getInitialVisibleCount(
 
 function prefersReducedMotion() {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
+}
+
+function getExpandedTargetOffset() {
+  return window.matchMedia('(max-width: 639px)').matches
+    ? MOBILE_EXPANDED_TARGET_OFFSET
+    : DESKTOP_EXPANDED_TARGET_OFFSET
 }
 
 function cubicBezierCoordinate(t: number, point1: number, point2: number) {
@@ -269,13 +276,15 @@ export default function ListLayoutWithTags({
       const postIndex = posts.findIndex((item) => item.path === post.path)
 
       if (postIndex <= 0) {
-        return EXPANDED_TARGET_OFFSET
+        return getExpandedTargetOffset()
       }
 
       const shell = getPostShell(post.path)
       const shellHeight = shell?.getBoundingClientRect().height || 0
 
-      return Math.max(EXPANDED_TARGET_OFFSET, (window.innerHeight - shellHeight) / 2)
+      const targetOffset = getExpandedTargetOffset()
+
+      return Math.max(targetOffset, (window.innerHeight - shellHeight) / 2)
     },
     [posts]
   )
@@ -291,7 +300,7 @@ export default function ListLayoutWithTags({
       const startTop =
         getPostShell(post.path)?.getBoundingClientRect().top ??
         context.previousCardTop ??
-        EXPANDED_TARGET_OFFSET
+        getExpandedTargetOffset()
 
       flushSync(() => {
         setMotionMinHeight(getMainColumnHeight())
@@ -304,11 +313,11 @@ export default function ListLayoutWithTags({
       animatePostTopTo(
         post.path,
         startTop,
-        EXPANDED_TARGET_OFFSET,
+        getExpandedTargetOffset(),
         MOTION_DURATION,
         scrollFrameRef,
         () => {
-          setPostTop(post.path, EXPANDED_TARGET_OFFSET)
+          setPostTop(post.path, getExpandedTargetOffset())
           setMotionPhase('idle')
           setMotionPath(post.path)
           setMotionMinHeight(null)
@@ -327,7 +336,7 @@ export default function ListLayoutWithTags({
         posts.findIndex((item) => item.path === post.path) + 1
       )
       const startTop =
-        getPostShell(post.path)?.getBoundingClientRect().top ?? EXPANDED_TARGET_OFFSET
+        getPostShell(post.path)?.getBoundingClientRect().top ?? getExpandedTargetOffset()
       const targetTop = getCollapsedTargetTop(post, context)
 
       flushSync(() => {
