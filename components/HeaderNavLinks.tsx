@@ -11,7 +11,7 @@ const HeaderNavLinks = () => {
   const labels = ui[locale]
 
   return (
-    <div className="no-scrollbar flex items-center gap-x-5 overflow-x-auto text-slate-700 sm:gap-x-7 dark:text-white/90">
+    <div className="no-scrollbar flex items-center gap-x-3 overflow-x-auto text-slate-700 sm:gap-x-7 dark:text-white/90">
       {headerNavLinks.map((link) => {
         const isExternal = link.href.startsWith('http')
         const href = isExternal ? link.href : localizePath(link.href, locale)

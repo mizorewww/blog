@@ -1,8 +1,19 @@
+'use client'
+
+import { usePathname } from 'next/navigation'
+import { getLocaleFromPathname, localizePath } from '@/lib/i18n'
 import Link from './Link'
 
 const SearchButton = () => {
+  const pathname = usePathname()
+  const locale = getLocaleFromPathname(pathname)
+
   return (
-    <Link href="/search" aria-label="搜索" className="transition hover:text-sky-500">
+    <Link
+      href={localizePath('/search', locale)}
+      aria-label="搜索"
+      className="transition hover:text-sky-500"
+    >
       <svg
         aria-hidden="true"
         xmlns="http://www.w3.org/2000/svg"

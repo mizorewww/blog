@@ -25,20 +25,22 @@ const RssIcon = () => (
 const Header = () => {
   return (
     <header className="fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur dark:bg-[#252d38]/95 dark:shadow-none">
-      <div className="blog-shell mx-auto flex w-full flex-wrap items-center justify-center gap-x-7 gap-y-3 px-4 py-3 sm:justify-between sm:px-6 sm:py-4 lg:px-0">
+      <div className="header-shell mx-auto flex w-full flex-nowrap items-center justify-start gap-x-3 px-3 py-2.5 sm:justify-between sm:gap-x-7 sm:px-6 sm:py-4 lg:px-0">
         <HeaderLogo />
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-3 text-base leading-5 sm:text-lg lg:text-xl">
+        <div className="flex min-w-0 items-center justify-start gap-x-3 text-sm leading-5 sm:justify-end sm:gap-x-6 sm:text-lg lg:text-xl">
           <HeaderNavLinks />
-          <div className="flex items-center gap-x-4 text-slate-600 dark:text-white/90">
+          <div className="flex shrink-0 items-center gap-x-3 text-slate-600 sm:gap-x-4 dark:text-white/90">
             <Link
               href="/feed.xml"
               aria-label="订阅 Atom RSS"
-              className="transition hover:text-sky-500"
+              className="hidden transition hover:text-sky-500 sm:inline-flex"
             >
               <RssIcon />
             </Link>
             <SearchButton />
-            <LanguageSwitcher />
+            <div className="hidden sm:block">
+              <LanguageSwitcher />
+            </div>
             <ThemeSwitch />
           </div>
         </div>

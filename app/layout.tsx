@@ -102,7 +102,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
             <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
               <Header />
-              <main className="flex-1 pt-[128px] sm:pt-[112px] lg:pt-[96px]">{children}</main>
+              <main className="flex-1 pt-[72px] sm:pt-[96px]">{children}</main>
             </SearchProvider>
             <Footer />
           </div>

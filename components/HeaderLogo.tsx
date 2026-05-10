@@ -15,17 +15,17 @@ const HeaderLogo = () => {
       <div className="flex items-center justify-between gap-3">
         <Image
           src="/static/images/avatar.png"
-          width={40}
-          height={40}
+          width={36}
+          height={36}
           alt=""
-          className="rounded-full bg-white p-0.5"
+          className="rounded-full bg-white p-0.5 sm:h-10 sm:w-10"
         />
         {typeof siteMetadata.headerTitle === 'string' ? (
-          <div className="text-xl font-semibold text-slate-900 sm:text-2xl dark:text-white/90">
+          <div className="hidden text-xl font-semibold text-slate-900 sm:block sm:text-2xl dark:text-white/90">
             {siteMetadata.headerTitle}
           </div>
         ) : (
-          siteMetadata.headerTitle
+          <div className="hidden sm:block">{siteMetadata.headerTitle}</div>
         )}
       </div>
     </Link>

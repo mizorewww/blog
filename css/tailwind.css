@@ -137,6 +137,11 @@
     max-width: min(calc(100% - 30px), var(--blog-wide-width));
   }
 
+  .header-shell {
+    --blog-wide-width: clamp(1184px, 71.7vw, 2752px);
+    max-width: 100%;
+  }
+
   .blog-frame {
     --blog-gap: clamp(22.5px, 1.18vw, 45px);
     --blog-wide-width: clamp(1184px, 71.7vw, 2752px);
@@ -154,6 +159,12 @@
   .blog-main-column,
   .blog-main-column [data-post-shell] {
     overflow-anchor: none;
+  }
+
+  @media (min-width: 640px) {
+    .header-shell {
+      max-width: min(calc(100% - 30px), var(--blog-wide-width));
+    }
   }
 
   @media (min-width: 1280px) and (min-height: 760px) {
