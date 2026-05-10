@@ -21,7 +21,7 @@ interface ListLayoutProps {
 const POSTS_PER_BATCH = 5
 const MOTION_DURATION = 560
 const DESKTOP_EXPANDED_TARGET_OFFSET = 96
-const MOBILE_EXPANDED_TARGET_OFFSET = 24
+const MOBILE_EXPANDED_TARGET_OFFSET = 88
 
 type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
 type MotionContext = {
