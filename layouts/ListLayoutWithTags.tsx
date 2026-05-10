@@ -1,12 +1,13 @@
 'use client'
 
+import { usePathname } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { MutableRefObject } from 'react'
 import { BlogFrame, countCategories, countTags } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
 import type { BlogListPost } from '@/lib/listPosts'
-import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
+import { defaultLocale, localeConfig, locales, type Locale, ui } from '@/lib/i18n'
 
 interface ListLayoutProps {
   posts: BlogListPost[]
@@ -22,6 +23,7 @@ const POSTS_PER_BATCH = 5
 const MOTION_DURATION = 560
 const DESKTOP_EXPANDED_TARGET_OFFSET = 96
 const MOBILE_EXPANDED_TARGET_OFFSET = 88
+const BLOG_PATH_CHANGE_EVENT = 'blog-pathchange'
 
 type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
 type MotionContext = {
@@ -45,15 +47,25 @@ function normalizePathname(pathname: string) {
   return withoutTrailingSlash || '/'
 }
 
+function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
+  const currentPath = normalizePathname(decodeURI(pathname))
+  const matchingPost = posts.find((post) => normalizePathname(`/${post.path}`) === currentPath)
+
+  return matchingPost?.path || null
+}
+
 function getExpandedPathFromLocation(posts: BlogListPost[]) {
   if (typeof window === 'undefined') {
     return null
   }
 
-  const currentPath = normalizePathname(decodeURI(window.location.pathname))
-  const matchingPost = posts.find((post) => normalizePathname(`/${post.path}`) === currentPath)
+  return getExpandedPathFromPathname(posts, window.location.pathname)
+}
 
-  return matchingPost?.path || null
+function isHomePath(pathname: string) {
+  const currentPath = normalizePathname(pathname)
+
+  return currentPath === '/' || locales.some((locale) => currentPath === `/${locale}`)
 }
 
 function getBlogListReturnContext(state: unknown, postPath: string): MotionContext | null {
@@ -237,6 +249,7 @@ export default function ListLayoutWithTags({
   initialDisplayPosts = [],
   initialExpandedPath = null,
 }: ListLayoutProps) {
+  const pathname = usePathname()
   const [visibleCount, setVisibleCount] = useState(
     getInitialVisibleCount(posts, initialDisplayPosts.length, initialExpandedPath)
   )
@@ -377,7 +390,7 @@ export default function ListLayoutWithTags({
   }, [])
 
   useEffect(() => {
-    const nextExpandedPath = getExpandedPathFromLocation(posts) || initialExpandedPath
+    const nextExpandedPath = getExpandedPathFromPathname(posts, pathname) || initialExpandedPath
 
     clearMotionTimers()
     setVisibleCount(getInitialVisibleCount(posts, initialDisplayPosts.length, nextExpandedPath))
@@ -385,7 +398,43 @@ export default function ListLayoutWithTags({
     setMotionPath(nextExpandedPath)
     setMotionMinHeight(null)
     setMotionPhase('idle')
-  }, [clearMotionTimers, initialDisplayPosts.length, initialExpandedPath, posts])
+  }, [clearMotionTimers, initialDisplayPosts.length, initialExpandedPath, pathname, posts])
+
+  useEffect(() => {
+    const collapseOnHomeClick = (event: MouseEvent) => {
+      const target = event.target
+
+      if (!(target instanceof Element)) {
+        return
+      }
+
+      const anchor = target.closest<HTMLAnchorElement>('a[href]')
+
+      if (!anchor) {
+        return
+      }
+
+      const targetUrl = new URL(anchor.href, window.location.href)
+
+      if (targetUrl.origin !== window.location.origin || !isHomePath(targetUrl.pathname)) {
+        return
+      }
+
+      clearMotionTimers()
+      setExpandedPath(null)
+      setMotionPath(null)
+      setMotionMinHeight(null)
+      setMotionPhase('idle')
+
+      window.requestAnimationFrame(() => {
+        window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
+      })
+    }
+
+    document.addEventListener('click', collapseOnHomeClick, true)
+
+    return () => document.removeEventListener('click', collapseOnHomeClick, true)
+  }, [clearMotionTimers])
 
   useEffect(() => {
     const syncExpandedPath = (event?: PopStateEvent) => {
