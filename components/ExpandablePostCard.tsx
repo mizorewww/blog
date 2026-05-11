@@ -25,6 +25,14 @@ function notifyBlogPathChange() {
   window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
 }
 
+function getMarkdownImageSrc(src: string) {
+  if (/^(https?:)?\/\//.test(src) || src.startsWith('data:')) {
+    return src
+  }
+
+  return `${process.env.BASE_PATH || ''}${src}`
+}
+
 function renderInline(text: string) {
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g)
 
@@ -84,6 +92,7 @@ function ArticleBody({ source }: { source: string }) {
 
     lines.forEach((line) => {
       const trimmed = line.trim()
+      const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
 
       if (trimmed.startsWith('```')) {
         if (inCode) {
@@ -107,6 +116,28 @@ function ArticleBody({ source }: { source: string }) {
 
       if (inCode) {
         code.push(line)
+        return
+      }
+
+      if (imageMatch) {
+        flushParagraph()
+        flushList()
+        rendered.push(
+          <figure key={`figure-${rendered.length}`} className="my-6">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={getMarkdownImageSrc(imageMatch[2])}
+              alt={imageMatch[1]}
+              loading="lazy"
+              className="mx-auto max-h-[70vh] w-auto max-w-full rounded-[8px] border border-slate-200 bg-slate-100 dark:border-[#405064] dark:bg-[#111827]"
+            />
+            {imageMatch[1] && (
+              <figcaption className="mt-2 text-center text-sm text-slate-500 dark:text-white/55">
+                {imageMatch[1]}
+              </figcaption>
+            )}
+          </figure>
+        )
         return
       }
 
