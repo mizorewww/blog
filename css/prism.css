@@ -1,140 +1,58 @@
-/**
- * CSS Styles for code highlighting.
- * Feel free to customize token styles 
- * by copying from a prismjs compatible theme:
- * https://github.com/PrismJS/prism-themes
- */
+/* Code block styles for MDX output highlighted by rehype-pretty-code + Shiki. */
 
-/* Code title styles */
 .remark-code-title {
-  @apply rounded-xs bg-gray-700 px-5 py-3 font-mono text-sm font-bold text-gray-200 dark:bg-gray-800;
+  @apply rounded-t-[8px] border border-b-0 border-slate-200 bg-slate-100 px-4 py-2 font-mono text-sm font-semibold text-slate-600 dark:border-[#405064] dark:bg-[#1f2937] dark:text-white/75;
 }
 
-.remark-code-title + div > pre {
-  @apply mt-0 rounded-t-none;
+.remark-code-title + figure,
+.remark-code-title + div > figure {
+  @apply mt-0;
 }
 
-/* Code block styles */
-.code-highlight {
-  @apply float-left min-w-full;
+figure[data-rehype-pretty-code-figure] {
+  @apply my-6 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-50 dark:border-[#405064] dark:bg-[#111827];
 }
 
-.code-line {
-  @apply -mx-4 block border-l-4 border-transparent pr-4 pl-4;
+.remark-code-title + figure[data-rehype-pretty-code-figure],
+.remark-code-title + div > figure[data-rehype-pretty-code-figure] {
+  @apply rounded-t-none;
 }
 
-.code-line.inserted {
-  @apply bg-green-500/20;
+figure[data-rehype-pretty-code-figure] pre {
+  @apply m-0 overflow-x-auto bg-transparent px-0 py-4 text-sm leading-6;
 }
 
-.code-line.deleted {
-  @apply bg-red-500/20;
+figure[data-rehype-pretty-code-figure] code {
+  @apply grid min-w-full bg-transparent px-0 font-mono text-sm;
+  counter-reset: line;
 }
 
-.highlight-line {
-  @apply border-primary-500 -mx-4 border-l-4 bg-gray-700/50;
+code[data-theme],
+code[data-theme] span {
+  color: var(--shiki-light);
+  background-color: transparent;
 }
 
-.line-number::before {
-  @apply mr-4 -ml-2 inline-block w-4 text-right text-gray-400;
-  content: attr(line);
+.dark code[data-theme],
+.dark code[data-theme] span {
+  color: var(--shiki-dark);
+  background-color: transparent;
 }
 
-/* Token styles */
-/**
- * MIT License
- * Copyright (c) 2018 Sarah Drasner
- * Sarah Drasner's[@sdras] Night Owl
- * Ported by Sara vieria [@SaraVieira]
- * Added by Souvik Mandal [@SimpleIndian]
- */
-.token.comment,
-.token.prolog,
-.token.cdata {
-  color: rgb(99, 119, 119);
-  font-style: italic;
+code[data-line-numbers] > [data-line]::before {
+  @apply mr-4 inline-block w-4 text-right text-slate-400 dark:text-white/35;
+  counter-increment: line;
+  content: counter(line);
 }
 
-.token.punctuation {
-  color: rgb(199, 146, 234);
+[data-line] {
+  @apply min-h-6 border-l-4 border-transparent px-4;
 }
 
-.namespace {
-  color: rgb(178, 204, 214);
+[data-highlighted-line] {
+  @apply border-sky-500 bg-sky-100/70 dark:bg-sky-500/15;
 }
 
-.token.deleted {
-  color: rgba(239, 83, 80, 0.56);
-  font-style: italic;
-}
-
-.token.symbol,
-.token.property {
-  color: rgb(128, 203, 196);
-}
-
-.token.tag,
-.token.operator,
-.token.keyword {
-  color: rgb(127, 219, 202);
-}
-
-.token.boolean {
-  color: rgb(255, 88, 116);
-}
-
-.token.number {
-  color: rgb(247, 140, 108);
-}
-
-.token.constant,
-.token.function,
-.token.builtin,
-.token.char {
-  color: rgb(130, 170, 255);
-}
-
-.token.selector,
-.token.doctype {
-  color: rgb(199, 146, 234);
-  font-style: italic;
-}
-
-.token.attr-name,
-.token.inserted {
-  color: rgb(173, 219, 103);
-  font-style: italic;
-}
-
-.token.string,
-.token.url,
-.token.entity,
-.language-css .token.string,
-.style .token.string {
-  color: rgb(173, 219, 103);
-}
-
-.token.class-name,
-.token.atrule,
-.token.attr-value {
-  color: rgb(255, 203, 139);
-}
-
-.token.regex,
-.token.important,
-.token.variable {
-  color: rgb(214, 222, 235);
-}
-
-.token.important,
-.token.bold {
-  font-weight: bold;
-}
-
-.token.italic {
-  font-style: italic;
-}
-
-.token.table {
-  display: inline;
+[data-highlighted-chars] {
+  @apply rounded-[4px] bg-sky-200/70 px-1 py-0.5 dark:bg-sky-400/20;
 }

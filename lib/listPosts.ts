@@ -3,12 +3,12 @@ import { coreContent } from 'pliny/utils/contentlayer'
 import type { CoreContent } from 'pliny/utils/contentlayer'
 
 export type BlogListPost = CoreContent<Blog> & {
-  bodyRaw?: string
+  bodyCode?: string
 }
 
 export function toListPosts(posts: Blog[]): BlogListPost[] {
   return posts.map((post) => ({
     ...coreContent(post),
-    bodyRaw: post.body.raw,
+    bodyCode: post.body.code,
   }))
 }

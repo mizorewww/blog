@@ -2,13 +2,15 @@
 
 import Image from '@/components/Image'
 import Link from '@/components/Link'
+import { components as mdxComponents } from '@/components/MDXComponents'
 import siteMetadata from '@/data/siteMetadata'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale } from '@/lib/i18n'
 import { slug } from 'github-slugger'
+import { MDXLayoutRenderer } from 'pliny/mdx-components'
 import { formatDate } from 'pliny/utils/formatDate'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { MouseEvent, ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { MouseEvent } from 'react'
 
 const cardClass =
   'rounded-[8px] bg-white shadow-[0_14px_36px_rgba(21,30,43,0.07)] dark:bg-[#252d38] dark:shadow-none'
@@ -23,174 +25,6 @@ function getHistoryState() {
 
 function notifyBlogPathChange() {
   window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
-}
-
-function getMarkdownImageSrc(src: string) {
-  if (/^(https?:)?\/\//.test(src) || src.startsWith('data:')) {
-    return src
-  }
-
-  return `${process.env.BASE_PATH || ''}${src}`
-}
-
-function renderInline(text: string) {
-  const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g)
-
-  return parts.map((part, index) => {
-    if (part.startsWith('`') && part.endsWith('`')) {
-      return (
-        <code key={index} className="rounded bg-slate-200 px-1 py-0.5 dark:bg-[#111827]">
-          {part.slice(1, -1)}
-        </code>
-      )
-    }
-
-    if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={index}>{part.slice(2, -2)}</strong>
-    }
-
-    return part
-  })
-}
-
-function ArticleBody({ source }: { source: string }) {
-  const blocks = useMemo(() => {
-    const lines = source
-      .replace(/\r\n/g, '\n')
-      .split('\n')
-      .filter((line) => !line.trim().startsWith('---'))
-
-    const rendered: ReactNode[] = []
-    let paragraph: string[] = []
-    let list: string[] = []
-    let code: string[] = []
-    let inCode = false
-
-    const flushParagraph = () => {
-      if (paragraph.length) {
-        rendered.push(
-          <p key={`p-${rendered.length}`} className="mb-4 leading-8">
-            {renderInline(paragraph.join(' '))}
-          </p>
-        )
-        paragraph = []
-      }
-    }
-
-    const flushList = () => {
-      if (list.length) {
-        rendered.push(
-          <ul key={`ul-${rendered.length}`} className="mb-4 list-disc space-y-2 pl-6">
-            {list.map((item, index) => (
-              <li key={index}>{renderInline(item)}</li>
-            ))}
-          </ul>
-        )
-        list = []
-      }
-    }
-
-    lines.forEach((line) => {
-      const trimmed = line.trim()
-      const imageMatch = trimmed.match(/^!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)$/)
-
-      if (trimmed.startsWith('```')) {
-        if (inCode) {
-          rendered.push(
-            <pre
-              key={`code-${rendered.length}`}
-              className="mb-4 overflow-x-auto rounded-[8px] bg-slate-950 px-4 py-3 text-sm text-slate-100"
-            >
-              <code>{code.join('\n')}</code>
-            </pre>
-          )
-          code = []
-          inCode = false
-        } else {
-          flushParagraph()
-          flushList()
-          inCode = true
-        }
-        return
-      }
-
-      if (inCode) {
-        code.push(line)
-        return
-      }
-
-      if (imageMatch) {
-        flushParagraph()
-        flushList()
-        rendered.push(
-          <figure key={`figure-${rendered.length}`} className="my-6">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={getMarkdownImageSrc(imageMatch[2])}
-              alt={imageMatch[1]}
-              loading="lazy"
-              className="mx-auto max-h-[70vh] w-auto max-w-full rounded-[8px] border border-slate-200 bg-slate-100 dark:border-[#405064] dark:bg-[#111827]"
-            />
-            {imageMatch[1] && (
-              <figcaption className="mt-2 text-center text-sm text-slate-500 dark:text-white/55">
-                {imageMatch[1]}
-              </figcaption>
-            )}
-          </figure>
-        )
-        return
-      }
-
-      if (!trimmed) {
-        flushParagraph()
-        flushList()
-        return
-      }
-
-      if (trimmed.startsWith('#')) {
-        flushParagraph()
-        flushList()
-        const level = Math.min(trimmed.match(/^#+/)?.[0].length || 2, 3)
-        const text = trimmed.replace(/^#+\s*/, '')
-        const Heading = level === 1 ? 'h2' : level === 2 ? 'h3' : 'h4'
-        rendered.push(
-          <Heading key={`h-${rendered.length}`} className="mt-7 mb-3 text-xl font-medium">
-            {renderInline(text)}
-          </Heading>
-        )
-        return
-      }
-
-      if (/^[-*]\s+/.test(trimmed)) {
-        flushParagraph()
-        list.push(trimmed.replace(/^[-*]\s+/, ''))
-        return
-      }
-
-      if (trimmed.startsWith('>')) {
-        flushParagraph()
-        flushList()
-        rendered.push(
-          <blockquote
-            key={`quote-${rendered.length}`}
-            className="mb-4 border-l-4 border-sky-500 pl-4 text-slate-500 dark:text-white/60"
-          >
-            {renderInline(trimmed.replace(/^>\s*/, ''))}
-          </blockquote>
-        )
-        return
-      }
-
-      paragraph.push(trimmed)
-    })
-
-    flushParagraph()
-    flushList()
-
-    return rendered
-  }, [source])
-
-  return <div className="text-slate-700 dark:text-white/80">{blocks}</div>
 }
 
 export default function ExpandablePostCard({
@@ -220,10 +54,9 @@ export default function ExpandablePostCard({
   const previousCardTopRef = useRef<number | null>(null)
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const primaryTag = post.tags?.[0]
-  const body = post.bodyRaw || post.summary || ''
   const postHref = `/${post.path}`
   const Heading = expanded ? 'h1' : headingLevel
-  const renderBody = expanded || shouldKeepBodyMounted
+  const renderBody = (expanded || shouldKeepBodyMounted) && post.bodyCode
 
   useEffect(() => {
     if (expanded) {
@@ -331,7 +164,11 @@ export default function ExpandablePostCard({
         >
           <div className="overflow-hidden">
             <div className="border-t border-slate-200 pt-5 pb-1 dark:border-[#405064]">
-              {renderBody && <ArticleBody source={body} />}
+              {renderBody && (
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  <MDXLayoutRenderer code={post.bodyCode || ''} components={mdxComponents} />
+                </div>
+              )}
             </div>
           </div>
         </div>

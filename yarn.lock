@@ -3423,6 +3423,86 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@shikijs/core@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/core@npm:4.0.2"
+  dependencies:
+    "@shikijs/primitive": 4.0.2
+    "@shikijs/types": 4.0.2
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+    hast-util-to-html: ^9.0.5
+  checksum: 1253c0691897ec410836339a94b36e849daabdf03312f329611e44d6d5aba76b92a3bb4b20517cdbff5805f2c5d2b65b75f7a06e552b9924e09687b310cbab66
+  languageName: node
+  linkType: hard
+
+"@shikijs/engine-javascript@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/engine-javascript@npm:4.0.2"
+  dependencies:
+    "@shikijs/types": 4.0.2
+    "@shikijs/vscode-textmate": ^10.0.2
+    oniguruma-to-es: ^4.3.4
+  checksum: 655b386218490f5b4124479efcc18130928603a216c44916030e3406a927f5bedadc3c5018bf3d8a2ae933271bce7e538e056b4d8db0eefa26b07150b8b9d11b
+  languageName: node
+  linkType: hard
+
+"@shikijs/engine-oniguruma@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/engine-oniguruma@npm:4.0.2"
+  dependencies:
+    "@shikijs/types": 4.0.2
+    "@shikijs/vscode-textmate": ^10.0.2
+  checksum: 2371ecf70ae2d52cd15f5061e690d77acc7184470dde087def654f1c5250333f1351fb5a0fdfce6475b361e42deafa9f7b427bef36eac9658a270eff5a759402
+  languageName: node
+  linkType: hard
+
+"@shikijs/langs@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/langs@npm:4.0.2"
+  dependencies:
+    "@shikijs/types": 4.0.2
+  checksum: 081d2595d78a7f9f316492407b1a0d4f187252bfd1fc6b9c0fe98a24e4972af7ddc27b4bf8662c3981902103c012cac64d1be5f4a5186b847287b950ad2f6675
+  languageName: node
+  linkType: hard
+
+"@shikijs/primitive@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/primitive@npm:4.0.2"
+  dependencies:
+    "@shikijs/types": 4.0.2
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+  checksum: 3c6d50cc1156c55a5ca66b63b5ed5adff6cf4ebb670bd250821af96e08f90656327f2e26dfc1b999e45b108925106806ea59d82ef175aa4bbe332117f653bdb6
+  languageName: node
+  linkType: hard
+
+"@shikijs/themes@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/themes@npm:4.0.2"
+  dependencies:
+    "@shikijs/types": 4.0.2
+  checksum: 07dec331d4a0e5ebb1a745294f8baa3ddb5a4a9b7ac191ac0a74cf896b8f6e0b2e4f251a494016eccbc1c0e232f72b3ad9b14a3e012121684a8ee672937a2534
+  languageName: node
+  linkType: hard
+
+"@shikijs/types@npm:4.0.2":
+  version: 4.0.2
+  resolution: "@shikijs/types@npm:4.0.2"
+  dependencies:
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+  checksum: a5ed64513bbb00c001eae1c50dd9b8cf64ee8e15bee0d6b5a72d6cb01503d695566e9f3a26115e7cffd33a5b57a8267e7104505832c679cfb8523638230ad159
+  languageName: node
+  linkType: hard
+
+"@shikijs/vscode-textmate@npm:^10.0.2":
+  version: 10.0.2
+  resolution: "@shikijs/vscode-textmate@npm:10.0.2"
+  checksum: e68f27a3dc1584d7414b8acafb9c177a2181eb0b06ef178d8609142f49d28d85fd10ab129affde40a45a7d9238997e457ce47931b3a3815980e2b98b2d26724c
+  languageName: node
+  linkType: hard
+
 "@svgr/babel-plugin-add-jsx-attribute@npm:8.0.0":
   version: 8.0.0
   resolution: "@svgr/babel-plugin-add-jsx-attribute@npm:8.0.0"
@@ -3843,7 +3923,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@types/hast@npm:^3.0.0":
+"@types/hast@npm:^3.0.0, @types/hast@npm:^3.0.4":
   version: 3.0.4
   resolution: "@types/hast@npm:3.0.4"
   dependencies:
@@ -3902,13 +3982,6 @@ __metadata:
   dependencies:
     undici-types: ~7.16.0
   checksum: 917d0dc0cbc18e615282825d8ec5352da9c0eda9992fce995d12219b3c8de11f19923a52ad4cbb90f808a210ecf8d6f6ca4efa4a974dfd555982cdb8b9ee8d67
-  languageName: node
-  linkType: hard
-
-"@types/prismjs@npm:^1.0.0":
-  version: 1.26.5
-  resolution: "@types/prismjs@npm:1.26.5"
-  checksum: d208b04ee9b6de6b2dc916439a81baa47e64ab3659a66d3d34bc3e42faccba9d4b26f590d76f97f7978d1dfaafa0861f81172b1e3c68696dd7a42d73aaaf5b7b
   languageName: node
   linkType: hard
 
@@ -7006,7 +7079,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hast-util-to-html@npm:^9.0.0":
+"hast-util-to-html@npm:^9.0.0, hast-util-to-html@npm:^9.0.5":
   version: 9.0.5
   resolution: "hast-util-to-html@npm:9.0.5"
   dependencies:
@@ -7048,7 +7121,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"hast-util-to-string@npm:^3.0.0, hast-util-to-string@npm:^3.0.1":
+"hast-util-to-string@npm:^3.0.0":
   version: 3.0.1
   resolution: "hast-util-to-string@npm:3.0.1"
   dependencies:
@@ -9517,6 +9590,24 @@ __metadata:
   languageName: node
   linkType: hard
 
+"oniguruma-parser@npm:^0.12.2":
+  version: 0.12.2
+  resolution: "oniguruma-parser@npm:0.12.2"
+  checksum: cc14c3260b075699ff5bc9e21dabf9859c7b92d3e356cf40e137434b275637fa897390450fbba357566da079ac1553b32b4387977615892962ab5a4b44daf836
+  languageName: node
+  linkType: hard
+
+"oniguruma-to-es@npm:^4.3.4":
+  version: 4.3.6
+  resolution: "oniguruma-to-es@npm:4.3.6"
+  dependencies:
+    oniguruma-parser: ^0.12.2
+    regex: ^6.1.0
+    regex-recursion: ^6.0.2
+  checksum: bb92f53afe10a7f03e59707452c7e1c2ed13ca760df781f618fdf6c09475fb600091c0694bb447e18966ba1316d3a27b938afd4768c979b1256266815061639d
+  languageName: node
+  linkType: hard
+
 "oo-ascii-tree@npm:^1.94.0":
   version: 1.126.0
   resolution: "oo-ascii-tree@npm:1.126.0"
@@ -10117,18 +10208,6 @@ __metadata:
   languageName: node
   linkType: hard
 
-"refractor@npm:^5.0.0":
-  version: 5.0.0
-  resolution: "refractor@npm:5.0.0"
-  dependencies:
-    "@types/hast": ^3.0.0
-    "@types/prismjs": ^1.0.0
-    hastscript: ^9.0.0
-    parse-entities: ^4.0.0
-  checksum: 7581a1f7f45a5ed0d40fd4092a829fde3d085a9b0ef995c0018ecd7ef04ae9e2d4b9537e4037b848e8b596db9236f577ad155b46de60f2d0e1c80bd6b6a99728
-  languageName: node
-  linkType: hard
-
 "regenerate-unicode-properties@npm:^10.2.2":
   version: 10.2.2
   resolution: "regenerate-unicode-properties@npm:10.2.2"
@@ -10142,6 +10221,31 @@ __metadata:
   version: 1.4.2
   resolution: "regenerate@npm:1.4.2"
   checksum: 3317a09b2f802da8db09aa276e469b57a6c0dd818347e05b8862959c6193408242f150db5de83c12c3fa99091ad95fb42a6db2c3329bfaa12a0ea4cbbeb30cb0
+  languageName: node
+  linkType: hard
+
+"regex-recursion@npm:^6.0.2":
+  version: 6.0.2
+  resolution: "regex-recursion@npm:6.0.2"
+  dependencies:
+    regex-utilities: ^2.3.0
+  checksum: 29913751ee2e41d3d66c957136ba386046f5e9f780f4be482ad3b64b04258bbb2cebe87f8762c5247eb8c9fa46a5ecf18aba5d888f7def73ac8dea49165193d4
+  languageName: node
+  linkType: hard
+
+"regex-utilities@npm:^2.3.0":
+  version: 2.3.0
+  resolution: "regex-utilities@npm:2.3.0"
+  checksum: 41408777df45cefe1b276281030213235aa1143809c4c10eb5573d2cc27ff2c4aa746c6f4d4c235e3d2f4830eff76b28906ce82fbe72895beca8e15204c2da51
+  languageName: node
+  linkType: hard
+
+"regex@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "regex@npm:6.1.0"
+  dependencies:
+    regex-utilities: ^2.3.0
+  checksum: 8ea9656dbafe8f324f605653b75ce954e9d695b4bb54dbf1fea20d8095b7530f4552bc3e7890b58542441ee2287f64a35d512601fb3417ba542a7a20f48fb855
   languageName: node
   linkType: hard
 
@@ -10420,7 +10524,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rehype-parse@npm:^9.0.1":
+"rehype-parse@npm:^9.0.0":
   version: 9.0.1
   resolution: "rehype-parse@npm:9.0.1"
   dependencies:
@@ -10463,17 +10567,19 @@ __metadata:
   languageName: node
   linkType: hard
 
-"rehype-prism-plus@npm:^2.0.2":
-  version: 2.0.2
-  resolution: "rehype-prism-plus@npm:2.0.2"
+"rehype-pretty-code@npm:^0.14.3":
+  version: 0.14.3
+  resolution: "rehype-pretty-code@npm:0.14.3"
   dependencies:
-    hast-util-to-string: ^3.0.1
+    "@types/hast": ^3.0.4
+    hast-util-to-string: ^3.0.0
     parse-numeric-range: ^1.3.0
-    refractor: ^5.0.0
-    rehype-parse: ^9.0.1
-    unist-util-filter: ^5.0.1
-    unist-util-visit: ^5.1.0
-  checksum: 98ee9fad2a6356a9171fafc28254a31870eaa104d4d65d59f526aa370f4cbde190b7609fc01298125bf21e1b1b90fa21d5773b5549a1f41ce726a3e5120a8fe9
+    rehype-parse: ^9.0.0
+    unified: ^11.0.5
+    unist-util-visit: ^5.0.0
+  peerDependencies:
+    shiki: ^1.0.0 || ^2.0.0 || ^3.0.0 || ^4.0.0
+  checksum: 2ce71b1d5277a5f265569d09c097e9db784d7b495f628bf5c2cfd9038fca35fcee3ab9260351d2f36e6d128a007e8f33542596bcd5cae5228b7b15ec16c60f15
   languageName: node
   linkType: hard
 
@@ -11078,6 +11184,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"shiki@npm:^4.0.2":
+  version: 4.0.2
+  resolution: "shiki@npm:4.0.2"
+  dependencies:
+    "@shikijs/core": 4.0.2
+    "@shikijs/engine-javascript": 4.0.2
+    "@shikijs/engine-oniguruma": 4.0.2
+    "@shikijs/langs": 4.0.2
+    "@shikijs/themes": 4.0.2
+    "@shikijs/types": 4.0.2
+    "@shikijs/vscode-textmate": ^10.0.2
+    "@types/hast": ^3.0.4
+  checksum: ee35397b2096877589a3fc9abdbf156ead4e0294258dae6ee3e30de4b38c6559483f329666dbd39c41ce9ac027528e5573979fc70d7b3bfb70694b6fef147ad9
+  languageName: node
+  linkType: hard
+
 "side-channel-list@npm:^1.0.0":
   version: 1.0.0
   resolution: "side-channel-list@npm:1.0.0"
@@ -11620,12 +11742,13 @@ __metadata:
     rehype-katex: ^7.0.1
     rehype-katex-notranslate: ^1.1.4
     rehype-preset-minify: 7.0.1
-    rehype-prism-plus: ^2.0.2
+    rehype-pretty-code: ^0.14.3
     rehype-slug: ^6.0.0
     remark: ^15.0.1
     remark-gfm: ^4.0.1
     remark-github-blockquote-alert: ^2.0.1
     remark-math: ^6.0.0
+    shiki: ^4.0.2
     tailwindcss: ^4.1.18
     typescript: ^5.9.3
     unist-util-visit: ^5.1.0
@@ -11968,17 +12091,6 @@ __metadata:
   dependencies:
     imurmurhash: ^0.1.4
   checksum: ad6cf238b10292d944521714d31bc9f3ca79fa80cb7a154aad183056493f98e85de669412c6bbfe527ffa9bdeff36d3dd4d5bccaf562c794f2580ab11932b691
-  languageName: node
-  linkType: hard
-
-"unist-util-filter@npm:^5.0.1":
-  version: 5.0.1
-  resolution: "unist-util-filter@npm:5.0.1"
-  dependencies:
-    "@types/unist": ^3.0.0
-    unist-util-is: ^6.0.0
-    unist-util-visit-parents: ^6.0.0
-  checksum: d9d1d9dfd89a91f15ced255aa8dc61cb7648273eb791e3d9e9385c05995fe24ccf1f2119c2f7e2c671c61f7275ffa93f13440e4adfad1d0e494e8507cb818981
   languageName: node
   linkType: hard
 
