@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation'
 import headerNavLinks from '@/data/headerNavLinks'
 import Link from './Link'
 import { getLocaleFromPathname, localizePath, ui } from '@/lib/i18n'
+import { normalizePathname } from '@/lib/blogRouteState'
 
 const HeaderNavLinks = () => {
   const pathname = usePathname()
@@ -15,9 +16,12 @@ const HeaderNavLinks = () => {
       {headerNavLinks.map((link) => {
         const isExternal = link.href.startsWith('http')
         const href = isExternal ? link.href : localizePath(link.href, locale)
+        const currentPath = normalizePathname(pathname)
+        const targetPath = normalizePathname(href)
         const active =
           !isExternal &&
-          (pathname === href || (link.href !== '/' && pathname.startsWith(`${href}/`)))
+          (currentPath === targetPath ||
+            (link.href !== '/' && currentPath.startsWith(`${targetPath}/`)))
 
         return (
           <Link

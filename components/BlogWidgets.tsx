@@ -145,7 +145,7 @@ export function UtilitySidebar({ posts, dateLocale }: { posts: Post[]; dateLocal
       <Widget title="最近文章">
         <div className="divide-y divide-slate-200 dark:divide-[#415064]">
           {posts.slice(0, 4).map((post) => (
-            <Link key={post.path} href={`/${post.path}`} className="block py-4 first:pt-0">
+            <Link key={post.path} href={`/${post.path}/`} className="block py-4 first:pt-0">
               <time
                 dateTime={post.date}
                 suppressHydrationWarning

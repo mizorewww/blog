@@ -18,6 +18,13 @@ function escape(value) {
   return String(value).replace(/[&<>'"]/g, (match) => xmlEscapeMap[match])
 }
 
+function absoluteSiteUrl(siteUrl, route = '') {
+  const normalizedRoute = route ? `/${route.replace(/^\/+/, '')}` : '/'
+  const url = new URL(normalizedRoute, siteUrl).toString()
+
+  return url.endsWith('/') ? url : `${url}/`
+}
+
 function sortPosts(posts) {
   return [...posts].sort((first, second) => new Date(second.date) - new Date(first.date))
 }
@@ -38,9 +45,9 @@ function getTagSlugs(posts) {
 
 const generateRssItem = (config, post) => `
   <item>
-    <guid>${config.siteUrl}/${post.path}</guid>
+    <guid>${absoluteSiteUrl(config.siteUrl, post.path)}</guid>
     <title>${escape(post.title)}</title>
-    <link>${config.siteUrl}/${post.path}</link>
+    <link>${absoluteSiteUrl(config.siteUrl, post.path)}</link>
     ${post.summary ? `<description>${escape(post.summary)}</description>` : ''}
     <pubDate>${new Date(post.date).toUTCString()}</pubDate>
     <author>${config.email} (${config.author})</author>

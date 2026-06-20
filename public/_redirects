@@ -1,0 +1,11 @@
+/blog /zh/ 301
+/blog/ /zh/ 301
+/blog/* /zh/:splat 301
+
+/zh/blog /zh/ 301
+/zh/blog/ /zh/ 301
+/zh/blog/* /zh/:splat 301
+
+/en/blog /en/ 301
+/en/blog/ /en/ 301
+/en/blog/* /en/:splat 301

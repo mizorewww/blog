@@ -94,15 +94,23 @@ export function stripLocaleFromPathname(pathname: string): string {
   return stripped === '' ? '/' : stripped
 }
 
+export function withTrailingSlash(pathname: string): string {
+  if (pathname === '/') {
+    return pathname
+  }
+
+  return pathname.endsWith('/') ? pathname : `${pathname}/`
+}
+
 export function localizePath(pathname: string, locale: Locale): string {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`
   const stripped = stripLocaleFromPathname(normalized)
 
   if (stripped === '/') {
-    return `/${locale}`
+    return `/${locale}/`
   }
 
-  return `/${locale}${stripped}`
+  return withTrailingSlash(`/${locale}${stripped}`)
 }
 
 export function switchLocalePath(pathname: string, locale: Locale): string {

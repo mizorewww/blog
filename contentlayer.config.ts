@@ -9,6 +9,7 @@ import rehypePresetMinify from 'rehype-preset-minify'
 import rehypePrettyCode from 'rehype-pretty-code'
 import siteMetadata from './data/siteMetadata'
 import { getPostImageUrls } from './lib/postImages'
+import { absoluteSiteUrl } from './lib/urls'
 import { defaultLocale, isLocale } from './lib/i18n'
 import { extractTocHeadings } from './lib/toc'
 
@@ -153,7 +154,7 @@ export const Blog = defineDocumentType(() => ({
     structuredData: {
       type: 'json',
       resolve: (doc) => {
-        const url = `${siteMetadata.siteUrl}/${blogPath(doc)}`
+        const url = absoluteSiteUrl(siteMetadata.siteUrl, blogPath(doc))
 
         return {
           '@context': 'https://schema.org',

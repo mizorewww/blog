@@ -9,6 +9,7 @@ import {
   getPostPageData,
 } from '@/lib/content/posts'
 import { isLocale, localeConfig, locales, localizePath, ui } from '@/lib/i18n'
+import { absoluteSiteUrl } from '@/lib/urls'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 
 export async function generateMetadata(props: {
@@ -30,7 +31,7 @@ export async function generateMetadata(props: {
   const publishedAt = new Date(post.date).toISOString()
   const modifiedAt = new Date(post.lastmod || post.date).toISOString()
   const authors = authorDetails.map((author) => author.name)
-  const postUrl = new URL(`/${post.path}`, siteMetadata.siteUrl).toString()
+  const postUrl = absoluteSiteUrl(siteMetadata.siteUrl, post.path)
   const canonicalUrl = post.canonicalUrl || postUrl
   const imageUrls = getPostImageUrls({
     image: post.image,

@@ -67,7 +67,7 @@ export default function ExpandablePostCard({
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const [preloadedBodyCode, setPreloadedBodyCode] = useState<string | null>(null)
   const primaryTag = post.tags?.[0]
-  const postHref = `/${post.path}`
+  const postHref = `/${post.path}/`
   const Heading = expanded ? 'h1' : headingLevel
   const bodyCode = post.bodyCode || preloadedBodyCode
   const shouldPreMountBody = Boolean(preloadedBodyCode && !post.bodyCode)
