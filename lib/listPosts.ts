@@ -1,6 +1,5 @@
 import type { Blog } from 'contentlayer/generated'
-import { coreContent } from 'pliny/utils/contentlayer'
-import type { CoreContent } from 'pliny/utils/contentlayer'
+import { coreContent, type CoreContent } from '@/lib/contentlayer'
 
 export type BlogListPost = CoreContent<Blog> & {
   bodyCode?: string

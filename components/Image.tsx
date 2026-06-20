@@ -1,9 +1,5 @@
 import NextImage, { ImageProps } from 'next/image'
 
-const basePath = process.env.BASE_PATH
-
-const Image = ({ src, ...rest }: ImageProps) => (
-  <NextImage src={`${basePath || ''}${src}`} {...rest} />
-)
+const Image = (props: ImageProps) => <NextImage {...props} />
 
 export default Image

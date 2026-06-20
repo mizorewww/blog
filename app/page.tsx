@@ -1,7 +1,7 @@
-import { sortPosts } from 'pliny/utils/contentlayer'
 import { allBlogs } from 'contentlayer/generated'
 import Main from './Main'
 import { getPostsByLocale } from '@/lib/blog'
+import { sortPosts } from '@/lib/contentlayer'
 import { defaultLocale } from '@/lib/i18n'
 import { toListPosts } from '@/lib/listPosts'
 

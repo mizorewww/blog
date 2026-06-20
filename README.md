@@ -1,3 +1,37 @@
-# 我的博客
+# mizore-blog
 
-用[Tailwind Nextjs Starter Blog](https://github.com/timlrx/tailwind-nextjs-starter-blog)改的，可以去看看原项目。
+一个静态个人博客。内容用 MDX 编写，构建时由 Contentlayer 生成类型化数据，Next.js App Router 负责页面渲染，最终导出为静态文件并部署到 Cloudflare Pages。
+
+## 技术栈
+
+- Next.js App Router
+- React
+- Contentlayer
+- Tailwind CSS
+- MDX
+- GitHub Actions
+- Cloudflare Pages
+
+## 快速开始
+
+```bash
+yarn install
+yarn dev
+```
+
+常用命令：
+
+```bash
+yarn dev      # 本地开发服务器
+yarn lint     # ESLint 自动修复
+yarn build    # 生成静态站点到 out/
+```
+
+Node.js 版本以 `.node-version` 为准，包管理器版本以 `packageManager` 为准。
+
+## 文档
+
+- [软件架构](docs/architecture.md)
+- [本地开发](docs/development.md)
+- [部署](docs/deployment.md)
+- [内容与 MDX](docs/content.md)

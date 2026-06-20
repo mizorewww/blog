@@ -1,21 +1,7 @@
 /* Code block styles for MDX output highlighted by rehype-pretty-code + Shiki. */
 
-.remark-code-title {
-  @apply rounded-t-[8px] border border-b-0 border-slate-200 bg-slate-100 px-4 py-2 font-mono text-sm font-semibold text-slate-600 dark:border-[#405064] dark:bg-[#1f2937] dark:text-white/75;
-}
-
-.remark-code-title + figure,
-.remark-code-title + div > figure {
-  @apply mt-0;
-}
-
 figure[data-rehype-pretty-code-figure] {
   @apply my-6 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-50 dark:border-[#405064] dark:bg-[#111827];
-}
-
-.remark-code-title + figure[data-rehype-pretty-code-figure],
-.remark-code-title + div > figure[data-rehype-pretty-code-figure] {
-  @apply rounded-t-none;
 }
 
 figure[data-rehype-pretty-code-figure] pre {

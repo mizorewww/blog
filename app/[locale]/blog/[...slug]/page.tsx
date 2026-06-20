@@ -1,10 +1,10 @@
-import { sortPosts, coreContent, allCoreContent } from 'pliny/utils/contentlayer'
 import { allBlogs, allAuthors } from 'contentlayer/generated'
 import type { Authors } from 'contentlayer/generated'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
 import { getPostImageUrls } from '@/lib/postImages'
+import { sortPosts, coreContent, allCoreContent } from '@/lib/contentlayer'
 import {
   getCategoryCounts,
   getPostByLocaleAndSlug,

@@ -1,23 +1,50 @@
 import { writeFileSync, mkdirSync } from 'fs'
 import path from 'path'
 import { slug } from 'github-slugger'
-import { escape } from 'pliny/utils/htmlEscaper.js'
 import siteMetadata from '../data/siteMetadata.js'
-import tagData from '../app/tag-data.json' with { type: 'json' }
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
-import { sortPosts } from 'pliny/utils/contentlayer.js'
 
-const outputFolder = process.env.EXPORT ? 'out' : 'public'
+const outputFolder = 'out'
+const defaultLocale = 'zh'
+const xmlEscapeMap = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  "'": '&#39;',
+  '"': '&quot;',
+}
+
+function escape(value) {
+  return String(value).replace(/[&<>'"]/g, (match) => xmlEscapeMap[match])
+}
+
+function sortPosts(posts) {
+  return [...posts].sort((first, second) => new Date(second.date) - new Date(first.date))
+}
+
+function getPostLocale(post) {
+  return post.locale || post.language || defaultLocale
+}
+
+function getTagSlugs(posts) {
+  const tagSlugs = new Set()
+
+  posts.forEach((post) => {
+    post.tags?.forEach((tag) => tagSlugs.add(slug(tag)))
+  })
+
+  return Array.from(tagSlugs)
+}
 
 const generateRssItem = (config, post) => `
   <item>
     <guid>${config.siteUrl}/${post.path}</guid>
     <title>${escape(post.title)}</title>
     <link>${config.siteUrl}/${post.path}</link>
-    ${post.summary && `<description>${escape(post.summary)}</description>`}
+    ${post.summary ? `<description>${escape(post.summary)}</description>` : ''}
     <pubDate>${new Date(post.date).toUTCString()}</pubDate>
     <author>${config.email} (${config.author})</author>
-    ${post.tags && post.tags.map((t) => `<category>${t}</category>`).join('')}
+    ${post.tags ? post.tags.map((tag) => `<category>${escape(tag)}</category>`).join('') : ''}
   </item>
 `
 
@@ -38,20 +65,36 @@ const generateRss = (config, posts, page = 'feed.xml') => `
 `
 
 async function generateRSS(config, allBlogs, page = 'feed.xml') {
-  const publishPosts = allBlogs.filter((post) => post.draft !== true)
-  // RSS for blog post
-  if (publishPosts.length > 0) {
-    const rss = generateRss(config, sortPosts(publishPosts))
-    writeFileSync(`./${outputFolder}/${page}`, rss)
+  const publishPosts = sortPosts(allBlogs.filter((post) => post.draft !== true))
+
+  if (publishPosts.length === 0) {
+    return
   }
 
-  if (publishPosts.length > 0) {
-    for (const tag of Object.keys(tagData)) {
-      const filteredPosts = allBlogs.filter((post) => post.tags.map((t) => slug(t)).includes(tag))
-      const rss = generateRss(config, filteredPosts, `tags/${tag}/${page}`)
-      const rssPath = path.join(outputFolder, 'tags', tag)
+  const rss = generateRss(config, publishPosts)
+  writeFileSync(`./${outputFolder}/${page}`, rss)
+
+  const generateTagFeeds = (posts, routePrefix) => {
+    for (const tag of getTagSlugs(posts)) {
+      const filteredPosts = posts.filter((post) =>
+        post.tags?.map((postTag) => slug(postTag)).includes(tag)
+      )
+      const rss = generateRss(config, filteredPosts, `${routePrefix}/${tag}/${page}`)
+      const rssPath = path.join(outputFolder, routePrefix, tag)
       mkdirSync(rssPath, { recursive: true })
       writeFileSync(path.join(rssPath, page), rss)
+    }
+  }
+
+  generateTagFeeds(
+    publishPosts.filter((post) => getPostLocale(post) === defaultLocale),
+    'tags'
+  )
+
+  for (const locale of new Set(publishPosts.map(getPostLocale))) {
+    const localePosts = publishPosts.filter((post) => getPostLocale(post) === locale)
+    if (localePosts.length > 0) {
+      generateTagFeeds(localePosts, `${locale}/tags`)
     }
   }
 }

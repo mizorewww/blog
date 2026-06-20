@@ -1,7 +1,5 @@
 @import 'tailwindcss';
-@plugin '@tailwindcss/forms';
 @plugin '@tailwindcss/typography';
-@source '../node_modules/pliny';
 @custom-variant dark (&:where(.dark, .dark *));
 @import './prism.css';
 
@@ -219,10 +217,6 @@
   @apply no-underline;
 }
 
-.csl-entry {
-  @apply my-5;
-}
-
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
@@ -238,10 +232,6 @@ input:-webkit-autofill:focus {
   transition:
     background-color 600000s 0s,
     color 600000s 0s;
-}
-
-.katex-display {
-  overflow: auto hidden;
 }
 
 .content-header-link {

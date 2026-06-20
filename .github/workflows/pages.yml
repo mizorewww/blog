@@ -43,7 +43,7 @@ jobs:
         run: yarn install --immutable
 
       - name: Build static site
-        run: yarn build:cloudflare
+        run: yarn build
 
       - name: Validate Cloudflare configuration
         env:

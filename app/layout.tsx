@@ -1,11 +1,7 @@
 import 'css/tailwind.css'
-import 'katex/dist/katex.css'
-import 'pliny/search/algolia.css'
-import 'remark-github-blockquote-alert/alert.css'
 
 import { Space_Grotesk } from 'next/font/google'
-import { Analytics, AnalyticsConfig } from 'pliny/analytics'
-import { SearchProvider, SearchConfig } from 'pliny/search'
+import Analytics from '@/components/Analytics'
 import AppShell from '@/components/AppShell'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
@@ -58,49 +54,27 @@ export const metadata: Metadata = {
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const basePath = process.env.BASE_PATH || ''
-
   return (
     <html
       lang={siteMetadata.language}
       className={`${space_grotesk.variable} scroll-smooth`}
       suppressHydrationWarning
     >
-      <link
-        rel="apple-touch-icon"
-        sizes="180x180"
-        href={`${basePath}/static/favicons/apple-touch-icon.png`}
-      />
-      <link rel="icon" type="image/svg+xml" href={`${basePath}/static/favicons/favicon.svg`} />
-      <link rel="shortcut icon" href={`${basePath}/static/favicons/favicon.ico`} />
-      <link
-        rel="icon"
-        type="image/png"
-        sizes="32x32"
-        href={`${basePath}/static/favicons/favicon-32x32.png`}
-      />
-      <link
-        rel="icon"
-        type="image/png"
-        sizes="16x16"
-        href={`${basePath}/static/favicons/favicon-16x16.png`}
-      />
-      <link rel="manifest" href={`${basePath}/static/favicons/site.webmanifest`} />
-      <link
-        rel="mask-icon"
-        href={`${basePath}/static/favicons/safari-pinned-tab.svg`}
-        color="#000000"
-      />
+      <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/apple-touch-icon.png" />
+      <link rel="icon" type="image/svg+xml" href="/static/favicons/favicon.svg" />
+      <link rel="shortcut icon" href="/static/favicons/favicon.ico" />
+      <link rel="icon" type="image/png" sizes="32x32" href="/static/favicons/favicon-32x32.png" />
+      <link rel="icon" type="image/png" sizes="16x16" href="/static/favicons/favicon-16x16.png" />
+      <link rel="manifest" href="/static/favicons/site.webmanifest" />
+      <link rel="mask-icon" href="/static/favicons/safari-pinned-tab.svg" color="#000000" />
       <meta name="msapplication-TileColor" content="#000000" />
       <meta name="theme-color" media="(prefers-color-scheme: light)" content="#fff" />
       <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000" />
-      <link rel="alternate" type="application/rss+xml" href={`${basePath}/feed.xml`} />
+      <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
       <body className="min-h-screen overflow-y-scroll bg-[#f2f5f8] text-slate-900 antialiased dark:bg-[#181c27] dark:text-white/90">
         <ThemeProviders>
-          <Analytics analyticsConfig={siteMetadata.analytics as AnalyticsConfig} />
-          <SearchProvider searchConfig={siteMetadata.search as SearchConfig}>
-            <AppShell>{children}</AppShell>
-          </SearchProvider>
+          <Analytics config={siteMetadata.analytics} />
+          <AppShell>{children}</AppShell>
         </ThemeProviders>
       </body>
     </html>

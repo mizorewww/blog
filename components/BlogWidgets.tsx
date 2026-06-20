@@ -4,7 +4,7 @@ import Image from '@/components/Image'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale } from '@/lib/i18n'
 import { slug } from 'github-slugger'
-import { formatDate } from 'pliny/utils/formatDate'
+import { formatDate } from '@/lib/formatDate'
 import type { ReactNode } from 'react'
 
 type Post = BlogListPost

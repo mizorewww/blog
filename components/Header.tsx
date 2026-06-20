@@ -1,7 +1,6 @@
 import HeaderLogo from './HeaderLogo'
 import HeaderNavLinks from './HeaderNavLinks'
 import ThemeSwitch from './ThemeSwitch'
-import SearchButton from './SearchButton'
 import LanguageSwitcher from './LanguageSwitcher'
 import Link from './Link'
 
@@ -46,7 +45,6 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
           >
             <RssIcon />
           </Link>
-          <SearchButton />
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>

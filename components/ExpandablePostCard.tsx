@@ -7,8 +7,8 @@ import siteMetadata from '@/data/siteMetadata'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale } from '@/lib/i18n'
 import { slug } from 'github-slugger'
-import { MDXLayoutRenderer } from 'pliny/mdx-components'
-import { formatDate } from 'pliny/utils/formatDate'
+import MDXRenderer from '@/components/MDXRenderer'
+import { formatDate } from '@/lib/formatDate'
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
 
@@ -166,7 +166,7 @@ export default function ExpandablePostCard({
             <div className="border-t border-slate-200 pt-5 pb-1 dark:border-[#405064]">
               {renderBody && (
                 <div className="prose prose-slate dark:prose-invert max-w-none">
-                  <MDXLayoutRenderer code={post.bodyCode || ''} components={mdxComponents} />
+                  <MDXRenderer code={post.bodyCode || ''} components={mdxComponents} />
                 </div>
               )}
             </div>

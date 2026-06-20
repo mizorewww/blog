@@ -53,9 +53,6 @@
 *.xml             text
 *.xhtml           text diff=html
 
-# Docker
-Dockerfile        text
-
 # Documentation
 *.ipynb           text
 *.markdown        text

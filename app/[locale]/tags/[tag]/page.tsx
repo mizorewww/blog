@@ -1,4 +1,3 @@
-import { sortPosts } from 'pliny/utils/contentlayer'
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { allBlogs } from 'contentlayer/generated'
@@ -6,6 +5,7 @@ import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getCategoryCounts, getPostsByLocale, getPostsByTag, getTagCounts } from '@/lib/blog'
+import { sortPosts } from '@/lib/contentlayer'
 import { isLocale, locales } from '@/lib/i18n'
 import { toListPosts } from '@/lib/listPosts'
 
