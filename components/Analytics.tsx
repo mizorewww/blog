@@ -1,4 +1,4 @@
-import Script from 'next/script'
+import DeferredUmami from '@/components/DeferredUmami'
 
 type UmamiConfig = {
   websiteId?: string
@@ -17,11 +17,9 @@ export default function Analytics({ config }: { config?: AnalyticsConfig }) {
   }
 
   return (
-    <Script
-      async
-      defer
+    <DeferredUmami
       src={umami.src || 'https://analytics.umami.is/script.js'}
-      data-website-id={umami.websiteId}
+      websiteId={umami.websiteId}
     />
   )
 }

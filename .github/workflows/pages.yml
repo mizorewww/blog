@@ -42,8 +42,26 @@ jobs:
       - name: Install dependencies
         run: yarn install --immutable
 
+      - name: Lint
+        run: yarn lint
+
       - name: Build static site
         run: yarn build
+
+      - name: Validate static output quality
+        run: |
+          if rg -q "bodyCode|function MDXContent|var Component" out/index.txt out/zh/index.txt out/en/index.txt; then
+            echo "::error::Blog list RSC payload includes MDX body code"
+            exit 1
+          fi
+          .agents/skills/web-quality-audit/scripts/analyze.sh out > web-quality-audit.json
+          jq -e '.success and .issueCount == 0' web-quality-audit.json
+
+      - name: Report static asset sizes
+        run: |
+          du -ah out | sort -h | tail -40
+          find out/_next/static -type f \( -name '*.js' -o -name '*.css' -o -name '*.woff2' \) -printf '%s %p\n' | sort -nr | head -40
+          find out/static/images -type f -printf '%s %p\n' | sort -nr
 
       - name: Validate Cloudflare configuration
         env:

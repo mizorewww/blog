@@ -30,6 +30,26 @@ images: {
 }
 ```
 
+## 压缩与缓存
+
+生产链路是：
+
+```text
+GitHub Actions -> yarn build -> out/ -> Cloudflare Pages
+```
+
+传输压缩由 Cloudflare Pages 在边缘处理。不要手工生成或提交 `.gz`、`.br` 文件，也不要在本地修改 `out/` 作为性能优化手段。
+
+如果以后需要自动图片优化、资源预算或 Lighthouse 门禁，应作为可重复的构建脚本或 GitHub Actions 步骤加入，并同步更新 `docs/development.md`。不接受一次性手工转码或只在某台机器上成立的优化。
+
+当前 GitHub Actions 在部署前会执行：
+
+- `yarn lint`
+- `yarn build`
+- 列表页 RSC payload 检查，防止 MDX 正文重新进入首页列表
+- `.agents/skills/web-quality-audit/scripts/analyze.sh out`
+- 静态资源体积报告
+
 ## GitHub Actions
 
 工作流文件：
