@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { getPublishedSitemapPosts } from '@/lib/content/posts'
-import { termSlug, type TermField } from '@/lib/content/terms'
+import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n'
 import { absoluteSiteUrl } from '@/lib/urls'
 
 export const dynamic = 'force-static'
@@ -9,42 +9,97 @@ export const dynamic = 'force-static'
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl
   const publishedPosts = getPublishedSitemapPosts()
+  const latestPostDate =
+    latestModified(publishedPosts.map((post) => post.lastmod || post.date)) ||
+    new Date(0).toISOString()
+  const latestByLocale = locales.reduce(
+    (latest, locale) => {
+      latest[locale] =
+        latestModified(
+          publishedPosts
+            .filter((post) => post.locale === locale)
+            .map((post) => post.lastmod || post.date)
+        ) || latestPostDate
+      return latest
+    },
+    {} as Record<Locale, string>
+  )
+  const postsByTranslationKey = publishedPosts.reduce((groups, post) => {
+    const key = post.translationKey || post.slug
+    const group = groups.get(key) || []
+    group.push(post)
+    groups.set(key, group)
+    return groups
+  }, new Map<string, typeof publishedPosts>())
+
+  const localizedAlternates = (route = '') => {
+    const languages = Object.fromEntries(
+      locales.map((locale) => [
+        localeConfig[locale].htmlLang,
+        absoluteSiteUrl(siteUrl, `${locale}${route ? `/${route}` : ''}`),
+      ])
+    )
+
+    return {
+      languages: {
+        ...languages,
+        'x-default':
+          route === ''
+            ? absoluteSiteUrl(siteUrl)
+            : absoluteSiteUrl(siteUrl, `${defaultLocale}/${route}`),
+      },
+    }
+  }
+
+  const postAlternates = (post: (typeof publishedPosts)[number]) => {
+    const translations = postsByTranslationKey.get(post.translationKey || post.slug) || [post]
+    const languages = Object.fromEntries(
+      translations.map((translation) => [
+        localeConfig[translation.locale].htmlLang,
+        absoluteSiteUrl(siteUrl, translation.path),
+      ])
+    )
+
+    return {
+      languages: {
+        ...languages,
+        ...(languages[localeConfig[defaultLocale].htmlLang]
+          ? { 'x-default': languages[localeConfig[defaultLocale].htmlLang] }
+          : {}),
+      },
+    }
+  }
 
   const blogRoutes = publishedPosts.map((post) => ({
     url: absoluteSiteUrl(siteUrl, post.path),
     lastModified: post.lastmod || post.date,
+    alternates: postAlternates(post),
   }))
 
-  const termRoutes = (field: TermField, routeSegment: string) => {
-    const latestByRoute = new Map<string, string>()
+  const routes = [
+    {
+      route: '',
+      lastModified: latestByLocale[defaultLocale],
+      alternates: localizedAlternates(),
+    },
+    ...locales.flatMap((locale) => [
+      {
+        route: locale,
+        lastModified: latestByLocale[locale],
+        alternates: localizedAlternates(),
+      },
+    ]),
+  ].map(({ route, lastModified, alternates }) => ({
+    url: absoluteSiteUrl(siteUrl, route),
+    lastModified,
+    alternates,
+  }))
 
-    publishedPosts.forEach((post) => {
-      post[field]?.forEach((term) => {
-        const route = `${post.locale}/${routeSegment}/${termSlug(term)}`
-        const lastModified = post.lastmod || post.date
-        const currentLastModified = latestByRoute.get(route)
+  return [...routes, ...blogRoutes]
+}
 
-        if (!currentLastModified || new Date(lastModified) > new Date(currentLastModified)) {
-          latestByRoute.set(route, lastModified)
-        }
-      })
-    })
-
-    return Array.from(latestByRoute.entries()).map(([route, lastModified]) => ({
-      url: absoluteSiteUrl(siteUrl, route),
-      lastModified,
-    }))
-  }
-
-  const categoryRoutes = termRoutes('categories', 'categories')
-  const tagRoutes = termRoutes('tags', 'tags')
-
-  const routes = ['', 'zh', 'en', 'zh/categories', 'en/categories', 'zh/tags', 'en/tags'].map(
-    (route) => ({
-      url: absoluteSiteUrl(siteUrl, route),
-      lastModified: new Date().toISOString().split('T')[0],
-    })
-  )
-
-  return [...routes, ...categoryRoutes, ...tagRoutes, ...blogRoutes]
+function latestModified(dates: string[]) {
+  return dates
+    .filter(Boolean)
+    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0]
 }

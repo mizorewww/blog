@@ -1,11 +1,14 @@
+import JsonLd from '@/components/JsonLd'
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getCategoryListData, getLocalizedCategoryParams } from '@/lib/content/posts'
-import { formatTermTitle } from '@/lib/content/terms'
-import { isLocale } from '@/lib/i18n'
+import { formatTermTitle, termSlug } from '@/lib/content/terms'
+import { isLocale, localizePath } from '@/lib/i18n'
+import { createPostCollectionJsonLd } from '@/lib/structuredData'
+import { absoluteSiteUrl, decodeRouteParam } from '@/lib/urls'
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; category: string }>
@@ -16,10 +19,16 @@ export async function generateMetadata(props: {
     return {}
   }
 
-  const category = decodeURI(params.category)
+  const category = decodeRouteParam(params.category)
   return genPageMetadata({
     title: category,
     description: `${siteMetadata.title} ${category} category content`,
+    alternates: {
+      canonical: absoluteSiteUrl(
+        siteMetadata.siteUrl,
+        localizePath(`/categories/${termSlug(category)}`, params.locale)
+      ),
+    },
   })
 }
 
@@ -36,17 +45,30 @@ export default async function CategoryPage(props: {
     return notFound()
   }
 
-  const category = decodeURI(params.category)
+  const category = decodeRouteParam(params.category)
   const title = formatTermTitle(category)
   const { posts, categoryCounts, tagCounts } = getCategoryListData(params.locale, category)
+  const jsonLd = createPostCollectionJsonLd({
+    title,
+    description: `${siteMetadata.title} ${category} category content`,
+    url: absoluteSiteUrl(
+      siteMetadata.siteUrl,
+      localizePath(`/categories/${termSlug(category)}`, params.locale)
+    ),
+    locale: params.locale,
+    posts,
+  })
 
   return (
-    <ListLayout
-      posts={posts}
-      title={title}
-      locale={params.locale}
-      categoryCounts={categoryCounts}
-      tagCounts={tagCounts}
-    />
+    <>
+      <JsonLd data={jsonLd} />
+      <ListLayout
+        posts={posts}
+        title={title}
+        locale={params.locale}
+        categoryCounts={categoryCounts}
+        tagCounts={tagCounts}
+      />
+    </>
   )
 }

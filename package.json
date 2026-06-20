@@ -6,6 +6,7 @@
     "dev": "cross-env NODE_ENV=development INIT_CWD=$PWD next dev --port 3000",
     "build": "rm -rf .next out && cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
     "lint": "eslint --fix app components data lib layouts scripts contentlayer.config.ts eslint.config.mjs",
+    "seo:check": "cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/validate-seo.mjs",
     "prepare": "husky"
   },
   "dependencies": {

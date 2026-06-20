@@ -46,6 +46,7 @@ GitHub Actions -> yarn build -> out/ -> Cloudflare Pages
 
 - `yarn lint`
 - `yarn build`
+- `yarn seo:check`，校验 sitemap 只包含首页/语言首页/文章页，并校验 canonical、hreflang、JSON-LD、legacy redirects 与内容更新时间
 - 列表页 RSC payload 检查，防止 MDX 正文重新进入首页列表
 - `.agents/skills/web-quality-audit/scripts/analyze.sh out`
 - 静态资源体积报告

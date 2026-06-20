@@ -1,3 +1,4 @@
+import JsonLd from '@/components/JsonLd'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
@@ -9,6 +10,7 @@ import {
   getPostPageData,
 } from '@/lib/content/posts'
 import { isLocale, localeConfig, locales, localizePath, ui } from '@/lib/i18n'
+import { createArticleJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl } from '@/lib/urls'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 
@@ -100,22 +102,15 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
   }
 
   const { post, authorDetails, listData } = pageData
-  const jsonLd = {
-    ...post.structuredData,
-    articleSection: post.categories,
-    keywords: post.tags,
-    author: authorDetails.map((author) => ({
-      '@type': 'Person',
-      name: author.name,
-    })),
-  }
+  const jsonLd = createArticleJsonLd({
+    post,
+    locale: params.locale,
+    authors: authorDetails,
+  })
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
       <ListLayout
         posts={listData.posts}
         title={ui[params.locale].allPosts}
