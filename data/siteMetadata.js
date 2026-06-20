@@ -2,7 +2,7 @@ const siteMetadata = {
   title: 'mizorewww',
   author: 'mizorewww',
   headerTitle: 'mizorewww',
-  description: 'mizorewww 的个人博客',
+  description: '喵喵喵？',
   language: 'zh-CN',
   theme: 'dark', // system, dark or light
   siteUrl: 'https://mizore.blog',
