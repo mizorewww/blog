@@ -105,7 +105,7 @@ const blogSlug = (doc) => {
   return rawSlug
 }
 
-const blogPath = (doc) => `${blogLocale(doc)}/blog/${blogSlug(doc)}`
+const blogPath = (doc) => `${blogLocale(doc)}/${blogSlug(doc)}`
 
 const blogComputedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },

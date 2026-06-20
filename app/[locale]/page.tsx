@@ -1,15 +1,12 @@
-import { allBlogs } from 'contentlayer/generated'
 import { notFound } from 'next/navigation'
 import Main from '../Main'
-import { getPostsByLocale } from '@/lib/blog'
-import { sortPosts } from '@/lib/contentlayer'
-import { isLocale, localeConfig, locales, ui } from '@/lib/i18n'
+import { isLocale, localeConfig, ui } from '@/lib/i18n'
 import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
-import { toListPosts } from '@/lib/listPosts'
+import { getBlogListData, getLocaleParams } from '@/lib/content/posts'
 
 export const generateStaticParams = async () => {
-  return locales.map((locale) => ({ locale }))
+  return getLocaleParams()
 }
 
 export async function generateMetadata(props: {
@@ -36,8 +33,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
     return notFound()
   }
 
-  const sortedPosts = sortPosts(getPostsByLocale(allBlogs, params.locale))
-  const posts = toListPosts(sortedPosts)
+  const { posts } = getBlogListData(params.locale)
 
   return <Main posts={posts} locale={params.locale} />
 }

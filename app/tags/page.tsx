@@ -1,15 +1,13 @@
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
-import { slug } from 'github-slugger'
 import { genPageMetadata } from 'app/seo'
-import { allBlogs } from 'contentlayer/generated'
-import { getPostsByLocale, getTagCounts } from '@/lib/blog'
+import { getBlogListData } from '@/lib/content/posts'
 import { defaultLocale, localizePath, ui } from '@/lib/i18n'
 
 export const metadata = genPageMetadata({ title: 'Tags', description: 'Things I blog about' })
 
 export default async function Page() {
-  const tagCounts = getTagCounts(getPostsByLocale(allBlogs, defaultLocale))
+  const { tagCounts } = getBlogListData(defaultLocale)
   const tagKeys = Object.keys(tagCounts)
   const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
   return (
@@ -27,7 +25,7 @@ export default async function Page() {
               <div key={t} className="mt-2 mr-5 mb-2">
                 <Tag text={t} locale={defaultLocale} />
                 <Link
-                  href={localizePath(`/tags/${slug(t)}`, defaultLocale)}
+                  href={localizePath(`/tags/${t}`, defaultLocale)}
                   className="-ml-2 text-sm font-semibold text-gray-600 uppercase dark:text-gray-300"
                   aria-label={ui[defaultLocale].postsTagged(t)}
                 >

@@ -74,8 +74,7 @@ data/blog/zh/example.mdx
 生成路径：
 
 ```text
-/zh/blog/example
-/blog/example
+/zh/example
 ```
 
 对于文件：
@@ -87,7 +86,7 @@ data/blog/en/example.mdx
 生成路径：
 
 ```text
-/en/blog/example
+/en/example
 ```
 
 默认语言是 `zh`，所以中文内容同时出现在默认根路径下。
@@ -117,6 +116,7 @@ components/MDXComponents.tsx
 
 - `Image`
 - `a`
+- `img`
 - `pre`
 - `table`
 
@@ -139,6 +139,8 @@ Markdown 图片：
 ```mdx
 ![](/static/images/example.jpg)
 ```
+
+Markdown 图片会渲染为带 `loading="lazy"` 和 `decoding="async"` 的原生 `img`。
 
 需要更精细控制时，可以使用 MDX 组件：
 

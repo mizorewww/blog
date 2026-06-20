@@ -39,11 +39,11 @@ yarn build
 
 构建流程：
 
-1. 清空 `out/`
+1. 清空 `.next/` 和 `out/`
 2. 执行 `next build`
 3. 静态导出页面
 4. 执行 `scripts/postbuild.mjs`
-5. 生成 RSS 文件
+5. 生成 RSS 和文章正文预加载数据
 
 构建产物：
 
@@ -51,7 +51,7 @@ yarn build
 out/
 ```
 
-`out/` 可以直接交给静态文件服务器或 Cloudflare Pages。
+`out/` 是生产部署产物。生产发布只通过 GitHub Actions 上传到 Cloudflare Pages；本地需要检查静态产物时，可以临时用静态文件服务器预览 `out/`。
 
 ## 修改站点信息
 

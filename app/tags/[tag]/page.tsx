@@ -1,12 +1,10 @@
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
-import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
-import { getCategoryCounts, getPostsByLocale, getPostsByTag, getTagCounts } from '@/lib/blog'
-import { sortPosts } from '@/lib/contentlayer'
+import { getDefaultTagParams, getTagListData } from '@/lib/content/posts'
+import { formatTermTitle } from '@/lib/content/terms'
 import { defaultLocale } from '@/lib/i18n'
-import { toListPosts } from '@/lib/listPosts'
 
 export async function generateMetadata(props: {
   params: Promise<{ tag: string }>
@@ -26,27 +24,22 @@ export async function generateMetadata(props: {
 }
 
 export const generateStaticParams = async () => {
-  const tagCounts = getTagCounts(getPostsByLocale(allBlogs, defaultLocale))
-  const tagKeys = Object.keys(tagCounts)
-  return tagKeys.map((tag) => ({
-    tag: encodeURI(tag),
-  }))
+  return getDefaultTagParams()
 }
 
 export default async function TagPage(props: { params: Promise<{ tag: string }> }) {
   const params = await props.params
   const tag = decodeURI(params.tag)
-  const title = tag[0].toUpperCase() + tag.split(' ').join('-').slice(1)
-  const localePosts = getPostsByLocale(allBlogs, defaultLocale)
-  const filteredPosts = toListPosts(sortPosts(getPostsByTag(localePosts, tag)))
+  const title = formatTermTitle(tag)
+  const { posts, categoryCounts, tagCounts } = getTagListData(defaultLocale, tag)
 
   return (
     <ListLayout
-      posts={filteredPosts}
+      posts={posts}
       title={title}
       locale={defaultLocale}
-      categoryCounts={getCategoryCounts(localePosts)}
-      tagCounts={getTagCounts(localePosts)}
+      categoryCounts={categoryCounts}
+      tagCounts={tagCounts}
     />
   )
 }

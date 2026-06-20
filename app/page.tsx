@@ -1,12 +1,11 @@
-import { allBlogs } from 'contentlayer/generated'
 import Main from './Main'
-import { getPostsByLocale } from '@/lib/blog'
-import { sortPosts } from '@/lib/contentlayer'
-import { defaultLocale } from '@/lib/i18n'
-import { toListPosts } from '@/lib/listPosts'
+import { genPageMetadata } from './seo'
+import { getBlogListData } from '@/lib/content/posts'
+import { defaultLocale, ui } from '@/lib/i18n'
+
+export const metadata = genPageMetadata({ title: ui[defaultLocale].home })
 
 export default async function Page() {
-  const sortedPosts = sortPosts(getPostsByLocale(allBlogs, defaultLocale))
-  const posts = toListPosts(sortedPosts)
+  const { posts } = getBlogListData(defaultLocale)
   return <Main posts={posts} locale={defaultLocale} />
 }

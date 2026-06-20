@@ -4,17 +4,10 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Footer from './Footer'
 import Header from './Header'
-import { stripLocaleFromPathname } from '@/lib/i18n'
+import { BLOG_PATH_CHANGE_EVENT, isBlogPostPath } from '@/lib/blogRouteState'
 
-const BLOG_PATH_CHANGE_EVENT = 'blog-pathchange'
 const HEADER_HIDE_SCROLL_Y = 80
 const SCROLL_DELTA_THRESHOLD = 6
-
-function isBlogPostPath(pathname: string) {
-  const strippedPath = stripLocaleFromPathname(pathname).replace(/\/+$/, '')
-
-  return /^\/blog\/[^/]+/.test(strippedPath)
-}
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()

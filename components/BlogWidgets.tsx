@@ -3,43 +3,16 @@ import siteMetadata from '@/data/siteMetadata'
 import Image from '@/components/Image'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale } from '@/lib/i18n'
-import { slug } from 'github-slugger'
 import { formatDate } from '@/lib/formatDate'
+import type { CountMap } from '@/lib/content/terms'
 import type { ReactNode } from 'react'
 
 type Post = BlogListPost
-type CountMap = Record<string, number>
 
 const cardClass =
   'rounded-[8px] bg-white shadow-[0_14px_36px_rgba(21,30,43,0.07)] dark:bg-[#252d38] dark:shadow-none'
 const widgetCardClass =
   'overflow-hidden rounded-[8px] bg-white shadow-[0_6px_18px_rgba(21,30,43,0.045)] ring-1 ring-slate-200/70 dark:bg-[#252d38] dark:shadow-none dark:ring-white/10'
-
-function countTerms(posts: Post[], field: 'categories' | 'tags'): CountMap {
-  return posts.reduce<CountMap>((counts, post) => {
-    post[field]?.forEach((term) => {
-      const key = slug(term)
-      counts[key] = (counts[key] || 0) + 1
-    })
-    return counts
-  }, {})
-}
-
-export function countCategories(posts: Post[]): CountMap {
-  return countTerms(posts, 'categories')
-}
-
-export function countTags(posts: Post[]): CountMap {
-  return countTerms(posts, 'tags')
-}
-
-export function archiveCounts(posts: Pick<Post, 'date'>[]): CountMap {
-  return posts.reduce<CountMap>((counts, post) => {
-    const year = new Date(post.date).getFullYear().toString()
-    counts[year] = (counts[year] || 0) + 1
-    return counts
-  }, {})
-}
 
 function sortedEntries(counts: CountMap) {
   return Object.entries(counts).sort((a, b) => {
@@ -166,17 +139,7 @@ export function ProfileSidebar({
   )
 }
 
-export function UtilitySidebar({
-  posts,
-  locale,
-  dateLocale,
-}: {
-  posts: Post[]
-  locale: Locale
-  dateLocale: string
-}) {
-  const years = Object.entries(archiveCounts(posts)).sort((a, b) => Number(b[0]) - Number(a[0]))
-
+export function UtilitySidebar({ posts, dateLocale }: { posts: Post[]; dateLocale: string }) {
   return (
     <aside className="blog-sidebar-right space-y-5 bg-transparent lg:self-start">
       <Widget title="最近文章">
@@ -192,24 +155,6 @@ export function UtilitySidebar({
               </time>
               <span className="mt-2 block text-base leading-7 text-slate-800 transition hover:text-sky-500 dark:text-white/80">
                 {post.title}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </Widget>
-
-      <Widget title="归档">
-        <div className="space-y-4">
-          {years.length === 0 && <p className="text-slate-500 dark:text-white/60">暂无归档</p>}
-          {years.map(([year, count]) => (
-            <Link
-              key={year}
-              href={localizePath('/blog', locale)}
-              className="flex items-center justify-between text-base text-slate-700 transition hover:text-sky-500 dark:text-white/80"
-            >
-              <span>{year}</span>
-              <span className="rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:bg-[#405064] dark:text-white/70">
-                {count}
               </span>
             </Link>
           ))}
@@ -243,7 +188,7 @@ export function BlogFrame({
         tagCounts={tagCounts}
         locale={locale}
       />
-      <UtilitySidebar posts={posts} locale={locale} dateLocale={dateLocale} />
+      <UtilitySidebar posts={posts} dateLocale={dateLocale} />
     </div>
   )
 }

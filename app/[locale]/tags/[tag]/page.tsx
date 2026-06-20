@@ -1,13 +1,11 @@
 import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
-import { allBlogs } from 'contentlayer/generated'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getCategoryCounts, getPostsByLocale, getPostsByTag, getTagCounts } from '@/lib/blog'
-import { sortPosts } from '@/lib/contentlayer'
-import { isLocale, locales } from '@/lib/i18n'
-import { toListPosts } from '@/lib/listPosts'
+import { getLocalizedTagParams, getTagListData } from '@/lib/content/posts'
+import { formatTermTitle } from '@/lib/content/terms'
+import { isLocale } from '@/lib/i18n'
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; tag: string }>
@@ -32,13 +30,7 @@ export async function generateMetadata(props: {
 }
 
 export const generateStaticParams = async () => {
-  return locales.flatMap((locale) => {
-    const tagCounts = getTagCounts(getPostsByLocale(allBlogs, locale))
-    return Object.keys(tagCounts).map((tag) => ({
-      locale,
-      tag: encodeURI(tag),
-    }))
-  })
+  return getLocalizedTagParams()
 }
 
 export default async function TagPage(props: { params: Promise<{ locale: string; tag: string }> }) {
@@ -49,17 +41,16 @@ export default async function TagPage(props: { params: Promise<{ locale: string;
   }
 
   const tag = decodeURI(params.tag)
-  const title = tag[0].toUpperCase() + tag.split(' ').join('-').slice(1)
-  const localePosts = getPostsByLocale(allBlogs, params.locale)
-  const filteredPosts = toListPosts(sortPosts(getPostsByTag(localePosts, tag)))
+  const title = formatTermTitle(tag)
+  const { posts, categoryCounts, tagCounts } = getTagListData(params.locale, tag)
 
   return (
     <ListLayout
-      posts={filteredPosts}
+      posts={posts}
       title={title}
       locale={params.locale}
-      categoryCounts={getCategoryCounts(localePosts)}
-      tagCounts={getTagCounts(localePosts)}
+      categoryCounts={categoryCounts}
+      tagCounts={tagCounts}
     />
   )
 }

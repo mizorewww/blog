@@ -1,15 +1,13 @@
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
-import { slug } from 'github-slugger'
-import { allBlogs } from 'contentlayer/generated'
 import { notFound } from 'next/navigation'
 import { genPageMetadata } from 'app/seo'
-import { getPostsByLocale, getTagCounts } from '@/lib/blog'
+import { getBlogListData, getLocaleParams } from '@/lib/content/posts'
 import { isLocale, locales, localizePath, ui } from '@/lib/i18n'
 import type { Metadata } from 'next'
 
 export const generateStaticParams = async () => {
-  return locales.map((locale) => ({ locale }))
+  return getLocaleParams()
 }
 
 export async function generateMetadata(props: {
@@ -35,7 +33,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
     return notFound()
   }
 
-  const tagCounts = getTagCounts(getPostsByLocale(allBlogs, locale))
+  const { tagCounts } = getBlogListData(locale)
   const tagKeys = Object.keys(tagCounts)
   const sortedTags = tagKeys.sort((a, b) => tagCounts[b] - tagCounts[a])
 
@@ -54,7 +52,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
               <div key={tag} className="mt-2 mr-5 mb-2">
                 <Tag text={tag} locale={locale} />
                 <Link
-                  href={localizePath(`/tags/${slug(tag)}`, locale)}
+                  href={localizePath(`/tags/${tag}`, locale)}
                   className="-ml-2 text-sm font-semibold text-gray-600 uppercase dark:text-gray-300"
                   aria-label={ui[locale].postsTagged(tag)}
                 >

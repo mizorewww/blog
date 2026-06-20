@@ -1,5 +1,3 @@
-'use client'
-
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import type { BlogListPost } from '@/lib/listPosts'
 import { defaultLocale, type Locale, ui } from '@/lib/i18n'
