@@ -73,8 +73,6 @@ export default function ExpandablePostCard({
   const shouldPreMountBody = Boolean(preloadedBodyCode && !post.bodyCode)
   const renderBody = bodyCode && (expanded || shouldKeepBodyMounted || shouldPreMountBody)
   const prefetchPost = useCallback(() => {
-    router.prefetch(postHref)
-
     if (!post.bodyCode) {
       void preloadPostBody(post.path).then((preloadedCode) => {
         if (mountedRef.current && preloadedCode) {
@@ -82,7 +80,7 @@ export default function ExpandablePostCard({
         }
       })
     }
-  }, [post.bodyCode, post.path, postHref, router])
+  }, [post.bodyCode, post.path])
 
   useEffect(() => {
     mountedRef.current = true

@@ -1,4 +1,4 @@
-import Link from 'next/link'
+import Link from '@/components/Link'
 import { slug } from 'github-slugger'
 import { localizePath, type Locale } from '@/lib/i18n'
 interface Props {
