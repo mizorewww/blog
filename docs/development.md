@@ -23,6 +23,31 @@ yarn dev
 
 默认端口是 `3000`。
 
+## 静态预览
+
+需要检查真实静态导出效果时，使用：
+
+```bash
+yarn preview
+```
+
+该命令会先执行 `yarn build`，然后用项目本地的 Caddy 服务 `out/`。第一次运行会自动下载 Caddy 到 `.tools/caddy/`；该目录只保存本机工具和运行状态，不提交到仓库。
+
+默认端口是 `3001`。服务启动后，终端会显示并定期重复 Local 和 Network 预览地址，例如：
+
+```text
+Local:   http://localhost:3001/
+Network: http://192.168.31.129:3001/
+```
+
+可选参数：
+
+```bash
+yarn preview --port 4000       # 指定端口
+yarn preview --no-build        # 跳过构建，直接服务已有 out/
+yarn preview --update-caddy    # 重新下载最新 Caddy
+```
+
 ## 检查
 
 ```bash
@@ -120,7 +145,7 @@ yarn build
 out/
 ```
 
-`out/` 是生产部署产物。生产发布只通过 GitHub Actions 上传到 Cloudflare Pages；本地需要检查静态产物时，可以临时用静态文件服务器预览 `out/`。
+`out/` 是生产部署产物。生产发布只通过 GitHub Actions 上传到 Cloudflare Pages；本地需要检查静态产物时，优先用 `yarn preview` 预览 `out/`。
 
 ## 修改站点信息
 

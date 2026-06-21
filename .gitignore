@@ -22,6 +22,7 @@
 
 # misc
 .DS_Store
+/.tools/
 
 # debug
 *.log

@@ -25,7 +25,10 @@ yarn dev
 yarn dev      # 本地开发服务器
 yarn lint     # ESLint 自动修复
 yarn build    # 生成静态站点到 out/
+yarn preview  # 构建静态站点并用本地 Caddy 预览
 ```
+
+`yarn preview` 第一次运行会自动下载 Caddy 到 `.tools/caddy/`，随后终端会持续显示可点击的 Local/Network 预览地址。
 
 Node.js 版本以 `.node-version` 为准，包管理器版本以 `packageManager` 为准。
 
