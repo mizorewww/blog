@@ -79,10 +79,23 @@ type PostGitCommit = {
   url: string
 }
 
+type GitHubCommitApiEntry = {
+  commit?: {
+    author?: { date?: string }
+    committer?: { date?: string }
+    message?: string
+  }
+  html_url?: string
+  sha?: string
+}
+
 const gitFieldSeparator = '\x1f'
 const gitRecordSeparator = '\x1e'
 const postGitHistoryCache = new Map<string, PostGitCommit[]>()
 const siteRepo = (siteMetadata.siteRepo || '').replace(/\/+$/, '')
+const siteRepoPath = siteRepo.startsWith('https://github.com/')
+  ? siteRepo.replace(/^https:\/\/github\.com\//, '')
+  : ''
 
 function getGitOutput(args: string[]) {
   try {
@@ -94,6 +107,22 @@ function getGitOutput(args: string[]) {
   } catch {
     return ''
   }
+}
+
+function getCurlOutput(args: string[]) {
+  try {
+    return execFileSync('curl', args, {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return ''
+  }
+}
+
+function isShallowGitRepository() {
+  return getGitOutput(['rev-parse', '--is-shallow-repository']) === 'true'
 }
 
 function encodeGitHubPath(filePath: string) {
@@ -120,13 +149,7 @@ function toIsoDate(value: unknown) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString()
 }
 
-function getPostGitHistory(filePath: string): PostGitCommit[] {
-  const cachedHistory = postGitHistoryCache.get(filePath)
-
-  if (cachedHistory) {
-    return cachedHistory
-  }
-
+function getLocalPostGitHistory(filePath: string): PostGitCommit[] {
   const output = getGitOutput([
     'log',
     '--follow',
@@ -150,6 +173,80 @@ function getPostGitHistory(filePath: string): PostGitCommit[] {
       }
     })
     .filter((commit) => commit.hash && commit.shortHash && commit.committedAt)
+
+  return history
+}
+
+function getGitHubApiRepoPath(repo: string) {
+  return repo.split('/').map(encodeURIComponent).join('/')
+}
+
+function getGitHubApiCommitHistory(filePath: string): PostGitCommit[] {
+  if (!siteRepoPath) {
+    return []
+  }
+
+  const params = new URLSearchParams({
+    path: filePath,
+    per_page: '100',
+  })
+  const head = getGitOutput(['rev-parse', 'HEAD'])
+
+  if (head) {
+    params.set('sha', head)
+  }
+
+  const output = getCurlOutput([
+    '-fsSL',
+    '-H',
+    'Accept: application/vnd.github+json',
+    '-H',
+    'User-Agent: mizore-blog-contentlayer',
+    `https://api.github.com/repos/${getGitHubApiRepoPath(siteRepoPath)}/commits?${params.toString()}`,
+  ])
+
+  if (!output) {
+    return []
+  }
+
+  try {
+    const commits = JSON.parse(output) as GitHubCommitApiEntry[]
+
+    if (!Array.isArray(commits)) {
+      return []
+    }
+
+    return commits
+      .map((entry) => {
+        const hash = entry.sha || ''
+        const committedAt = entry.commit?.committer?.date || entry.commit?.author?.date || ''
+        const subject = (entry.commit?.message || '').split('\n')[0] || hash
+
+        return {
+          hash,
+          shortHash: hash.slice(0, 7),
+          committedAt,
+          subject,
+          url: entry.html_url || getCommitUrl(hash),
+        }
+      })
+      .filter((commit) => commit.hash && commit.shortHash && commit.committedAt)
+  } catch {
+    return []
+  }
+}
+
+function getPostGitHistory(filePath: string): PostGitCommit[] {
+  const cachedHistory = postGitHistoryCache.get(filePath)
+
+  if (cachedHistory) {
+    return cachedHistory
+  }
+
+  const localHistory = getLocalPostGitHistory(filePath)
+  const shouldFetchGitHubHistory = isShallowGitRepository() || localHistory.length <= 1
+  const githubHistory = shouldFetchGitHubHistory ? getGitHubApiCommitHistory(filePath) : []
+  const history = githubHistory.length > localHistory.length ? githubHistory : localHistory
 
   postGitHistoryCache.set(filePath, history)
 
@@ -252,7 +349,7 @@ const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
 const tradingViewMiniPattern = /^\$([A-Za-z0-9._:-]+)$/
 const tradingViewAdvancedPattern = /^::(?:tv|tv-advanced|tradingview)\s+(.+)$/
 const codeSourceUrlPattern = /\s*sourceUrl="([^"]*)"/
-const defaultGitHubRepo = siteRepo.replace(/^https:\/\/github\.com\//, '')
+const defaultGitHubRepo = siteRepoPath
 
 function parseEmbedAttributes(value: string): GitHubEmbedAttrs {
   const attrs: GitHubEmbedAttrs = {}
