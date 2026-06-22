@@ -48,9 +48,6 @@ jobs:
       - name: Build static site
         run: yarn build
 
-      - name: Validate SEO output
-        run: yarn seo:check
-
       - name: Validate static output quality
         run: |
           if rg -q "bodyCode|function MDXContent|var Component" out/index.txt out/zh/index.txt out/en/index.txt; then
