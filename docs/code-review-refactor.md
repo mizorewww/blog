@@ -1,3 +1,24 @@
+---
+status: active
+audience: agent
+authority: note
+owner: docs-maintainer
+last_verified: 2026-06-23
+verified_by: command
+related_code:
+  - app
+  - components
+  - contentlayer
+  - lib
+  - layouts
+update_when:
+  - refactor status changes
+  - architecture changes
+  - deferred item status changes
+supersedes:
+superseded_by:
+---
+
 # Code Review Refactor Plan
 
 Date: 2026-06-22

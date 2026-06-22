@@ -1,3 +1,22 @@
+---
+status: active
+audience: both
+authority: source-of-truth
+owner: docs-maintainer
+last_verified: 2026-06-23
+verified_by: command
+related_code:
+  - .github/workflows/pages.yml
+  - next.config.js
+  - scripts
+update_when:
+  - deployment pipeline changes
+  - build output changes
+  - quality gate changes
+supersedes:
+superseded_by:
+---
+
 # 部署
 
 生产部署使用 GitHub Actions 发布到 Cloudflare Pages。
@@ -45,7 +64,10 @@ GitHub Actions -> yarn build -> out/ -> Cloudflare Pages
 当前 GitHub Actions 在部署前会执行：
 
 - `yarn lint:check`
+- `yarn format:check`
 - `yarn typecheck`
+- `yarn docs:check`
+- `yarn deadcode:check`
 - `yarn build`
 - 列表页 RSC payload 检查，防止 MDX 正文重新进入首页列表
 - `yarn quality:html`

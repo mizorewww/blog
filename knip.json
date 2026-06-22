@@ -1,0 +1,32 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema.json",
+  "entry": [
+    "next.config.js",
+    "contentlayer.config.ts",
+    "app/**/*.{ts,tsx}",
+    "contentlayer/**/*.{ts,tsx}",
+    "scripts/*.mjs"
+  ],
+  "project": [
+    "app/**/*.{ts,tsx}",
+    "components/**/*.{ts,tsx}",
+    "contentlayer/**/*.{ts,tsx}",
+    "contentlayer.config.ts",
+    "data/**/*.{ts,tsx}",
+    "layouts/**/*.{ts,tsx}",
+    "lib/**/*.{ts,tsx}",
+    "next.config.js",
+    "postcss.config.js",
+    "prettier.config.js",
+    "scripts/**/*.{js,mjs}"
+  ],
+  "ignoreBinaries": ["scripts/quality-html.sh"],
+  "ignoreDependencies": [
+    "@tailwindcss/typography",
+    "eslint-config-next",
+    "eslint-config-prettier",
+    "eslint-plugin-jsx-a11y",
+    "sharp",
+    "tailwindcss"
+  ]
+}

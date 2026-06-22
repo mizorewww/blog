@@ -15,15 +15,19 @@ const compat = new FlatCompat({
 const eslintConfig = [
   {
     ignores: ['next-env.d.ts'],
+    linterOptions: {
+      reportUnusedDisableDirectives: 'error',
+      reportUnusedInlineConfigs: 'error',
+    },
   },
   js.configs.recommended,
   ...compat.extends(
     'plugin:@typescript-eslint/eslint-recommended',
     'plugin:@typescript-eslint/recommended',
     'plugin:jsx-a11y/recommended',
-    'plugin:prettier/recommended',
     'next',
-    'next/core-web-vitals'
+    'next/core-web-vitals',
+    'prettier'
   ),
   {
     plugins: {
@@ -48,7 +52,6 @@ const eslintConfig = [
     },
 
     rules: {
-      'prettier/prettier': 'error',
       'react/react-in-jsx-scope': 'off',
 
       'jsx-a11y/anchor-is-valid': [
@@ -61,10 +64,37 @@ const eslintConfig = [
       ],
       'react/prop-types': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'error',
       'react/no-unescaped-entities': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-var-requires': 'off',
-      '@typescript-eslint/ban-ts-comment': 'off',
+      '@typescript-eslint/ban-ts-comment': [
+        'error',
+        {
+          'ts-expect-error': 'allow-with-description',
+          'ts-ignore': true,
+          'ts-nocheck': true,
+          'ts-check': false,
+          minimumDescriptionLength: 10,
+        },
+      ],
+      'no-warning-comments': [
+        'error',
+        {
+          terms: [
+            'todo',
+            'fixme',
+            'hack',
+            'deferred',
+            'follow-up',
+            'temp',
+            'workaround',
+            'placeholder',
+            'stub',
+          ],
+          location: 'anywhere',
+        },
+      ],
     },
   },
 ]

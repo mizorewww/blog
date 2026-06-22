@@ -1,3 +1,24 @@
+---
+status: active
+audience: both
+authority: source-of-truth
+owner: docs-maintainer
+last_verified: 2026-06-23
+verified_by: command
+related_code:
+  - app
+  - components
+  - contentlayer
+  - lib
+  - next.config.js
+update_when:
+  - architecture changes
+  - build model changes
+  - routing behavior changes
+supersedes:
+superseded_by:
+---
+
 # 软件架构
 
 这个项目是纯静态博客。生产环境不运行 Node.js 服务，所有页面在构建阶段预渲染为静态文件。

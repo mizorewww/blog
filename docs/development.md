@@ -1,3 +1,23 @@
+---
+status: active
+audience: both
+authority: source-of-truth
+owner: docs-maintainer
+last_verified: 2026-06-23
+verified_by: command
+related_code:
+  - package.json
+  - scripts
+  - eslint.config.mjs
+  - knip.json
+update_when:
+  - development command changes
+  - package manager changes
+  - quality gate changes
+supersedes:
+superseded_by:
+---
+
 # 本地开发
 
 ## 环境
@@ -51,13 +71,31 @@ yarn preview --update-caddy    # 重新下载仓库固定版本的 Caddy
 ## 检查
 
 ```bash
-yarn lint
+yarn check
 ```
 
-`lint` 只做检查，不会改写文件。需要自动修复时使用：
+`check` 会依次执行图标注册表检查、格式检查、ESLint、TypeScript、文档 metadata 检查和 Knip dead-code/dependency 检查。
+
+常用单项检查：
+
+```bash
+yarn format:check
+yarn lint:check
+yarn typecheck
+yarn docs:check
+yarn deadcode:check
+```
+
+`lint:check` 只做检查，不会改写文件。需要自动修复 ESLint 问题时使用：
 
 ```bash
 yarn lint:fix
+```
+
+需要自动格式化时使用：
+
+```bash
+yarn format:write
 ```
 
 合并前的完整只读检查：
