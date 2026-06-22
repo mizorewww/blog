@@ -1,4 +1,4 @@
-import { defaultLocale, isLocale, type Locale } from '@/lib/i18n'
+import { defaultLocale, isLocale, type Locale } from './i18n.ts'
 
 type BlogLike = {
   draft?: boolean

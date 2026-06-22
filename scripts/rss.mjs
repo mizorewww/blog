@@ -3,9 +3,12 @@ import path from 'path'
 import { slug } from 'github-slugger'
 import siteMetadata from '../data/siteMetadata.ts'
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
+import { getPostLocale } from '../lib/blog.ts'
+import { sortPosts } from '../lib/contentlayer.ts'
+import { defaultLocale } from '../lib/i18n.ts'
+import { absoluteSiteUrl } from '../lib/urls.ts'
 
 const outputFolder = 'out'
-const defaultLocale = 'zh'
 const xmlEscapeMap = {
   '&': '&amp;',
   '<': '&lt;',
@@ -16,21 +19,6 @@ const xmlEscapeMap = {
 
 function escape(value) {
   return String(value).replace(/[&<>'"]/g, (match) => xmlEscapeMap[match])
-}
-
-function absoluteSiteUrl(siteUrl, route = '') {
-  const normalizedRoute = route ? `/${route.replace(/^\/+/, '')}` : '/'
-  const url = new URL(normalizedRoute, siteUrl).toString()
-
-  return url.endsWith('/') ? url : `${url}/`
-}
-
-function sortPosts(posts) {
-  return [...posts].sort((first, second) => new Date(second.date) - new Date(first.date))
-}
-
-function getPostLocale(post) {
-  return post.locale || post.language || defaultLocale
 }
 
 function getTagSlugs(posts) {

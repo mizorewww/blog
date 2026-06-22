@@ -3,16 +3,16 @@ import path from 'path'
 import { fileURLToPath } from 'url'
 import siteMetadata from '../data/siteMetadata.ts'
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
+import { getPostLocale } from '../lib/blog.ts'
+import { localeConfig, locales } from '../lib/i18n.ts'
+import { getPostModifiedDate, latestDate } from '../lib/postDates.ts'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const repoRoot = path.resolve(__dirname, '..')
 const outDir = path.join(repoRoot, 'out')
-const defaultLocale = 'zh'
-const locales = ['zh', 'en']
-const htmlLang = {
-  zh: 'zh-CN',
-  en: 'en-US',
-}
+const htmlLang = Object.fromEntries(
+  locales.map((locale) => [locale, localeConfig[locale].htmlLang])
+)
 
 function fail(message) {
   console.error(`SEO validation failed: ${message}`)
@@ -37,15 +37,8 @@ function htmlPathForUrl(url) {
   return path.join(outDir, pathname.replace(/^\/+|\/+$/g, ''), 'index.html')
 }
 
-function getLocale(post) {
-  return locales.includes(post.locale) ? post.locale : post.language || defaultLocale
-}
-
 function latestModified(posts) {
-  return posts
-    .map((post) => post.gitUpdatedAt || post.lastmod || post.date)
-    .filter(Boolean)
-    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0]
+  return latestDate(posts.map(getPostModifiedDate))
 }
 
 function extractAttributes(tag) {
@@ -126,7 +119,7 @@ const latestAll = latestModified(publishedPosts)
 const latestByLocale = Object.fromEntries(
   locales.map((locale) => [
     locale,
-    latestModified(publishedPosts.filter((post) => getLocale(post) === locale)) || latestAll,
+    latestModified(publishedPosts.filter((post) => getPostLocale(post) === locale)) || latestAll,
   ])
 )
 
