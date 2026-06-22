@@ -27,9 +27,9 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 - No-locale `app/` mirror routes and empty legacy blog route directories were removed; redirects now send historical `/`, `/tags`, and `/categories` paths to `/zh/...`.
 - GitHub API access in Contentlayer uses `fetch` with timeout, retry, optional `GITHUB_TOKEN`/`GH_TOKEN`, and a `.contentlayer` cache.
 - `siteMetadata` is typed TypeScript and script-side RSS/SEO helpers reuse shared locale, URL, post sorting, and date utilities.
-- Post expansion uses App Router navigation for opening posts; list-return animation context is stored in `sessionStorage`.
-- MDX body rendering no longer uses project-level `new Function`; Contentlayer writes generated ESM modules and detail pages import them during static generation.
-- `_post-data` body JSON generation and client body-code preloading were removed.
+- Post expansion again matches the pre-refactor behavior: prefetched body code updates the URL with history state and expands in place without waiting for App Router.
+- Contentlayer writes generated ESM modules for server-rendered detail pages; list-page in-place expansion intentionally keeps the client Contentlayer runtime MDX path.
+- `_post-data` body JSON generation and client body-code preloading are kept because they are required for the old animation behavior.
 - Dark surface/border colors are semantic Tailwind tokens, strict TypeScript is enabled, ESLint unused variables is re-enabled, and `ecmaVersion` is set to `2022`.
 - Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
 
@@ -44,8 +44,8 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 
 The previous deferred list has been closed in the follow-up branch:
 
-- App Router now owns post-open navigation; a full Parallel Routes + Intercepting Routes rewrite is no longer needed for the current static export interaction model.
-- Contentlayer runtime MDX eval was replaced by generated ESM modules imported during static generation.
+- The App Router-only post-open experiment was reverted for UX: the current static export interaction model preserves manual URL updates plus in-place expansion.
+- Contentlayer runtime MDX eval was removed from server-rendered detail pages, but remains in the client expansion path until a browser-loadable MDX module pipeline replaces `_post-data`.
 - Hard-coded dark surface colors were replaced by semantic tokens where they appeared in the reviewed UI paths.
 - `strict: true` is enabled.
 - No-locale static route implementations were removed and replaced with redirect rules.
@@ -54,3 +54,4 @@ The previous deferred list has been closed in the follow-up branch:
 
 - The `lucide-react` generated icon map keeps icon maintenance simple, but it increases the first-load JS for list pages. Revisit if bundle size becomes a release blocker.
 - Node prints `MODULE_TYPELESS_PACKAGE_JSON` warnings when scripts import `.ts` modules directly. Avoid changing package-wide module type unless the Next/CommonJS config is migrated deliberately.
+- The restored client expansion path requires `unsafe-eval` for Contentlayer runtime MDX. Removing it again needs a replacement that still lets the list page render prefetched post bodies before route navigation.

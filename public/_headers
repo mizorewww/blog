@@ -1,5 +1,5 @@
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' analytics.umami.is https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self'; connect-src 'self' analytics.umami.is; font-src 'self'; frame-src https://www.tradingview-widget.com https://s.tradingview.com
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' analytics.umami.is https://s3.tradingview.com; style-src 'self' 'unsafe-inline'; img-src 'self' blob: data:; media-src 'self'; connect-src 'self' analytics.umami.is; font-src 'self'; frame-src https://www.tradingview-widget.com https://s.tradingview.com
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

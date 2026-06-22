@@ -15,6 +15,8 @@ import {
   type TermField,
 } from '@/lib/content/terms'
 
+type ListPostOptions = Parameters<typeof toListPosts>[1]
+
 export type BlogListData = {
   sourcePosts: Blog[]
   posts: BlogListPost[]
@@ -39,12 +41,12 @@ export function getAuthorDetails(authorIds: string[] = ['default']): CoreContent
     .map(coreContent)
 }
 
-export function getBlogListData(locale: Locale): BlogListData {
+export function getBlogListData(locale: Locale, options: ListPostOptions = {}): BlogListData {
   const sourcePosts = getLocalePosts(locale)
 
   return {
     sourcePosts,
-    posts: toListPosts(sortPosts(sourcePosts)),
+    posts: toListPosts(sortPosts(sourcePosts), options),
     categoryCounts: getCategoryCounts(sourcePosts),
     tagCounts: getTagCounts(sourcePosts),
   }
@@ -77,7 +79,9 @@ export function getPostPageData(locale: Locale, slug: string) {
     return null
   }
 
-  const listData = getBlogListData(locale)
+  const listData = getBlogListData(locale, {
+    includeBodyCode: (item) => item.path === post.path,
+  })
 
   return {
     post,
