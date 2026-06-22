@@ -241,6 +241,7 @@ type GitHubEmbedAttrs = {
 }
 
 const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
+const codeSourceUrlPattern = /\s*sourceUrl="([^"]*)"/
 const defaultGitHubRepo = siteRepo.replace(/^https:\/\/github\.com\//, '')
 
 function parseEmbedAttributes(value: string): GitHubEmbedAttrs {
@@ -270,6 +271,46 @@ function getLocalGitFile(ref: string, filePath: string) {
   }
 
   return getGitOutput(['show', `${ref}:${filePath}`])
+}
+
+function getGitHubLineFragment(lines?: string) {
+  if (!lines) {
+    return ''
+  }
+
+  const [rawStart, rawEnd] = lines.split(',')[0]?.split('-') || []
+  const start = Number(rawStart)
+  const end = Number(rawEnd || rawStart)
+
+  if (!Number.isInteger(start) || start < 1) {
+    return ''
+  }
+
+  return Number.isInteger(end) && end > start ? `#L${start}-L${end}` : `#L${start}`
+}
+
+function getGitHubCodeUrl(attrs: GitHubEmbedAttrs) {
+  if (!attrs.path) {
+    return ''
+  }
+
+  const repo = normalizeGitHubRepo(attrs.repo)
+  const ref = attrs.ref || 'HEAD'
+  return `https://github.com/${repo}/blob/${ref}/${encodeGitHubPath(attrs.path)}${getGitHubLineFragment(attrs.lines)}`
+}
+
+function getGitHubDiffUrl(attrs: GitHubEmbedAttrs) {
+  const repo = normalizeGitHubRepo(attrs.repo)
+
+  if (attrs.ref) {
+    return `https://github.com/${repo}/commit/${attrs.ref}`
+  }
+
+  if (attrs.base && attrs.head) {
+    return `https://github.com/${repo}/compare/${attrs.base}...${attrs.head}`
+  }
+
+  return ''
 }
 
 async function fetchText(url: string) {
@@ -377,11 +418,12 @@ function createCodeNode(
   value: string,
   lang: string,
   title?: string,
-  options: { showLineNumbers?: boolean } = {}
+  options: { showLineNumbers?: boolean; sourceUrl?: string } = {}
 ): MdastNode {
   const meta = [
     options.showLineNumbers ? 'showLineNumbers' : '',
     title ? `title="${title.replace(/"/g, '\\"')}"` : '',
+    options.sourceUrl ? `sourceUrl="${options.sourceUrl.replace(/"/g, '\\"')}"` : '',
   ]
     .filter(Boolean)
     .join(' ')
@@ -408,7 +450,10 @@ async function createGitHubEmbedNode(kind: string, attrSource: string): Promise<
         attrs.title ||
         `${normalizeGitHubRepo(attrs.repo)}:${attrs.path}${attrs.lines ? `#L${attrs.lines}` : ''}`
 
-      return createCodeNode(value, attrs.lang || 'text', title, { showLineNumbers: true })
+      return createCodeNode(value, attrs.lang || 'text', title, {
+        showLineNumbers: true,
+        sourceUrl: getGitHubCodeUrl(attrs),
+      })
     }
 
     const value = await getGitHubDiff(attrs)
@@ -418,6 +463,7 @@ async function createGitHubEmbedNode(kind: string, attrSource: string): Promise<
 
     return createCodeNode(value || 'No diff matched this query.', attrs.lang || 'diff', title, {
       showLineNumbers: true,
+      sourceUrl: getGitHubDiffUrl(attrs),
     })
   } catch (error) {
     return createEmbedErrorNode(error instanceof Error ? error.message : String(error))
@@ -457,11 +503,44 @@ function remarkGitHubEmbeds() {
 }
 
 type HastNode = {
+  data?: Record<string, unknown>
   type?: string
   tagName?: string
   value?: string
   properties?: Record<string, unknown>
   children?: HastNode[]
+}
+
+function extractCodeSourceMetadata(node: HastNode) {
+  if (!node.data) {
+    return
+  }
+
+  const meta = typeof node.data.meta === 'string' ? node.data.meta : ''
+  const sourceUrl = meta.match(codeSourceUrlPattern)?.[1]
+
+  if (!sourceUrl) {
+    return
+  }
+
+  node.data.githubSourceUrl = sourceUrl
+  node.data.meta = meta.replace(codeSourceUrlPattern, '').trim()
+}
+
+function collectCodeSourceMetadata(node: HastNode) {
+  if (node.tagName === 'code') {
+    extractCodeSourceMetadata(node)
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      collectCodeSourceMetadata(child)
+    }
+  }
+}
+
+function rehypeCodeSourceMetadata() {
+  return (tree: HastNode) => collectCodeSourceMetadata(tree)
 }
 
 function getNodeText(node: HastNode): string {
@@ -490,7 +569,106 @@ function getDiffLineKind(value: string) {
   return ''
 }
 
+function findChildElement(node: HastNode, tagName: string): HastNode | undefined {
+  return node.children?.find((child) => child.tagName === tagName)
+}
+
+function findDescendantElement(node: HastNode, tagName: string): HastNode | undefined {
+  if (node.tagName === tagName) {
+    return node
+  }
+
+  if (!Array.isArray(node.children)) {
+    return undefined
+  }
+
+  for (const child of node.children) {
+    const match = findDescendantElement(child, tagName)
+
+    if (match) {
+      return match
+    }
+  }
+
+  return undefined
+}
+
+function createGitHubIconNode(): HastNode {
+  return {
+    type: 'element',
+    tagName: 'svg',
+    properties: {
+      'aria-hidden': 'true',
+      className: ['code-source-link-icon'],
+      fill: 'currentColor',
+      viewBox: '0 0 24 24',
+    },
+    children: [
+      {
+        type: 'element',
+        tagName: 'path',
+        properties: {
+          d: 'M12 .5C5.65.5.5 5.65.5 12c0 5.08 3.29 9.39 7.86 10.91.58.11.79-.25.79-.56v-2.03c-3.2.7-3.88-1.36-3.88-1.36-.52-1.33-1.28-1.69-1.28-1.69-1.04-.71.08-.7.08-.7 1.15.08 1.76 1.18 1.76 1.18 1.03 1.75 2.69 1.25 3.35.95.1-.74.4-1.25.73-1.54-2.55-.29-5.23-1.28-5.23-5.68 0-1.25.45-2.28 1.18-3.08-.12-.29-.51-1.46.11-3.04 0 0 .96-.31 3.16 1.18A10.9 10.9 0 0 1 12 6.15c.98 0 1.96.13 2.88.39 2.19-1.49 3.15-1.18 3.15-1.18.63 1.58.24 2.75.12 3.04.74.8 1.18 1.83 1.18 3.08 0 4.41-2.69 5.38-5.25 5.67.41.35.78 1.05.78 2.12v3.08c0 .31.21.67.79.56A11.5 11.5 0 0 0 23.5 12C23.5 5.65 18.35.5 12 .5Z',
+        },
+        children: [],
+      },
+    ],
+  }
+}
+
+function enhanceCodeTitle(node: HastNode) {
+  if (
+    node.tagName !== 'figure' ||
+    node.properties?.['data-rehype-pretty-code-figure'] === undefined
+  ) {
+    return
+  }
+
+  const title = findChildElement(node, 'figcaption')
+  const code = findDescendantElement(node, 'code')
+  const sourceUrl = typeof code?.data?.githubSourceUrl === 'string' ? code.data.githubSourceUrl : ''
+
+  if (!title || !sourceUrl) {
+    return
+  }
+
+  const language =
+    typeof code?.properties?.['data-language'] === 'string' ? code.properties['data-language'] : ''
+  const linkText = language === 'diff' ? '在 GitHub 查看 diff' : '在 GitHub 查看代码'
+  const titleText = getNodeText(title)
+
+  title.children = [
+    {
+      type: 'element',
+      tagName: 'span',
+      properties: { className: ['code-title-text'] },
+      children: [{ type: 'text', value: titleText }],
+    },
+    {
+      type: 'element',
+      tagName: 'a',
+      properties: {
+        className: ['code-source-link'],
+        href: sourceUrl,
+        rel: 'noopener noreferrer',
+        target: '_blank',
+      },
+      children: [
+        createGitHubIconNode(),
+        {
+          type: 'element',
+          tagName: 'span',
+          properties: { className: ['code-source-link-text'] },
+          children: [{ type: 'text', value: linkText }],
+        },
+      ],
+    },
+  ]
+}
+
 function annotateCodeLines(node: HastNode, language = '') {
+  enhanceCodeTitle(node)
+
   const properties = node.properties || {}
   const nextLanguage =
     typeof properties['data-language'] === 'string' ? properties['data-language'] : language
@@ -698,6 +876,7 @@ export default makeSource({
           content: icon,
         },
       ],
+      rehypeCodeSourceMetadata,
       [rehypePrettyCode, rehypePrettyCodeOptions],
       rehypeCodeLineMetadata,
       rehypePresetMinify,
