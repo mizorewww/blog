@@ -1,6 +1,5 @@
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
-import { createWriteStream } from 'node:fs'
 import {
   access,
   chmod,
@@ -14,8 +13,6 @@ import {
 } from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import path from 'node:path'
-import { Readable } from 'node:stream'
-import { pipeline } from 'node:stream/promises'
 import { fileURLToPath } from 'node:url'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -76,6 +73,7 @@ function readArg(name) {
 }
 
 function run(command, commandArgs, options = {}) {
+  /** @type {Promise<void>} */
   return new Promise((resolve, reject) => {
     const child = spawn(command, commandArgs, {
       cwd: projectRoot,
@@ -87,7 +85,7 @@ function run(command, commandArgs, options = {}) {
     child.on('error', reject)
     child.on('close', (code, signal) => {
       if (code === 0) {
-        resolve()
+        resolve(undefined)
         return
       }
 
@@ -133,6 +131,7 @@ function printPreviewUrls(prefix, urls) {
 }
 
 function runWithPreviewReminders(command, commandArgs, urls, options = {}) {
+  /** @type {Promise<void>} */
   return new Promise((resolve, reject) => {
     printPreviewUrls('Static preview is running:', urls)
 
@@ -156,7 +155,7 @@ function runWithPreviewReminders(command, commandArgs, urls, options = {}) {
       clearInterval(reminder)
 
       if (code === 0) {
-        resolve()
+        resolve(undefined)
         return
       }
 
@@ -257,7 +256,7 @@ async function downloadFile(url, outputPath) {
     throw new Error(`Failed to download ${url}: ${response.status} ${response.statusText}`)
   }
 
-  await pipeline(Readable.fromWeb(response.body), createWriteStream(outputPath))
+  await writeFile(outputPath, Buffer.from(await response.arrayBuffer()))
 }
 
 async function verifySha512(filePath, expectedSha512) {

@@ -20,6 +20,7 @@ Rules:
 - Check maintenance signals: recent release/activity, issue health, license compatibility, package ecosystem fit, and API stability.
 - Do not edit files.
 - Do not use docs or research notes as completion evidence for source work.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Output:
 

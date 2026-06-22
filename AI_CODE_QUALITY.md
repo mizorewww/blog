@@ -43,7 +43,7 @@ Return `NOT_FEASIBLE` if any of the following is true:
 10. Dead code is merely disconnected rather than removed.
 11. Old implementation is left beside a replacement without a compatibility reason.
 12. Errors are swallowed or hidden with silent fallback.
-13. Sleep, timeout, retry, or polling is used as a band-aid for lifecycle/race bugs.
+13. Sleep, timeout, retry, or polling is used as a band-aid for lifecycle/race bugs. This does not prohibit the 1,800 second subagent orchestration timeout or `agent:watchdog` heartbeat policy.
 14. Public API, data shape, persistence format, or error semantics changed without being called out.
 15. Deterministic quality gates fail.
 16. Relevant validation was not run.
@@ -58,10 +58,12 @@ Return `FEASIBLE` only if all of the following are true:
 3. No deferred work is used as completion.
 4. No new scanner failure exists.
 5. Tests/checks relevant to the change were run.
-6. The code does not obviously bypass existing architecture.
-7. The code does not obviously create a monolithic boundary problem.
-8. The code does not obviously reinvent existing utilities or dependencies.
-9. The result is ready for final agent check.
+6. `yarn typecheck:scripts` was run for maintained JS/MJS changes.
+7. `yarn perf:check` was run for performance-sensitive changes.
+8. The code does not obviously bypass existing architecture.
+9. The code does not obviously create a monolithic boundary problem.
+10. The code does not obviously reinvent existing utilities or dependencies.
+11. The result is ready for final agent check.
 
 ## Evidence Rule
 

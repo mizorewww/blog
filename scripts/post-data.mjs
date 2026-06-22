@@ -17,7 +17,11 @@ function writePostData(post) {
   )
 }
 
+function isPublishedPost(post) {
+  return !('draft' in post) || post.draft !== true
+}
+
 export default function postData() {
-  allBlogs.filter((post) => post.draft !== true).forEach(writePostData)
+  allBlogs.filter(isPublishedPost).forEach(writePostData)
   console.log('Post preload data generated...')
 }

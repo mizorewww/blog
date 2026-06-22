@@ -22,6 +22,7 @@ Rules:
 - Update existing source-of-truth docs in place when their domain changes.
 - Mark stale docs with status deprecated or superseded and set superseded_by. Do not delete docs unless the plan explicitly calls for deletion.
 - Run yarn docs:check after documentation changes.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Required front matter:
 

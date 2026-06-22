@@ -8,6 +8,7 @@ verified_by: command
 related_code:
   - .agents/skills/codex-agent-workflow/SKILL.md
   - .codex/agents
+  - scripts/agent-watchdog.mjs
 update_when:
   - agent orchestration changes
   - commit policy changes
@@ -25,6 +26,18 @@ LLMs are allowed to implement and review, but deterministic gates are authoritat
 Use `.agents/skills/codex-agent-workflow/SKILL.md` as the orchestration source of truth.
 
 The old `.codex/prompts/*.md` flow has been replaced by project skill orchestration plus `.codex/agents/*.toml` role definitions.
+
+## Sequential Orchestration
+
+Every sequential role must return its configured terminal output before the next role starts.
+
+The orchestrating agent must not guess that a subagent is dead, successful, or safe to skip. The maximum wait for a role is 1,800 seconds. Use native subagent wait timeouts when available; for command-backed roles, use:
+
+```bash
+yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>
+```
+
+If tooling supports a status or wakeup prompt, send one before recording timeout. If the role still has no terminal result, record `SUBAGENT_TIMEOUT` and route the task to repair/blocker handling.
 
 ## State Machine
 
@@ -68,7 +81,7 @@ Documentation is never completion evidence for implementation/refactor work.
 
 Use the `gate_runner` role.
 
-Run gates from `QUALITY_GATES.md`.
+Run gates from `QUALITY_GATES.md`, including `yarn typecheck:scripts` for maintained JS/MJS files.
 
 If any required gate fails, state becomes `S7 - Repair`.
 

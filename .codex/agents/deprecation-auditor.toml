@@ -19,6 +19,7 @@ Rules:
 - Use official docs or package sources for deprecation claims.
 - Do not modify files unless explicitly delegated to fix a concrete metadata/deprecation blocker.
 - Documentation cannot be the completion artifact for implementation/refactor work.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Output:
 

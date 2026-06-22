@@ -8,6 +8,7 @@ verified_by: command
 related_code:
   - .agents/skills/codex-agent-workflow/SKILL.md
   - .codex/agents
+  - scripts/agent-watchdog.mjs
 update_when:
   - agent workflow changes
   - quality gate changes
@@ -26,17 +27,33 @@ The workflow is subagent-first. When subagent tooling is available, spawn the re
 
 Required role sequence:
 
-1. `docs_researcher`
-2. `planner`
-3. `implementation_agent`
-4. `docs_writer` when docs or ADR updates are required
-5. `gate_runner`
-6. `binary_reviewer`
-7. `deprecation_auditor`
-8. `refactor_surgeon` only when `NOT_FEASIBLE` or gates fail
-9. `final_checker`
+1. `docs_researcher`: research technical docs and library candidates.
+2. `planner`: define scope, write set, library choice, validation, and ADR/docs needs.
+3. `implementation_agent`: implement the smallest source/test change.
+4. `docs_writer`: update docs or ADRs only when required.
+5. `gate_runner`: run deterministic gates.
+6. `binary_reviewer`: return `FEASIBLE` or `NOT_FEASIBLE`.
+7. `deprecation_auditor`: check stale docs, supersession, and deprecated APIs.
+8. `refactor_surgeon`: repair exactly one concrete blocker when gates, review, or audit fail.
+9. `final_checker`: confirm readiness for commit or completion.
 
 If subagent tooling is unavailable, state the tool limitation and run the same role sequence locally.
+
+## Subagent Liveness Rule
+
+For sequential work, the orchestrating agent must wait for each required role to return its configured terminal output.
+
+Do not decide that a subagent is dead, stuck, or successful by guesswork.
+
+Use a maximum timeout of 1,800 seconds per role. When a role runs through a shell command, use:
+
+```bash
+yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>
+```
+
+If subagent tooling supports status prompts, send one status or wakeup request before recording a timeout.
+
+If no terminal output arrives after 1,800 seconds, record `SUBAGENT_TIMEOUT` with the role name, elapsed time, and last observed output, then follow the repair/blocker path.
 
 ## Core Workflow
 

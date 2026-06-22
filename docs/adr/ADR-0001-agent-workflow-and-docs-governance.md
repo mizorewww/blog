@@ -12,6 +12,7 @@ related_code:
   - .agents/skills/codex-agent-workflow/SKILL.md
   - .codex/agents
   - scripts/check-doc-metadata.mjs
+  - scripts/agent-watchdog.mjs
 update_when:
   - agent workflow changes
   - documentation placement changes
@@ -26,7 +27,7 @@ superseded_by:
 Status: accepted
 Date: 2026-06-23
 Owner: codex-agent
-Related code: `AGENTS.md`, `CODEX_WORKFLOW.md`, `QUALITY_GATES.md`, `.agents/skills/codex-agent-workflow/SKILL.md`, `.codex/agents`, `scripts/check-doc-metadata.mjs`
+Related code: `AGENTS.md`, `CODEX_WORKFLOW.md`, `QUALITY_GATES.md`, `.agents/skills/codex-agent-workflow/SKILL.md`, `.codex/agents`, `scripts/check-doc-metadata.mjs`, `scripts/agent-watchdog.mjs`
 Supersedes:
 Superseded by:
 
@@ -41,6 +42,8 @@ Without explicit governance, stale docs can look authoritative, implementation w
 We use `.agents/skills/codex-agent-workflow/SKILL.md` as the orchestration source of truth and `.codex/agents/*.toml` as role definitions.
 
 Every implementation/refactor task starts with `docs_researcher`, then `planner`, then implementation. The research step must inspect related official technical documentation and library candidates. New libraries require more than 1,000 GitHub stars, current maintenance signals, and compatible licensing unless the task explicitly approves an exception.
+
+Sequential subagent work must wait for terminal role output instead of guessing that a subagent is dead or safe to skip. Each role has a maximum 1,800 second timeout. Command-backed long-running roles use `yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>` to emit heartbeats and timeout evidence.
 
 We add these role agents:
 

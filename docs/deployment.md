@@ -8,6 +8,7 @@ verified_by: command
 related_code:
   - .github/workflows/pages.yml
   - next.config.js
+  - tsconfig.scripts.json
   - scripts
 update_when:
   - deployment pipeline changes
@@ -66,6 +67,7 @@ GitHub Actions -> yarn build -> out/ -> Cloudflare Pages
 - `yarn lint:check`
 - `yarn format:check`
 - `yarn typecheck`
+- `yarn typecheck:scripts`
 - `yarn docs:check`
 - `yarn deadcode:check`
 - `yarn build`

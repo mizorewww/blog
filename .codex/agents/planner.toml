@@ -22,6 +22,7 @@ Rules:
 - Decide whether docs_writer must run.
 - Do not edit files unless explicitly delegated to write a plan artifact, which should be avoided for implementation tasks.
 - Do not make docs a completion artifact.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Output:
 
@@ -42,7 +43,7 @@ docs_required:
 - yes/no; reason; target path if yes
 
 validation:
-- commands and reviewer agents required
+- deterministic commands and reviewer agents required, including yarn typecheck:scripts and yarn perf:check when applicable
 
 risks:
 - ...

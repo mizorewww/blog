@@ -19,9 +19,11 @@ const gitShortCommitHash = gitFullCommitHash
   : getGitOutput(['rev-parse', '--short', 'HEAD'])
 
 /**
- * @type {import('next').NextConfig}
- **/
+ * @param {string} phase
+ * @returns {Promise<import('next').NextConfig>}
+ */
 export default async function nextConfig(phase) {
+  /** @type {import('next').NextConfig} */
   const config = {
     output: 'export',
     reactStrictMode: true,

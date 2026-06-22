@@ -11,6 +11,8 @@ related_code:
   - .codex/agents
   - AGENTS.md
   - CODEX_WORKFLOW.md
+  - QUALITY_GATES.md
+  - scripts/agent-watchdog.mjs
 update_when:
   - agent orchestration changes
   - documentation governance changes
@@ -27,16 +29,16 @@ This repo uses agent-only checks. Deterministic gates and reviewer agents decide
 
 Use this flow for every implementation or refactor task:
 
-1. Spawn `docs_researcher` to inspect related technical documentation and library candidates.
-2. Spawn `planner` to define scope, expected write set, library decision, and ADR/doc needs.
-3. Implement the smallest source/test change.
-4. Spawn `docs_writer` only when docs or ADR updates are required.
-5. Run deterministic gates.
-6. Run binary review.
-7. Run deprecation audit.
-8. Repair only concrete blockers.
-9. Run final readiness check.
-10. Create an atomic commit when the task allows commits and all checks pass.
+1. `docs_researcher`: spawn a subagent to inspect related technical documentation and library candidates.
+2. `planner`: spawn a subagent to define scope, expected write set, library decision, and ADR/doc needs.
+3. `implementation_agent`: implement the smallest source/test change.
+4. `docs_writer`: spawn only when docs or ADR updates are required.
+5. `gate_runner`: spawn a subagent to run deterministic gates.
+6. `binary_reviewer`: spawn a subagent to run binary review.
+7. `deprecation_auditor`: spawn a subagent to run deprecation and stale-doc audit.
+8. `refactor_surgeon`: spawn only when gates, review, or audit return a concrete blocker.
+9. `final_checker`: spawn a subagent to run final readiness check.
+10. `implementation_agent`: create an atomic commit when the task allows commits and all checks pass.
 
 If subagent tooling is unavailable, state the tool limitation in the result and run the same roles locally.
 
@@ -55,6 +57,20 @@ Use these `.codex/agents` roles:
 - `final_checker`: verifies readiness after gates and review pass.
 
 Prefer spawning `docs_researcher`, `planner`, `gate_runner`, `binary_reviewer`, `deprecation_auditor`, and `final_checker` as separate subagents. Spawn implementation, docs, or repair subagents only when their write scope is disjoint and bounded.
+
+## Subagent Liveness And Timeout
+
+Sequential orchestration must wait for an explicit terminal result from each required role.
+
+- Do not guess that a subagent is dead, idle, or successful.
+- Do not skip a required role because a prior role was slow.
+- Use a maximum role timeout of 1,800 seconds.
+- If the runner supports subagent wait timeouts, set the wait timeout to 1,800 seconds.
+- If the role is executed through a shell command, wrap it with `yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>`.
+- The child role must wake the orchestrator by returning its configured output format before the timeout.
+- If the tooling supports status prompts, send one status or wakeup request before recording timeout.
+- If no terminal result exists after the timeout, record `SUBAGENT_TIMEOUT` with role, elapsed seconds, and last observed output; then follow the repair/blocker path.
+- Heartbeats from `agent:watchdog` are evidence, not pass results.
 
 ## Research And Library Rule
 
@@ -176,8 +192,8 @@ S4 deterministic gates:
 
 - Use `gate_runner`.
 - Follow `QUALITY_GATES.md`.
-- Required local commands include `git status --short`, `git diff --name-only`, `git diff --stat`, `git diff --check`, `yarn format:check`, `yarn lint:check`, `yarn typecheck`, `yarn docs:check`, and `yarn deadcode:check`.
-- Run performance gates when the diff touches rendering, bundle, image, parsing, serialization, caching, or startup code.
+- Required local commands include `git status --short`, `git diff --name-only`, `git diff --stat`, `git diff --check`, `yarn format:check`, `yarn lint:check`, `yarn typecheck`, `yarn typecheck:scripts`, `yarn docs:check`, and `yarn deadcode:check`.
+- Run `yarn perf:check` when the diff touches rendering, bundle, image, parsing, serialization, caching, startup code, route output, or third-party client dependencies.
 - If any required gate fails, go to S7.
 
 S5 binary review:
@@ -219,10 +235,13 @@ git diff --check
 yarn lint:check
 yarn format:check
 yarn typecheck
+yarn typecheck:scripts
 yarn docs:check
 yarn deadcode:check
+yarn perf:check
 yarn check
 yarn verify
+yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>
 ```
 
 Report missing commands as `NOT_AVAILABLE`, not passed.

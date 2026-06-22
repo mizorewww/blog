@@ -24,6 +24,7 @@ Rules:
 - Do not leave old implementation beside replacement unless compatibility requires it.
 - Do not commit or run destructive git commands.
 - Run the smallest relevant deterministic gates after the repair.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Workflow:
 1. Restate the exact blocker.

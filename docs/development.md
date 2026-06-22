@@ -7,6 +7,7 @@ last_verified: 2026-06-23
 verified_by: command
 related_code:
   - package.json
+  - tsconfig.scripts.json
   - scripts
   - eslint.config.mjs
   - knip.json
@@ -74,7 +75,7 @@ yarn preview --update-caddy    # 重新下载仓库固定版本的 Caddy
 yarn check
 ```
 
-`check` 会依次执行图标注册表检查、格式检查、ESLint、TypeScript、文档 metadata 检查和 Knip dead-code/dependency 检查。
+`check` 会依次执行图标注册表检查、格式检查、ESLint、TypeScript、维护脚本 JS/MJS 类型检查、文档 metadata 检查和 Knip dead-code/dependency 检查。
 
 常用单项检查：
 
@@ -82,8 +83,10 @@ yarn check
 yarn format:check
 yarn lint:check
 yarn typecheck
+yarn typecheck:scripts
 yarn docs:check
 yarn deadcode:check
+yarn perf:check
 ```
 
 `lint:check` 只做检查，不会改写文件。需要自动修复 ESLint 问题时使用：
@@ -98,7 +101,7 @@ yarn lint:fix
 yarn format:write
 ```
 
-合并前的完整只读检查：
+合并前的完整静态检查：
 
 ```bash
 yarn check
@@ -117,8 +120,7 @@ yarn icons:generate
 修改路由、列表、文章渲染、图片、字体或第三方脚本时，合并前执行：
 
 ```bash
-yarn check
-yarn build
+yarn perf:check
 ```
 
 构建后检查列表页没有重新携带 MDX 正文代码：
@@ -135,7 +137,7 @@ rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.tx
 yarn quality:html
 ```
 
-`issues` 需要修复后再合并。`warnings` 需要人工判断；例如 SVG/RSS 命名空间里的 `http://www.w3.org/...`、文章代码块中的 `http://` 示例可能是误报。
+`issues` 需要修复后再合并。`warnings` 需要由执行 agent 或维护 owner 按上下文判断；例如 SVG/RSS 命名空间里的 `http://www.w3.org/...`、文章代码块中的 `http://` 示例可能是误报。
 
 GitHub Actions 会在 `yarn build` 后重复执行同一类检查：
 

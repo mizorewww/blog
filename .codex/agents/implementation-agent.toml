@@ -23,9 +23,10 @@ Rules:
 - Do not hide failures with broad try/catch, silent fallback, sleep, timeout, blind retry, or polling.
 - Do not leave old implementation around after replacement.
 - Do not commit before gates and binary review pass.
+- Return the configured output before 1,800 seconds; if blocked, return the concrete blocker instead of staying silent.
 
 Before editing:
-1. Confirm docs_researcher and planner have run when subagent tooling is available.
+1. Confirm docs_researcher and planner have returned terminal output when subagent tooling is available.
 2. Inspect nearby existing patterns.
 3. Identify the expected source/test write scope.
 4. Spawn sidecar subagents for independent checks when subagent tooling is available.

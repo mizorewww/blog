@@ -7,11 +7,14 @@ last_verified: 2026-06-23
 verified_by: command
 related_code:
   - package.json
+  - tsconfig.scripts.json
   - scripts/check-doc-metadata.mjs
+  - scripts/agent-watchdog.mjs
   - eslint.config.mjs
   - knip.json
 update_when:
   - package scripts change
+  - TypeScript project config changes
   - lint rules change
   - documentation metadata policy changes
 supersedes:
@@ -38,10 +41,13 @@ For this repo, the known project-level commands are:
 yarn lint:check
 yarn format:check
 yarn typecheck
+yarn typecheck:scripts
 yarn docs:check
 yarn deadcode:check
+yarn perf:check
 yarn check
 yarn verify
+yarn agent:watchdog
 ```
 
 ### 1. Git Diff Scope
@@ -69,9 +75,14 @@ This repo uses:
 
 ```bash
 yarn typecheck
+yarn typecheck:scripts
 ```
 
-Fail if typecheck fails.
+`yarn typecheck` covers the Next.js TypeScript app and generated Contentlayer types.
+
+`yarn typecheck:scripts` enables TypeScript `checkJs` for maintained JavaScript and MJS configuration/scripts without scanning generated `.contentlayer`, `.next`, or `out` output.
+
+Fail if either typecheck command fails.
 
 ### 3. Lint
 
@@ -268,9 +279,14 @@ Use when the change touches:
 This repo has:
 
 ```bash
+yarn perf:check
 yarn size:budget
 yarn quality:html
 ```
+
+`yarn perf:check` runs a production build, static HTML quality checks, and static asset budget checks.
+
+Run it when a diff touches rendering, bundle entrypoints, image handling, parsing/serialization, caching, startup code, route output, or third-party client dependencies.
 
 Fail if:
 

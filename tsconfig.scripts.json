@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "incremental": false,
+    "lib": ["ES2022", "DOM"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "noEmit": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "strict": false,
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "include": [
+    "eslint.config.mjs",
+    "next.config.js",
+    "postcss.config.js",
+    "prettier.config.js",
+    "scripts/**/*.mjs"
+  ],
+  "exclude": ["node_modules", ".next", ".contentlayer", "out"]
+}
