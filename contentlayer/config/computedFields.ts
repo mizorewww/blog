@@ -1,0 +1,105 @@
+import type { ComputedFields } from 'contentlayer2/source-files'
+import readingTime from 'reading-time'
+import siteMetadata from '../../data/siteMetadata'
+import { defaultLocale, isLocale } from '../../lib/i18n'
+import { extractTocHeadings } from '../../lib/toc'
+import { getFileUrl, getPostGitHistory, getRepoSourceFilePath, toIsoDate } from './gitHistory'
+
+export const computedFields: ComputedFields = {
+  readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
+  slug: {
+    type: 'string',
+    resolve: (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, ''),
+  },
+  path: {
+    type: 'string',
+    resolve: (doc) => doc._raw.flattenedPath,
+  },
+  filePath: {
+    type: 'string',
+    resolve: (doc) => doc._raw.sourceFilePath,
+  },
+  toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+}
+
+const rawBlogSlug = (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
+
+const blogLocale = (doc) => {
+  const frontmatterLocale = doc.language
+  const firstSegment = rawBlogSlug(doc).split('/')[0]
+
+  if (isLocale(frontmatterLocale)) {
+    return frontmatterLocale
+  }
+
+  if (isLocale(firstSegment)) {
+    return firstSegment
+  }
+
+  return defaultLocale
+}
+
+const blogSlug = (doc) => {
+  const rawSlug = rawBlogSlug(doc)
+  const [firstSegment, ...rest] = rawSlug.split('/')
+
+  if (isLocale(firstSegment) && rest.length > 0) {
+    return rest.join('/')
+  }
+
+  return rawSlug
+}
+
+export const blogPath = (doc) => `${blogLocale(doc)}/${blogSlug(doc)}`
+
+export const blogComputedFields: ComputedFields = {
+  readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
+  slug: {
+    type: 'string',
+    resolve: (doc) => blogSlug(doc),
+  },
+  locale: {
+    type: 'string',
+    resolve: (doc) => blogLocale(doc),
+  },
+  path: {
+    type: 'string',
+    resolve: (doc) => blogPath(doc),
+  },
+  filePath: {
+    type: 'string',
+    resolve: (doc) => doc._raw.sourceFilePath,
+  },
+  gitUpdatedAt: {
+    type: 'string',
+    resolve: (doc) => {
+      const history = getPostGitHistory(getRepoSourceFilePath(doc))
+      return history[0]?.committedAt || toIsoDate(doc.lastmod) || toIsoDate(doc.date)
+    },
+  },
+  gitCommits: {
+    type: 'json',
+    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).slice(0, 6),
+  },
+  gitCommitCount: {
+    type: 'number',
+    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).length,
+  },
+  githubUrl: {
+    type: 'string',
+    resolve: (doc) => {
+      const filePath = getRepoSourceFilePath(doc)
+      const latestCommit = getPostGitHistory(filePath)[0]
+      return getFileUrl(filePath, latestCommit?.hash || 'HEAD')
+    },
+  },
+  toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+}
+
+export function getBlogGitUpdatedAt(doc) {
+  return getPostGitHistory(getRepoSourceFilePath(doc))[0]?.committedAt
+}
+
+export function getBlogStructuredDataUrl(doc) {
+  return `${siteMetadata.siteUrl.replace(/\/+$/, '')}/${blogPath(doc)}/`
+}
