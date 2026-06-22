@@ -43,7 +43,7 @@ function getLocale(post) {
 
 function latestModified(posts) {
   return posts
-    .map((post) => post.lastmod || post.date)
+    .map((post) => post.gitUpdatedAt || post.lastmod || post.date)
     .filter(Boolean)
     .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0]
 }
