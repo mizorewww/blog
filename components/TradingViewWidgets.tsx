@@ -1,7 +1,7 @@
 'use client'
 
 import { normalizeTradingViewSymbol } from '@/lib/tradingview'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 type TradingViewTheme = 'light' | 'dark'
 
@@ -22,11 +22,13 @@ type TradingViewAdvancedChartProps = {
 
 type TradingViewWidgetProps = {
   config: Record<string, string | number | boolean>
-  height: number | string
   scriptSrc: string
-  symbol: string
-  title: string
-  type: 'mini' | 'advanced'
+}
+
+type TradingViewWidgetFrameProps = {
+  children: ReactNode
+  height: number | string
+  theme: TradingViewTheme
 }
 
 const miniChartScript =
@@ -69,16 +71,41 @@ function toWidgetHeight(value: number | string) {
   return typeof value === 'number' ? `${value}px` : value
 }
 
-function TradingViewWidget({
-  config,
-  height,
-  scriptSrc,
-  symbol,
-  title,
-  type,
-}: TradingViewWidgetProps) {
+function getWidgetFrameStyle(height: number | string, theme: TradingViewTheme) {
+  return {
+    colorScheme: theme,
+    height: toWidgetHeight(height),
+    '--tv-widget-accent-color': theme === 'dark' ? '#38bdf8' : '#0284c7',
+    '--tv-widget-background-color': theme === 'dark' ? '#10161f' : '#ffffff',
+    '--tv-widget-negative-area-bottom-color':
+      theme === 'dark' ? 'rgba(248, 113, 113, 0.08)' : 'rgba(220, 38, 38, 0.08)',
+    '--tv-widget-negative-area-top-color':
+      theme === 'dark' ? 'rgba(248, 113, 113, 0.22)' : 'rgba(220, 38, 38, 0.18)',
+    '--tv-widget-negative-color': theme === 'dark' ? '#f87171' : '#dc2626',
+    '--tv-widget-positive-area-bottom-color':
+      theme === 'dark' ? 'rgba(45, 212, 191, 0.08)' : 'rgba(13, 148, 136, 0.08)',
+    '--tv-widget-positive-area-top-color':
+      theme === 'dark' ? 'rgba(45, 212, 191, 0.22)' : 'rgba(13, 148, 136, 0.18)',
+    '--tv-widget-positive-color': theme === 'dark' ? '#2dd4bf' : '#0d9488',
+    '--tv-widget-price-text-color': theme === 'dark' ? '#e2e8f0' : '#334155',
+    '--tv-widget-scales-font-color': theme === 'dark' ? '#94a3b8' : '#64748b',
+    '--tv-widget-text-color': theme === 'dark' ? '#cbd5e1' : '#475569',
+  } as CSSProperties
+}
+
+function TradingViewWidgetFrame({ children, height, theme }: TradingViewWidgetFrameProps) {
+  return (
+    <div
+      className="not-prose my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm dark:border-[#405064] dark:bg-[#10161f]"
+      style={getWidgetFrameStyle(height, theme)}
+    >
+      {children}
+    </div>
+  )
+}
+
+function TradingViewWidget({ config, scriptSrc }: TradingViewWidgetProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const sourceUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(symbol)}`
 
   useEffect(() => {
     const container = containerRef.current
@@ -100,35 +127,7 @@ function TradingViewWidget({
     }
   }, [config, scriptSrc])
 
-  return (
-    <figure className="not-prose my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm dark:border-[#405064] dark:bg-[#10161f]">
-      <figcaption className="flex items-center justify-between gap-3 border-b border-slate-200 bg-slate-50/90 px-4 py-2 text-xs text-slate-600 dark:border-[#405064] dark:bg-white/[0.035] dark:text-white/65">
-        <span className="inline-flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-[5px] border border-emerald-200 bg-emerald-50 font-mono text-[0.68rem] font-semibold text-emerald-700 dark:border-emerald-400/25 dark:bg-emerald-400/10 dark:text-emerald-200"
-          >
-            $
-          </span>
-          <span className="min-w-0 truncate font-mono">{title}</span>
-        </span>
-        <a
-          href={sourceUrl}
-          rel="noopener noreferrer"
-          target="_blank"
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-[6px] px-2 py-1 text-xs text-slate-500 transition hover:bg-slate-200/70 hover:text-slate-900 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white/90"
-        >
-          TradingView
-        </a>
-      </figcaption>
-      <div
-        className={type === 'advanced' ? 'h-[520px] w-full' : 'h-[220px] w-full'}
-        style={{ height: toWidgetHeight(height) }}
-      >
-        <div ref={containerRef} className="tradingview-widget-container h-full w-full" />
-      </div>
-    </figure>
-  )
+  return <div ref={containerRef} className="tradingview-widget-container h-full w-full" />
 }
 
 export function TradingViewMiniChart({
@@ -142,30 +141,26 @@ export function TradingViewMiniChart({
   const config = useMemo(
     () => ({
       autosize: true,
+      backgroundColor: theme === 'dark' ? 'rgba(16, 22, 31, 1)' : 'rgba(255, 255, 255, 1)',
       colorTheme: theme,
       dateRange,
       height: '100%',
-      isTransparent: true,
+      isTransparent: false,
       largeChartUrl: '',
       locale,
       symbol: normalizedSymbol,
       trendLineColor: theme === 'dark' ? 'rgba(56, 189, 248, 1)' : 'rgba(2, 132, 199, 1)',
-      underLineBottomColor: 'rgba(56, 189, 248, 0)',
-      underLineColor: theme === 'dark' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(2, 132, 199, 0.1)',
+      underLineBottomColor: theme === 'dark' ? 'rgba(56, 189, 248, 0)' : 'rgba(2, 132, 199, 0)',
+      underLineColor: theme === 'dark' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.1)',
       width: '100%',
     }),
     [dateRange, locale, normalizedSymbol, theme]
   )
 
   return (
-    <TradingViewWidget
-      config={config}
-      height={height}
-      scriptSrc={miniChartScript}
-      symbol={normalizedSymbol}
-      title={`${normalizedSymbol} mini chart`}
-      type="mini"
-    />
+    <TradingViewWidgetFrame height={height} theme={theme}>
+      <TradingViewWidget config={config} scriptSrc={miniChartScript} />
+    </TradingViewWidgetFrame>
   )
 }
 
@@ -182,8 +177,10 @@ export function TradingViewAdvancedChart({
     () => ({
       allow_symbol_change: true,
       autosize: true,
+      backgroundColor: theme === 'dark' ? 'rgba(16, 22, 31, 1)' : 'rgba(255, 255, 255, 1)',
       calendar: false,
       enable_publishing: false,
+      gridColor: theme === 'dark' ? 'rgba(64, 80, 100, 0.36)' : 'rgba(226, 232, 240, 1)',
       height: '100%',
       hide_top_toolbar: false,
       interval,
@@ -200,13 +197,8 @@ export function TradingViewAdvancedChart({
   )
 
   return (
-    <TradingViewWidget
-      config={config}
-      height={height}
-      scriptSrc={advancedChartScript}
-      symbol={normalizedSymbol}
-      title={`${normalizedSymbol} advanced chart`}
-      type="advanced"
-    />
+    <TradingViewWidgetFrame height={height} theme={theme}>
+      <TradingViewWidget config={config} scriptSrc={advancedChartScript} />
+    </TradingViewWidgetFrame>
   )
 }
