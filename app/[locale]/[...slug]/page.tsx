@@ -1,4 +1,5 @@
 import JsonLd from '@/components/JsonLd'
+import MDXServerRenderer from '@/components/MDXServerRenderer'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
@@ -119,6 +120,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
         categoryCounts={listData.categoryCounts}
         tagCounts={listData.tagCounts}
         initialExpandedPath={post.path}
+        expandedPostBody={<MDXServerRenderer code={post.body.code} />}
       />
     </>
   )

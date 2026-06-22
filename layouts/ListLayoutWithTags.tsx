@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type ReactNode } from 'react'
 import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
@@ -18,6 +18,7 @@ interface ListLayoutProps {
   tagCounts?: Record<string, number>
   initialDisplayPosts?: BlogListPost[]
   initialExpandedPath?: string | null
+  expandedPostBody?: ReactNode
 }
 
 export default function ListLayoutWithTags({
@@ -28,6 +29,7 @@ export default function ListLayoutWithTags({
   tagCounts: providedTagCounts,
   initialDisplayPosts = [],
   initialExpandedPath = null,
+  expandedPostBody,
 }: ListLayoutProps) {
   const pathname = usePathname()
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
@@ -124,6 +126,7 @@ export default function ListLayoutWithTags({
                   locale={locale}
                   dateLocale={dateLocale}
                   expanded={expandedPath === post.path}
+                  body={expandedPath === post.path ? expandedPostBody : null}
                   onExpandedChange={(expanded, context, options) => {
                     if (expanded) {
                       expandPost(post, context, options)

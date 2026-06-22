@@ -10,7 +10,6 @@ const rules = {
           { not: { href_matches: '/sitemap.xml' } },
           { not: { href_matches: '/static/*' } },
           { not: { href_matches: '/_next/*' } },
-          { not: { href_matches: '/_post-data/*' } },
         ],
       },
       eagerness: 'moderate',

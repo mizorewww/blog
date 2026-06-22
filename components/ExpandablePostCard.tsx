@@ -4,16 +4,13 @@ import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import Image from '@/components/Image'
 import Link from '@/components/Link'
-import { components as mdxComponents } from '@/components/MDXComponents'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { cardClass, mutedText, skyLink } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
 import { useNow } from '@/lib/hooks/useNow'
-import { usePostBody } from '@/lib/hooks/usePostBody'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
-import MDXRenderer from '@/components/MDXRenderer'
 import { formatDate } from '@/lib/formatDate'
 import {
   clearBlogListReturnContext,
@@ -24,7 +21,7 @@ import {
 } from '@/lib/blogRouteState'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
-import type { MouseEvent } from 'react'
+import type { MouseEvent, ReactNode } from 'react'
 
 const BODY_MOTION_DURATION = 560
 
@@ -47,6 +44,7 @@ export default function ExpandablePostCard({
   locale,
   dateLocale,
   expanded,
+  body,
   onExpandedChange,
   headingLevel = 'h2',
 }: {
@@ -54,6 +52,7 @@ export default function ExpandablePostCard({
   locale: Locale
   dateLocale: string
   expanded: boolean
+  body?: ReactNode
   onExpandedChange: (
     expanded: boolean,
     context: ExpandedChangeContext,
@@ -68,13 +67,11 @@ export default function ExpandablePostCard({
   const expansionFrameRef = useRef<number | null>(null)
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const now = useNow()
-  const { bodyCode, preloadedBodyCode, prefetchPost } = usePostBody(post)
   const primaryTag = post.tags?.[0]
   const postHref = `/${post.path}/`
   const Heading = expanded ? 'h1' : headingLevel
   const labels = ui[locale]
-  const shouldPreMountBody = Boolean(preloadedBodyCode && !post.bodyCode)
-  const renderBody = bodyCode && (expanded || shouldKeepBodyMounted || shouldPreMountBody)
+  const renderBody = body && (expanded || shouldKeepBodyMounted)
 
   useEffect(() => {
     return () => {
@@ -143,7 +140,7 @@ export default function ExpandablePostCard({
 
     setBlogListReturnContext(post.path, expansionContext)
     setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
-    prefetchPost()
+    router.prefetch(postHref)
     router.push(postHref, { scroll: false })
   }
 
@@ -173,7 +170,7 @@ export default function ExpandablePostCard({
           </p>
         )}
 
-        {bodyCode && (
+        {body && (
           <div
             data-post-body-motion={post.path}
             aria-hidden={!expanded}
@@ -185,7 +182,7 @@ export default function ExpandablePostCard({
               <div className="border-t border-slate-200 pt-5 pb-1 dark:border-[#405064]">
                 {renderBody && (
                   <div className="prose prose-slate dark:prose-invert max-w-none">
-                    <MDXRenderer code={bodyCode} components={mdxComponents} />
+                    {body}
                     <ArticleLicenseNotice locale={locale} />
                   </div>
                 )}
@@ -213,8 +210,8 @@ export default function ExpandablePostCard({
           <Link
             href={postHref}
             onClick={onReadMore}
-            onMouseEnter={prefetchPost}
-            onFocus={prefetchPost}
+            onMouseEnter={() => router.prefetch(postHref)}
+            onFocus={() => router.prefetch(postHref)}
             className={`ml-auto inline-flex items-center gap-1.5 ${skyLink}`}
             aria-expanded={expanded}
             aria-label={
