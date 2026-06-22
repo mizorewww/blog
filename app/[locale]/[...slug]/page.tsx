@@ -10,6 +10,7 @@ import {
   getPostPageData,
 } from '@/lib/content/posts'
 import { isLocale, localeConfig, locales, localizePath, ui } from '@/lib/i18n'
+import { getPostModifiedDate, getPostPublishedDate } from '@/lib/postDates'
 import { createArticleJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl } from '@/lib/urls'
 import ListLayout from '@/layouts/ListLayoutWithTags'
@@ -30,8 +31,8 @@ export async function generateMetadata(props: {
   }
   const authorDetails = getAuthorDetails(post.authors || ['default'])
 
-  const publishedAt = new Date(post.date).toISOString()
-  const modifiedAt = new Date(post.gitUpdatedAt || post.lastmod || post.date).toISOString()
+  const publishedAt = new Date(getPostPublishedDate(post)).toISOString()
+  const modifiedAt = new Date(getPostModifiedDate(post)).toISOString()
   const authors = authorDetails.map((author) => author.name)
   const postUrl = absoluteSiteUrl(siteMetadata.siteUrl, post.path)
   const canonicalUrl = post.canonicalUrl || postUrl

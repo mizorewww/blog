@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { getPublishedSitemapPosts } from '@/lib/content/posts'
 import { defaultLocale, localeConfig, locales, type Locale } from '@/lib/i18n'
+import { getPostModifiedDate, latestDate } from '@/lib/postDates'
 import { absoluteSiteUrl } from '@/lib/urls'
 
 export const dynamic = 'force-static'
@@ -10,12 +11,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl
   const publishedPosts = getPublishedSitemapPosts()
   const latestPostDate =
-    latestModified(publishedPosts.map((post) => modifiedDate(post))) || new Date(0).toISOString()
+    latestDate(publishedPosts.map((post) => getPostModifiedDate(post))) || new Date(0).toISOString()
   const latestByLocale = locales.reduce(
     (latest, locale) => {
       latest[locale] =
-        latestModified(
-          publishedPosts.filter((post) => post.locale === locale).map((post) => modifiedDate(post))
+        latestDate(
+          publishedPosts
+            .filter((post) => post.locale === locale)
+            .map((post) => getPostModifiedDate(post))
         ) || latestPostDate
       return latest
     },
@@ -69,7 +72,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const blogRoutes = publishedPosts.map((post) => ({
     url: absoluteSiteUrl(siteUrl, post.path),
-    lastModified: modifiedDate(post),
+    lastModified: getPostModifiedDate(post),
     alternates: postAlternates(post),
   }))
 
@@ -93,14 +96,4 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
 
   return [...routes, ...blogRoutes]
-}
-
-function latestModified(dates: string[]) {
-  return dates
-    .filter(Boolean)
-    .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0]
-}
-
-function modifiedDate(post: { date: string; lastmod?: string; gitUpdatedAt?: string }) {
-  return post.gitUpdatedAt || post.lastmod || post.date
 }

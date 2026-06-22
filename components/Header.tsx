@@ -3,23 +3,8 @@ import HeaderNavLinks from './HeaderNavLinks'
 import ThemeSwitch from './ThemeSwitch'
 import LanguageSwitcher from './LanguageSwitcher'
 import Link from './Link'
-
-const RssIcon = () => (
-  <svg
-    aria-hidden="true"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-6 w-6"
-  >
-    <path d="M4 11a9 9 0 0 1 9 9" />
-    <path d="M4 4a16 16 0 0 1 16 16" />
-    <circle cx="5" cy="19" r="1" fill="currentColor" stroke="none" />
-  </svg>
-)
+import Icon from './Icon'
+import { defaultLocale, ui } from '@/lib/i18n'
 
 const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
   return (
@@ -40,10 +25,10 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
         <div className="z-10 flex shrink-0 items-center gap-x-3 text-slate-600 sm:gap-x-4 dark:text-white/90">
           <Link
             href="/feed.xml"
-            aria-label="订阅 Atom RSS"
+            aria-label={ui[defaultLocale].subscribeRss}
             className="hidden transition hover:text-sky-500 sm:inline-flex"
           >
-            <RssIcon />
+            <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />
           </Link>
           <div className="hidden sm:block">
             <LanguageSwitcher />

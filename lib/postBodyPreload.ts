@@ -18,10 +18,6 @@ export function getPreloadedPostBody(postPath: string) {
 }
 
 export async function preloadPostBody(postPath: string) {
-  if (process.env.NODE_ENV !== 'production') {
-    return null
-  }
-
   const cachedBodyCode = getPreloadedPostBody(postPath)
 
   if (cachedBodyCode) {

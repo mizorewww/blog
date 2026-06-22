@@ -6,21 +6,12 @@ import {
   getLocaleFromPathname,
   localeConfig,
   locales,
-  localizePath,
-  stripLocaleFromPathname,
-  switchLocalePath,
+  switchLocalePathForSection,
   type Locale,
 } from '@/lib/i18n'
 
 function getLanguageHref(pathname: string, locale: Locale) {
-  const strippedPath = stripLocaleFromPathname(pathname)
-
-  if (/^\/(categories|tags)\/[^/]+/.test(strippedPath)) {
-    const section = strippedPath.split('/')[1]
-    return localizePath(`/${section}`, locale)
-  }
-
-  return switchLocalePath(pathname, locale)
+  return switchLocalePathForSection(pathname, locale)
 }
 
 const LanguageSwitcher = () => {

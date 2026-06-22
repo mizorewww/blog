@@ -1,6 +1,7 @@
 import siteMetadata from '@/data/siteMetadata'
 import Icon from '@/components/Icon'
 import SocialIcon from '@/components/social-icons'
+import { defaultLocale, ui } from '@/lib/i18n'
 
 export default function Footer() {
   const commitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH
@@ -30,7 +31,7 @@ export default function Footer() {
                 href={commitUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={`Latest commit ${commitHash}`}
+                aria-label={ui[defaultLocale].latestCommit(commitHash)}
                 className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 transition hover:text-sky-500 dark:bg-white/10"
               >
                 <Icon name="GitCommit" className="h-3.5 w-3.5" inlineSpacing={false} />

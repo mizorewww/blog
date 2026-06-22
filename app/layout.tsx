@@ -7,6 +7,7 @@ import SpeculationRules from '@/components/SpeculationRules'
 import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
+import { genPageMetadata } from './seo'
 
 const space_grotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -14,21 +15,21 @@ const space_grotesk = Space_Grotesk({
   variable: '--font-space-grotesk',
 })
 
+const rootMetadata = genPageMetadata({
+  title: siteMetadata.title,
+  description: siteMetadata.description,
+})
+
 export const metadata: Metadata = {
+  ...rootMetadata,
   metadataBase: new URL(siteMetadata.siteUrl),
   title: {
     default: siteMetadata.title,
     template: `%s | ${siteMetadata.title}`,
   },
-  description: siteMetadata.description,
   openGraph: {
+    ...rootMetadata.openGraph,
     title: siteMetadata.title,
-    description: siteMetadata.description,
-    url: './',
-    siteName: siteMetadata.title,
-    images: [siteMetadata.socialBanner],
-    locale: 'en_US',
-    type: 'website',
   },
   alternates: {
     canonical: './',
@@ -48,9 +49,8 @@ export const metadata: Metadata = {
     },
   },
   twitter: {
+    ...rootMetadata.twitter,
     title: siteMetadata.title,
-    card: 'summary_large_image',
-    images: [siteMetadata.socialBanner],
   },
 }
 

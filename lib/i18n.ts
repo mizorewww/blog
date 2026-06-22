@@ -158,3 +158,14 @@ export function localizePath(pathname: string, locale: Locale): string {
 export function switchLocalePath(pathname: string, locale: Locale): string {
   return localizePath(stripLocaleFromPathname(pathname), locale)
 }
+
+export function switchLocalePathForSection(pathname: string, locale: Locale): string {
+  const strippedPath = stripLocaleFromPathname(pathname)
+
+  if (/^\/(categories|tags)\/[^/]+/.test(strippedPath)) {
+    const section = strippedPath.split('/')[1]
+    return localizePath(`/${section}`, locale)
+  }
+
+  return switchLocalePath(pathname, locale)
+}

@@ -24,6 +24,53 @@ type PendingBlogNavigationMotion = BlogMotionContext & {
 
 let pendingBlogNavigationMotion: PendingBlogNavigationMotion | null = null
 const PENDING_MOTION_MAX_AGE = 4000
+const PENDING_MOTION_STORAGE_KEY = 'mizore:pending-blog-navigation-motion'
+
+function readPendingBlogNavigationMotion() {
+  if (typeof window === 'undefined') {
+    return pendingBlogNavigationMotion
+  }
+
+  try {
+    const value = window.sessionStorage.getItem(PENDING_MOTION_STORAGE_KEY)
+
+    if (!value) {
+      return pendingBlogNavigationMotion
+    }
+
+    return JSON.parse(value) as PendingBlogNavigationMotion
+  } catch {
+    return pendingBlogNavigationMotion
+  }
+}
+
+function writePendingBlogNavigationMotion(value: PendingBlogNavigationMotion) {
+  pendingBlogNavigationMotion = value
+
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(PENDING_MOTION_STORAGE_KEY, JSON.stringify(value))
+  } catch {
+    // Session storage is a best-effort guard against losing motion context between renders.
+  }
+}
+
+function clearPendingBlogNavigationMotion() {
+  pendingBlogNavigationMotion = null
+
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.removeItem(PENDING_MOTION_STORAGE_KEY)
+  } catch {
+    // Ignore storage cleanup failures; the age check still prevents stale motion.
+  }
+}
 
 export function normalizePathname(pathname: string) {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`
@@ -74,20 +121,21 @@ export function setPendingBlogNavigationMotion(
   targetPath: string,
   context: BlogMotionContext
 ) {
-  pendingBlogNavigationMotion = {
+  writePendingBlogNavigationMotion({
     ...context,
     postPath,
     targetPath,
     createdAt: Date.now(),
-  }
+  })
 }
 
 export function consumePendingBlogNavigationMotion(postPath: string): BlogMotionContext | null {
-  if (typeof window === 'undefined' || !pendingBlogNavigationMotion) {
+  const pendingMotion = readPendingBlogNavigationMotion()
+
+  if (typeof window === 'undefined' || !pendingMotion) {
     return null
   }
 
-  const pendingMotion = pendingBlogNavigationMotion
   const currentPath = normalizePathname(decodeURI(window.location.pathname))
   const targetPath = normalizePathname(decodeURI(pendingMotion.targetPath))
   const isExpired = Date.now() - pendingMotion.createdAt > PENDING_MOTION_MAX_AGE
@@ -95,12 +143,12 @@ export function consumePendingBlogNavigationMotion(postPath: string): BlogMotion
 
   if (isExpired || !isMatchingNavigation) {
     if (isExpired) {
-      pendingBlogNavigationMotion = null
+      clearPendingBlogNavigationMotion()
     }
     return null
   }
 
-  pendingBlogNavigationMotion = null
+  clearPendingBlogNavigationMotion()
 
   return {
     previousCardTop: pendingMotion.previousCardTop,

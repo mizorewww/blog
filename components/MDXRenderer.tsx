@@ -7,15 +7,18 @@ import type { MDXComponents } from 'mdx/types'
 
 type MDXComponent = React.ComponentType<{ components?: MDXComponents }>
 
-function getMDXComponent(code: string): MDXComponent {
-  const scope = {
-    React,
-    ReactDOM,
-    _jsx_runtime: jsxRuntime,
-  }
-  const fn = new Function(...Object.keys(scope), code)
+const mdxRuntimeScope = {
+  React,
+  ReactDOM,
+  _jsx_runtime: jsxRuntime,
+}
 
-  return fn(...Object.values(scope)).default
+function getMDXComponent(code: string): MDXComponent {
+  // Contentlayer emits runtime MDX as a function body. Replace this eval path when the
+  // content pipeline moves to MDX v3, Velite, or @next/mdx.
+  const fn = new Function(...Object.keys(mdxRuntimeScope), code)
+
+  return fn(...Object.values(mdxRuntimeScope)).default
 }
 
 export default function MDXRenderer({

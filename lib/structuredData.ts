@@ -4,6 +4,7 @@ import siteMetadata from '@/data/siteMetadata'
 import { localeConfig, type Locale } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
 import { getPostImageUrls } from '@/lib/postImages'
+import { getPostModifiedDate } from '@/lib/postDates'
 import { absoluteSiteUrl } from '@/lib/urls'
 
 type JsonLdNode = Record<string, unknown>
@@ -29,10 +30,6 @@ function compactObject<T extends JsonLdNode>(value: T): T {
 
 function dateToIso(date: string | undefined) {
   return date ? new Date(date).toISOString() : undefined
-}
-
-function modifiedDate(post: Pick<Blog | BlogListPost, 'date' | 'lastmod' | 'gitUpdatedAt'>) {
-  return post.gitUpdatedAt || post.lastmod || post.date
 }
 
 function createWebsiteNode(): JsonLdNode {
@@ -143,7 +140,7 @@ export function createArticleJsonLd({
         isPartOf: { '@id': websiteId },
         mainEntity: { '@id': articleId },
         datePublished: dateToIso(post.date),
-        dateModified: dateToIso(modifiedDate(post)),
+        dateModified: dateToIso(getPostModifiedDate(post)),
       }),
       compactObject({
         '@type': 'BlogPosting',
@@ -155,7 +152,7 @@ export function createArticleJsonLd({
         description: post.summary,
         inLanguage: localeConfig[locale].htmlLang,
         datePublished: dateToIso(post.date),
-        dateModified: dateToIso(modifiedDate(post)),
+        dateModified: dateToIso(getPostModifiedDate(post)),
         author: authorRefs,
         publisher: { '@id': publisherId },
         image: imageUrls.map((imageUrl) => ({
