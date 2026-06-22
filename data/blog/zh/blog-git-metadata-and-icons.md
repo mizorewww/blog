@@ -1,55 +1,63 @@
 ---
 title: 给博客加上 Git 元信息和图标短写
 date: 2026-06-22
-summary: 记录这次给博客添加编辑时间、相关提交、源码链接、构建 hash、版权声明和图标短写的过程。
+summary: 记录这次给博客添加编辑时间、相关提交、源码链接、构建 hash、版权声明、图标短写、GitHub 代码引用和 Shiki 主题的实现。
 categories: ['折腾']
 tags: ['Blog', 'Next.js', 'MDX']
 language: zh
 authors: ['default']
 ---
 
-这次给博客补了一组偏“基础设施”的功能：文章不只展示正文，也会展示这篇内容在 Git 历史里的位置。
+这次改动的核心目标是把博客文章和 Git 历史接起来：读者看到一篇文章时，不只看到正文，还能看到这篇文章最近什么时候被改过、由哪些 commit 改过、源码在哪里，以及当前页面来自哪一次构建。
 
-现在打开任意文章，标题下方会出现这些信息：
+下面引用的代码都来自这次实现提交：
 
-- :icon-clock: 最近更新时间，以及距离现在多久
-- :icon-git-commit: 与文章文件相关的提交 hash 和 commit message
-- :icon-code: 指向 GitHub 上对应 Markdown 源文的链接
-
-博客底部也会显示当前构建使用的 commit hash。这样看到线上页面时，可以直接知道它对应仓库里的哪一次构建。
+`43a2ef8e733191f98f417daf69026406bbe562f7`
 
 ## 文章头部的 Git 信息
 
-每篇文章都会在构建时读取对应 Markdown 文件的 Git 历史。展示逻辑是：
+文章卡片会在标题下面显示最近更新时间、相对时间、源文链接，以及相关 commit。UI 上没有再套一张额外卡片，而是作为文章元信息自然排在标题和摘要之间。
 
-1. 取文件最近一次 commit 作为“更新于”时间。
-2. 展示最近几次相关提交。
-3. 每条提交同时显示短 hash 和 commit message。
-4. 源文链接固定到最近一次提交，避免以后文件移动或内容变化导致链接指向不稳定。
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="components/ExpandablePostCard.tsx" lines="180-279" lang="tsx" title="components/ExpandablePostCard.tsx"
 
-这部分不是手写 frontmatter，所以更新文章之后不需要额外维护 `lastmod`。只要提交进 Git，页面上的信息就会跟着更新。
+这里的关键点是：
 
-## Footer 的构建 hash
+- `gitUpdatedAt`、`gitCommits`、`githubUrl` 都来自 Contentlayer 的 computed fields。
+- 每个 commit 同时展示短 hash 和 commit message。
+- 图标和文字用 `inline-flex` / `gap` 对齐，避免图标贴字或基线漂移。
+- commit message 在窄屏下会自动换行，不挤压 hash。
 
-页面 footer 现在会显示 :icon-git-commit: `commit <hash>`。
+## 构建时读取 Git 历史
 
-这个 hash 来自构建时的 HEAD。如果部署环境提供 `VERCEL_GIT_COMMIT_SHA`，会优先使用部署平台给出的值；否则就从本地 Git 里读取。
+Git 信息不是写在 frontmatter 里的。构建时，Contentlayer 会对每篇文章对应的 Markdown 文件执行 `git log --follow`，把结果写入文章数据。
 
-这个小信息很适合排查问题：如果线上样式和本地不一致，先看 footer 的 hash，就能确认线上到底跑的是哪一次构建。
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="87-156" lang="ts" title="contentlayer.config.ts"
 
-## 版权声明自动追加
+这样做的好处是维护成本低：文章只要正常提交到 Git，页面上的“更新于”和“相关提交”就会跟着变。源文链接也固定到最近一次 commit，而不是浮动的 `main`，避免以后文件移动或内容变化导致链接不稳定。
 
-每篇文章正文末尾都会追加版权声明：
+## Footer 显示构建 hash
 
-> 除另有说明，本文内容采用 CC BY-NC-SA 4.0 协议许可。
+footer 里的 `commit <hash>` 来自构建时的 HEAD。部署平台如果提供 `VERCEL_GIT_COMMIT_SHA`，就优先用平台值；本地构建时则回退到 `git rev-parse HEAD`。
 
-它不是写进 Markdown 的固定内容，而是由文章组件统一渲染。这样修改授权文案时只需要改一处，历史文章也会同步更新。
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="next.config.js" lines="1-34" lang="js" title="next.config.js"
 
-## 文章里快捷输入图标
+渲染时只读取公开环境变量，并把 hash 链到 GitHub commit 页面：
 
-这次还接入了 `lucide-react`，并给 MDX 加了一个短写语法。
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="components/Footer.tsx" lines="5-41" lang="tsx" title="components/Footer.tsx"
 
-在文章里直接写：
+这个信息很适合排查部署问题。线上页面如果样式或内容不对，先看 footer 的 hash，就能知道线上到底跑的是哪一次构建。
+
+## 文章末尾的授权声明
+
+版权声明没有写进每篇 Markdown，而是由文章组件统一追加。这样文案或协议需要调整时，只改组件，不需要批量改历史文章。
+
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="components/ExpandablePostCard.tsx" lines="282-311" lang="tsx" title="components/ExpandablePostCard.tsx"
+
+当前文案使用的是 `CC BY-NC-SA 4.0`。如果以后有单篇文章需要不同协议，再额外加 frontmatter 覆盖会更合适。
+
+## 图标短写
+
+正文里可以直接写：
 
 ```md
 :icon-clock: 更新
@@ -58,7 +66,7 @@ authors: ['default']
 :icon-tag: 标签
 ```
 
-会渲染成：
+渲染效果：
 
 :icon-clock: 更新
 
@@ -68,72 +76,101 @@ authors: ['default']
 
 :icon-tag: 标签
 
-如果需要更明确地指定图标，也可以直接用组件：
+短写是在 Contentlayer 的 remark 阶段转成 MDX `Icon` 组件的，不是在浏览器里扫字符串。
 
-```mdx
-<Icon name="ExternalLink" /> 外部链接
-<Icon name="History" /> 历史记录
-```
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="167-230" lang="ts" title="contentlayer.config.ts"
 
-实际效果：
+图标组件本身没有再 `import * as lucide`，而是通过一个显式 registry 保留常用图标。这样文章仍然可以写 `:icon-name:`，客户端 bundle 不会因为任意图标名把整套图标库都带进去。
 
-<Icon name="ExternalLink" /> 外部链接
+## GitHub 代码引用
 
-<Icon name="History" /> 历史记录
-
-短写会在构建时转换成 `Icon` 组件，不是在浏览器里扫正文字符串。因此它不会影响代码块，也不会在客户端做额外解析。
-
-## 引用 GitHub 上的代码
-
-文章现在也可以在构建时引用 GitHub 上的代码片段。写法是：
+文章现在支持直接引用 GitHub 上的代码。写法是：
 
 ```md
-::github-code repo="mizorewww/blog" ref="ee81d7f3ba7b99694fe57d9697e5fa47d5b6ab96" path="data/blog/zh/xiaomi-book-pro-14.md" lines="1-14" lang="md"
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="data/codeThemes.ts" lines="10-35" lang="ts" title="data/codeThemes.ts"
 ```
 
 实际效果：
 
-::github-code repo="mizorewww/blog" ref="ee81d7f3ba7b99694fe57d9697e5fa47d5b6ab96" path="data/blog/zh/xiaomi-book-pro-14.md" lines="1-14" lang="md"
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="data/codeThemes.ts" lines="10-35" lang="ts" title="data/codeThemes.ts"
 
-它会在 Contentlayer 构建阶段拉取内容，然后变成普通 Markdown code fence，所以仍然走 Shiki 高亮。
+实现逻辑在这里：
 
-## 展示 GitHub diff
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="290-423" lang="ts" title="contentlayer.config.ts"
 
-diff 也可以直接嵌入文章：
+这段逻辑做了几件事：
+
+- `repo` 默认指向当前博客仓库，也可以显式指定别的 GitHub 仓库。
+- 当前仓库优先用本地 `git show` 读取，构建更快，也避免网络波动。
+- 外部仓库用 `raw.githubusercontent.com` 拉取。
+- `lines` 会在构建时截取代码行。
+- 最终生成的是普通 Markdown code node，所以仍然由 Shiki 高亮。
+
+## GitHub diff 视图
+
+diff 也可以引用 GitHub commit。这里展示的是这次把代码块样式改成 Shiki 主题面板的 diff：
 
 ```md
-::github-diff repo="mizorewww/blog" base="949bd13a24acb074f84ac66238f920359317bd34" head="ee81d7f3ba7b99694fe57d9697e5fa47d5b6ab96" path="data/blog/zh/xiaomi-book-pro-14.md"
+::github-diff repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css"
 ```
 
 实际效果：
 
-::github-diff repo="mizorewww/blog" base="949bd13a24acb074f84ac66238f920359317bd34" head="ee81d7f3ba7b99694fe57d9697e5fa47d5b6ab96" path="data/blog/zh/xiaomi-book-pro-14.md"
+::github-diff repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css"
 
-这个功能适合写变更记录、源码讲解和问题排查文章。读者可以直接看到代码改了什么，而不是只看到一个 commit 链接。
+为了让 diff 不只是“带颜色的纯文本”，我在 rehype 阶段给每一行补了 metadata：普通代码行标 `data-code-line`，diff 行额外标 `data-diff-line="add|remove|hunk|meta"`。
 
-## 图标库和性能
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="459-521" lang="ts" title="contentlayer.config.ts"
 
-一开始为了让博客里可以按名字动态写图标，我用了整套 `lucide-react` 的 namespace import。它写起来最舒服，但代价也明显：客户端 bundle 会变大。
+CSS 再根据这些属性给加行、删行、hunk 和元信息行做背景区分：
 
-更平衡的做法有几种：
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css" lines="47-79" lang="css" title="css/prism.css"
 
-1. 页面 UI 里固定用到的图标，直接按需 import，例如 `import { Clock } from 'lucide-react'`。
-2. MDX 文章里的短写图标，可以在构建阶段统计用到的名字，生成一个小的 icon registry。
-3. 如果确实需要任意图标名，就只在文章页加载动态 registry，别让全站公共入口都带上整套图标。
-4. 也可以把图标短写在构建期渲染成静态 SVG，这样浏览器端完全不需要图标库。
+## Shiki 主题配置
 
-现在这版优先选了“写作方便”。如果以后文章图标用得多，再把动态 registry 改成构建期生成，会更适合长期使用。
+Shiki 主题不应该散落在 `contentlayer.config.ts` 里，所以我把主题组合抽到了单独配置文件。默认使用 Catppuccin：light mode 是 `catppuccin-latte`，dark mode 是 `catppuccin-mocha`。
 
-## 现在的写作体验
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="data/codeThemes.ts" lines="1-89" lang="ts" title="data/codeThemes.ts"
 
-这次改完之后，一篇文章从 Markdown 到页面大概是这样：
+Contentlayer 只负责读取配置并传给 `rehype-pretty-code`：
 
-- 写正文时，用 `:icon-name:` 快速插入图标。
-- 构建时，Contentlayer 把图标短写转成 MDX 组件。
-- 构建时，GitHub 代码和 diff 短写会被拉取并转成 Shiki 高亮代码块。
-- 构建时，Contentlayer 读取文章文件的 Git 历史。
-- 页面渲染时，文章卡片显示更新时间、提交记录、源文链接。
-- 正文末尾自动显示授权声明。
-- 全站 footer 显示当前构建 hash。
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="20-35" lang="ts" title="contentlayer.config.ts"
 
-这些信息都不算复杂，但组合起来之后，博客会更像一个能追踪来源的内容系统，而不只是几篇静态 Markdown。
+想切换主题时，可以在构建前设置：
+
+```bash
+CODE_THEME=vitesse yarn build
+```
+
+目前可选的主题 key 有：
+
+- `catppuccin`
+- `catppuccin-macchiato`
+- `github`
+- `vitesse`
+- `rose-pine`
+- `gruvbox`
+- `kanagawa`
+- `material`
+- `nord`
+- `one-dark`
+
+代码块样式不再手写 token 颜色，而是读取 Shiki 输出的 CSS 变量：
+
+::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css" lines="11-45" lang="css" title="css/prism.css"
+
+这样主题切换时，语法颜色、背景色、粗体、斜体都会跟着 Shiki 主题走。
+
+## 这套功能怎么串起来
+
+现在一篇文章的构建流程是：
+
+1. Contentlayer 读取 Markdown。
+2. remark 插件把 `:icon-name:` 转成 MDX `Icon`。
+3. remark 插件把 `::github-code` 和 `::github-diff` 拉成 code node。
+4. `rehype-pretty-code` 用 Shiki 和当前主题生成高亮 HTML。
+5. 自定义 rehype 插件给代码行和 diff 行补 metadata。
+6. computed fields 读取文章文件的 Git 历史。
+7. React 组件渲染文章头部 Git 信息、末尾授权声明和 footer 构建 hash。
+
+这不是一个单独的视觉小功能，而是把写作、源码、构建和页面展示连成了一条可追踪的链路。
