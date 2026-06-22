@@ -122,7 +122,7 @@ export function getTermParams(locale: Locale | null, field: TermField) {
 
   return getTermKeys(counts).map((term) => ({
     ...(locale ? { locale } : {}),
-    [routeField]: encodeURI(term),
+    [routeField]: term,
   }))
 }
 

@@ -1,6 +1,16 @@
 import { spawn } from 'node:child_process'
 import { createWriteStream } from 'node:fs'
-import { access, chmod, copyFile, mkdir, readdir, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  access,
+  chmod,
+  copyFile,
+  mkdir,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { networkInterfaces } from 'node:os'
 import path from 'node:path'
 import { Readable } from 'node:stream'
@@ -292,6 +302,46 @@ function quoteCaddyfileValue(value) {
   return JSON.stringify(value)
 }
 
+function escapeCaddyRegexp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function createRedirectMatcher(source, name) {
+  if (!source.includes('*')) {
+    return {
+      directive: '',
+      matcher: source,
+    }
+  }
+
+  return {
+    directive: `\t@${name} path_regexp ${name} ^${source.split('*').map(escapeCaddyRegexp).join('(.*)')}$`,
+    matcher: `@${name}`,
+  }
+}
+
+async function readRedirectDirectives(outDir) {
+  const redirects = await readFile(path.join(outDir, '_redirects'), 'utf8').catch(() => '')
+
+  return redirects
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .flatMap((line, index) => {
+      const [source, destination, status = '302'] = line.split(/\s+/)
+
+      if (!source || !destination) {
+        return []
+      }
+
+      const name = `redirect_${index}`
+      const { directive, matcher } = createRedirectMatcher(source, name)
+      const target = destination.replaceAll(':splat', `{re.${name}.1}`)
+
+      return [directive, `\tredir ${matcher} ${target} ${status}`].filter(Boolean)
+    })
+}
+
 async function writeCaddyfile() {
   const outDir = path.join(projectRoot, 'out')
   const outStats = await stat(outDir).catch(() => null)
@@ -304,6 +354,8 @@ async function writeCaddyfile() {
     toolsDir,
     `Caddyfile.preview-${port.replaceAll(/[^0-9A-Za-z_-]/g, '_')}`
   )
+  const redirectDirectives = await readRedirectDirectives(outDir)
+  const redirectsBlock = redirectDirectives.length > 0 ? `${redirectDirectives.join('\n')}\n` : ''
   const caddyfile = `{
 	admin off
 	auto_https off
@@ -312,6 +364,7 @@ async function writeCaddyfile() {
 :${port} {
 	root * ${quoteCaddyfileValue(outDir)}
 	encode zstd gzip
+${redirectsBlock}
 	file_server
 
 	handle_errors {
