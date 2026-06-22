@@ -108,12 +108,19 @@
       font-weight: 600;
     }
     & :where(code):not(pre code) {
-      border-radius: 5px;
-      background: color-mix(in oklab, var(--color-slate-200) 68%, transparent);
-      color: var(--color-sky-600);
-      padding: 0.12rem 0.34rem;
-      font-size: 0.88em;
+      border: 1px solid color-mix(in oklab, var(--color-slate-300) 72%, transparent);
+      border-radius: 6px;
+      background: linear-gradient(
+        to bottom,
+        color-mix(in oklab, white 92%, var(--color-slate-100)),
+        color-mix(in oklab, var(--color-slate-100) 88%, white)
+      );
+      box-shadow: inset 0 -1px 0 color-mix(in oklab, var(--color-slate-300) 45%, transparent);
+      color: #4c4f69;
+      padding: 0.08rem 0.34rem;
+      font-size: 0.86em;
       font-weight: 500;
+      line-height: 1.75;
       word-break: break-word;
     }
     & :where(code):not(pre code)::before,
@@ -136,8 +143,14 @@
       color: var(--color-gray-100);
     }
     & :where(code):not(pre code) {
-      background: color-mix(in oklab, white 10%, transparent);
-      color: var(--color-sky-300);
+      border-color: color-mix(in oklab, #cdd6f4 20%, transparent);
+      background: linear-gradient(
+        to bottom,
+        color-mix(in oklab, #313244 74%, transparent),
+        color-mix(in oklab, #1e1e2e 92%, transparent)
+      );
+      box-shadow: inset 0 -1px 0 color-mix(in oklab, black 36%, transparent);
+      color: #cdd6f4;
     }
   }
 }

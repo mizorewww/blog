@@ -16,6 +16,7 @@ import { absoluteSiteUrl } from './lib/urls'
 import { defaultLocale, isLocale } from './lib/i18n'
 import { toIconComponentName } from './lib/icons'
 import { extractTocHeadings } from './lib/toc'
+import { isTradingViewTicker, normalizeTradingViewSymbol } from './lib/tradingview'
 
 const codeTheme = resolveCodeThemePreset(
   process.env.CODE_THEME || process.env.NEXT_PUBLIC_CODE_THEME
@@ -240,7 +241,16 @@ type GitHubEmbedAttrs = {
   title?: string
 }
 
+type TradingViewAttrs = {
+  height?: string
+  interval?: string
+  locale?: string
+  timezone?: string
+}
+
 const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
+const tradingViewMiniPattern = /^\$([A-Za-z0-9._:-]+)$/
+const tradingViewAdvancedPattern = /^::(?:tv|tv-advanced|tradingview)\s+(.+)$/
 const codeSourceUrlPattern = /\s*sourceUrl="([^"]*)"/
 const defaultGitHubRepo = siteRepo.replace(/^https:\/\/github\.com\//, '')
 
@@ -255,6 +265,92 @@ function parseEmbedAttributes(value: string): GitHubEmbedAttrs {
   }
 
   return attrs
+}
+
+function createMdxFlowNode(
+  name: string,
+  attributes: Record<string, string | undefined>
+): MdastNode {
+  return {
+    type: 'mdxJsxFlowElement',
+    name,
+    attributes: Object.entries(attributes)
+      .filter((entry): entry is [string, string] => Boolean(entry[1]))
+      .map(([attrName, value]) => ({
+        type: 'mdxJsxAttribute',
+        name: attrName,
+        value,
+      })),
+    children: [],
+  }
+}
+
+function createTradingViewMiniNode(symbol: string): MdastNode | null {
+  if (!isTradingViewTicker(symbol)) {
+    return null
+  }
+
+  return createMdxFlowNode('TradingViewMiniChart', {
+    symbol: normalizeTradingViewSymbol(symbol),
+  })
+}
+
+function createTradingViewAdvancedNode(source: string): MdastNode | null {
+  const [rawSymbol, ...attrParts] = source.trim().split(/\s+/)
+
+  if (!rawSymbol || !isTradingViewTicker(rawSymbol)) {
+    return null
+  }
+
+  const attrs = parseEmbedAttributes(attrParts.join(' ')) as TradingViewAttrs
+
+  return createMdxFlowNode('TradingViewAdvancedChart', {
+    height: attrs.height,
+    interval: attrs.interval,
+    locale: attrs.locale,
+    symbol: normalizeTradingViewSymbol(rawSymbol),
+    timezone: attrs.timezone,
+  })
+}
+
+function transformTradingViewWidgets(parent: MdastNode) {
+  if (!Array.isArray(parent.children)) {
+    return
+  }
+
+  const nextChildren: MdastNode[] = []
+
+  for (const child of parent.children) {
+    const value =
+      child.type === 'paragraph' &&
+      child.children?.length === 1 &&
+      child.children[0].type === 'text' &&
+      typeof child.children[0].value === 'string'
+        ? child.children[0].value.trim()
+        : ''
+
+    const miniMatch = value.match(tradingViewMiniPattern)
+    const advancedMatch = value.match(tradingViewAdvancedPattern)
+    const widgetNode = miniMatch
+      ? createTradingViewMiniNode(miniMatch[1])
+      : advancedMatch
+        ? createTradingViewAdvancedNode(advancedMatch[1])
+        : null
+
+    if (widgetNode) {
+      nextChildren.push(widgetNode)
+      continue
+    }
+
+    transformTradingViewWidgets(child)
+    nextChildren.push(child)
+  }
+
+  parent.children = nextChildren
+}
+
+function remarkTradingViewWidgets() {
+  return (tree: MdastNode) => transformTradingViewWidgets(tree)
 }
 
 function normalizeGitHubRepo(repo?: string) {
@@ -456,7 +552,7 @@ async function createGitHubEmbedNode(kind: string, attrSource: string): Promise<
       })
     }
 
-    const value = await getGitHubDiff(attrs)
+    const value = selectCodeLines(await getGitHubDiff(attrs), attrs.lines)
     const title =
       attrs.title ||
       `${normalizeGitHubRepo(attrs.repo)}:${attrs.path || `${attrs.base || attrs.ref}...${attrs.head || ''}`}`
@@ -616,6 +712,141 @@ function createGitHubIconNode(): HastNode {
   }
 }
 
+const languageNames: Record<string, string> = {
+  bash: 'Bash',
+  css: 'CSS',
+  diff: 'Diff',
+  html: 'HTML',
+  js: 'JavaScript',
+  json: 'JSON',
+  jsx: 'JSX',
+  md: 'Markdown',
+  mdx: 'MDX',
+  plaintext: 'Plain text',
+  sh: 'Shell',
+  shell: 'Shell',
+  ts: 'TypeScript',
+  tsx: 'TSX',
+  txt: 'Plain text',
+  yaml: 'YAML',
+  yml: 'YAML',
+  zsh: 'Zsh',
+}
+
+const languageIconLabels: Record<string, string> = {
+  bash: '$',
+  css: '#',
+  diff: '±',
+  html: '<>',
+  js: 'JS',
+  json: '{}',
+  jsx: 'JSX',
+  md: 'MD',
+  mdx: 'MDX',
+  plaintext: 'TXT',
+  sh: '$',
+  shell: '$',
+  ts: 'TS',
+  tsx: 'TSX',
+  txt: 'TXT',
+  yaml: 'YML',
+  yml: 'YML',
+  zsh: '$',
+}
+
+function normalizeCodeLanguage(language: string) {
+  return language.trim().toLowerCase() || 'plaintext'
+}
+
+function getCodeLanguage(code?: HastNode) {
+  const value = code?.properties?.['data-language']
+  return typeof value === 'string' ? normalizeCodeLanguage(value) : 'plaintext'
+}
+
+function getLanguageName(language: string) {
+  return languageNames[language] || language.toUpperCase()
+}
+
+function getLanguageIconLabel(language: string) {
+  return languageIconLabels[language] || getLanguageName(language).slice(0, 3).toUpperCase()
+}
+
+function createCodeLanguageIconNode(language: string): HastNode {
+  return {
+    type: 'element',
+    tagName: 'span',
+    properties: {
+      'aria-hidden': 'true',
+      className: ['code-language-icon'],
+      'data-code-language': language,
+    },
+    children: [{ type: 'text', value: getLanguageIconLabel(language) }],
+  }
+}
+
+function createCodeTitleNode(titleText: string, language: string): HastNode {
+  return {
+    type: 'element',
+    tagName: 'span',
+    properties: { className: ['code-title-main'] },
+    children: [
+      createCodeLanguageIconNode(language),
+      {
+        type: 'element',
+        tagName: 'span',
+        properties: { className: ['code-title-text'] },
+        children: [{ type: 'text', value: titleText || getLanguageName(language) }],
+      },
+    ],
+  }
+}
+
+function createCodeSourceLinkNode(sourceUrl: string, language: string): HastNode {
+  return {
+    type: 'element',
+    tagName: 'a',
+    properties: {
+      className: ['code-source-link'],
+      href: sourceUrl,
+      rel: 'noopener noreferrer',
+      target: '_blank',
+    },
+    children: [
+      createGitHubIconNode(),
+      {
+        type: 'element',
+        tagName: 'span',
+        properties: { className: ['code-source-link-text'] },
+        children: [
+          {
+            type: 'text',
+            value: language === 'diff' ? '在 GitHub 查看 diff' : '在 GitHub 查看代码',
+          },
+        ],
+      },
+    ],
+  }
+}
+
+function ensureCodeTitle(node: HastNode): HastNode {
+  const existingTitle = findChildElement(node, 'figcaption')
+
+  if (existingTitle) {
+    return existingTitle
+  }
+
+  const title: HastNode = {
+    type: 'element',
+    tagName: 'figcaption',
+    properties: { 'data-rehype-pretty-code-title': '' },
+    children: [],
+  }
+
+  node.children = Array.isArray(node.children) ? [title, ...node.children] : [title]
+
+  return title
+}
+
 function enhanceCodeTitle(node: HastNode) {
   if (
     node.tagName !== 'figure' ||
@@ -624,46 +855,17 @@ function enhanceCodeTitle(node: HastNode) {
     return
   }
 
-  const title = findChildElement(node, 'figcaption')
+  const title = ensureCodeTitle(node)
   const code = findDescendantElement(node, 'code')
   const sourceUrl = typeof code?.data?.githubSourceUrl === 'string' ? code.data.githubSourceUrl : ''
+  const language = getCodeLanguage(code)
+  const titleText = getNodeText(title) || getLanguageName(language)
 
-  if (!title || !sourceUrl) {
-    return
+  title.children = [createCodeTitleNode(titleText, language)]
+
+  if (sourceUrl) {
+    title.children.push(createCodeSourceLinkNode(sourceUrl, language))
   }
-
-  const language =
-    typeof code?.properties?.['data-language'] === 'string' ? code.properties['data-language'] : ''
-  const linkText = language === 'diff' ? '在 GitHub 查看 diff' : '在 GitHub 查看代码'
-  const titleText = getNodeText(title)
-
-  title.children = [
-    {
-      type: 'element',
-      tagName: 'span',
-      properties: { className: ['code-title-text'] },
-      children: [{ type: 'text', value: titleText }],
-    },
-    {
-      type: 'element',
-      tagName: 'a',
-      properties: {
-        className: ['code-source-link'],
-        href: sourceUrl,
-        rel: 'noopener noreferrer',
-        target: '_blank',
-      },
-      children: [
-        createGitHubIconNode(),
-        {
-          type: 'element',
-          tagName: 'span',
-          properties: { className: ['code-source-link-text'] },
-          children: [{ type: 'text', value: linkText }],
-        },
-      ],
-    },
-  ]
 }
 
 function annotateCodeLines(node: HastNode, language = '') {
@@ -863,7 +1065,7 @@ export default makeSource({
   documentTypes: [Blog, Authors],
   mdx: {
     cwd: process.cwd(),
-    remarkPlugins: [remarkGfm, remarkIconShortcodes, remarkGitHubEmbeds],
+    remarkPlugins: [remarkGfm, remarkTradingViewWidgets, remarkIconShortcodes, remarkGitHubEmbeds],
     rehypePlugins: [
       rehypeSlug,
       [

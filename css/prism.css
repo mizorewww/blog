@@ -8,6 +8,44 @@ figure[data-rehype-pretty-code-figure] [data-rehype-pretty-code-title] {
   @apply flex items-center justify-between gap-3 border-b border-slate-200 bg-white/70 px-4 py-2 text-xs text-slate-600 dark:border-[#405064] dark:bg-white/[0.035] dark:text-white/65;
 }
 
+figure[data-rehype-pretty-code-figure] .code-title-main {
+  @apply inline-flex min-w-0 items-center gap-2;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon {
+  @apply inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[5px] border border-slate-300 bg-slate-100 px-1 font-sans text-[0.62rem] leading-none font-semibold text-slate-600 dark:border-white/15 dark:bg-white/10 dark:text-white/70;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='ts'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='tsx'] {
+  @apply border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-200;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='js'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='jsx'] {
+  @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/25 dark:bg-amber-300/10 dark:text-amber-200;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='css'] {
+  @apply border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-300/25 dark:bg-indigo-300/10 dark:text-indigo-200;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='md'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='mdx'] {
+  @apply border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-200;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='diff'] {
+  @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-300/10 dark:text-emerald-200;
+}
+
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='bash'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='sh'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='shell'],
+figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='zsh'] {
+  @apply border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-300/25 dark:bg-teal-300/10 dark:text-teal-200;
+}
+
 figure[data-rehype-pretty-code-figure] .code-title-text {
   @apply min-w-0 truncate font-mono;
 }

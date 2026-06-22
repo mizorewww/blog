@@ -5,10 +5,13 @@ import Image from './Image'
 import MDXImage from './MDXImage'
 import CustomLink from './Link'
 import TableWrapper from './TableWrapper'
+import { TradingViewAdvancedChart, TradingViewMiniChart } from './TradingViewWidgets'
 
 export const components: MDXComponents = {
   Icon,
   Image,
+  TradingViewAdvancedChart,
+  TradingViewMiniChart,
   a: CustomLink,
   img: MDXImage,
   pre: CodeBlock,
