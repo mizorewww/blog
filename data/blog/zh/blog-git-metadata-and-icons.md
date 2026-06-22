@@ -56,11 +56,14 @@ console.log(feature, theme)
 
 ```md
 $AAPL
+$BINANCE:BTCUSDT.P
 ```
 
 渲染效果：
 
 $AAPL
+
+$BINANCE:BTCUSDT.P
 
 ### Advanced Chart 也有短语法
 
