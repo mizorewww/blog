@@ -5,10 +5,9 @@ import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import { getLocalizedTagParams, getTagListData } from '@/lib/content/posts'
-import { formatTermTitle, termSlug } from '@/lib/content/terms'
-import { isLocale, localizePath } from '@/lib/i18n'
+import { buildTermPageMeta } from '@/lib/content/termPages'
+import { isLocale } from '@/lib/i18n'
 import { createPostCollectionJsonLd } from '@/lib/structuredData'
-import { absoluteSiteUrl, decodeRouteParam } from '@/lib/urls'
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; tag: string }>
@@ -19,17 +18,14 @@ export async function generateMetadata(props: {
     return {}
   }
 
-  const tag = decodeRouteParam(params.tag)
+  const termMeta = buildTermPageMeta(params.locale, 'tags', params.tag)
   return genPageMetadata({
-    title: tag,
-    description: `${siteMetadata.title} ${tag} tagged content`,
+    title: termMeta.term,
+    description: termMeta.description,
     alternates: {
-      canonical: absoluteSiteUrl(
-        siteMetadata.siteUrl,
-        localizePath(`/tags/${termSlug(tag)}`, params.locale)
-      ),
+      canonical: termMeta.url,
       types: {
-        'application/rss+xml': `${siteMetadata.siteUrl}/${params.locale}/tags/${tag}/feed.xml`,
+        'application/rss+xml': `${siteMetadata.siteUrl}/${params.locale}/tags/${termMeta.slug}/feed.xml`,
       },
     },
   })
@@ -46,16 +42,12 @@ export default async function TagPage(props: { params: Promise<{ locale: string;
     return notFound()
   }
 
-  const tag = decodeRouteParam(params.tag)
-  const title = formatTermTitle(tag)
-  const { posts, categoryCounts, tagCounts } = getTagListData(params.locale, tag)
+  const termMeta = buildTermPageMeta(params.locale, 'tags', params.tag)
+  const { posts, categoryCounts, tagCounts } = getTagListData(params.locale, termMeta.term)
   const jsonLd = createPostCollectionJsonLd({
-    title,
-    description: `${siteMetadata.title} ${tag} tagged content`,
-    url: absoluteSiteUrl(
-      siteMetadata.siteUrl,
-      localizePath(`/tags/${termSlug(tag)}`, params.locale)
-    ),
+    title: termMeta.title,
+    description: termMeta.description,
+    url: termMeta.url,
     locale: params.locale,
     posts,
   })
@@ -65,7 +57,7 @@ export default async function TagPage(props: { params: Promise<{ locale: string;
       <JsonLd data={jsonLd} />
       <ListLayout
         posts={posts}
-        title={title}
+        title={termMeta.title}
         locale={params.locale}
         categoryCounts={categoryCounts}
         tagCounts={tagCounts}

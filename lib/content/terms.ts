@@ -3,6 +3,7 @@ import { slug } from 'github-slugger'
 export type CountMap = Record<string, number>
 
 export type TermField = 'categories' | 'tags'
+export type TermRouteField = 'category' | 'tag'
 
 export type TermPost = {
   categories?: string[]
@@ -29,12 +30,16 @@ export function countTerms(posts: TermPost[], field: TermField): CountMap {
   }, {})
 }
 
+export function getTermCounts(posts: TermPost[], field: TermField): CountMap {
+  return countTerms(posts, field)
+}
+
 export function getCategoryCounts(posts: TermPost[]): CountMap {
-  return countTerms(posts, 'categories')
+  return getTermCounts(posts, 'categories')
 }
 
 export function getTagCounts(posts: TermPost[]): CountMap {
-  return countTerms(posts, 'tags')
+  return getTermCounts(posts, 'tags')
 }
 
 export function postHasTerm(post: TermPost, field: TermField, term: string) {
@@ -42,11 +47,23 @@ export function postHasTerm(post: TermPost, field: TermField, term: string) {
 }
 
 export function getPostsByCategory<T extends TermPost>(posts: T[], category: string): T[] {
-  return posts.filter((post) => postHasTerm(post, 'categories', category))
+  return getPostsByTerm(posts, 'categories', category)
 }
 
 export function getPostsByTag<T extends TermPost>(posts: T[], tag: string): T[] {
-  return posts.filter((post) => postHasTerm(post, 'tags', tag))
+  return getPostsByTerm(posts, 'tags', tag)
+}
+
+export function getPostsByTerm<T extends TermPost>(
+  posts: T[],
+  field: TermField,
+  term: string
+): T[] {
+  return posts.filter((post) => postHasTerm(post, field, term))
+}
+
+export function getTermRouteField(field: TermField): TermRouteField {
+  return field === 'categories' ? 'category' : 'tag'
 }
 
 export function getTermKeys(counts: CountMap) {

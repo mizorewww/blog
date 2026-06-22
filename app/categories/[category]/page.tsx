@@ -1,28 +1,23 @@
 import JsonLd from '@/components/JsonLd'
-import siteMetadata from '@/data/siteMetadata'
 import ListLayout from '@/layouts/ListLayoutWithTags'
 import { genPageMetadata } from 'app/seo'
 import { Metadata } from 'next'
 import { getCategoryListData, getDefaultCategoryParams } from '@/lib/content/posts'
-import { formatTermTitle, termSlug } from '@/lib/content/terms'
-import { defaultLocale, localizePath } from '@/lib/i18n'
+import { buildTermPageMeta } from '@/lib/content/termPages'
+import { defaultLocale } from '@/lib/i18n'
 import { createPostCollectionJsonLd } from '@/lib/structuredData'
-import { absoluteSiteUrl, decodeRouteParam } from '@/lib/urls'
 
 export async function generateMetadata(props: {
   params: Promise<{ category: string }>
 }): Promise<Metadata> {
   const params = await props.params
-  const category = decodeRouteParam(params.category)
+  const termMeta = buildTermPageMeta(defaultLocale, 'categories', params.category)
 
   return genPageMetadata({
-    title: category,
-    description: `${siteMetadata.title} ${category} category content`,
+    title: termMeta.term,
+    description: termMeta.description,
     alternates: {
-      canonical: absoluteSiteUrl(
-        siteMetadata.siteUrl,
-        localizePath(`/categories/${termSlug(category)}`, defaultLocale)
-      ),
+      canonical: termMeta.url,
     },
   })
 }
@@ -33,16 +28,12 @@ export const generateStaticParams = async () => {
 
 export default async function CategoryPage(props: { params: Promise<{ category: string }> }) {
   const params = await props.params
-  const category = decodeRouteParam(params.category)
-  const title = formatTermTitle(category)
-  const { posts, categoryCounts, tagCounts } = getCategoryListData(defaultLocale, category)
+  const termMeta = buildTermPageMeta(defaultLocale, 'categories', params.category)
+  const { posts, categoryCounts, tagCounts } = getCategoryListData(defaultLocale, termMeta.term)
   const jsonLd = createPostCollectionJsonLd({
-    title,
-    description: `${siteMetadata.title} ${category} category content`,
-    url: absoluteSiteUrl(
-      siteMetadata.siteUrl,
-      localizePath(`/categories/${termSlug(category)}`, defaultLocale)
-    ),
+    title: termMeta.title,
+    description: termMeta.description,
+    url: termMeta.url,
     locale: defaultLocale,
     posts,
   })
@@ -52,7 +43,7 @@ export default async function CategoryPage(props: { params: Promise<{ category: 
       <JsonLd data={jsonLd} />
       <ListLayout
         posts={posts}
-        title={title}
+        title={termMeta.title}
         locale={defaultLocale}
         categoryCounts={categoryCounts}
         tagCounts={tagCounts}

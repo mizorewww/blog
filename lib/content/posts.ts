@@ -6,11 +6,13 @@ import { defaultLocale, locales, type Locale } from '@/lib/i18n'
 import { toListPosts, type BlogListPost } from '@/lib/listPosts'
 import {
   getCategoryCounts,
-  getPostsByCategory,
-  getPostsByTag,
+  getPostsByTerm,
   getTagCounts,
+  getTermCounts,
   getTermKeys,
+  getTermRouteField,
   type CountMap,
+  type TermField,
 } from '@/lib/content/terms'
 
 type ListPostOptions = Parameters<typeof toListPosts>[1]
@@ -51,20 +53,16 @@ export function getBlogListData(locale: Locale, options: ListPostOptions = {}): 
 }
 
 export function getCategoryListData(locale: Locale, category: string): BlogListData {
-  const sourcePosts = getLocalePosts(locale)
-  const filteredPosts = getPostsByCategory(sourcePosts, category)
-
-  return {
-    sourcePosts,
-    posts: toListPosts(sortPosts(filteredPosts)),
-    categoryCounts: getCategoryCounts(sourcePosts),
-    tagCounts: getTagCounts(sourcePosts),
-  }
+  return getTermListData(locale, 'categories', category)
 }
 
 export function getTagListData(locale: Locale, tag: string): BlogListData {
+  return getTermListData(locale, 'tags', tag)
+}
+
+export function getTermListData(locale: Locale, field: TermField, term: string): BlogListData {
   const sourcePosts = getLocalePosts(locale)
-  const filteredPosts = getPostsByTag(sourcePosts, tag)
+  const filteredPosts = getPostsByTerm(sourcePosts, field, term)
 
   return {
     sourcePosts,
@@ -106,33 +104,34 @@ export function getLocalizedPostParams() {
 }
 
 export function getDefaultCategoryParams() {
-  return getTermKeys(getCategoryCounts(getLocalePosts(defaultLocale))).map((category) => ({
-    category: encodeURI(category),
-  }))
+  return getTermParams(null, 'categories')
 }
 
 export function getLocalizedCategoryParams() {
-  return locales.flatMap((locale) =>
-    getTermKeys(getCategoryCounts(getLocalePosts(locale))).map((category) => ({
-      locale,
-      category: encodeURI(category),
-    }))
-  )
+  return getTermParamsForLocales('categories')
 }
 
 export function getDefaultTagParams() {
-  return getTermKeys(getTagCounts(getLocalePosts(defaultLocale))).map((tag) => ({
-    tag: encodeURI(tag),
-  }))
+  return getTermParams(null, 'tags')
 }
 
 export function getLocalizedTagParams() {
-  return locales.flatMap((locale) =>
-    getTermKeys(getTagCounts(getLocalePosts(locale))).map((tag) => ({
-      locale,
-      tag: encodeURI(tag),
-    }))
-  )
+  return getTermParamsForLocales('tags')
+}
+
+export function getTermParams(locale: Locale | null, field: TermField) {
+  const targetLocale = locale || defaultLocale
+  const routeField = getTermRouteField(field)
+  const counts = getTermCounts(getLocalePosts(targetLocale), field)
+
+  return getTermKeys(counts).map((term) => ({
+    ...(locale ? { locale } : {}),
+    [routeField]: encodeURI(term),
+  }))
+}
+
+export function getTermParamsForLocales(field: TermField) {
+  return locales.flatMap((locale) => getTermParams(locale, field))
 }
 
 export function getPublishedSitemapPosts() {
