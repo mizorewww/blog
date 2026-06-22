@@ -43,10 +43,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     return {
       languages: {
         ...languages,
-        'x-default':
-          route === ''
-            ? absoluteSiteUrl(siteUrl)
-            : absoluteSiteUrl(siteUrl, `${defaultLocale}/${route}`),
+        'x-default': absoluteSiteUrl(siteUrl, `${defaultLocale}${route ? `/${route}` : ''}`),
       },
     }
   }
@@ -77,11 +74,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
   }))
 
   const routes = [
-    {
-      route: '',
-      lastModified: latestByLocale[defaultLocale],
-      alternates: localizedAlternates(),
-    },
     ...locales.flatMap((locale) => [
       {
         route: locale,

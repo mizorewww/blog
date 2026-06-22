@@ -119,7 +119,6 @@ const sitemapEntries = extractSitemapEntries(sitemap)
 const sitemapByLoc = new Map(sitemapEntries.map((entry) => [entry.loc, entry]))
 const publishedPosts = allBlogs.filter((post) => post.draft !== true)
 const expectedSitemapLocs = new Set([
-  `${siteMetadata.siteUrl}/`,
   ...locales.map((locale) => `${siteMetadata.siteUrl}/${locale}/`),
   ...publishedPosts.map(postUrl),
 ])
@@ -139,22 +138,28 @@ assert(
   redirects.includes('/blog/* /zh/:splat 301'),
   '_redirects must preserve legacy /blog/* redirects'
 )
+assert(redirects.includes('/ /zh/ 301'), '_redirects must send root to the default locale')
+assert(
+  redirects.includes('/categories/* /zh/categories/:splat 301'),
+  '_redirects must send default category routes to the default locale'
+)
+assert(
+  redirects.includes('/tags/* /zh/tags/:splat 301'),
+  '_redirects must send default tag routes to the default locale'
+)
 assert(
   sitemap.includes('xmlns:xhtml='),
   'sitemap must include xhtml namespace for hreflang alternates'
 )
 assert(
   sitemapEntries.length === expectedSitemapLocs.size,
-  'sitemap must contain only root, locale roots, and article URLs'
+  'sitemap must contain only locale roots and article URLs'
 )
 
 for (const entry of sitemapEntries) {
   assert(entry.loc?.startsWith(siteMetadata.siteUrl), `invalid sitemap loc: ${entry.loc}`)
   assert(expectedSitemapLocs.has(entry.loc), `${entry.loc} must not be included in sitemap`)
-  assert(
-    entry.loc === `${siteMetadata.siteUrl}/` || entry.loc.endsWith('/'),
-    `${entry.loc} must end with /`
-  )
+  assert(entry.loc?.endsWith('/'), `${entry.loc} must end with /`)
   assert(!entry.loc.includes('/blog/'), `${entry.loc} must not expose legacy /blog/ routes`)
   assert(entry.alternates.length > 0, `${entry.loc} must include hreflang alternates`)
 
@@ -192,13 +197,6 @@ for (const entry of sitemapEntries) {
     assert(hasType(nodes, 'CollectionPage'), `${entry.loc} JSON-LD must include CollectionPage`)
   }
 }
-
-const rootUrl = `${siteMetadata.siteUrl}/`
-const rootEntry = sitemapByLoc.get(rootUrl)
-assert(
-  rootEntry?.lastmod === latestByLocale[defaultLocale],
-  `${rootUrl} lastmod must match latest default-locale content update`
-)
 
 for (const locale of locales) {
   const loc = `${siteMetadata.siteUrl}/${locale}/`
