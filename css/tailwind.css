@@ -37,6 +37,16 @@
   --color-gray-900: oklch(0.21 0.034 264.665);
   --color-gray-950: oklch(0.13 0.028 261.692);
 
+  --color-surface-page: #f2f5f8;
+  --color-surface-page-dark: #181c27;
+  --color-surface-card-dark: #252d38;
+  --color-surface-code-dark: #10161f;
+  --color-surface-raised-dark: #1f2937;
+  --color-surface-cover-dark: #111827;
+  --color-border-subtle-dark: #405064;
+  --color-border-muted-dark: #415064;
+  --color-border-footer-dark: #2f3947;
+
   /* Line heights */
   --line-height-11: 2.75rem;
   --line-height-12: 3rem;

@@ -9,7 +9,7 @@ import { defaultLocale, ui } from '@/lib/i18n'
 const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:translate-y-0 sm:opacity-100 dark:bg-[#252d38]/95 dark:shadow-none ${
+      className={`dark:bg-surface-card-dark/95 fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:translate-y-0 sm:opacity-100 dark:shadow-none ${
         hideOnMobile
           ? 'pointer-events-none -translate-y-full opacity-0 sm:pointer-events-auto'
           : 'translate-y-0 opacity-100'

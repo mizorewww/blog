@@ -96,7 +96,7 @@ export default function ListLayoutWithTags({
       <div style={motionMinHeight ? { minHeight: motionMinHeight } : undefined}>
         {!expandedPost && <h1 className="sr-only">{title}</h1>}
         {!visiblePosts.length && (
-          <div className="rounded-[10px] bg-white px-8 py-10 text-slate-600 dark:bg-[#252d38] dark:text-white/70">
+          <div className="dark:bg-surface-card-dark rounded-[10px] bg-white px-8 py-10 text-slate-600 dark:text-white/70">
             {labels.noPosts}
           </div>
         )}

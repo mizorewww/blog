@@ -75,7 +75,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
         <SpeculationRules />
       </head>
-      <body className="min-h-screen overflow-y-scroll bg-[#f2f5f8] text-slate-900 antialiased dark:bg-[#181c27] dark:text-white/90">
+      <body className="bg-surface-page dark:bg-surface-page-dark min-h-screen overflow-y-scroll text-slate-900 antialiased dark:text-white/90">
         <ThemeProviders>
           <Analytics config={siteMetadata.analytics} />
           <AppShell>{children}</AppShell>

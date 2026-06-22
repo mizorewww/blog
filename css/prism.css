@@ -1,11 +1,11 @@
 /* Code block styles for MDX output highlighted by rehype-pretty-code + Shiki. */
 
 figure[data-rehype-pretty-code-figure] {
-  @apply my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-100/70 shadow-sm dark:border-[#405064] dark:bg-[#10161f];
+  @apply dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-100/70 shadow-sm;
 }
 
 figure[data-rehype-pretty-code-figure] [data-rehype-pretty-code-title] {
-  @apply flex items-center justify-between gap-3 border-b border-slate-200 bg-white/70 px-4 py-2 text-xs text-slate-600 dark:border-[#405064] dark:bg-white/[0.035] dark:text-white/65;
+  @apply dark:border-border-subtle-dark flex items-center justify-between gap-3 border-b border-slate-200 bg-white/70 px-4 py-2 text-xs text-slate-600 dark:bg-white/[0.035] dark:text-white/65;
 }
 
 figure[data-rehype-pretty-code-figure] .code-title-main {

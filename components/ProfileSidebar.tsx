@@ -89,7 +89,7 @@ export default function ProfileSidebar({
                 className="flex items-center justify-between text-base text-slate-700 transition hover:text-sky-500 dark:text-white/80"
               >
                 <span>{category}</span>
-                <span className="rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:bg-[#405064] dark:text-white/70">
+                <span className="dark:bg-border-subtle-dark rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:text-white/70">
                   {count}
                 </span>
               </Link>

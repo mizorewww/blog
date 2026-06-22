@@ -38,7 +38,7 @@ export default function TermIndexView({
             <Link
               key={term}
               href={localizePath(`${route}/${termSlug(term)}`, locale)}
-              className="mt-2 mr-3 mb-2 rounded-[8px] bg-white px-4 py-2 text-slate-700 transition hover:bg-sky-500 hover:text-white dark:bg-[#252d38] dark:text-white/80 dark:hover:bg-sky-500"
+              className="dark:bg-surface-card-dark mt-2 mr-3 mb-2 rounded-[8px] bg-white px-4 py-2 text-slate-700 transition hover:bg-sky-500 hover:text-white dark:text-white/80 dark:hover:bg-sky-500"
               aria-label={labels.postsInCategory(term)}
             >
               {term} ({counts[term]})

@@ -5,6 +5,17 @@ import { defaultLocale, isLocale } from '../../lib/i18n'
 import { extractTocHeadings } from '../../lib/toc'
 import { getFileUrl, getPostGitHistory, getRepoSourceFilePath, toIsoDate } from './gitHistory'
 
+type ContentlayerDoc = {
+  body?: { raw: string }
+  date?: string | Date
+  language?: string
+  lastmod?: string | Date
+  _raw: {
+    flattenedPath: string
+    sourceFilePath: string
+  }
+}
+
 export const computedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
   slug: {
@@ -22,9 +33,9 @@ export const computedFields: ComputedFields = {
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
-const rawBlogSlug = (doc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
+const rawBlogSlug = (doc: ContentlayerDoc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
 
-const blogLocale = (doc) => {
+const blogLocale = (doc: ContentlayerDoc) => {
   const frontmatterLocale = doc.language
   const firstSegment = rawBlogSlug(doc).split('/')[0]
 
@@ -39,7 +50,7 @@ const blogLocale = (doc) => {
   return defaultLocale
 }
 
-const blogSlug = (doc) => {
+const blogSlug = (doc: ContentlayerDoc) => {
   const rawSlug = rawBlogSlug(doc)
   const [firstSegment, ...rest] = rawSlug.split('/')
 
@@ -50,7 +61,7 @@ const blogSlug = (doc) => {
   return rawSlug
 }
 
-export const blogPath = (doc) => `${blogLocale(doc)}/${blogSlug(doc)}`
+export const blogPath = (doc: ContentlayerDoc) => `${blogLocale(doc)}/${blogSlug(doc)}`
 
 export const blogComputedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
@@ -96,10 +107,10 @@ export const blogComputedFields: ComputedFields = {
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
-export async function getBlogGitUpdatedAt(doc) {
+export async function getBlogGitUpdatedAt(doc: ContentlayerDoc) {
   return (await getPostGitHistory(getRepoSourceFilePath(doc)))[0]?.committedAt
 }
 
-export function getBlogStructuredDataUrl(doc) {
+export function getBlogStructuredDataUrl(doc: ContentlayerDoc) {
   return `${siteMetadata.siteUrl.replace(/\/+$/, '')}/${blogPath(doc)}/`
 }

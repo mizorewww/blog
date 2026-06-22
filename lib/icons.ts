@@ -1,28 +1,4 @@
-import {
-  ArrowUp,
-  Braces,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-  CircleHelp,
-  Clock,
-  Code,
-  ExternalLink,
-  FileCode,
-  GitBranch,
-  GitCommit,
-  GitCompare,
-  Hash,
-  History,
-  Link as LinkIcon,
-  MessageSquareText,
-  Pencil,
-  Rss,
-  ScrollText,
-  Tag,
-  Tags,
-  type LucideIcon,
-} from 'lucide-react'
+import { CircleHelp, icons, type LucideIcon } from 'lucide-react'
 
 export const iconAliases: Record<string, string> = {
   braces: 'Braces',
@@ -58,31 +34,6 @@ export const iconAliases: Record<string, string> = {
   up: 'ArrowUp',
 }
 
-export const iconRegistry: Record<string, LucideIcon> = {
-  ArrowUp,
-  Braces,
-  Calendar,
-  ChevronDown,
-  ChevronUp,
-  CircleHelp,
-  Clock,
-  Code,
-  ExternalLink,
-  FileCode,
-  GitBranch,
-  GitCommit,
-  GitCompare,
-  Hash,
-  History,
-  Link: LinkIcon,
-  MessageSquareText,
-  Pencil,
-  Rss,
-  ScrollText,
-  Tag,
-  Tags,
-}
-
 export function toIconComponentName(value: string) {
   const key = value
     .trim()
@@ -109,5 +60,8 @@ export function toIconComponentName(value: string) {
 }
 
 export function getIconComponent(value: string) {
-  return iconRegistry[toIconComponentName(value)] || CircleHelp
+  const componentName = toIconComponentName(value)
+  const registry = icons as Record<string, LucideIcon | undefined>
+
+  return registry[componentName] || CircleHelp
 }

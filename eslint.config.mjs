@@ -38,7 +38,7 @@ const eslintConfig = [
       },
 
       parser: tsParser,
-      ecmaVersion: 5,
+      ecmaVersion: 2022,
       sourceType: 'commonjs',
 
       parserOptions: {
@@ -60,7 +60,7 @@ const eslintConfig = [
         },
       ],
       'react/prop-types': 'off',
-      '@typescript-eslint/no-unused-vars': 'off',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
       'react/no-unescaped-entities': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-var-requires': 'off',

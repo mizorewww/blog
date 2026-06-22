@@ -147,7 +147,7 @@ export default function ExpandablePostCard({
   return (
     <article className={`${cardClass} overflow-hidden`} data-post-path={post.path}>
       <Link href={postHref} aria-label={post.title} className="block overflow-hidden">
-        <div className="relative aspect-[2.65/1] bg-slate-100 dark:bg-[#111827]">
+        <div className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100">
           <Image
             src={post.image || siteMetadata.socialBanner}
             alt=""
@@ -179,7 +179,7 @@ export default function ExpandablePostCard({
             }`}
           >
             <div className="min-h-0 overflow-hidden">
-              <div className="border-t border-slate-200 pt-5 pb-1 dark:border-[#405064]">
+              <div className="dark:border-border-subtle-dark border-t border-slate-200 pt-5 pb-1">
                 {renderBody && (
                   <div className="prose prose-slate dark:prose-invert max-w-none">
                     {body}

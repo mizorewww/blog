@@ -1,6 +1,7 @@
 'use client'
 
 import { normalizeTradingViewSymbol } from '@/lib/tradingview'
+import { useTheme } from 'next-themes'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 
 type TradingViewTheme = 'light' | 'dark'
@@ -35,32 +36,15 @@ const miniChartScript =
   'https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js'
 const advancedChartScript =
   'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
-
-function getCurrentTheme(): TradingViewTheme {
-  if (typeof document === 'undefined') {
-    return 'dark'
-  }
-
-  return document.documentElement.classList.contains('dark') ? 'dark' : 'light'
-}
+const tradingViewDarkBackground = 'rgb(16 22 31)'
 
 function useTradingViewTheme() {
-  const [theme, setTheme] = useState<TradingViewTheme>('dark')
+  const [mounted, setMounted] = useState(false)
+  const { resolvedTheme } = useTheme()
 
-  useEffect(() => {
-    const updateTheme = () => setTheme(getCurrentTheme())
-    updateTheme()
+  useEffect(() => setMounted(true), [])
 
-    const observer = new MutationObserver(updateTheme)
-    observer.observe(document.documentElement, {
-      attributeFilter: ['class'],
-      attributes: true,
-    })
-
-    return () => observer.disconnect()
-  }, [])
-
-  return theme
+  return mounted && resolvedTheme === 'light' ? 'light' : 'dark'
 }
 
 function toWidgetHeight(value: number | string) {
@@ -76,7 +60,7 @@ function getWidgetFrameStyle(height: number | string, theme: TradingViewTheme) {
     colorScheme: theme,
     height: toWidgetHeight(height),
     '--tv-widget-accent-color': theme === 'dark' ? '#38bdf8' : '#0284c7',
-    '--tv-widget-background-color': theme === 'dark' ? '#10161f' : '#ffffff',
+    '--tv-widget-background-color': theme === 'dark' ? tradingViewDarkBackground : '#ffffff',
     '--tv-widget-negative-area-bottom-color':
       theme === 'dark' ? 'rgba(248, 113, 113, 0.08)' : 'rgba(220, 38, 38, 0.08)',
     '--tv-widget-negative-area-top-color':
@@ -96,7 +80,7 @@ function getWidgetFrameStyle(height: number | string, theme: TradingViewTheme) {
 function TradingViewWidgetFrame({ children, height, theme }: TradingViewWidgetFrameProps) {
   return (
     <div
-      className="not-prose my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm dark:border-[#405064] dark:bg-[#10161f]"
+      className="not-prose dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm"
       style={getWidgetFrameStyle(height, theme)}
     >
       {children}

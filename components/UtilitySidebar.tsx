@@ -16,7 +16,7 @@ export default function UtilitySidebar({
   return (
     <aside className="blog-sidebar-right space-y-5 bg-transparent lg:self-start">
       <BlogWidgetCard title={ui[locale].recentPosts}>
-        <div className="divide-y divide-slate-200 dark:divide-[#415064]">
+        <div className="dark:divide-border-muted-dark divide-y divide-slate-200">
           {posts.slice(0, 4).map((post) => (
             <Link key={post.path} href={`/${post.path}/`} className="block py-4 first:pt-0">
               <time
