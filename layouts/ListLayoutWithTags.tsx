@@ -1,30 +1,14 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { flushSync } from 'react-dom'
+import { useEffect, useRef } from 'react'
+import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
-import type { BlogListPost } from '@/lib/listPosts'
-import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
 import { getCategoryCounts, getTagCounts } from '@/lib/content/terms'
-import {
-  BLOG_PATH_CHANGE_EVENT,
-  consumePendingBlogNavigationMotion,
-  getBlogListReturnContext,
-  isHomePath,
-  normalizePathname,
-  type BlogMotionContext as MotionContext,
-} from '@/lib/blogRouteState'
-import {
-  MOTION_DURATION,
-  animatePostTopTo,
-  animateScrollTo,
-  getExpandedTargetOffset,
-  getMainColumnHeight,
-  getPostShell,
-  setPostTop,
-} from '@/lib/postMotion'
+import { usePostExpansion } from '@/lib/hooks/usePostExpansion'
+import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
+import type { BlogListPost } from '@/lib/listPosts'
 
 interface ListLayoutProps {
   posts: BlogListPost[]
@@ -34,39 +18,6 @@ interface ListLayoutProps {
   tagCounts?: Record<string, number>
   initialDisplayPosts?: BlogListPost[]
   initialExpandedPath?: string | null
-}
-
-const POSTS_PER_BATCH = 5
-
-type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
-
-type MotionOptions = {
-  afterMotion?: () => void
-}
-
-function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
-  const currentPath = normalizePathname(decodeURI(pathname))
-  const matchingPost = posts.find((post) => normalizePathname(`/${post.path}`) === currentPath)
-
-  return matchingPost?.path || null
-}
-
-function getExpandedPathFromLocation(posts: BlogListPost[]) {
-  if (typeof window === 'undefined') {
-    return null
-  }
-
-  return getExpandedPathFromPathname(posts, window.location.pathname)
-}
-
-function getInitialVisibleCount(
-  posts: BlogListPost[],
-  initialDisplayCount: number,
-  expandedPath?: string | null
-) {
-  const expandedIndex = expandedPath ? posts.findIndex((post) => post.path === expandedPath) : -1
-
-  return Math.max(initialDisplayCount || POSTS_PER_BATCH, POSTS_PER_BATCH, expandedIndex + 1)
 }
 
 export default function ListLayoutWithTags({
@@ -79,33 +30,27 @@ export default function ListLayoutWithTags({
   initialExpandedPath = null,
 }: ListLayoutProps) {
   const pathname = usePathname()
-  const pendingInitialMotionRef = useRef<MotionContext | null | undefined>(undefined)
-
-  if (pendingInitialMotionRef.current === undefined) {
-    pendingInitialMotionRef.current = initialExpandedPath
-      ? consumePendingBlogNavigationMotion(initialExpandedPath)
-      : null
-  }
-
-  const shouldAnimateInitialExpansion = Boolean(pendingInitialMotionRef.current)
-  const [visibleCount, setVisibleCount] = useState(
-    getInitialVisibleCount(posts, initialDisplayPosts.length, initialExpandedPath)
-  )
-  const [expandedPath, setExpandedPath] = useState<string | null>(
-    shouldAnimateInitialExpansion ? null : initialExpandedPath
-  )
-  const [motionPhase, setMotionPhase] = useState<MotionPhase>('idle')
-  const [motionPath, setMotionPath] = useState<string | null>(
-    shouldAnimateInitialExpansion ? null : initialExpandedPath
-  )
-  const [motionMinHeight, setMotionMinHeight] = useState<number | null>(null)
-  const [showBackToTop, setShowBackToTop] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
-  const scrollFrameRef = useRef<number | null>(null)
   const labels = ui[locale]
   const dateLocale = localeConfig[locale].dateLocale
   const categoryCounts = providedCategoryCounts || getCategoryCounts(posts)
   const tagCounts = providedTagCounts || getTagCounts(posts)
+  const {
+    collapsePost,
+    expandedPath,
+    expandPost,
+    loadMorePosts,
+    motionMinHeight,
+    motionPath,
+    motionPhase,
+    scrollToTop,
+    visibleCount,
+  } = usePostExpansion({
+    initialDisplayCount: initialDisplayPosts.length,
+    initialExpandedPath,
+    pathname,
+    posts,
+  })
   const displayPosts = posts.slice(0, visibleCount)
   const expandedIndex = expandedPath
     ? displayPosts.findIndex((post) => post.path === expandedPath)
@@ -116,241 +61,6 @@ export default function ListLayoutWithTags({
   const visiblePosts = shouldRenderFullList ? displayPosts : [expandedPost]
   const motionIndex = motionPath ? displayPosts.findIndex((post) => post.path === motionPath) : -1
   const hasMore = !expandedPath && visibleCount < posts.length
-  const clearMotionTimers = useCallback(() => {
-    if (scrollFrameRef.current !== null) {
-      window.cancelAnimationFrame(scrollFrameRef.current)
-      scrollFrameRef.current = null
-    }
-  }, [])
-  const getCollapsedTargetTop = useCallback(
-    (post: BlogListPost, context: MotionContext) => {
-      if (context.previousCardTop !== null) {
-        return context.previousCardTop
-      }
-
-      const postIndex = posts.findIndex((item) => item.path === post.path)
-
-      if (postIndex <= 0) {
-        return getExpandedTargetOffset()
-      }
-
-      const shell = getPostShell(post.path)
-      const shellHeight = shell?.getBoundingClientRect().height || 0
-
-      const targetOffset = getExpandedTargetOffset()
-
-      return Math.max(targetOffset, (window.innerHeight - shellHeight) / 2)
-    },
-    [posts]
-  )
-
-  const expandPost = useCallback(
-    (post: BlogListPost, context: MotionContext, options?: MotionOptions) => {
-      clearMotionTimers()
-
-      const nextVisibleCount = Math.max(
-        visibleCount,
-        posts.findIndex((item) => item.path === post.path) + 1
-      )
-      const startTop =
-        getPostShell(post.path)?.getBoundingClientRect().top ??
-        context.previousCardTop ??
-        getExpandedTargetOffset()
-
-      flushSync(() => {
-        setMotionMinHeight(getMainColumnHeight())
-        setVisibleCount(nextVisibleCount)
-        setMotionPath(post.path)
-        setExpandedPath(post.path)
-        setMotionPhase('expanding')
-      })
-
-      animatePostTopTo(
-        post.path,
-        startTop,
-        getExpandedTargetOffset(),
-        MOTION_DURATION,
-        scrollFrameRef,
-        () => {
-          setPostTop(post.path, getExpandedTargetOffset())
-          setMotionPhase('idle')
-          setMotionPath(post.path)
-          setMotionMinHeight(null)
-          options?.afterMotion?.()
-        }
-      )
-    },
-    [clearMotionTimers, posts, visibleCount]
-  )
-
-  const collapsePost = useCallback(
-    (post: BlogListPost, context: MotionContext) => {
-      clearMotionTimers()
-
-      const nextVisibleCount = Math.max(
-        visibleCount,
-        posts.findIndex((item) => item.path === post.path) + 1
-      )
-      const startTop =
-        getPostShell(post.path)?.getBoundingClientRect().top ?? getExpandedTargetOffset()
-      const targetTop = getCollapsedTargetTop(post, context)
-
-      flushSync(() => {
-        setVisibleCount(nextVisibleCount)
-        setMotionPath(post.path)
-        setExpandedPath(null)
-        setMotionPhase('collapsing-prep')
-      })
-      setPostTop(post.path, startTop)
-
-      requestAnimationFrame(() => {
-        flushSync(() => {
-          setMotionPhase('collapsing')
-        })
-        setPostTop(post.path, startTop)
-
-        animatePostTopTo(post.path, startTop, targetTop, MOTION_DURATION, scrollFrameRef, () => {
-          setPostTop(post.path, targetTop)
-          setMotionPhase('idle')
-          setMotionPath(null)
-        })
-      })
-    },
-    [clearMotionTimers, getCollapsedTargetTop, posts, visibleCount]
-  )
-
-  useEffect(() => {
-    if (!('scrollRestoration' in window.history)) {
-      return
-    }
-
-    const previousScrollRestoration = window.history.scrollRestoration
-    window.history.scrollRestoration = 'manual'
-
-    return () => {
-      window.history.scrollRestoration = previousScrollRestoration
-    }
-  }, [])
-
-  useEffect(() => {
-    const nextExpandedPath = getExpandedPathFromPathname(posts, pathname) || initialExpandedPath
-    const pendingInitialMotion = pendingInitialMotionRef.current
-
-    if (pendingInitialMotion && nextExpandedPath) {
-      const post = posts.find((item) => item.path === nextExpandedPath)
-
-      pendingInitialMotionRef.current = null
-      clearMotionTimers()
-      setVisibleCount(getInitialVisibleCount(posts, initialDisplayPosts.length, nextExpandedPath))
-      setExpandedPath(null)
-      setMotionPath(null)
-      setMotionMinHeight(null)
-      setMotionPhase('idle')
-
-      if (post) {
-        const frame = window.requestAnimationFrame(() => {
-          expandPost(post, pendingInitialMotion)
-        })
-
-        return () => window.cancelAnimationFrame(frame)
-      }
-    }
-
-    clearMotionTimers()
-    setVisibleCount(getInitialVisibleCount(posts, initialDisplayPosts.length, nextExpandedPath))
-    setExpandedPath(nextExpandedPath)
-    setMotionPath(nextExpandedPath)
-    setMotionMinHeight(null)
-    setMotionPhase('idle')
-  }, [
-    clearMotionTimers,
-    expandPost,
-    initialDisplayPosts.length,
-    initialExpandedPath,
-    pathname,
-    posts,
-  ])
-
-  useEffect(() => {
-    const collapseOnHomeClick = (event: MouseEvent) => {
-      const target = event.target
-
-      if (!(target instanceof Element)) {
-        return
-      }
-
-      const anchor = target.closest<HTMLAnchorElement>('a[href]')
-
-      if (!anchor) {
-        return
-      }
-
-      const targetUrl = new URL(anchor.href, window.location.href)
-
-      if (targetUrl.origin !== window.location.origin || !isHomePath(targetUrl.pathname)) {
-        return
-      }
-
-      clearMotionTimers()
-      setExpandedPath(null)
-      setMotionPath(null)
-      setMotionMinHeight(null)
-      setMotionPhase('idle')
-
-      window.requestAnimationFrame(() => {
-        window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
-      })
-    }
-
-    document.addEventListener('click', collapseOnHomeClick, true)
-
-    return () => document.removeEventListener('click', collapseOnHomeClick, true)
-  }, [clearMotionTimers])
-
-  useEffect(() => {
-    const syncExpandedPath = (event?: PopStateEvent) => {
-      const nextExpandedPath = getExpandedPathFromLocation(posts)
-
-      if (!nextExpandedPath && expandedPath) {
-        const expandedPost = posts.find((post) => post.path === expandedPath)
-
-        if (expandedPost) {
-          collapsePost(
-            expandedPost,
-            getBlogListReturnContext(event?.state, expandedPath) || {
-              previousCardTop: null,
-              previousScrollY: null,
-            }
-          )
-          return
-        }
-      }
-
-      clearMotionTimers()
-      setVisibleCount(getInitialVisibleCount(posts, initialDisplayPosts.length, nextExpandedPath))
-      setExpandedPath(nextExpandedPath)
-      setMotionPath(nextExpandedPath)
-      setMotionMinHeight(null)
-      setMotionPhase('idle')
-    }
-
-    window.addEventListener('popstate', syncExpandedPath)
-
-    return () => window.removeEventListener('popstate', syncExpandedPath)
-  }, [clearMotionTimers, collapsePost, expandedPath, initialDisplayPosts.length, posts])
-
-  useEffect(() => {
-    return () => clearMotionTimers()
-  }, [clearMotionTimers])
-
-  useEffect(() => {
-    const updateBackToTop = () => setShowBackToTop(window.scrollY > 420)
-
-    updateBackToTop()
-    window.addEventListener('scroll', updateBackToTop, { passive: true })
-
-    return () => window.removeEventListener('scroll', updateBackToTop)
-  }, [])
 
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current
@@ -362,7 +72,7 @@ export default function ListLayoutWithTags({
     const observer = new IntersectionObserver(
       ([entry]) => {
         if (entry?.isIntersecting) {
-          setVisibleCount((count) => Math.min(count + POSTS_PER_BATCH, posts.length))
+          loadMorePosts()
         }
       },
       { rootMargin: '240px 0px' }
@@ -371,7 +81,7 @@ export default function ListLayoutWithTags({
     observer.observe(loadMoreElement)
 
     return () => observer.disconnect()
-  }, [hasMore, posts.length])
+  }, [hasMore, loadMorePosts])
 
   return (
     <BlogFrame
@@ -428,29 +138,7 @@ export default function ListLayoutWithTags({
           )
         })}
         {hasMore && <div ref={loadMoreRef} className="mt-6 h-12" aria-hidden="true" />}
-        <button
-          type="button"
-          aria-label="回到顶部"
-          onClick={() => {
-            clearMotionTimers()
-            animateScrollTo(0, MOTION_DURATION, scrollFrameRef)
-          }}
-          className={`fixed right-4 bottom-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur transition duration-300 hover:text-sky-500 sm:right-6 lg:right-8 dark:bg-[#252d38]/90 dark:text-white/75 dark:hover:text-sky-400 ${
-            showBackToTop
-              ? 'pointer-events-auto translate-y-0 opacity-100'
-              : 'pointer-events-none translate-y-3 opacity-0'
-          }`}
-        >
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none">
-            <path
-              d="M12 19V5m0 0-6 6m6-6 6 6"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-            />
-          </svg>
-        </button>
+        <BackToTop label={labels.backToTop} onClick={scrollToTop} />
       </div>
     </BlogFrame>
   )

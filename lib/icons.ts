@@ -1,4 +1,5 @@
 import {
+  ArrowUp,
   Braces,
   Calendar,
   ChevronDown,
@@ -54,9 +55,11 @@ export const iconAliases: Record<string, string> = {
   time: 'Clock',
   update: 'Clock',
   updated: 'Clock',
+  up: 'ArrowUp',
 }
 
 export const iconRegistry: Record<string, LucideIcon> = {
+  ArrowUp,
   Braces,
   Calendar,
   ChevronDown,
