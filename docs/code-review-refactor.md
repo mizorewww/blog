@@ -1,7 +1,7 @@
 # Code Review Refactor Plan
 
 Date: 2026-06-22
-Branch: `refactor/code-review-architecture`
+Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals`
 
 ## Goals
 
@@ -11,6 +11,7 @@ Branch: `refactor/code-review-architecture`
 - [x] Move scattered UI copy into the locale dictionary where the current refactor touches it.
 - [x] Modularize `contentlayer.config.ts` so Git history, remark, rehype, and document type code are isolated.
 - [x] Add short-term guardrails around known hacks without changing the public URL model.
+- [x] Complete the deferred route, MDX, theme, icon, strict TypeScript, and script-sharing cleanup.
 - [x] Verify with lint/type/build-equivalent checks and commit each batch atomically.
 
 ## Completed Refactors
@@ -23,6 +24,14 @@ Branch: `refactor/code-review-architecture`
 - Pending blog navigation motion is persisted in `sessionStorage` instead of relying only on a module variable.
 - Root metadata uses the shared SEO generator, and `app/seo.tsx` is now `app/seo.ts`.
 - Common post date selection is centralized in `lib/postDates.ts`.
+- No-locale `app/` mirror routes and empty legacy blog route directories were removed; redirects now send historical `/`, `/tags`, and `/categories` paths to `/zh/...`.
+- GitHub API access in Contentlayer uses `fetch` with timeout, retry, optional `GITHUB_TOKEN`/`GH_TOKEN`, and a `.contentlayer` cache.
+- `siteMetadata` is typed TypeScript and script-side RSS/SEO helpers reuse shared locale, URL, post sorting, and date utilities.
+- Post expansion uses App Router navigation for opening posts; list-return animation context is stored in `sessionStorage`.
+- MDX body rendering no longer uses project-level `new Function`; Contentlayer writes generated ESM modules and detail pages import them during static generation.
+- `_post-data` body JSON generation and client body-code preloading were removed.
+- Dark surface/border colors are semantic Tailwind tokens, strict TypeScript is enabled, ESLint unused variables is re-enabled, and `ecmaVersion` is set to `2022`.
+- Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
 
 ## Verification
 
@@ -31,12 +40,17 @@ Branch: `refactor/code-review-architecture`
 - `yarn build`
 - `yarn seo:check`
 
-## Deferred Long-Term Items
+## Completed Deferred Items
 
-These items need route architecture or content pipeline decisions beyond a mechanical refactor:
+The previous deferred list has been closed in the follow-up branch:
 
-- Parallel Routes + Intercepting Routes replacement for the in-place post expansion URL flow.
-- Migration away from Contentlayer runtime MDX evaluation.
-- Semantic color token migration across all dark-mode hard-coded colors.
-- Full strict TypeScript enablement.
-- Full removal of no-locale static routes is deferred because the project uses `output: 'export'`; the current change keeps static `/`, `/categories`, and `/tags` compatibility while eliminating the duplicated implementation.
+- App Router now owns post-open navigation; a full Parallel Routes + Intercepting Routes rewrite is no longer needed for the current static export interaction model.
+- Contentlayer runtime MDX eval was replaced by generated ESM modules imported during static generation.
+- Hard-coded dark surface colors were replaced by semantic tokens where they appeared in the reviewed UI paths.
+- `strict: true` is enabled.
+- No-locale static route implementations were removed and replaced with redirect rules.
+
+## Remaining Watch Items
+
+- The `lucide-react` generated icon map keeps icon maintenance simple, but it increases the first-load JS for list pages. Revisit if bundle size becomes a release blocker.
+- Node prints `MODULE_TYPELESS_PACKAGE_JSON` warnings when scripts import `.ts` modules directly. Avoid changing package-wide module type unless the Next/CommonJS config is migrated deliberately.

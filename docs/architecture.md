@@ -52,7 +52,6 @@ Contentlayer 在构建时读取 MDX frontmatter 和正文，并生成 `.contentl
 - `lib/content/terms.ts`：分类、标签的 slug、计数、过滤和静态参数。
 - `lib/contentlayer.ts`：排序和提取可序列化内容字段。
 - `lib/listPosts.ts`：把完整文章转换为精简的列表/卡片数据。
-- `lib/postBodyPreload.ts`：客户端文章正文预加载缓存。
 - `lib/toc.ts`：从 Markdown 标题生成目录数据。
 - `lib/i18n.ts`：语言配置、路径本地化、界面文案。
 - `lib/blogRouteState.ts`：文章展开路由、全局事件和 history state 边界。
@@ -60,23 +59,17 @@ Contentlayer 在构建时读取 MDX frontmatter 和正文，并生成 `.contentl
 
 ## 性能边界
 
-列表页只传递卡片渲染需要的精简文章数据，不携带 MDX 编译后的正文代码。文章详情页只为当前展开文章携带正文代码。
+列表页只传递卡片渲染需要的精简文章数据，不携带 MDX 编译后的正文代码。文章详情页只渲染当前展开文章的正文。
 
-构建后会生成 `out/_post-data/{locale}/{slug}.json`。列表卡片进入浏览器后会预加载对应正文代码，并提前挂载在折叠容器里；点击“继续阅读”时先更新 URL，再从折叠帧开始播放展开动画，不等待 App Router 提交新页面。
+Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。浏览器不接收 MDX runtime code，也不需要 `unsafe-eval`。
 
 静态导出模式下，Next.js 不会在运行时优化图片。新增主图和作者头像时，应在提交前压缩到适合网页使用的尺寸和体积。
 
 ## 路由结构
 
-默认语言是 `zh`。站点同时提供默认语言根路径和显式语言路径。
+默认语言是 `zh`。应用路由只保留显式语言路径；Cloudflare Pages redirects 把无语言前缀的历史 URL 永久跳到 `/zh/...`。
 
 ```text
-/                         默认语言首页
-/tags                     默认语言标签页
-/tags/{tag}               默认语言标签文章列表
-/categories               默认语言分类页
-/categories/{category}    默认语言分类文章列表
-
 /{locale}
 /{locale}/{slug}
 /{locale}/tags

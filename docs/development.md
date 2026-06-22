@@ -70,10 +70,10 @@ yarn build
 构建后检查列表页没有重新携带 MDX 正文代码：
 
 ```bash
-rg "bodyCode|function MDXContent|var Component" out/index.txt out/zh/index.txt out/en/index.txt
+rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.txt
 ```
 
-期望没有输出。列表页只能携带卡片所需的精简数据；文章正文通过详情页或 `out/_post-data/` 预加载数据进入浏览器。
+期望没有输出。列表页只能携带卡片所需的精简数据；文章正文只在详情页构建阶段渲染，浏览器不接收 compiled MDX runtime code。
 
 使用本地 web quality skill 做静态 HTML 审计：
 
@@ -110,8 +110,8 @@ Core Web Vitals 约束：
 
 “继续阅读”交互的专项检查：
 
-1. 首页加载后正文预加载请求应命中 `/_post-data/{locale}/{slug}.json`。
-2. 点击后 URL 更新目标是 `/{locale}/{slug}`。
+1. 点击后 URL 更新目标是 `/{locale}/{slug}`，并由 App Router 提交详情页。
+2. 返回列表时应读取 `sessionStorage` 中的展开动画上下文并播放收起动画。
 3. 点击响应应控制在 30ms 内。
 4. 展开动画应有折叠态、中间态和完成态，不得为了速度跳过动画。
 
