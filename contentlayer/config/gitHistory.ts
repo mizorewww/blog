@@ -49,6 +49,18 @@ export function getGitOutput(args: string[]) {
   }
 }
 
+function gitCommandSucceeds(args: string[]) {
+  try {
+    execFileSync('git', args, {
+      cwd: process.cwd(),
+      stdio: 'ignore',
+    })
+    return true
+  } catch {
+    return false
+  }
+}
+
 function isShallowGitRepository() {
   return getGitOutput(['rev-parse', '--is-shallow-repository']) === 'true'
 }
@@ -62,12 +74,41 @@ function getCommitUrl(hash: string) {
 }
 
 export function getFileUrl(filePath: string, ref = 'HEAD') {
-  return siteRepo ? `${siteRepo}/blob/${ref}/${encodeGitHubPath(filePath)}` : ''
+  const legacyFilePath = getLegacyRepoSourceFilePath(filePath)
+  const filePathAtRef =
+    legacyFilePath && !gitCommandSucceeds(['cat-file', '-e', `${ref}:${filePath}`])
+      ? legacyFilePath
+      : filePath
+
+  return siteRepo ? `${siteRepo}/blob/${ref}/${encodeGitHubPath(filePathAtRef)}` : ''
 }
 
 export function getRepoSourceFilePath(doc: { _raw: { sourceFilePath: string } }) {
   const sourceFilePath = doc._raw.sourceFilePath.replace(/^\/+/, '')
-  return sourceFilePath.startsWith('data/') ? sourceFilePath : `data/${sourceFilePath}`
+  return sourceFilePath.startsWith('content/') ? sourceFilePath : `content/${sourceFilePath}`
+}
+
+function getLegacyRepoSourceFilePath(filePath: string) {
+  if (filePath.startsWith('content/blog/')) {
+    return filePath.replace(/^content\/blog\//, 'data/blog/')
+  }
+
+  if (filePath.startsWith('content/authors/')) {
+    return filePath.replace(/^content\/authors\//, 'data/authors/')
+  }
+
+  return ''
+}
+
+function getRepoSourceFilePathCandidates(filePath: string) {
+  return [...new Set([filePath, getLegacyRepoSourceFilePath(filePath)].filter(Boolean))]
+}
+
+function longestHistory(histories: PostGitCommit[][]) {
+  return histories.reduce<PostGitCommit[]>(
+    (longest, history) => (history.length > longest.length ? history : longest),
+    []
+  )
 }
 
 export function toIsoDate(value: unknown) {
@@ -247,9 +288,12 @@ async function getGitHubApiCommitHistory(filePath: string): Promise<PostGitCommi
 }
 
 async function resolvePostGitHistory(filePath: string): Promise<PostGitCommit[]> {
-  const localHistory = getLocalPostGitHistory(filePath)
+  const filePaths = getRepoSourceFilePathCandidates(filePath)
+  const localHistory = longestHistory(filePaths.map(getLocalPostGitHistory))
   const shouldFetchGitHubHistory = isShallowGitRepository() || localHistory.length <= 1
-  const githubHistory = shouldFetchGitHubHistory ? await getGitHubApiCommitHistory(filePath) : []
+  const githubHistory = shouldFetchGitHubHistory
+    ? longestHistory(await Promise.all(filePaths.map(getGitHubApiCommitHistory)))
+    : []
 
   return githubHistory.length > localHistory.length ? githubHistory : localHistory
 }

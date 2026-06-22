@@ -1,1 +1,3 @@
-npx --no-install lint-staged
+yarn icons:generate
+git add lib/generated/lucide-icons.ts
+yarn lint-staged

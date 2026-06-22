@@ -1,5 +1,5 @@
-const { withContentlayer } = require('next-contentlayer2')
-const { execFileSync } = require('node:child_process')
+import { execFileSync } from 'node:child_process'
+import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js'
 
 function getGitOutput(args) {
   try {
@@ -21,9 +21,8 @@ const gitShortCommitHash = gitFullCommitHash
 /**
  * @type {import('next').NextConfig}
  **/
-module.exports = () => {
-  const plugins = [withContentlayer]
-  return plugins.reduce((acc, next) => next(acc), {
+export default async function nextConfig(phase) {
+  const config = {
     output: 'export',
     reactStrictMode: true,
     trailingSlash: true,
@@ -35,5 +34,12 @@ module.exports = () => {
     images: {
       unoptimized: true,
     },
-  })
+  }
+
+  if (phase === PHASE_DEVELOPMENT_SERVER) {
+    const { withContentlayer } = await import('next-contentlayer2')
+    return withContentlayer(config)
+  }
+
+  return config
 }

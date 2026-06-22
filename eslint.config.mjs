@@ -14,7 +14,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   {
-    ignores: ['next-env.d.ts', 'next.config.js'],
+    ignores: ['next-env.d.ts'],
   },
   js.configs.recommended,
   ...compat.extends(
@@ -39,7 +39,7 @@ const eslintConfig = [
 
       parser: tsParser,
       ecmaVersion: 2022,
-      sourceType: 'commonjs',
+      sourceType: 'module',
 
       parserOptions: {
         project: true,

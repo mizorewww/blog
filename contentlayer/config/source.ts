@@ -14,7 +14,7 @@ import { rehypePrettyCodeOptions } from './rehype/prettyCode'
 import { autolinkIcon } from './svgs'
 
 export default makeSource({
-  contentDirPath: 'data',
+  contentDirPath: 'content',
   documentTypes: [Blog, Authors],
   mdx: {
     cwd: process.cwd(),

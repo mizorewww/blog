@@ -7,19 +7,19 @@
 中文文章：
 
 ```text
-data/blog/zh/my-post.mdx
+content/blog/zh/my-post.mdx
 ```
 
 英文文章：
 
 ```text
-data/blog/en/my-post.mdx
+content/blog/en/my-post.mdx
 ```
 
 作者信息：
 
 ```text
-data/authors/default.mdx
+content/authors/default.mdx
 ```
 
 图片资源：
@@ -68,7 +68,7 @@ draft: false
 对于文件：
 
 ```text
-data/blog/zh/example.mdx
+content/blog/zh/example.mdx
 ```
 
 生成路径：
@@ -80,7 +80,7 @@ data/blog/zh/example.mdx
 对于文件：
 
 ```text
-data/blog/en/example.mdx
+content/blog/en/example.mdx
 ```
 
 生成路径：
@@ -89,7 +89,7 @@ data/blog/en/example.mdx
 /en/example
 ```
 
-默认语言是 `zh`，所以中文内容同时出现在默认根路径下。
+默认语言是 `zh`。无语言前缀的历史路径由 Cloudflare Pages redirects 跳转到 `/zh/...`。
 
 ## 支持的 MDX 能力
 
@@ -119,6 +119,27 @@ components/MDXComponents.tsx
 - `img`
 - `pre`
 - `table`
+- `Icon`
+
+## 图标
+
+文章里可以用 lucide 图标 shortcode：
+
+```mdx
+:icon-code:
+:icon-git-branch:
+:icon-rocket:
+```
+
+shortcode 会在构建期转换成 `<Icon name="..." />`。图标名来自 `lucide-react`，支持 kebab-case、snake_case 和 PascalCase；常用别名在 `lib/iconAliases.ts`。
+
+为了避免把整套 lucide 图标打进首屏包，仓库会生成一个只包含已使用图标的 registry：
+
+```bash
+yarn icons:generate
+```
+
+`yarn build` 和 pre-commit hook 会自动执行生成；CI 使用 `yarn icons:check` 防止生成文件过期。
 
 ## 代码块
 

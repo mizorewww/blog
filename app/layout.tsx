@@ -1,6 +1,5 @@
 import 'css/tailwind.css'
 
-import { Space_Grotesk } from 'next/font/google'
 import Analytics from '@/components/Analytics'
 import AppShell from '@/components/AppShell'
 import SpeculationRules from '@/components/SpeculationRules'
@@ -8,12 +7,6 @@ import siteMetadata from '@/data/siteMetadata'
 import { ThemeProviders } from './theme-providers'
 import { Metadata } from 'next'
 import { genPageMetadata } from './seo'
-
-const space_grotesk = Space_Grotesk({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-space-grotesk',
-})
 
 const rootMetadata = genPageMetadata({
   title: siteMetadata.title,
@@ -56,11 +49,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang={siteMetadata.language}
-      className={`${space_grotesk.variable} scroll-smooth`}
-      suppressHydrationWarning
-    >
+    <html lang={siteMetadata.language} className="scroll-smooth" suppressHydrationWarning>
       <head>
         <link rel="apple-touch-icon" sizes="180x180" href="/static/favicons/apple-touch-icon.png" />
         <link rel="icon" type="image/svg+xml" href="/static/favicons/favicon.svg" />
@@ -75,7 +64,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
         <SpeculationRules />
       </head>
-      <body className="bg-surface-page dark:bg-surface-page-dark min-h-screen overflow-y-scroll text-slate-900 antialiased dark:text-white/90">
+      <body className="bg-surface-page dark:bg-surface-page-dark min-h-screen overflow-y-scroll font-sans text-slate-900 antialiased dark:text-white/90">
         <ThemeProviders>
           <Analytics config={siteMetadata.analytics} />
           <AppShell>{children}</AppShell>

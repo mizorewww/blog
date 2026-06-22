@@ -1,38 +1,7 @@
-import { CircleHelp, icons, type LucideIcon } from 'lucide-react'
+import { generatedLucideIcons } from './generated/lucide-icons'
+import { iconAliases } from './iconAliases'
 
-export const iconAliases: Record<string, string> = {
-  braces: 'Braces',
-  branch: 'GitBranch',
-  calendar: 'Calendar',
-  code: 'Code',
-  commit: 'GitCommit',
-  date: 'Calendar',
-  diff: 'GitCompare',
-  edit: 'Pencil',
-  edited: 'Pencil',
-  external: 'ExternalLink',
-  'external-link': 'ExternalLink',
-  file: 'FileCode',
-  'file-code': 'FileCode',
-  git: 'GitCommit',
-  'git-branch': 'GitBranch',
-  'git-commit': 'GitCommit',
-  'git-compare': 'GitCompare',
-  hash: 'Hash',
-  history: 'History',
-  link: 'Link',
-  message: 'MessageSquareText',
-  rss: 'Rss',
-  scroll: 'ScrollText',
-  'scroll-text': 'ScrollText',
-  source: 'Code',
-  tag: 'Tag',
-  tags: 'Tags',
-  time: 'Clock',
-  update: 'Clock',
-  updated: 'Clock',
-  up: 'ArrowUp',
-}
+export { iconAliases }
 
 export function toIconComponentName(value: string) {
   const key = value
@@ -61,7 +30,6 @@ export function toIconComponentName(value: string) {
 
 export function getIconComponent(value: string) {
   const componentName = toIconComponentName(value)
-  const registry = icons as Record<string, LucideIcon | undefined>
 
-  return registry[componentName] || CircleHelp
+  return generatedLucideIcons[componentName] || generatedLucideIcons.CircleHelp
 }

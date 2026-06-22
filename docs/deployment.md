@@ -44,12 +44,13 @@ GitHub Actions -> yarn build -> out/ -> Cloudflare Pages
 
 当前 GitHub Actions 在部署前会执行：
 
-- `yarn lint`
+- `yarn lint:check`
+- `yarn typecheck`
 - `yarn build`
-- `yarn seo:check`，校验 sitemap 只包含首页/语言首页/文章页，并校验 canonical、hreflang、JSON-LD、legacy redirects 与内容更新时间
 - 列表页 RSC payload 检查，防止 MDX 正文重新进入首页列表
-- `.agents/skills/web-quality-audit/scripts/analyze.sh out`
-- 静态资源体积报告
+- `yarn quality:html`
+- `yarn size:budget`
+- `yarn size:report` 静态资源体积报告
 
 ## GitHub Actions
 

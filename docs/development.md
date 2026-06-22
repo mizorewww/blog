@@ -31,7 +31,7 @@ yarn dev
 yarn preview
 ```
 
-该命令会先执行 `yarn build`，然后用项目本地的 Caddy 服务 `out/`。第一次运行会自动下载 Caddy 到 `.tools/caddy/`；该目录只保存本机工具和运行状态，不提交到仓库。
+该命令会先执行 `yarn build`，然后用项目本地的 Caddy 服务 `out/`。第一次运行会自动下载固定版本的 Caddy 到 `.tools/caddy/`，并在解压前校验 checksum；该目录只保存本机工具和运行状态，不提交到仓库。
 
 默认端口是 `3001`。服务启动后，终端会显示并定期重复 Local 和 Network 预览地址，例如：
 
@@ -45,7 +45,7 @@ Network: http://192.168.31.129:3001/
 ```bash
 yarn preview --port 4000       # 指定端口
 yarn preview --no-build        # 跳过构建，直接服务已有 out/
-yarn preview --update-caddy    # 重新下载最新 Caddy
+yarn preview --update-caddy    # 重新下载仓库固定版本的 Caddy
 ```
 
 ## 检查
@@ -54,7 +54,23 @@ yarn preview --update-caddy    # 重新下载最新 Caddy
 yarn lint
 ```
 
-`lint` 会对 `app/`、`components/`、`data/`、`lib/`、`layouts/`、`scripts/` 和配置文件运行 ESLint，并自动修复可修复问题。
+`lint` 只做检查，不会改写文件。需要自动修复时使用：
+
+```bash
+yarn lint:fix
+```
+
+合并前的完整只读检查：
+
+```bash
+yarn check
+```
+
+如果文章或组件新增了 lucide 图标引用，pre-commit 会自动更新并暂存 `lib/generated/lucide-icons.ts`。也可以手动执行：
+
+```bash
+yarn icons:generate
+```
 
 ## 性能防退化
 
@@ -63,7 +79,7 @@ yarn lint
 修改路由、列表、文章渲染、图片、字体或第三方脚本时，合并前执行：
 
 ```bash
-yarn lint
+yarn check
 yarn build
 ```
 
@@ -75,10 +91,10 @@ rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.tx
 
 期望没有输出。列表页只能携带卡片所需的精简数据；文章正文通过详情页构建期渲染，或通过 `out/_post-data/` 在客户端预取后用于就地展开动画。
 
-使用本地 web quality skill 做静态 HTML 审计：
+使用仓库内的静态 HTML 质量检查：
 
 ```bash
-.agents/skills/web-quality-audit/scripts/analyze.sh out
+yarn quality:html
 ```
 
 `issues` 需要修复后再合并。`warnings` 需要人工判断；例如 SVG/RSS 命名空间里的 `http://www.w3.org/...`、文章代码块中的 `http://` 示例可能是误报。
@@ -86,18 +102,23 @@ rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.tx
 GitHub Actions 会在 `yarn build` 后重复执行同一类检查：
 
 - 列表页 RSC payload 不得包含 MDX 正文代码。
-- web-quality-audit 的 `issueCount` 必须为 `0`。
-- 构建日志会输出静态资源体积，供 review 判断趋势。
+- 静态 HTML 质量检查的 `issueCount` 必须为 `0`。
+- 静态资源必须通过 `yarn size:budget`。
+- 构建日志会通过 `yarn size:report` 输出静态资源体积，供 review 判断趋势。
 
 排查资源体积时使用只读命令观察构建产物：
 
 ```bash
-du -ah out | sort -h | tail -40
-find out/_next/static -type f \( -name '*.js' -o -name '*.css' -o -name '*.woff2' \) -printf '%s %p\n' | sort -nr | head -40
-find out/static/images -type f -printf '%s %p\n' | sort -nr
+yarn size:report
 ```
 
-这些命令用于 review 和定位问题，不作为手工改文件的理由。需要优化图片或其他静态资源时，应改源文件或引入可重复的构建/Actions 步骤，并在文档中说明规则。
+这个命令用于 review 和定位问题，不作为手工改文件的理由。需要优化图片或其他静态资源时，应改源文件或引入可重复的构建/Actions 步骤，并在文档中说明规则。
+
+优化 `public/static/images/` 下的图片：
+
+```bash
+yarn images:optimize
+```
 
 Core Web Vitals 约束：
 
@@ -153,7 +174,7 @@ out/
 站点标题、作者、社交链接、站点 URL、默认主题、Umami 配置位于：
 
 ```text
-data/siteMetadata.js
+data/siteMetadata.ts
 ```
 
 导航位于：

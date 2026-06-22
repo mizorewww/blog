@@ -32,13 +32,13 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 - `_post-data` body JSON generation and client body-code preloading are kept because they are required for the old animation behavior.
 - Dark surface/border colors are semantic Tailwind tokens, strict TypeScript is enabled, ESLint unused variables is re-enabled, and `ecmaVersion` is set to `2022`.
 - Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
+- Production builds generate Contentlayer data before `next build` instead of loading the Contentlayer webpack plugin, which avoids upstream webpack cache warnings from Contentlayer's dynamic generated-module import.
 
 ## Verification
 
 - `yarn tsc --noEmit --pretty false`
 - `yarn eslint --fix app components data lib layouts scripts contentlayer.config.ts contentlayer eslint.config.mjs`
 - `yarn build`
-- `yarn seo:check`
 
 ## Completed Deferred Items
 
@@ -52,6 +52,5 @@ The previous deferred list has been closed in the follow-up branch:
 
 ## Remaining Watch Items
 
-- The `lucide-react` generated icon map keeps icon maintenance simple, but it increases the first-load JS for list pages. Revisit if bundle size becomes a release blocker.
-- Node prints `MODULE_TYPELESS_PACKAGE_JSON` warnings when scripts import `.ts` modules directly. Avoid changing package-wide module type unless the Next/CommonJS config is migrated deliberately.
+- The lucide icon registry is generated from source and MDX usage so articles can still use arbitrary `:icon-*:` shortcodes without bundling the entire lucide icon map.
 - The restored client expansion path requires `unsafe-eval` for Contentlayer runtime MDX. Removing it again needs a replacement that still lets the list page render prefetched post bodies before route navigation.

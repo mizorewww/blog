@@ -24,6 +24,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -43,25 +45,26 @@ jobs:
         run: yarn install --immutable
 
       - name: Lint
-        run: yarn lint
+        run: yarn icons:check && yarn lint:check
+
+      - name: Typecheck
+        run: yarn typecheck
 
       - name: Build static site
         run: yarn build
 
       - name: Validate static output quality
         run: |
-          if rg -q "bodyCode|function MDXContent|var Component" out/index.txt out/zh/index.txt out/en/index.txt; then
+          if rg -q "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.txt; then
             echo "::error::Blog list RSC payload includes MDX body code"
             exit 1
           fi
-          .agents/skills/web-quality-audit/scripts/analyze.sh out > web-quality-audit.json
+          yarn quality:html > web-quality-audit.json
           jq -e '.success and .issueCount == 0' web-quality-audit.json
+          yarn size:budget
 
       - name: Report static asset sizes
-        run: |
-          du -ah out | sort -h | tail -40
-          find out/_next/static -type f \( -name '*.js' -o -name '*.css' -o -name '*.woff2' \) -printf '%s %p\n' | sort -nr | head -40
-          find out/static/images -type f -printf '%s %p\n' | sort -nr
+        run: yarn size:report
 
       - name: Validate Cloudflare configuration
         env:

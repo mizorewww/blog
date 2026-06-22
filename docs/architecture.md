@@ -27,23 +27,24 @@ yarn build
 app/          Next.js 路由、页面、SEO、全局布局
 components/   UI 组件、MDX 渲染、文章卡片、导航、主题切换
 layouts/      页面级布局，目前主要是博客列表布局
-data/         文章、作者、导航、站点元信息
+content/      文章和作者 MDX 内容
+data/         导航、站点元信息、代码主题等配置数据
 lib/          内容查询、路由状态、动画、日期、TOC、国际化等工具
-scripts/      构建后脚本，目前用于生成 RSS
+scripts/      本地开发、构建后处理和质量检查脚本
 public/       静态资源和 Cloudflare Pages headers
 docs/         项目维护文档
 ```
 
 ## 内容流
 
-文章存放在 `data/blog/` 下，按语言分目录：
+文章存放在 `content/blog/` 下，按语言分目录：
 
 ```text
-data/blog/zh/
-data/blog/en/
+content/blog/zh/
+content/blog/en/
 ```
 
-Contentlayer 在构建时读取 MDX frontmatter 和正文，并生成 `.contentlayer/generated`。页面代码只消费生成后的内容数据，不在运行时读取文件系统。
+Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，并生成 `.contentlayer/generated`。生产构建通过 `yarn contentlayer2 build` 先生成内容数据，再运行 `next build`；开发服务器仍使用 `next-contentlayer2` 插件以便内容变更时自动更新。页面代码只消费生成后的内容数据，不在运行时读取文件系统。
 
 核心内容工具在 `lib/` 和 `lib/content/`：
 

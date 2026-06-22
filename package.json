@@ -2,16 +2,27 @@
   "name": "mizore-blog",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "cross-env NODE_ENV=development INIT_CWD=$PWD next dev --port 3000",
-    "build": "rm -rf .next out && cross-env INIT_CWD=$PWD next build && cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/postbuild.mjs",
+    "dev": "yarn icons:generate && cross-env NODE_ENV=development INIT_CWD=$PWD next dev --port 3000",
+    "clean": "node ./scripts/clean.mjs",
+    "build": "yarn icons:generate && yarn clean && yarn contentlayer2 build && cross-env INIT_CWD=$PWD next build && node ./scripts/postbuild.mjs",
     "preview": "node ./scripts/preview-static.mjs",
-    "lint": "eslint --fix app components data lib layouts scripts contentlayer.config.ts eslint.config.mjs",
-    "seo:check": "cross-env NODE_OPTIONS='--experimental-json-modules' node ./scripts/validate-seo.mjs",
+    "lint": "yarn lint:check",
+    "lint:check": "eslint app components contentlayer data lib layouts scripts contentlayer.config.ts eslint.config.mjs next.config.js postcss.config.js prettier.config.js",
+    "lint:fix": "yarn lint:check --fix",
+    "typecheck": "tsc --noEmit --pretty false",
+    "quality:html": "scripts/quality-html.sh out",
+    "size:report": "node ./scripts/asset-report.mjs",
+    "size:budget": "node ./scripts/asset-budget.mjs",
+    "images:optimize": "node ./scripts/optimize-images.mjs",
+    "icons:generate": "node ./scripts/generate-lucide-icons.mjs",
+    "icons:check": "node ./scripts/generate-lucide-icons.mjs --check",
+    "check": "yarn icons:check && yarn lint:check && yarn typecheck",
     "prepare": "husky"
   },
   "dependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
+    "@tailwindcss/postcss": "4.3.1",
     "@tailwindcss/typography": "^0.5.19",
     "contentlayer2": "0.5.8",
     "github-slugger": "^2.0.0",
@@ -29,7 +40,7 @@
     "rehype-slug": "^6.0.0",
     "remark-gfm": "^4.0.1",
     "shiki": "^4.0.2",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "4.3.1"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
@@ -49,14 +60,16 @@
     "lint-staged": "^16.2.7",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "sharp": "^0.34.5",
     "typescript": "^5.9.3"
   },
   "lint-staged": {
     "*.+(js|jsx|ts|tsx)": [
-      "yarn eslint --fix"
+      "prettier --write",
+      "eslint --fix --max-warnings=0"
     ],
-    "*.+(js|jsx|ts|tsx|json|css|md|mdx)": [
-      "yarn prettier --write"
+    "*.+(json|css|md|mdx)": [
+      "prettier --write"
     ]
   },
   "packageManager": "yarn@3.6.1"
