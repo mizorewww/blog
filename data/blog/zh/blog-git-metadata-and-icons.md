@@ -14,6 +14,10 @@ authors: ['default']
 
 `43a2ef8e733191f98f417daf69026406bbe562f7`
 
+代码块标题栏和 diff 背景的后续优化来自：
+
+`9c3711f19fed98004a96649e7622ed58027cc821`
+
 ## 文章头部的 Git 信息
 
 文章卡片会在标题下面显示最近更新时间、相对时间、源文链接，以及相关 commit。UI 上没有再套一张额外卡片，而是作为文章元信息自然排在标题和摘要之间。
@@ -94,9 +98,15 @@ footer 里的 `commit <hash>` 来自构建时的 HEAD。部署平台如果提供
 
 ::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="data/codeThemes.ts" lines="10-35" lang="ts" title="data/codeThemes.ts"
 
-实现逻辑在这里：
+GitHub 引用块的标题栏右侧会显示 GitHub 图标和“在 GitHub 查看代码”。点击后会跳到这段代码所在的 commit 和行号，而不是跳到浮动的 `main`。
 
-::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="290-423" lang="ts" title="contentlayer.config.ts"
+源码 URL 在构建时生成：
+
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="contentlayer.config.ts" lines="276-313" lang="ts" title="contentlayer.config.ts"
+
+然后跟随 code node 的 meta 一起进入 rehype 流程：
+
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="contentlayer.config.ts" lines="417-467" lang="ts" title="contentlayer.config.ts"
 
 这段逻辑做了几件事：
 
@@ -104,27 +114,36 @@ footer 里的 `commit <hash>` 来自构建时的 HEAD。部署平台如果提供
 - 当前仓库优先用本地 `git show` 读取，构建更快，也避免网络波动。
 - 外部仓库用 `raw.githubusercontent.com` 拉取。
 - `lines` 会在构建时截取代码行。
+- `sourceUrl` 会在构建时生成，指向 GitHub 上的 blob 或 commit 页面。
 - 最终生成的是普通 Markdown code node，所以仍然由 Shiki 高亮。
+
+最后，rehype 插件会把 `sourceUrl` 从 meta 里取出来，转换成标题栏右侧的 GitHub 链接：
+
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="contentlayer.config.ts" lines="514-543,596-667" lang="ts" title="contentlayer.config.ts"
 
 ## GitHub diff 视图
 
 diff 也可以引用 GitHub commit。这里展示的是这次把代码块样式改成 Shiki 主题面板的 diff：
 
 ```md
-::github-diff repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css"
+::github-diff repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="css/prism.css"
 ```
 
 实际效果：
 
-::github-diff repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css"
+::github-diff repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="css/prism.css"
 
 为了让 diff 不只是“带颜色的纯文本”，我在 rehype 阶段给每一行补了 metadata：普通代码行标 `data-code-line`，diff 行额外标 `data-diff-line="add|remove|hunk|meta"`。
 
-::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="contentlayer.config.ts" lines="459-521" lang="ts" title="contentlayer.config.ts"
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="contentlayer.config.ts" lines="554-699" lang="ts" title="contentlayer.config.ts"
 
-CSS 再根据这些属性给加行、删行、hunk 和元信息行做背景区分：
+CSS 再根据这些属性给加行、删行、hunk 和元信息行做背景区分。这里用了更接近 GitHub 的整行背景：添加行是绿色，删除行是红色，hunk 是蓝色。
 
-::github-code repo="mizorewww/blog" ref="43a2ef8e733191f98f417daf69026406bbe562f7" path="css/prism.css" lines="47-79" lang="css" title="css/prism.css"
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="css/prism.css" lines="63-125" lang="css" title="css/prism.css"
+
+标题栏里的 GitHub 链接样式也在同一个 CSS 文件里：
+
+::github-code repo="mizorewww/blog" ref="9c3711f19fed98004a96649e7622ed58027cc821" path="css/prism.css" lines="7-25" lang="css" title="css/prism.css"
 
 ## Shiki 主题配置
 
