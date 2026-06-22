@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import path from 'node:path'
 import siteMetadata from '../../data/siteMetadata'
 
 export type PostGitCommit = {
@@ -19,9 +21,16 @@ type GitHubCommitApiEntry = {
   sha?: string
 }
 
+type GitHubApiCache = Record<string, PostGitCommit[]>
+
 const gitFieldSeparator = '\x1f'
 const gitRecordSeparator = '\x1e'
-const postGitHistoryCache = new Map<string, PostGitCommit[]>()
+const fetchTimeoutMs = 10_000
+const fetchRetries = 2
+const githubApiCachePath = path.join(process.cwd(), '.contentlayer/cache/github-api.json')
+const postGitHistoryCache = new Map<string, Promise<PostGitCommit[]>>()
+
+let githubApiCache: GitHubApiCache | null = null
 
 export const siteRepo = (siteMetadata.siteRepo || '').replace(/\/+$/, '')
 export const siteRepoPath = siteRepo.startsWith('https://github.com/')
@@ -31,21 +40,6 @@ export const siteRepoPath = siteRepo.startsWith('https://github.com/')
 export function getGitOutput(args: string[]) {
   try {
     return execFileSync('git', args, {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
-  } catch {
-    return ''
-  }
-}
-
-function getCurlOutput(args: string[]) {
-  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
-  const authArgs = token ? ['-H', `Authorization: Bearer ${token}`] : []
-
-  try {
-    return execFileSync('curl', ['--max-time', '10', ...authArgs, ...args], {
       cwd: process.cwd(),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
@@ -115,7 +109,104 @@ function getGitHubApiRepoPath(repo: string) {
   return repo.split('/').map(encodeURIComponent).join('/')
 }
 
-function getGitHubApiCommitHistory(filePath: string): PostGitCommit[] {
+function getGitHubApiCacheKey(filePath: string, head: string) {
+  return `${siteRepoPath}:${head || 'HEAD'}:${filePath}`
+}
+
+function readGitHubApiCache() {
+  if (githubApiCache) {
+    return githubApiCache
+  }
+
+  if (!existsSync(githubApiCachePath)) {
+    githubApiCache = {}
+    return githubApiCache
+  }
+
+  try {
+    githubApiCache = JSON.parse(readFileSync(githubApiCachePath, 'utf8')) as GitHubApiCache
+  } catch {
+    githubApiCache = {}
+  }
+
+  return githubApiCache
+}
+
+function writeGitHubApiCache(cache: GitHubApiCache) {
+  mkdirSync(path.dirname(githubApiCachePath), { recursive: true })
+  writeFileSync(githubApiCachePath, `${JSON.stringify(cache, null, 2)}\n`)
+}
+
+async function fetchWithTimeout(url: string, options: RequestInit) {
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), fetchTimeoutMs)
+
+  try {
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
+async function fetchGitHubJson(url: string) {
+  const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+  const headers: Record<string, string> = {
+    Accept: 'application/vnd.github+json',
+    'User-Agent': 'mizore-blog-contentlayer',
+  }
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`
+  }
+
+  let lastError: unknown
+
+  for (let attempt = 0; attempt <= fetchRetries; attempt += 1) {
+    try {
+      const response = await fetchWithTimeout(url, { headers })
+
+      if (!response.ok) {
+        throw new Error(`GitHub API ${response.status} ${response.statusText}`)
+      }
+
+      return response.json()
+    } catch (error) {
+      lastError = error
+      if (attempt < fetchRetries) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * (attempt + 1)))
+      }
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error(String(lastError))
+}
+
+function mapGitHubCommits(commits: unknown): PostGitCommit[] {
+  if (!Array.isArray(commits)) {
+    return []
+  }
+
+  return (commits as GitHubCommitApiEntry[])
+    .map((entry) => {
+      const hash = entry.sha || ''
+      const committedAt = entry.commit?.committer?.date || entry.commit?.author?.date || ''
+      const subject = (entry.commit?.message || '').split('\n')[0] || hash
+
+      return {
+        hash,
+        shortHash: hash.slice(0, 7),
+        committedAt,
+        subject,
+        url: entry.html_url || getCommitUrl(hash),
+      }
+    })
+    .filter((commit) => commit.hash && commit.shortHash && commit.committedAt)
+}
+
+async function getGitHubApiCommitHistory(filePath: string): Promise<PostGitCommit[]> {
   if (!siteRepoPath) {
     return []
   }
@@ -130,58 +221,47 @@ function getGitHubApiCommitHistory(filePath: string): PostGitCommit[] {
     params.set('sha', head)
   }
 
-  const output = getCurlOutput([
-    '-fsSL',
-    '-H',
-    'Accept: application/vnd.github+json',
-    '-H',
-    'User-Agent: mizore-blog-contentlayer',
-    `https://api.github.com/repos/${getGitHubApiRepoPath(siteRepoPath)}/commits?${params.toString()}`,
-  ])
+  const cache = readGitHubApiCache()
+  const cacheKey = getGitHubApiCacheKey(filePath, head)
+  const cachedHistory = cache[cacheKey]
 
-  if (!output) {
-    return []
+  if (cachedHistory) {
+    return cachedHistory
   }
 
+  const url = `https://api.github.com/repos/${getGitHubApiRepoPath(siteRepoPath)}/commits?${params.toString()}`
+
   try {
-    const commits = JSON.parse(output) as GitHubCommitApiEntry[]
-
-    if (!Array.isArray(commits)) {
-      return []
-    }
-
+    const commits = mapGitHubCommits(await fetchGitHubJson(url))
+    cache[cacheKey] = commits
+    writeGitHubApiCache(cache)
     return commits
-      .map((entry) => {
-        const hash = entry.sha || ''
-        const committedAt = entry.commit?.committer?.date || entry.commit?.author?.date || ''
-        const subject = (entry.commit?.message || '').split('\n')[0] || hash
-
-        return {
-          hash,
-          shortHash: hash.slice(0, 7),
-          committedAt,
-          subject,
-          url: entry.html_url || getCommitUrl(hash),
-        }
-      })
-      .filter((commit) => commit.hash && commit.shortHash && commit.committedAt)
-  } catch {
+  } catch (error) {
+    console.warn(
+      `Could not fetch GitHub commit history for ${filePath}: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    )
     return []
   }
 }
 
-export function getPostGitHistory(filePath: string): PostGitCommit[] {
+async function resolvePostGitHistory(filePath: string): Promise<PostGitCommit[]> {
+  const localHistory = getLocalPostGitHistory(filePath)
+  const shouldFetchGitHubHistory = isShallowGitRepository() || localHistory.length <= 1
+  const githubHistory = shouldFetchGitHubHistory ? await getGitHubApiCommitHistory(filePath) : []
+
+  return githubHistory.length > localHistory.length ? githubHistory : localHistory
+}
+
+export function getPostGitHistory(filePath: string): Promise<PostGitCommit[]> {
   const cachedHistory = postGitHistoryCache.get(filePath)
 
   if (cachedHistory) {
     return cachedHistory
   }
 
-  const localHistory = getLocalPostGitHistory(filePath)
-  const shouldFetchGitHubHistory = isShallowGitRepository() || localHistory.length <= 1
-  const githubHistory = shouldFetchGitHubHistory ? getGitHubApiCommitHistory(filePath) : []
-  const history = githubHistory.length > localHistory.length ? githubHistory : localHistory
-
+  const history = resolvePostGitHistory(filePath)
   postGitHistoryCache.set(filePath, history)
 
   return history

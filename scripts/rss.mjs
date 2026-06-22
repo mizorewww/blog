@@ -1,7 +1,7 @@
 import { writeFileSync, mkdirSync } from 'fs'
 import path from 'path'
 import { slug } from 'github-slugger'
-import siteMetadata from '../data/siteMetadata.js'
+import siteMetadata from '../data/siteMetadata.ts'
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
 
 const outputFolder = 'out'

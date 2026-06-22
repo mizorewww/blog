@@ -28,9 +28,9 @@ export const Blog = defineDocumentType(() => ({
     ...blogComputedFields,
     structuredData: {
       type: 'json',
-      resolve: (doc) => {
+      resolve: async (doc) => {
         const url = absoluteSiteUrl(siteMetadata.siteUrl, blogPath(doc))
-        const gitUpdatedAt = getBlogGitUpdatedAt(doc)
+        const gitUpdatedAt = await getBlogGitUpdatedAt(doc)
 
         return {
           '@context': 'https://schema.org',

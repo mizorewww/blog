@@ -1,4 +1,26 @@
-const siteMetadata = {
+export type SiteMetadata = {
+  title: string
+  author: string
+  headerTitle: string
+  description: string
+  language: string
+  theme: 'system' | 'dark' | 'light'
+  siteUrl: string
+  siteRepo: string
+  socialBanner: string
+  email: string
+  github: string
+  x: string
+  telegram: string
+  locale: string
+  analytics: {
+    umami: {
+      websiteId?: string
+    }
+  }
+}
+
+const siteMetadata: SiteMetadata = {
   title: 'mizorewww',
   author: 'mizorewww',
   headerTitle: 'mizorewww',
@@ -20,4 +42,4 @@ const siteMetadata = {
   },
 }
 
-module.exports = siteMetadata
+export default siteMetadata

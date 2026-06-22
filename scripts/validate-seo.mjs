@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
-import siteMetadata from '../data/siteMetadata.js'
+import siteMetadata from '../data/siteMetadata.ts'
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

@@ -72,32 +72,32 @@ export const blogComputedFields: ComputedFields = {
   },
   gitUpdatedAt: {
     type: 'string',
-    resolve: (doc) => {
-      const history = getPostGitHistory(getRepoSourceFilePath(doc))
+    resolve: async (doc) => {
+      const history = await getPostGitHistory(getRepoSourceFilePath(doc))
       return history[0]?.committedAt || toIsoDate(doc.lastmod) || toIsoDate(doc.date)
     },
   },
   gitCommits: {
     type: 'json',
-    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).slice(0, 6),
+    resolve: async (doc) => (await getPostGitHistory(getRepoSourceFilePath(doc))).slice(0, 6),
   },
   gitCommitCount: {
     type: 'number',
-    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).length,
+    resolve: async (doc) => (await getPostGitHistory(getRepoSourceFilePath(doc))).length,
   },
   githubUrl: {
     type: 'string',
-    resolve: (doc) => {
+    resolve: async (doc) => {
       const filePath = getRepoSourceFilePath(doc)
-      const latestCommit = getPostGitHistory(filePath)[0]
+      const latestCommit = (await getPostGitHistory(filePath))[0]
       return getFileUrl(filePath, latestCommit?.hash || 'HEAD')
     },
   },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
-export function getBlogGitUpdatedAt(doc) {
-  return getPostGitHistory(getRepoSourceFilePath(doc))[0]?.committedAt
+export async function getBlogGitUpdatedAt(doc) {
+  return (await getPostGitHistory(getRepoSourceFilePath(doc)))[0]?.committedAt
 }
 
 export function getBlogStructuredDataUrl(doc) {
