@@ -15,7 +15,13 @@ import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
 import MDXRenderer from '@/components/MDXRenderer'
 import { formatDate } from '@/lib/formatDate'
-import { notifyBlogPathChange, setPendingBlogNavigationMotion } from '@/lib/blogRouteState'
+import {
+  clearBlogListReturnContext,
+  getStoredBlogListReturnContext,
+  notifyBlogPathChange,
+  setBlogListReturnContext,
+  setPendingBlogNavigationMotion,
+} from '@/lib/blogRouteState'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import type { MouseEvent } from 'react'
@@ -30,12 +36,6 @@ type ExpandedChangeContext = {
 
 type ExpandedChangeOptions = {
   afterMotion?: () => void
-}
-
-function getHistoryState() {
-  return typeof window.history.state === 'object' && window.history.state !== null
-    ? window.history.state
-    : {}
 }
 
 function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
@@ -68,7 +68,7 @@ export default function ExpandablePostCard({
   const expansionFrameRef = useRef<number | null>(null)
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const now = useNow()
-  const { bodyCode, preloadedBodyCode, prefetchPost, setPreloadedBodyCode } = usePostBody(post)
+  const { bodyCode, preloadedBodyCode, prefetchPost } = usePostBody(post)
   const primaryTag = post.tags?.[0]
   const postHref = `/${post.path}/`
   const Heading = expanded ? 'h1' : headingLevel
@@ -114,15 +114,18 @@ export default function ExpandablePostCard({
     }
 
     if (expanded) {
-      const previousUrl = previousUrlRef.current || localizePath('/', locale)
-      const previousScrollY = previousScrollYRef.current
+      const storedContext = getStoredBlogListReturnContext(post.path)
+      const previousUrl =
+        previousUrlRef.current || storedContext?.previousUrl || localizePath('/', locale)
+      const previousScrollY = previousScrollYRef.current ?? storedContext?.previousScrollY ?? null
+      const previousCardTop = previousCardTopRef.current ?? storedContext?.previousCardTop ?? null
 
       window.history.pushState(null, '', previousUrl)
       notifyBlogPathChange()
       previousUrlRef.current = null
       previousScrollYRef.current = null
-      const previousCardTop = previousCardTopRef.current
       previousCardTopRef.current = null
+      clearBlogListReturnContext(post.path)
       onExpandedChange(false, { previousCardTop, previousScrollY, previousUrl })
       return
     }
@@ -132,66 +135,16 @@ export default function ExpandablePostCard({
     previousCardTopRef.current =
       event.currentTarget.closest('article')?.getBoundingClientRect().top ?? null
 
-    const historyState = getHistoryState()
-
-    window.history.replaceState(
-      {
-        ...historyState,
-        blogListReturn: {
-          postPath: post.path,
-          previousCardTop: previousCardTopRef.current,
-          previousScrollY: previousScrollYRef.current,
-        },
-      },
-      '',
-      previousUrlRef.current
-    )
-
-    const availableBodyCode = bodyCode
-
-    const shouldPrimeBodyBeforeExpansion = Boolean(
-      availableBodyCode && !preloadedBodyCode && !post.bodyCode
-    )
-
-    if (availableBodyCode && shouldPrimeBodyBeforeExpansion) {
-      setPreloadedBodyCode(availableBodyCode)
-    }
-
-    if (availableBodyCode && window.location.pathname !== postHref) {
-      window.history.pushState(
-        {
-          ...historyState,
-          blogExpandedPath: post.path,
-          blogPreviousUrl: previousUrlRef.current,
-        },
-        '',
-        postHref
-      )
-      notifyBlogPathChange()
-    }
-
     const expansionContext = {
       previousCardTop: previousCardTopRef.current,
       previousScrollY: previousScrollYRef.current,
       previousUrl: previousUrlRef.current,
     }
 
-    if (!availableBodyCode) {
-      setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
-      prefetchPost()
-      router.push(postHref)
-      return
-    }
-
-    if (shouldPrimeBodyBeforeExpansion) {
-      expansionFrameRef.current = window.requestAnimationFrame(() => {
-        expansionFrameRef.current = null
-        onExpandedChange(true, expansionContext)
-      })
-      return
-    }
-
-    onExpandedChange(true, expansionContext)
+    setBlogListReturnContext(post.path, expansionContext)
+    setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
+    prefetchPost()
+    router.push(postHref, { scroll: false })
   }
 
   return (

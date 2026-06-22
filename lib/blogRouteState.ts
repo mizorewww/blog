@@ -13,6 +13,7 @@ export type BlogHistoryState = {
     postPath?: string
     previousCardTop?: number | null
     previousScrollY?: number | null
+    previousUrl?: string | null
   }
 }
 
@@ -25,6 +26,9 @@ type PendingBlogNavigationMotion = BlogMotionContext & {
 let pendingBlogNavigationMotion: PendingBlogNavigationMotion | null = null
 const PENDING_MOTION_MAX_AGE = 4000
 const PENDING_MOTION_STORAGE_KEY = 'mizore:pending-blog-navigation-motion'
+const LIST_RETURN_STORAGE_KEY = 'mizore:blog-list-return-contexts'
+
+type StoredBlogListReturnContexts = Record<string, BlogMotionContext>
 
 function readPendingBlogNavigationMotion() {
   if (typeof window === 'undefined') {
@@ -72,6 +76,48 @@ function clearPendingBlogNavigationMotion() {
   }
 }
 
+function readBlogListReturnContexts(): StoredBlogListReturnContexts {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  try {
+    const value = window.sessionStorage.getItem(LIST_RETURN_STORAGE_KEY)
+    return value ? (JSON.parse(value) as StoredBlogListReturnContexts) : {}
+  } catch {
+    return {}
+  }
+}
+
+function writeBlogListReturnContexts(contexts: StoredBlogListReturnContexts) {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  try {
+    window.sessionStorage.setItem(LIST_RETURN_STORAGE_KEY, JSON.stringify(contexts))
+  } catch {
+    // Session storage is only used to restore nicer motion after route transitions.
+  }
+}
+
+export function setBlogListReturnContext(postPath: string, context: BlogMotionContext) {
+  writeBlogListReturnContexts({
+    ...readBlogListReturnContexts(),
+    [postPath]: context,
+  })
+}
+
+export function getStoredBlogListReturnContext(postPath: string): BlogMotionContext | null {
+  return readBlogListReturnContexts()[postPath] || null
+}
+
+export function clearBlogListReturnContext(postPath: string) {
+  const contexts = readBlogListReturnContexts()
+  delete contexts[postPath]
+  writeBlogListReturnContexts(contexts)
+}
+
 export function normalizePathname(pathname: string) {
   const normalized = pathname.startsWith('/') ? pathname : `/${pathname}`
   const withoutTrailingSlash = normalized.replace(/\/+$/, '')
@@ -104,7 +150,7 @@ export function getBlogListReturnContext(
   const listReturn = (state as BlogHistoryState | null)?.blogListReturn
 
   if (!listReturn || listReturn.postPath !== postPath) {
-    return null
+    return getStoredBlogListReturnContext(postPath)
   }
 
   return {
@@ -112,7 +158,7 @@ export function getBlogListReturnContext(
       typeof listReturn.previousCardTop === 'number' ? listReturn.previousCardTop : null,
     previousScrollY:
       typeof listReturn.previousScrollY === 'number' ? listReturn.previousScrollY : null,
-    previousUrl: null,
+    previousUrl: typeof listReturn.previousUrl === 'string' ? listReturn.previousUrl : null,
   }
 }
 
