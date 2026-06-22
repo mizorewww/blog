@@ -1,4 +1,6 @@
 import { defineDocumentType, ComputedFields, makeSource } from 'contentlayer2/source-files'
+import { execFileSync } from 'node:child_process'
+import { readFileSync } from 'node:fs'
 import readingTime from 'reading-time'
 // Remark packages
 import remarkGfm from 'remark-gfm'
@@ -7,22 +9,29 @@ import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypePresetMinify from 'rehype-preset-minify'
 import rehypePrettyCode from 'rehype-pretty-code'
+import { resolveCodeThemePreset } from './data/codeThemes'
 import siteMetadata from './data/siteMetadata'
 import { getPostImageUrls } from './lib/postImages'
 import { absoluteSiteUrl } from './lib/urls'
 import { defaultLocale, isLocale } from './lib/i18n'
+import { toIconComponentName } from './lib/icons'
 import { extractTocHeadings } from './lib/toc'
+
+const codeTheme = resolveCodeThemePreset(
+  process.env.CODE_THEME || process.env.NEXT_PUBLIC_CODE_THEME
+)
 
 const rehypePrettyCodeOptions = {
   theme: {
-    light: 'github-light',
-    dark: 'github-dark-dimmed',
+    light: codeTheme.light,
+    dark: codeTheme.dark,
   },
-  keepBackground: false,
+  keepBackground: true,
   defaultLang: {
     block: 'plaintext',
-    inline: 'plaintext',
+    inline: '',
   },
+  bypassInlineCode: true,
 }
 
 const icon = {
@@ -59,6 +68,456 @@ const icon = {
       ],
     },
   ],
+}
+
+type PostGitCommit = {
+  hash: string
+  shortHash: string
+  committedAt: string
+  subject: string
+  url: string
+}
+
+const gitFieldSeparator = '\x1f'
+const gitRecordSeparator = '\x1e'
+const postGitHistoryCache = new Map<string, PostGitCommit[]>()
+const siteRepo = (siteMetadata.siteRepo || '').replace(/\/+$/, '')
+
+function getGitOutput(args: string[]) {
+  try {
+    return execFileSync('git', args, {
+      cwd: process.cwd(),
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+    }).trim()
+  } catch {
+    return ''
+  }
+}
+
+function encodeGitHubPath(filePath: string) {
+  return filePath.split('/').map(encodeURIComponent).join('/')
+}
+
+function getCommitUrl(hash: string) {
+  return siteRepo && hash ? `${siteRepo}/commit/${hash}` : ''
+}
+
+function getFileUrl(filePath: string, ref = 'HEAD') {
+  return siteRepo ? `${siteRepo}/blob/${ref}/${encodeGitHubPath(filePath)}` : ''
+}
+
+function getRepoSourceFilePath(doc: { _raw: { sourceFilePath: string } }) {
+  const sourceFilePath = doc._raw.sourceFilePath.replace(/^\/+/, '')
+  return sourceFilePath.startsWith('data/') ? sourceFilePath : `data/${sourceFilePath}`
+}
+
+function toIsoDate(value: unknown) {
+  if (!value) return ''
+
+  const date = new Date(value as string | Date)
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString()
+}
+
+function getPostGitHistory(filePath: string): PostGitCommit[] {
+  const cachedHistory = postGitHistoryCache.get(filePath)
+
+  if (cachedHistory) {
+    return cachedHistory
+  }
+
+  const output = getGitOutput([
+    'log',
+    '--follow',
+    `--format=%H%x1f%h%x1f%cI%x1f%s%x1e`,
+    '--',
+    filePath,
+  ])
+  const history = output
+    .split(gitRecordSeparator)
+    .map((record) => record.trim())
+    .filter(Boolean)
+    .map((record) => {
+      const [hash, shortHash, committedAt, ...subjectParts] = record.split(gitFieldSeparator)
+
+      return {
+        hash,
+        shortHash,
+        committedAt,
+        subject: subjectParts.join(gitFieldSeparator),
+        url: getCommitUrl(hash),
+      }
+    })
+    .filter((commit) => commit.hash && commit.shortHash && commit.committedAt)
+
+  postGitHistoryCache.set(filePath, history)
+
+  return history
+}
+
+type MdastNode = {
+  type?: string
+  value?: string
+  lang?: string
+  meta?: string
+  children?: MdastNode[]
+  [key: string]: unknown
+}
+
+const iconShortcodePattern = /:icon-([A-Za-z0-9_-]+):/g
+
+function createIconNode(name: string): MdastNode {
+  return {
+    type: 'mdxJsxTextElement',
+    name: 'Icon',
+    attributes: [
+      {
+        type: 'mdxJsxAttribute',
+        name: 'name',
+        value: toIconComponentName(name),
+      },
+    ],
+    children: [],
+  }
+}
+
+function transformIconShortcodes(parent: MdastNode) {
+  if (!Array.isArray(parent.children)) {
+    return
+  }
+
+  parent.children = parent.children.flatMap((child) => {
+    if (child.type !== 'text' || typeof child.value !== 'string') {
+      transformIconShortcodes(child)
+      return [child]
+    }
+
+    const nodes: MdastNode[] = []
+    let lastIndex = 0
+
+    for (const match of child.value.matchAll(iconShortcodePattern)) {
+      const index = match.index || 0
+      const [raw, iconName] = match
+
+      if (index > lastIndex) {
+        nodes.push({
+          ...child,
+          value: child.value.slice(lastIndex, index),
+        })
+      }
+
+      nodes.push(createIconNode(iconName))
+      lastIndex = index + raw.length
+    }
+
+    if (nodes.length === 0) {
+      return [child]
+    }
+
+    if (lastIndex < child.value.length) {
+      nodes.push({
+        ...child,
+        value: child.value.slice(lastIndex),
+      })
+    }
+
+    return nodes
+  })
+}
+
+function remarkIconShortcodes() {
+  return (tree: MdastNode) => transformIconShortcodes(tree)
+}
+
+type GitHubEmbedAttrs = {
+  base?: string
+  head?: string
+  lang?: string
+  lines?: string
+  path?: string
+  ref?: string
+  repo?: string
+  title?: string
+}
+
+const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
+const defaultGitHubRepo = siteRepo.replace(/^https:\/\/github\.com\//, '')
+
+function parseEmbedAttributes(value: string): GitHubEmbedAttrs {
+  const attrs: GitHubEmbedAttrs = {}
+  const attrPattern = /([A-Za-z][A-Za-z0-9_-]*)=(?:"([^"]*)"|'([^']*)'|([^\s]+))/g
+
+  for (const match of value.matchAll(attrPattern)) {
+    const key = match[1].replace(/-([a-z])/g, (_, char) => char.toUpperCase())
+    const attrValue = match[2] ?? match[3] ?? match[4] ?? ''
+    attrs[key as keyof GitHubEmbedAttrs] = attrValue
+  }
+
+  return attrs
+}
+
+function normalizeGitHubRepo(repo?: string) {
+  return (repo || defaultGitHubRepo).replace(/^https:\/\/github\.com\//, '').replace(/\/+$/, '')
+}
+
+function isSiteRepo(repo: string) {
+  return Boolean(defaultGitHubRepo && repo === defaultGitHubRepo)
+}
+
+function getLocalGitFile(ref: string, filePath: string) {
+  if (ref.toLowerCase() === 'worktree') {
+    return readFileSync(filePath, 'utf8')
+  }
+
+  return getGitOutput(['show', `${ref}:${filePath}`])
+}
+
+async function fetchText(url: string) {
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'text/plain',
+      'User-Agent': 'mizore-blog-contentlayer',
+    },
+  })
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch ${url}: ${response.status} ${response.statusText}`)
+  }
+
+  return response.text()
+}
+
+async function getGitHubFile(attrs: GitHubEmbedAttrs) {
+  if (!attrs.path) {
+    throw new Error('github-code requires a path attribute')
+  }
+
+  const repo = normalizeGitHubRepo(attrs.repo)
+  const ref = attrs.ref || 'HEAD'
+
+  if (isSiteRepo(repo)) {
+    const localFile = getLocalGitFile(ref, attrs.path)
+
+    if (localFile) {
+      return localFile
+    }
+  }
+
+  return fetchText(`https://raw.githubusercontent.com/${repo}/${ref}/${attrs.path}`)
+}
+
+function selectCodeLines(value: string, lines?: string) {
+  if (!lines) {
+    return value
+  }
+
+  const sourceLines = value.split(/\r?\n/)
+  const selectedLines: string[] = []
+
+  for (const part of lines.split(',')) {
+    const [rawStart, rawEnd] = part.split('-')
+    const start = Number(rawStart)
+    const end = Number(rawEnd || rawStart)
+
+    if (!Number.isInteger(start) || !Number.isInteger(end) || start < 1 || end < start) {
+      continue
+    }
+
+    selectedLines.push(...sourceLines.slice(start - 1, end))
+  }
+
+  return selectedLines.length > 0 ? selectedLines.join('\n') : value
+}
+
+function filterDiffByPath(diff: string, filePath?: string) {
+  if (!filePath) {
+    return diff
+  }
+
+  return diff
+    .split(/(?=^diff --git )/m)
+    .filter((block) => {
+      const firstLine = block.split('\n')[0] || ''
+      return firstLine.includes(` a/${filePath} b/${filePath}`)
+    })
+    .join('')
+    .trim()
+}
+
+async function getGitHubDiff(attrs: GitHubEmbedAttrs) {
+  const repo = normalizeGitHubRepo(attrs.repo)
+  const ref = attrs.ref
+  const base = attrs.base
+  const head = attrs.head
+
+  if (isSiteRepo(repo)) {
+    const args = ref
+      ? ['show', '--format=', '--patch', '--no-ext-diff', ref, '--']
+      : ['diff', '--no-ext-diff', base || 'HEAD~1', head || 'HEAD', '--']
+
+    if (attrs.path) {
+      args.push(attrs.path)
+    }
+
+    const localDiff = getGitOutput(args)
+
+    if (localDiff) {
+      return localDiff
+    }
+  }
+
+  const diff = ref
+    ? await fetchText(`https://github.com/${repo}/commit/${ref}.diff`)
+    : await fetchText(`https://github.com/${repo}/compare/${base}...${head}.diff`)
+
+  return filterDiffByPath(diff, attrs.path)
+}
+
+function createCodeNode(
+  value: string,
+  lang: string,
+  title?: string,
+  options: { showLineNumbers?: boolean } = {}
+): MdastNode {
+  const meta = [
+    options.showLineNumbers ? 'showLineNumbers' : '',
+    title ? `title="${title.replace(/"/g, '\\"')}"` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+
+  return {
+    type: 'code',
+    lang,
+    meta: meta || undefined,
+    value: value.trimEnd(),
+  }
+}
+
+function createEmbedErrorNode(message: string): MdastNode {
+  return createCodeNode(message, 'text', 'GitHub embed failed')
+}
+
+async function createGitHubEmbedNode(kind: string, attrSource: string): Promise<MdastNode> {
+  const attrs = parseEmbedAttributes(attrSource)
+
+  try {
+    if (kind === 'code') {
+      const value = selectCodeLines(await getGitHubFile(attrs), attrs.lines)
+      const title =
+        attrs.title ||
+        `${normalizeGitHubRepo(attrs.repo)}:${attrs.path}${attrs.lines ? `#L${attrs.lines}` : ''}`
+
+      return createCodeNode(value, attrs.lang || 'text', title, { showLineNumbers: true })
+    }
+
+    const value = await getGitHubDiff(attrs)
+    const title =
+      attrs.title ||
+      `${normalizeGitHubRepo(attrs.repo)}:${attrs.path || `${attrs.base || attrs.ref}...${attrs.head || ''}`}`
+
+    return createCodeNode(value || 'No diff matched this query.', attrs.lang || 'diff', title, {
+      showLineNumbers: true,
+    })
+  } catch (error) {
+    return createEmbedErrorNode(error instanceof Error ? error.message : String(error))
+  }
+}
+
+async function transformGitHubEmbeds(parent: MdastNode) {
+  if (!Array.isArray(parent.children)) {
+    return
+  }
+
+  const nextChildren: MdastNode[] = []
+
+  for (const child of parent.children) {
+    const match =
+      child.type === 'paragraph' &&
+      child.children?.length === 1 &&
+      child.children[0].type === 'text' &&
+      typeof child.children[0].value === 'string'
+        ? child.children[0].value.match(githubEmbedPattern)
+        : null
+
+    if (match) {
+      nextChildren.push(await createGitHubEmbedNode(match[1], match[2]))
+      continue
+    }
+
+    await transformGitHubEmbeds(child)
+    nextChildren.push(child)
+  }
+
+  parent.children = nextChildren
+}
+
+function remarkGitHubEmbeds() {
+  return async (tree: MdastNode) => transformGitHubEmbeds(tree)
+}
+
+type HastNode = {
+  type?: string
+  tagName?: string
+  value?: string
+  properties?: Record<string, unknown>
+  children?: HastNode[]
+}
+
+function getNodeText(node: HastNode): string {
+  if (typeof node.value === 'string') {
+    return node.value
+  }
+
+  return Array.isArray(node.children) ? node.children.map(getNodeText).join('') : ''
+}
+
+function getDiffLineKind(value: string) {
+  if (value.startsWith('@@')) return 'hunk'
+  if (value.startsWith('+') && !value.startsWith('+++')) return 'add'
+  if (value.startsWith('-') && !value.startsWith('---')) return 'remove'
+  if (
+    value.startsWith('diff --git') ||
+    value.startsWith('index ') ||
+    value.startsWith('new file') ||
+    value.startsWith('deleted file') ||
+    value.startsWith('---') ||
+    value.startsWith('+++')
+  ) {
+    return 'meta'
+  }
+
+  return ''
+}
+
+function annotateCodeLines(node: HastNode, language = '') {
+  const properties = node.properties || {}
+  const nextLanguage =
+    typeof properties['data-language'] === 'string' ? properties['data-language'] : language
+
+  if (properties['data-line'] !== undefined) {
+    properties['data-code-line'] = ''
+
+    if (nextLanguage === 'diff') {
+      const diffLineKind = getDiffLineKind(getNodeText(node))
+
+      if (diffLineKind) {
+        properties['data-diff-line'] = diffLineKind
+      }
+    }
+
+    node.properties = properties
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      annotateCodeLines(child, nextLanguage)
+    }
+  }
+}
+
+function rehypeCodeLineMetadata() {
+  return (tree: HastNode) => annotateCodeLines(tree)
 }
 
 const computedFields: ComputedFields = {
@@ -126,6 +585,29 @@ const blogComputedFields: ComputedFields = {
     type: 'string',
     resolve: (doc) => doc._raw.sourceFilePath,
   },
+  gitUpdatedAt: {
+    type: 'string',
+    resolve: (doc) => {
+      const history = getPostGitHistory(getRepoSourceFilePath(doc))
+      return history[0]?.committedAt || toIsoDate(doc.lastmod) || toIsoDate(doc.date)
+    },
+  },
+  gitCommits: {
+    type: 'json',
+    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).slice(0, 6),
+  },
+  gitCommitCount: {
+    type: 'number',
+    resolve: (doc) => getPostGitHistory(getRepoSourceFilePath(doc)).length,
+  },
+  githubUrl: {
+    type: 'string',
+    resolve: (doc) => {
+      const filePath = getRepoSourceFilePath(doc)
+      const latestCommit = getPostGitHistory(filePath)[0]
+      return getFileUrl(filePath, latestCommit?.hash || 'HEAD')
+    },
+  },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
 }
 
@@ -155,13 +637,14 @@ export const Blog = defineDocumentType(() => ({
       type: 'json',
       resolve: (doc) => {
         const url = absoluteSiteUrl(siteMetadata.siteUrl, blogPath(doc))
+        const gitUpdatedAt = getPostGitHistory(getRepoSourceFilePath(doc))[0]?.committedAt
 
         return {
           '@context': 'https://schema.org',
           '@type': 'BlogPosting',
           headline: doc.title,
           datePublished: doc.date,
-          dateModified: doc.lastmod || doc.date,
+          dateModified: gitUpdatedAt || doc.lastmod || doc.date,
           description: doc.summary,
           articleSection: doc.categories,
           keywords: doc.tags,
@@ -202,7 +685,7 @@ export default makeSource({
   documentTypes: [Blog, Authors],
   mdx: {
     cwd: process.cwd(),
-    remarkPlugins: [remarkGfm],
+    remarkPlugins: [remarkGfm, remarkIconShortcodes, remarkGitHubEmbeds],
     rehypePlugins: [
       rehypeSlug,
       [
@@ -216,6 +699,7 @@ export default makeSource({
         },
       ],
       [rehypePrettyCode, rehypePrettyCodeOptions],
+      rehypeCodeLineMetadata,
       rehypePresetMinify,
     ],
   },

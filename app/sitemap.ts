@@ -10,15 +10,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = siteMetadata.siteUrl
   const publishedPosts = getPublishedSitemapPosts()
   const latestPostDate =
-    latestModified(publishedPosts.map((post) => post.lastmod || post.date)) ||
-    new Date(0).toISOString()
+    latestModified(publishedPosts.map((post) => modifiedDate(post))) || new Date(0).toISOString()
   const latestByLocale = locales.reduce(
     (latest, locale) => {
       latest[locale] =
         latestModified(
-          publishedPosts
-            .filter((post) => post.locale === locale)
-            .map((post) => post.lastmod || post.date)
+          publishedPosts.filter((post) => post.locale === locale).map((post) => modifiedDate(post))
         ) || latestPostDate
       return latest
     },
@@ -72,7 +69,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
 
   const blogRoutes = publishedPosts.map((post) => ({
     url: absoluteSiteUrl(siteUrl, post.path),
-    lastModified: post.lastmod || post.date,
+    lastModified: modifiedDate(post),
     alternates: postAlternates(post),
   }))
 
@@ -102,4 +99,8 @@ function latestModified(dates: string[]) {
   return dates
     .filter(Boolean)
     .sort((first, second) => new Date(second).getTime() - new Date(first).getTime())[0]
+}
+
+function modifiedDate(post: { date: string; lastmod?: string; gitUpdatedAt?: string }) {
+  return post.gitUpdatedAt || post.lastmod || post.date
 }

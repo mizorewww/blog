@@ -1,7 +1,13 @@
 import siteMetadata from '@/data/siteMetadata'
+import Icon from '@/components/Icon'
 import SocialIcon from '@/components/social-icons'
 
 export default function Footer() {
+  const commitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_HASH
+  const fullCommitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_FULL_HASH || commitHash
+  const commitUrl =
+    commitHash && fullCommitHash ? `${siteMetadata.siteRepo}/commit/${fullCommitHash}` : ''
+
   return (
     <footer className="shrink-0 bg-transparent text-slate-500 dark:text-white/45">
       <div className="blog-shell mx-auto flex w-full flex-col items-center border-t border-slate-200 px-4 py-7 text-center dark:border-[#2f3947]">
@@ -11,12 +17,28 @@ export default function Footer() {
           <SocialIcon kind="x" href={siteMetadata.x} size={6} />
           <SocialIcon kind="telegram" href={siteMetadata.telegram} size={6} />
         </div>
-        <div className="mb-2 flex flex-wrap justify-center gap-x-2 text-sm">
+        <div className="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm">
           <div>{siteMetadata.author}</div>
           <div>{` • `}</div>
           <div>{`© ${new Date().getFullYear()}`}</div>
           <div>{` • `}</div>
           <div>{siteMetadata.title}</div>
+          {commitHash && (
+            <>
+              <div>{` • `}</div>
+              <a
+                href={commitUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Latest commit ${commitHash}`}
+                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 transition hover:text-sky-500 dark:bg-white/10"
+              >
+                <Icon name="GitCommit" className="h-3.5 w-3.5" inlineSpacing={false} />
+                <span className="text-xs tracking-[0.08em] uppercase">commit</span>
+                <span className="font-mono">{commitHash}</span>
+              </a>
+            </>
+          )}
         </div>
       </div>
     </footer>

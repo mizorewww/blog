@@ -31,6 +31,10 @@ function dateToIso(date: string | undefined) {
   return date ? new Date(date).toISOString() : undefined
 }
 
+function modifiedDate(post: Pick<Blog | BlogListPost, 'date' | 'lastmod' | 'gitUpdatedAt'>) {
+  return post.gitUpdatedAt || post.lastmod || post.date
+}
+
 function createWebsiteNode(): JsonLdNode {
   return {
     '@type': 'WebSite',
@@ -139,7 +143,7 @@ export function createArticleJsonLd({
         isPartOf: { '@id': websiteId },
         mainEntity: { '@id': articleId },
         datePublished: dateToIso(post.date),
-        dateModified: dateToIso(post.lastmod || post.date),
+        dateModified: dateToIso(modifiedDate(post)),
       }),
       compactObject({
         '@type': 'BlogPosting',
@@ -151,7 +155,7 @@ export function createArticleJsonLd({
         description: post.summary,
         inLanguage: localeConfig[locale].htmlLang,
         datePublished: dateToIso(post.date),
-        dateModified: dateToIso(post.lastmod || post.date),
+        dateModified: dateToIso(modifiedDate(post)),
         author: authorRefs,
         publisher: { '@id': publisherId },
         image: imageUrls.map((imageUrl) => ({

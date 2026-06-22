@@ -108,7 +108,17 @@
       font-weight: 600;
     }
     & :where(code):not(pre code) {
-      color: var(--color-indigo-500);
+      border-radius: 5px;
+      background: color-mix(in oklab, var(--color-slate-200) 68%, transparent);
+      color: var(--color-sky-600);
+      padding: 0.12rem 0.34rem;
+      font-size: 0.88em;
+      font-weight: 500;
+      word-break: break-word;
+    }
+    & :where(code):not(pre code)::before,
+    & :where(code):not(pre code)::after {
+      content: none;
     }
   }
 
@@ -124,6 +134,10 @@
     }
     & :where(h1, h2, h3, h4, h5, h6) {
       color: var(--color-gray-100);
+    }
+    & :where(code):not(pre code) {
+      background: color-mix(in oklab, white 10%, transparent);
+      color: var(--color-sky-300);
     }
   }
 }

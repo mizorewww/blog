@@ -5434,6 +5434,15 @@ __metadata:
   languageName: node
   linkType: hard
 
+"lucide-react@npm:^1.21.0":
+  version: 1.21.0
+  resolution: "lucide-react@npm:1.21.0"
+  peerDependencies:
+    react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
+  checksum: 43e1aa9a528f20ce26157e3b42548e143150055febac91641d8ae561becf4d0831d7b3aa264ec04bb94b8e2513fc9f7a83cbf7d4b7ea87fbc56caba0a420e0cf
+  languageName: node
+  linkType: hard
+
 "magic-string@npm:^0.30.21":
   version: 0.30.21
   resolution: "magic-string@npm:0.30.21"
@@ -6368,6 +6377,7 @@ __metadata:
     globals: ^17.3.0
     husky: ^9.1.7
     lint-staged: ^16.2.7
+    lucide-react: ^1.21.0
     next: 15.5.12
     next-contentlayer2: 0.5.8
     next-themes: ^0.4.6

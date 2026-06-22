@@ -31,7 +31,7 @@ export async function generateMetadata(props: {
   const authorDetails = getAuthorDetails(post.authors || ['default'])
 
   const publishedAt = new Date(post.date).toISOString()
-  const modifiedAt = new Date(post.lastmod || post.date).toISOString()
+  const modifiedAt = new Date(post.gitUpdatedAt || post.lastmod || post.date).toISOString()
   const authors = authorDetails.map((author) => author.name)
   const postUrl = absoluteSiteUrl(siteMetadata.siteUrl, post.path)
   const canonicalUrl = post.canonicalUrl || postUrl

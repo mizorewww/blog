@@ -1,38 +1,57 @@
 /* Code block styles for MDX output highlighted by rehype-pretty-code + Shiki. */
 
 figure[data-rehype-pretty-code-figure] {
-  @apply my-6 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-50 dark:border-[#405064] dark:bg-[#111827];
+  @apply my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-100/70 shadow-sm dark:border-[#405064] dark:bg-[#10161f];
+}
+
+figure[data-rehype-pretty-code-figure] [data-rehype-pretty-code-title] {
+  @apply border-b border-slate-200 bg-white/70 px-4 py-2 font-mono text-xs break-words text-slate-600 dark:border-[#405064] dark:bg-white/[0.035] dark:text-white/65;
 }
 
 figure[data-rehype-pretty-code-figure] pre {
-  @apply m-0 overflow-x-auto bg-transparent px-0 py-4 text-sm leading-6;
+  @apply m-0 overflow-x-auto px-0 py-4 text-sm leading-6;
+  background: var(--shiki-light-bg);
+  color: var(--shiki-light);
+  scrollbar-color: color-mix(in oklab, var(--shiki-light) 28%, transparent) transparent;
 }
 
 figure[data-rehype-pretty-code-figure] code {
-  @apply grid min-w-full bg-transparent px-0 font-mono text-sm;
+  @apply grid min-w-full bg-transparent px-0 font-mono text-[0.86rem];
   counter-reset: line;
 }
 
 code[data-theme],
 code[data-theme] span {
   color: var(--shiki-light);
-  background-color: transparent;
+  background-color: var(--shiki-light-bg, transparent);
+  font-style: var(--shiki-light-font-style, inherit);
+  font-weight: var(--shiki-light-font-weight, inherit);
+  text-decoration: var(--shiki-light-text-decoration, inherit);
+}
+
+.dark figure[data-rehype-pretty-code-figure] pre {
+  background: var(--shiki-dark-bg);
+  color: var(--shiki-dark);
+  scrollbar-color: color-mix(in oklab, var(--shiki-dark) 28%, transparent) transparent;
 }
 
 .dark code[data-theme],
 .dark code[data-theme] span {
   color: var(--shiki-dark);
-  background-color: transparent;
+  background-color: var(--shiki-dark-bg, transparent);
+  font-style: var(--shiki-dark-font-style, inherit);
+  font-weight: var(--shiki-dark-font-weight, inherit);
+  text-decoration: var(--shiki-dark-text-decoration, inherit);
 }
 
-code[data-line-numbers] > [data-line]::before {
-  @apply mr-4 inline-block w-4 text-right text-slate-400 dark:text-white/35;
+code[data-line-numbers] > [data-code-line]::before {
+  @apply mr-4 inline-block w-6 shrink-0 text-right text-slate-400 select-none dark:text-white/35;
   counter-increment: line;
   content: counter(line);
 }
 
-[data-line] {
-  @apply min-h-6 border-l-4 border-transparent px-4;
+[data-code-line] {
+  @apply min-h-6 min-w-max border-l-4 border-transparent px-4;
 }
 
 [data-highlighted-line] {
@@ -41,4 +60,20 @@ code[data-line-numbers] > [data-line]::before {
 
 [data-highlighted-chars] {
   @apply rounded-[4px] bg-sky-200/70 px-1 py-0.5 dark:bg-sky-400/20;
+}
+
+[data-diff-line='add'] {
+  @apply border-emerald-500 bg-emerald-100/80 dark:bg-emerald-500/14;
+}
+
+[data-diff-line='remove'] {
+  @apply border-rose-500 bg-rose-100/80 dark:bg-rose-500/14;
+}
+
+[data-diff-line='hunk'] {
+  @apply border-sky-500 bg-sky-100/80 dark:bg-sky-500/16;
+}
+
+[data-diff-line='meta'] {
+  @apply border-slate-400/70 bg-slate-200/50 dark:bg-white/[0.055];
 }
