@@ -120,7 +120,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
         categoryCounts={listData.categoryCounts}
         tagCounts={listData.tagCounts}
         initialExpandedPath={post.path}
-        expandedPostBody={<MDXServerRenderer code={post.body.code} />}
+        expandedPostBody={<MDXServerRenderer modulePath={post.mdxModulePath} />}
       />
     </>
   )

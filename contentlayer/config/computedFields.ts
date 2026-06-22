@@ -4,9 +4,10 @@ import siteMetadata from '../../data/siteMetadata'
 import { defaultLocale, isLocale } from '../../lib/i18n'
 import { extractTocHeadings } from '../../lib/toc'
 import { getFileUrl, getPostGitHistory, getRepoSourceFilePath, toIsoDate } from './gitHistory'
+import { writeMdxModule } from './mdxModules'
 
 type ContentlayerDoc = {
-  body?: { raw: string }
+  body?: { code?: string; raw: string }
   date?: string | Date
   language?: string
   lastmod?: string | Date
@@ -31,6 +32,7 @@ export const computedFields: ComputedFields = {
     resolve: (doc) => doc._raw.sourceFilePath,
   },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+  mdxModulePath: { type: 'string', resolve: writeMdxModule },
 }
 
 const rawBlogSlug = (doc: ContentlayerDoc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
@@ -105,6 +107,7 @@ export const blogComputedFields: ComputedFields = {
     },
   },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
+  mdxModulePath: { type: 'string', resolve: writeMdxModule },
 }
 
 export async function getBlogGitUpdatedAt(doc: ContentlayerDoc) {
