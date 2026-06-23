@@ -167,6 +167,90 @@ export function getBlogListReturnContext(
   }
 }
 
+function isCurrentListReturnUrl(previousUrl: string | null | undefined) {
+  if (typeof window === 'undefined' || typeof previousUrl !== 'string') {
+    return false
+  }
+
+  try {
+    const url = new URL(previousUrl, window.location.origin)
+
+    return (
+      url.origin === window.location.origin &&
+      url.pathname === window.location.pathname &&
+      url.search === window.location.search &&
+      url.hash === window.location.hash
+    )
+  } catch {
+    return false
+  }
+}
+
+function clearBlogListReturnFromHistoryState() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const state = window.history.state
+
+  if (typeof state !== 'object' || state === null || !('blogListReturn' in state)) {
+    return
+  }
+
+  const nextState = { ...(state as BlogHistoryState & Record<string, unknown>) }
+
+  delete nextState.blogListReturn
+
+  window.history.replaceState(nextState, '', window.location.href)
+}
+
+function buildPendingCollapseMotion(
+  postPath: string,
+  context: BlogMotionContext
+): PendingBlogCollapseMotion {
+  return {
+    postPath,
+    previousCardTop: context.previousCardTop,
+    previousScrollY: context.previousScrollY,
+    previousUrl: context.previousUrl,
+  }
+}
+
+export function consumeCurrentBlogListReturnContext(
+  postPaths: string[]
+): PendingBlogCollapseMotion | null {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const state = window.history.state as BlogHistoryState | null
+  const statePostPath = state?.blogListReturn?.postPath
+
+  if (typeof statePostPath === 'string' && postPaths.includes(statePostPath)) {
+    const context = getBlogListReturnContext(state, statePostPath)
+
+    if (context && isCurrentListReturnUrl(context.previousUrl)) {
+      clearBlogListReturnContext(statePostPath)
+      clearBlogListReturnFromHistoryState()
+      return buildPendingCollapseMotion(statePostPath, context)
+    }
+  }
+
+  const storedContexts = readBlogListReturnContexts()
+
+  for (const postPath of postPaths) {
+    const context = storedContexts[postPath]
+
+    if (context && isCurrentListReturnUrl(context.previousUrl)) {
+      clearBlogListReturnContext(postPath)
+      clearBlogListReturnFromHistoryState()
+      return buildPendingCollapseMotion(postPath, context)
+    }
+  }
+
+  return null
+}
+
 export function setPendingBlogNavigationMotion(
   postPath: string,
   targetPath: string,

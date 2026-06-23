@@ -41,7 +41,7 @@ export default function ExpandablePostCard({
   const labels = ui[locale]
   const hasBody = Boolean(body)
   const renderBody = hasBody && (expanded || shouldKeepBodyMounted)
-  const { articleRef, onReadMore, prefetchPost } = useExpandablePostNavigation({
+  const { articleRef, onOpenPost, onReadMore, prefetchPost } = useExpandablePostNavigation({
     expanded,
     locale,
     postHref,
@@ -67,7 +67,14 @@ export default function ExpandablePostCard({
 
   return (
     <article ref={articleRef} className={`${cardClass} overflow-hidden`} data-post-path={post.path}>
-      <Link href={postHref} aria-label={post.title} className="block overflow-hidden">
+      <Link
+        href={postHref}
+        aria-label={post.title}
+        onClick={expanded ? undefined : onOpenPost}
+        onMouseEnter={prefetchPost}
+        onFocus={prefetchPost}
+        className="block overflow-hidden"
+      >
         <div className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100">
           <Image
             src={post.image || siteMetadata.socialBanner}
@@ -80,7 +87,13 @@ export default function ExpandablePostCard({
       </Link>
       <div className="px-5 py-5 sm:px-6 sm:py-6">
         <Heading className="mb-3 text-[1.55rem] leading-tight font-medium text-slate-900 sm:text-[1.75rem] dark:text-white/90">
-          <Link href={postHref} className="transition hover:text-sky-500">
+          <Link
+            href={postHref}
+            onClick={expanded ? undefined : onOpenPost}
+            onMouseEnter={prefetchPost}
+            onFocus={prefetchPost}
+            className="transition hover:text-sky-500"
+          >
             {post.title}
           </Link>
         </Heading>

@@ -45,6 +45,51 @@ export function useExpandablePostNavigation({
     router.prefetch(postHref)
   }, [postHref, router])
 
+  const saveReturnContext = useCallback(
+    (source: HTMLAnchorElement) => {
+      previousUrlRef.current = `${window.location.pathname}${window.location.search}${window.location.hash}`
+      previousScrollYRef.current = window.scrollY
+      previousCardTopRef.current = source.closest('article')?.getBoundingClientRect().top ?? null
+
+      const expansionContext: BlogMotionContext = {
+        previousCardTop: previousCardTopRef.current,
+        previousScrollY: previousScrollYRef.current,
+        previousUrl: previousUrlRef.current,
+      }
+
+      window.history.replaceState(
+        {
+          ...getHistoryState(),
+          blogListReturn: {
+            postPath,
+            previousCardTop: previousCardTopRef.current,
+            previousScrollY: previousScrollYRef.current,
+            previousUrl: previousUrlRef.current,
+          },
+        },
+        '',
+        previousUrlRef.current
+      )
+      setBlogListReturnContext(postPath, expansionContext)
+      setPendingBlogNavigationMotion(postPath, postHref, expansionContext)
+      prefetchPost()
+      router.push(postHref, { scroll: false })
+    },
+    [postHref, postPath, prefetchPost, router]
+  )
+
+  const onOpenPost = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      if (!isPlainPrimaryClick(event)) {
+        return
+      }
+
+      event.preventDefault()
+      saveReturnContext(event.currentTarget)
+    },
+    [saveReturnContext]
+  )
+
   useEffect(() => {
     const article = articleRef.current
 
@@ -97,40 +142,14 @@ export function useExpandablePostNavigation({
         return
       }
 
-      previousUrlRef.current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-      previousScrollYRef.current = window.scrollY
-      previousCardTopRef.current =
-        event.currentTarget.closest('article')?.getBoundingClientRect().top ?? null
-
-      const expansionContext: BlogMotionContext = {
-        previousCardTop: previousCardTopRef.current,
-        previousScrollY: previousScrollYRef.current,
-        previousUrl: previousUrlRef.current,
-      }
-
-      window.history.replaceState(
-        {
-          ...getHistoryState(),
-          blogListReturn: {
-            postPath,
-            previousCardTop: previousCardTopRef.current,
-            previousScrollY: previousScrollYRef.current,
-            previousUrl: previousUrlRef.current,
-          },
-        },
-        '',
-        previousUrlRef.current
-      )
-      setBlogListReturnContext(postPath, expansionContext)
-      setPendingBlogNavigationMotion(postPath, postHref, expansionContext)
-      prefetchPost()
-      router.push(postHref, { scroll: false })
+      saveReturnContext(event.currentTarget)
     },
-    [expanded, locale, postHref, postPath, prefetchPost, router]
+    [expanded, locale, postPath, router, saveReturnContext]
   )
 
   return {
     articleRef,
+    onOpenPost,
     onReadMore,
     prefetchPost,
   }

@@ -11,6 +11,7 @@ import {
 } from '@/lib/blogExpansionState'
 import {
   BLOG_PATH_CHANGE_EVENT,
+  consumeCurrentBlogListReturnContext,
   consumePendingBlogCollapseMotion,
   consumePendingBlogNavigationMotion,
   getBlogListReturnContext,
@@ -266,12 +267,14 @@ export function usePostExpansion({
 
   useLayoutEffect(() => {
     const nextExpandedPath = getExpandedPathFromPathname(posts, pathname)
+    const postPaths = posts.map((post) => post.path)
     const pendingInitialMotion =
       pendingInitialMotionRef.current ||
       (nextExpandedPath ? consumePendingBlogNavigationMotion(nextExpandedPath) : null)
     const pendingCollapseMotion = nextExpandedPath
       ? null
-      : consumePendingBlogCollapseMotion(posts.map((post) => post.path))
+      : consumePendingBlogCollapseMotion(postPaths) ||
+        consumeCurrentBlogListReturnContext(postPaths)
 
     if (pendingInitialMotion && nextExpandedPath) {
       const post = posts.find((item) => item.path === nextExpandedPath)
