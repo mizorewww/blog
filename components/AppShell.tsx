@@ -4,7 +4,8 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Footer from './Footer'
 import Header from './Header'
-import { BLOG_PATH_CHANGE_EVENT, isBlogPostPath } from '@/lib/blogRouteState'
+import RouteTransition from '@/components/animata/RouteTransition'
+import { isBlogPostPath } from '@/lib/blogRouteState'
 
 const HEADER_HIDE_SCROLL_Y = 80
 const SCROLL_DELTA_THRESHOLD = 6
@@ -19,18 +20,6 @@ export default function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setCurrentPathname(pathname)
   }, [pathname])
-
-  useEffect(() => {
-    const syncPathname = () => setCurrentPathname(window.location.pathname)
-
-    window.addEventListener('popstate', syncPathname)
-    window.addEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
-
-    return () => {
-      window.removeEventListener('popstate', syncPathname)
-      window.removeEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
-    }
-  }, [])
 
   useEffect(() => {
     previousScrollYRef.current = window.scrollY
@@ -63,7 +52,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <Header hideOnMobile={isReadingPost && hideHeaderOnMobile} />
-      <main className="flex-1 pt-[72px] sm:pt-[96px]">{children}</main>
+      <main className="flex-1 pt-[72px] sm:pt-[96px]">
+        <RouteTransition>{children}</RouteTransition>
+      </main>
       <Footer />
     </div>
   )

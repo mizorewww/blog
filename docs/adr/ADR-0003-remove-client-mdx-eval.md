@@ -9,7 +9,7 @@ related_code:
   - components/ExpandablePostCard.tsx
   - layouts/ListLayoutWithTags.tsx
   - lib/blogRouteState.ts
-  - lib/hooks/usePostExpansion.ts
+  - lib/hooks/useBlogExpansionState.ts
   - components/MDXServerRenderer.tsx
   - scripts/postbuild.mjs
   - public/_headers
@@ -27,7 +27,7 @@ superseded_by:
 Status: accepted
 Date: 2026-06-23
 Owner: codex-agent
-Related code: `components/ExpandablePostCard.tsx`, `layouts/ListLayoutWithTags.tsx`, `lib/blogRouteState.ts`, `lib/hooks/usePostExpansion.ts`, `components/MDXServerRenderer.tsx`, `scripts/postbuild.mjs`, `public/_headers`
+Related code: `components/ExpandablePostCard.tsx`, `layouts/ListLayoutWithTags.tsx`, `lib/blogRouteState.ts`, `lib/hooks/useBlogExpansionState.ts`, `components/MDXServerRenderer.tsx`, `scripts/postbuild.mjs`, `public/_headers`
 Supersedes:
 Superseded by:
 
@@ -45,7 +45,7 @@ Article bodies render only through the static article detail route. List pages k
 
 Cards prefetch the target article route when they enter the viewport, receive focus, or are hovered. On “continue reading”, the card stores the existing motion context, calls `router.push(postHref, { scroll: false })`, and lets the article detail route render the body with `MDXServerRenderer`.
 
-After the detail route commits, `usePostExpansion` consumes the pending motion context and plays the existing expansion animation. During explicit collapse, the card stores a collapse motion context and routes back to the original list URL so home, tag, and category pages regain their server-rendered list data before `usePostExpansion` plays the collapse animation.
+After the detail route commits, `useBlogExpansionState` consumes the pending route context and restores article positioning while Animata-derived components handle the visible transition. During explicit collapse, the card stores a collapse context and routes back to the original list URL so home, tag, and category pages regain their server-rendered list data before scroll restoration completes.
 
 The `_post-data` generation step and client MDX runtime renderer are removed. The Cloudflare Pages CSP no longer includes the eval exception for article expansion.
 
@@ -56,14 +56,14 @@ Benefits:
 - Browser code no longer evaluates Contentlayer MDX runtime strings.
 - Public build output no longer exposes article body runtime code through post-body JSON.
 - MDX client components keep their normal React hydration path on article routes.
-- The existing list-to-article expansion and collapse animation remains the user-facing transition.
+- The existing list-to-article reading flow remains the user-facing transition, with visible motion centralized in Animata-derived components.
 - CSP is stricter.
 
 Costs:
 
-- A cold article route payload can delay the start of the expansion animation.
+- A cold article route payload can delay the start of visible route feedback.
 - Production preview must verify route prefetch behavior because development mode does not match production prefetch semantics.
-- The animation now depends on App Router route commit timing rather than local body-code availability.
+- The visible transition now depends on App Router route commit timing rather than local body-code availability.
 
 Limits:
 

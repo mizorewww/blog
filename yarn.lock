@@ -3465,6 +3465,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"clsx@npm:^2.1.1":
+  version: 2.1.1
+  resolution: "clsx@npm:2.1.1"
+  checksum: acd3e1ab9d8a433ecb3cc2f6a05ab95fe50b4a3cfc5ba47abb6cbf3754585fcb87b84e90c822a1f256c4198e3b41c7f6c391577ffc8678ad587fc0976b24fd57
+  languageName: node
+  linkType: hard
+
 "collapse-white-space@npm:^2.0.0":
   version: 2.1.0
   resolution: "collapse-white-space@npm:2.1.0"
@@ -4673,6 +4680,28 @@ __metadata:
   bin:
     formatly: bin/index.mjs
   checksum: ef2bf133c048195fc30ced2a20e9acb5251a2a7cf7c2bf67afc71f6bbad78a3f8816b814ee22ec6db1bca7b339fb0d1eddbf168c7d36cc53459c664ff73e8d0d
+  languageName: node
+  linkType: hard
+
+"framer-motion@npm:^12.40.0":
+  version: 12.40.0
+  resolution: "framer-motion@npm:12.40.0"
+  dependencies:
+    motion-dom: ^12.40.0
+    motion-utils: ^12.39.0
+    tslib: ^2.4.0
+  peerDependencies:
+    "@emotion/is-prop-valid": "*"
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@emotion/is-prop-valid":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 5d32013ddfe42d71aed7d341b3345f90b8b7c37f99f595c0f56ea278a3f32e388dda5c2fad09608706c942293dc329258e0c50c6bad2c95ddb2e25be42eb7a83
   languageName: node
   linkType: hard
 
@@ -7064,6 +7093,7 @@ __metadata:
     "@types/react-dom": ^19.2.3
     "@typescript-eslint/eslint-plugin": ^8.54.0
     "@typescript-eslint/parser": ^8.54.0
+    clsx: ^2.1.1
     contentlayer2: 0.5.8
     cross-env: ^10.1.0
     eslint: ^9.18.0
@@ -7076,6 +7106,7 @@ __metadata:
     knip: ^6.18.0
     lint-staged: ^16.2.7
     lucide-react: ^1.21.0
+    motion: ^12.40.0
     next: 15.5.12
     next-contentlayer2: 0.5.8
     next-themes: ^0.4.6
@@ -7092,11 +7123,49 @@ __metadata:
     remark-gfm: ^4.0.1
     sharp: ^0.34.5
     shiki: ^4.0.2
+    tailwind-merge: ^3.6.0
     tailwindcss: 4.3.1
     typescript: ^5.9.3
     vitest: ^4.1.9
   languageName: unknown
   linkType: soft
+
+"motion-dom@npm:^12.40.0":
+  version: 12.40.0
+  resolution: "motion-dom@npm:12.40.0"
+  dependencies:
+    motion-utils: ^12.39.0
+  checksum: b04b73a0504eaf4e4cad298b1a0c28db14941b95df7372d3e8ecc376dc06de13fd3b3dcf8ced09b18d2a401bfd32bff7b11eb28b8f3bd9df63137cf90a8a5816
+  languageName: node
+  linkType: hard
+
+"motion-utils@npm:^12.39.0":
+  version: 12.39.0
+  resolution: "motion-utils@npm:12.39.0"
+  checksum: feb4f68fba3e2ed13bbbc193b2c786fe1d800b66c7a07df36de630428c856628e7e39e7791835d785419f6403f34d78c561feca96a4b14d1681ef79a561ebdd3
+  languageName: node
+  linkType: hard
+
+"motion@npm:^12.40.0":
+  version: 12.40.0
+  resolution: "motion@npm:12.40.0"
+  dependencies:
+    framer-motion: ^12.40.0
+    tslib: ^2.4.0
+  peerDependencies:
+    "@emotion/is-prop-valid": "*"
+    react: ^18.0.0 || ^19.0.0
+    react-dom: ^18.0.0 || ^19.0.0
+  peerDependenciesMeta:
+    "@emotion/is-prop-valid":
+      optional: true
+    react:
+      optional: true
+    react-dom:
+      optional: true
+  checksum: 714bcadb06746c0abaf319bb63efe93befbeabcdd6642e1fc02aea299af618b3c8a89c9469b3ba7a199de156c96a14a5530276ba3b8ed19fd1e907134d33498c
+  languageName: node
+  linkType: hard
 
 "ms@npm:^2.1.1, ms@npm:^2.1.3":
   version: 2.1.3
@@ -9367,6 +9436,13 @@ __metadata:
   version: 1.0.0
   resolution: "supports-preserve-symlinks-flag@npm:1.0.0"
   checksum: 53b1e247e68e05db7b3808b99b892bd36fb096e6fba213a06da7fab22045e97597db425c724f2bbd6c99a3c295e1e73f3e4de78592289f38431049e1277ca0ae
+  languageName: node
+  linkType: hard
+
+"tailwind-merge@npm:^3.6.0":
+  version: 3.6.0
+  resolution: "tailwind-merge@npm:3.6.0"
+  checksum: 617e86a01d99f17e02706cc2219bd203d1910b95a05f41fe1e5548b58a7975043ce5b6ef86d4cdcf10fa3c8362b796b9822de2f62024c69d5479e96d6e5be63f
   languageName: node
   linkType: hard
 

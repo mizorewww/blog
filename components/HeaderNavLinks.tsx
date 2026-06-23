@@ -27,7 +27,7 @@ const HeaderNavLinks = () => {
           <Link
             key={link.key}
             href={href}
-            className={`font-medium transition hover:text-sky-500 ${active ? 'text-sky-500' : ''}`}
+            className={`font-medium hover:text-sky-500 ${active ? 'text-sky-500' : ''}`}
           >
             {labels[link.key]}
           </Link>

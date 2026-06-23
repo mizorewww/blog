@@ -100,6 +100,12 @@
 }
 
 @layer utilities {
+  @keyframes animata-shimmer {
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
   .prose {
     & a {
       color: var(--color-primary-500);

@@ -16,7 +16,7 @@ export default function NotFound() {
         <p className="mb-8">{labels.notFoundDescription}</p>
         <Link
           href="/"
-          className="inline rounded-[8px] border border-transparent bg-sky-500 px-4 py-2 text-sm leading-5 font-medium text-white shadow-xs transition-colors duration-150 hover:bg-sky-400 focus:outline-hidden"
+          className="inline rounded-[8px] border border-transparent bg-sky-500 px-4 py-2 text-sm leading-5 font-medium text-white shadow-xs hover:bg-sky-400 focus:outline-hidden"
         >
           {labels.backToHome}
         </Link>

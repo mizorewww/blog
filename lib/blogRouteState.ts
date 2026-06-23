@@ -1,7 +1,5 @@
 import { locales, stripLocaleFromPathname } from '@/lib/i18n'
 
-export const BLOG_PATH_CHANGE_EVENT = 'blog-pathchange'
-
 export type BlogMotionContext = {
   previousCardTop: number | null
   previousScrollY: number | null
@@ -102,7 +100,7 @@ function writeBlogListReturnContexts(contexts: StoredBlogListReturnContexts) {
   try {
     window.sessionStorage.setItem(LIST_RETURN_STORAGE_KEY, JSON.stringify(contexts))
   } catch {
-    // Session storage is only used to restore nicer motion after route transitions.
+    // Session storage is only used to restore nicer route changes.
   }
 }
 

@@ -8,6 +8,7 @@ verified_by: command
 related_code:
   - app
   - components
+  - components/animata
   - contentlayer
   - lib
   - next.config.js
@@ -47,11 +48,11 @@ yarn build
 
 ```text
 app/          Next.js 路由、页面、SEO、全局布局
-components/   UI 组件、MDX 渲染、文章卡片、导航、主题切换
+components/   UI 组件、Animata 动效原语、MDX 渲染、文章卡片、导航、主题切换
 layouts/      页面级布局，目前主要是博客列表布局
 content/      文章和作者 MDX 内容
 data/         导航、站点元信息、代码主题等配置数据
-lib/          内容查询、路由状态、动画、日期、TOC、国际化等工具
+lib/          内容查询、路由状态、定位恢复、日期、TOC、国际化等工具
 scripts/      本地开发、构建后处理和质量检查脚本
 public/       静态资源和 Cloudflare Pages headers
 docs/         项目维护文档
@@ -77,18 +78,26 @@ Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，�
 - `lib/listPosts.ts`：把完整文章转换为精简的列表/卡片数据。
 - `lib/toc.ts`：从 Markdown 标题生成目录数据。
 - `lib/i18n.ts`：语言配置、路径本地化、界面文案。
-- `lib/blogRouteState.ts`：文章展开路由、全局事件和 history state 边界。
+- `components/animata/`：从 Animata 迁移并适配的动效、骨架屏和菜单原语。
+- `lib/blogRouteState.ts`：文章展开路由和 history state 边界。
 - `lib/hooks/useExpandablePostNavigation.ts`：列表卡片的预取、history state 和 App Router 跳转边界。
+- `lib/hooks/useBlogExpansionState.ts`：文章展开列表状态、路由提交和滚动恢复协调。
 - `lib/blogExpansionState.ts`：文章展开列表状态的纯计算。
-- `lib/postMotion.ts`：文章展开/收起的滚动动画工具。
+- `lib/postLayout.ts`：文章定位和滚动恢复工具，不包含自定义动画。
 
 ## 性能边界
 
 列表页只传递卡片渲染需要的精简文章数据，不在 RSC payload 里携带所有 MDX 编译后的正文代码。文章详情页渲染当前展开文章的正文。
 
-Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开动画上下文并进入 `/{locale}/{slug}`。文章路由提交后，`usePostExpansion` 读取 pending motion context，在详情路由内播放展开动画。点击收起时，卡片保存收起动画上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再播放收起动画。收起完成时必须恢复到点击“继续阅读”之前保存的列表 scrollY，而不是只把卡片移动到近似的视口位置。
+Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开上下文并进入 `/{locale}/{slug}`。文章路由提交后，`useBlogExpansionState` 读取 pending context 并恢复文章定位；可见的列表、正文、菜单和路由切换动效由 `components/animata/` 下的 Motion/Animata 原语负责。点击收起时，卡片保存返回上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再恢复到点击“继续阅读”之前保存的列表 scrollY。
 
-这个模型保留列表到文章详情的展开/收起动效，同时让 MDX 正文继续走 Next.js 和 React 的正常渲染与 hydration 边界。客户端不再执行 Contentlayer runtime MDX code，Cloudflare Pages CSP 不需要为文章展开保留 eval 例外。
+这个模型保留列表到文章详情的连续阅读体验，同时让 MDX 正文继续走 Next.js 和 React 的正常渲染与 hydration 边界。客户端不再执行 Contentlayer runtime MDX code，Cloudflare Pages CSP 不需要为文章展开保留 eval 例外。
+
+## 动画与加载边界
+
+所有新的可见动效、骨架屏和加载过渡都必须复用或扩展 `components/animata/`。业务 hook 可以保存路由上下文、滚动位置和列表状态，但不能重新实现 easing、RAF 动画循环或分散的 Tailwind transition 类。
+
+内部应用链接通过 `components/Link.tsx` 使用 Next.js `Link`，静态资源、RSS、站外链接和 hash 锚点仍使用原生 anchor。各路由段的 `loading.tsx` 复用 Animata 骨架屏，让 App Router 客户端导航保持稳定页面外壳，避免用户看到空白闪烁。
 
 静态导出模式下，Next.js 不会在运行时优化图片。新增主图和作者头像时，应在提交前压缩到适合网页使用的尺寸和体积。
 

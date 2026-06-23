@@ -3,8 +3,6 @@ import { normalizePathname } from '@/lib/blogRouteState'
 
 export const POSTS_PER_BATCH = 5
 
-export type MotionPhase = 'idle' | 'positioning' | 'expanding' | 'collapsing-prep' | 'collapsing'
-
 export function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
   const currentPath = normalizePathname(decodeURI(pathname))
   const matchingPost = posts.find((post) => normalizePathname(`/${post.path}`) === currentPath)

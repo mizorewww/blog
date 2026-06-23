@@ -1,20 +1,33 @@
 /* eslint-disable jsx-a11y/anchor-has-content */
 import { AnchorHTMLAttributes } from 'react'
+import NextLink from 'next/link'
+import { cn } from '@/lib/utils'
 
-const CustomLink = ({ href = '', ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => {
+function isStaticAssetPath(href: string) {
+  return (
+    href === '/feed.xml' ||
+    href === '/robots.txt' ||
+    href === '/sitemap.xml' ||
+    href.startsWith('/static/') ||
+    href.startsWith('/_next/')
+  )
+}
+
+const CustomLink = ({ className, href = '', ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => {
   const isInternalLink = href && href.startsWith('/')
   const isAnchorLink = href && href.startsWith('#')
+  const linkClassName = cn('break-words', className)
 
-  if (isInternalLink) {
-    return <a className="break-words" href={href} {...rest} />
+  if (isInternalLink && !isStaticAssetPath(href)) {
+    return <NextLink className={linkClassName} href={href} {...rest} />
   }
 
-  if (isAnchorLink) {
-    return <a className="break-words" href={href} {...rest} />
+  if (isInternalLink || isAnchorLink) {
+    return <a className={linkClassName} href={href} {...rest} />
   }
 
   return (
-    <a className="break-words" target="_blank" rel="noopener noreferrer" href={href} {...rest} />
+    <a className={linkClassName} target="_blank" rel="noopener noreferrer" href={href} {...rest} />
   )
 }
 

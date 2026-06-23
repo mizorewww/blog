@@ -15,7 +15,7 @@ const ThemeSwitch = () => {
     <button
       type="button"
       aria-label={ui[defaultLocale].toggleTheme}
-      className="transition hover:text-sky-500"
+      className="hover:text-sky-500"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       {mounted && resolvedTheme === 'light' ? (

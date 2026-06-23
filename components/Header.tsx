@@ -1,3 +1,7 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import SlideHeader from '@/components/animata/SlideHeader'
 import HeaderLogo from './HeaderLogo'
 import HeaderNavLinks from './HeaderNavLinks'
 import ThemeSwitch from './ThemeSwitch'
@@ -7,12 +11,24 @@ import Icon from './Icon'
 import { defaultLocale, ui } from '@/lib/i18n'
 
 const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
+  const [isMobile, setIsMobile] = useState(false)
+  const shouldHide = hideOnMobile && isMobile
+
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 639px)')
+    const sync = () => setIsMobile(media.matches)
+
+    sync()
+    media.addEventListener('change', sync)
+
+    return () => media.removeEventListener('change', sync)
+  }, [])
+
   return (
-    <header
-      className={`dark:bg-surface-card-dark/95 fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:transition-none sm:translate-y-0 sm:opacity-100 dark:shadow-none ${
-        hideOnMobile
-          ? 'pointer-events-none -translate-y-full opacity-0 sm:pointer-events-auto'
-          : 'translate-y-0 opacity-100'
+    <SlideHeader
+      hidden={shouldHide}
+      className={`dark:bg-surface-card-dark/95 fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur sm:translate-y-0 sm:opacity-100 dark:shadow-none ${
+        shouldHide ? 'pointer-events-none sm:pointer-events-auto' : ''
       }`}
     >
       <div className="header-shell relative mx-auto flex w-full items-center justify-between gap-x-3 px-3 py-2.5 sm:flex-nowrap sm:gap-x-7 sm:px-6 sm:py-4 lg:px-0">
@@ -26,7 +42,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
           <Link
             href="/feed.xml"
             aria-label={ui[defaultLocale].subscribeRss}
-            className="hidden transition hover:text-sky-500 sm:inline-flex"
+            className="hidden hover:text-sky-500 sm:inline-flex"
           >
             <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />
           </Link>
@@ -36,7 +52,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
           <ThemeSwitch />
         </div>
       </div>
-    </header>
+    </SlideHeader>
   )
 }
 

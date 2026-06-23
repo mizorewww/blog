@@ -1,23 +1,11 @@
 import Link from '@/components/Link'
+import { MenuList, MenuListItem } from '@/components/animata/MenuList'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { mutedText, skyLink } from '@/components/ui/styles'
 import { formatDateTime, formatRelativeTime } from '@/lib/formatDate'
 import { ui, type Locale } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
-
-type PostGitCommit = {
-  hash?: string
-  shortHash?: string
-  committedAt?: string
-  subject?: string
-  url?: string
-}
-
-function getPostGitCommits(commits: BlogListPost['gitCommits']) {
-  return Array.isArray(commits)
-    ? (commits as PostGitCommit[]).filter((commit) => commit.hash || commit.shortHash)
-    : []
-}
+import { getCommitHash, getPostGitCommits } from '@/lib/postGit'
 
 export default function ArticleGitMeta({
   post,
@@ -71,9 +59,9 @@ export default function ArticleGitMeta({
             <MetaIcon name="gitCommit" />
             <span>{labels.gitCommits}</span>
           </div>
-          <div className="space-y-1.5">
+          <MenuList className="space-y-1.5 border-l border-slate-200 pl-3 dark:border-white/10">
             {commits.map((commit) => {
-              const hash = commit.shortHash || commit.hash?.slice(0, 7)
+              const hash = getCommitHash(commit)
 
               if (!hash) {
                 return null
@@ -99,22 +87,25 @@ export default function ArticleGitMeta({
                 'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 rounded-[6px] py-0.5'
 
               return commit.url ? (
-                <Link
-                  key={commit.hash || hash}
-                  href={commit.url}
-                  title={message}
-                  className={`${className} transition hover:text-sky-400`}
-                >
-                  {content}
-                </Link>
+                <MenuListItem key={commit.hash || hash}>
+                  <Link
+                    href={commit.url}
+                    title={message}
+                    className={`${className} hover:text-sky-400`}
+                  >
+                    {content}
+                  </Link>
+                </MenuListItem>
               ) : (
-                <div key={commit.hash || hash} title={message} className={className}>
-                  {content}
-                </div>
+                <MenuListItem key={commit.hash || hash}>
+                  <div title={message} className={className}>
+                    {content}
+                  </div>
+                </MenuListItem>
               )
             })}
             {hiddenCommitCount > 0 && <div>{labels.gitMore(hiddenCommitCount)}</div>}
-          </div>
+          </MenuList>
         </div>
       )}
     </div>

@@ -5,9 +5,9 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
-import { BLOG_PATH_CHANGE_EVENT } from '@/lib/blogRouteState'
+import PostLayoutMotion from '@/components/animata/PostLayoutMotion'
 import { getCategoryCounts, getTagCounts, type CountMap } from '@/lib/content/terms'
-import { usePostExpansion } from '@/lib/hooks/usePostExpansion'
+import { useBlogExpansionState } from '@/lib/hooks/useBlogExpansionState'
 import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
 
@@ -39,15 +39,7 @@ export default function ListLayoutWithTags({
   const dateLocale = localeConfig[locale].dateLocale
   const categoryCounts = providedCategoryCounts || getCategoryCounts(posts)
   const tagCounts = providedTagCounts || getTagCounts(posts)
-  const {
-    expandedPath,
-    loadMorePosts,
-    motionMinHeight,
-    motionPath,
-    motionPhase,
-    scrollToTop,
-    visibleCount,
-  } = usePostExpansion({
+  const { expandedPath, loadMorePosts, scrollToTop, visibleCount } = useBlogExpansionState({
     initialDisplayCount: initialDisplayPosts.length,
     initialExpandedPath,
     pathname: currentPathname,
@@ -58,31 +50,12 @@ export default function ListLayoutWithTags({
     ? displayPosts.findIndex((post) => post.path === expandedPath)
     : -1
   const expandedPost = expandedIndex >= 0 ? displayPosts[expandedIndex] : undefined
-  const shouldRenderFullList =
-    !expandedPost ||
-    motionPhase === 'positioning' ||
-    motionPhase === 'expanding' ||
-    motionPhase.startsWith('collapsing')
-  const visiblePosts = shouldRenderFullList ? displayPosts : [expandedPost]
-  const motionIndex = motionPath ? displayPosts.findIndex((post) => post.path === motionPath) : -1
-  const hasMore =
-    motionPhase === 'idle' && !expandedPath && !motionPath && visibleCount < posts.length
+  const visiblePosts = expandedPost ? [expandedPost] : displayPosts
+  const hasMore = !expandedPath && visibleCount < posts.length
 
   useEffect(() => {
     setCurrentPathname(pathname)
   }, [pathname])
-
-  useEffect(() => {
-    const syncPathname = () => setCurrentPathname(window.location.pathname)
-
-    window.addEventListener('popstate', syncPathname)
-    window.addEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
-
-    return () => {
-      window.removeEventListener('popstate', syncPathname)
-      window.removeEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
-    }
-  }, [])
 
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current
@@ -113,7 +86,7 @@ export default function ListLayoutWithTags({
       locale={locale}
       dateLocale={dateLocale}
     >
-      <div style={motionMinHeight ? { minHeight: motionMinHeight } : undefined}>
+      <div>
         {!expandedPost && <h1 className="sr-only">{title}</h1>}
         {!visiblePosts.length && (
           <div className="dark:bg-surface-card-dark rounded-[10px] bg-white px-8 py-10 text-slate-600 dark:text-white/70">
@@ -121,43 +94,20 @@ export default function ListLayoutWithTags({
           </div>
         )}
         {visiblePosts.map((post, index) => {
-          const isMotionTarget = post.path === motionPath
-          const isCollapsedShell =
-            !isMotionTarget &&
-            (motionPhase === 'positioning' ||
-              motionPhase === 'expanding' ||
-              motionPhase === 'collapsing-prep')
-          const isTransitionTarget =
-            isMotionTarget &&
-            (motionPhase === 'positioning' ||
-              motionPhase === 'expanding' ||
-              motionPhase === 'collapsing-prep')
-          const isBeforeMotionTarget = motionIndex >= 0 && index < motionIndex
-          const collapsedTranslate = isBeforeMotionTarget ? '-translate-y-8' : 'translate-y-8'
-
           return (
-            <div
+            <PostLayoutMotion
               key={post.path}
-              data-post-shell={post.path}
-              className={`grid transform-gpu transition-all duration-[560ms] ease-[cubic-bezier(0.22,1,0.36,1)] motion-reduce:duration-0 ${
-                isCollapsedShell
-                  ? `mt-0 ${collapsedTranslate} grid-rows-[0fr] opacity-0`
-                  : `${index === 0 || isTransitionTarget ? 'mt-0' : 'mt-6'} translate-y-0 grid-rows-[1fr] opacity-100`
-              }`}
-              aria-hidden={isCollapsedShell || undefined}
+              postPath={post.path}
+              className={index === 0 ? 'mt-0' : 'mt-6'}
             >
-              <div className="min-h-0 overflow-hidden">
-                <ExpandablePostCard
-                  post={post}
-                  locale={locale}
-                  dateLocale={dateLocale}
-                  expanded={expandedPath === post.path}
-                  body={
-                    expandedPath === post.path || motionPath === post.path ? expandedPostBody : null
-                  }
-                />
-              </div>
-            </div>
+              <ExpandablePostCard
+                post={post}
+                locale={locale}
+                dateLocale={dateLocale}
+                expanded={expandedPath === post.path}
+                body={expandedPath === post.path ? expandedPostBody : null}
+              />
+            </PostLayoutMotion>
           )
         })}
         {hasMore && <div ref={loadMoreRef} className="mt-6 h-12" aria-hidden="true" />}

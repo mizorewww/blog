@@ -44,9 +44,7 @@ async function waitForExpandedArticleBody(page: Page) {
     .poll(
       async () =>
         page.evaluate(() => {
-          const body = document.querySelector<HTMLElement>(
-            '[data-post-body-motion][aria-hidden="false"]'
-          )
+          const body = document.querySelector<HTMLElement>('[data-animata-collapsible]')
 
           if (!body || body.getBoundingClientRect().height <= 0) {
             return false
@@ -63,6 +61,10 @@ async function waitForExpandedArticleBody(page: Page) {
 
 async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 1) {
   await page.goto('/zh/')
+  await page.evaluate(() => {
+    ;(window as Window & { __mizoreSpaNavigationMarker?: string }).__mizoreSpaNavigationMarker =
+      'alive'
+  })
 
   const link = getArticleEntryLink(page, index, entry)
   await link.scrollIntoViewIfNeeded()
@@ -72,6 +74,14 @@ async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more'
 
   await link.click()
   await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
+  await expect
+    .poll(() =>
+      page.evaluate(
+        () =>
+          (window as Window & { __mizoreSpaNavigationMarker?: string }).__mizoreSpaNavigationMarker
+      )
+    )
+    .toBe('alive')
   await expect(page.getByRole('link', { name: /收起文章/ })).toBeVisible()
 
   return previousScrollY
