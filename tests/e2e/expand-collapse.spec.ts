@@ -106,6 +106,52 @@ async function expectIntentionalArticleMotion(page: Page) {
     .toBe(true)
 }
 
+async function waitForActivePageTransition(page: Page) {
+  await page.waitForFunction(
+    () => document.querySelector('[data-animata-page-transition="active"]') !== null,
+    undefined,
+    { timeout: 2000 }
+  )
+}
+
+async function watchPageTransition(page: Page) {
+  await page.evaluate(() => {
+    const win = window as Window & {
+      __mizorePageTransitionWasActive?: boolean
+      __mizorePageTransitionObserver?: MutationObserver
+    }
+    const target = document.querySelector('[data-animata-page-transition]')
+    const sync = () => {
+      if (target?.getAttribute('data-animata-page-transition') === 'active') {
+        win.__mizorePageTransitionWasActive = true
+      }
+    }
+
+    win.__mizorePageTransitionWasActive = false
+    win.__mizorePageTransitionObserver?.disconnect()
+    win.__mizorePageTransitionObserver = undefined
+
+    if (target) {
+      win.__mizorePageTransitionObserver = new MutationObserver(sync)
+      win.__mizorePageTransitionObserver.observe(target, {
+        attributeFilter: ['data-animata-page-transition'],
+      })
+    }
+
+    sync()
+  })
+}
+
+async function expectNoWatchedPageTransition(page: Page) {
+  await expect(
+    page.evaluate(
+      () =>
+        (window as Window & { __mizorePageTransitionWasActive?: boolean })
+          .__mizorePageTransitionWasActive
+    )
+  ).resolves.toBe(false)
+}
+
 test('recent posts sidebar does not render article commit metadata', async ({ page }) => {
   await page.goto('/zh/')
 
@@ -163,15 +209,37 @@ test('stable list cards do not run direct shell animations', async ({ page }) =>
     .toBe(false)
 })
 
+test('normal route switches run the generic page transition', async ({ page }) => {
+  await page.goto('/zh/')
+
+  const transitionStarted = waitForActivePageTransition(page)
+  await page.locator('.header-shell').getByRole('link', { name: '标签' }).click()
+
+  await transitionStarted
+  await expect(page).toHaveURL(/\/zh\/tags\/$/)
+})
+
 test('opening an article keeps the intentional expansion motion', async ({ page }) => {
   await page.goto('/zh/')
   const link = getArticleEntryLink(page, 2, 'read-more')
   await link.scrollIntoViewIfNeeded()
+  await watchPageTransition(page)
 
   await link.click()
   await expectIntentionalArticleMotion(page)
+  await expectNoWatchedPageTransition(page)
   await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
   await waitForExpandedArticleBody(page)
+})
+
+test('direct article navigation to tags runs the generic page transition', async ({ page }) => {
+  await openArticleFromHome(page)
+
+  const transitionStarted = waitForActivePageTransition(page)
+  await page.locator('.header-shell').getByRole('link', { name: '标签' }).click()
+
+  await transitionStarted
+  await expect(page).toHaveURL(/\/zh\/tags\/$/)
 })
 
 test('opening the bottom article lands at the reading offset', async ({ page }) => {

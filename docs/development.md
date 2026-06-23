@@ -6,12 +6,17 @@ owner: docs-maintainer
 last_verified: 2026-06-23
 verified_by: command
 related_code:
+  - components/AppShell.tsx
+  - components/animata
   - package.json
   - tsconfig.scripts.json
   - scripts
   - eslint.config.mjs
   - knip.json
+  - lib/hooks/useBlogExpansionState.ts
+  - lib/postLayout.ts
 update_when:
+  - animation or loading behavior changes
   - development command changes
   - package manager changes
   - quality gate changes
@@ -179,7 +184,11 @@ Core Web Vitals 约束：
 - LCP 内容必须来自静态 HTML 或构建期数据，不要把首屏主要内容改成客户端加载。
 - INP 敏感路径中的点击处理要短，先给视觉反馈，再做预取、统计等低优先级工作。
 - CLS 依赖稳定尺寸：图片、嵌入内容、固定格式 UI 要有 `width`/`height`、`aspect-ratio` 或稳定容器。
-- 动画、骨架屏和加载过渡必须使用 `components/animata/` 中的 Animata-derived 原语。不要在业务组件里重新写 easing、RAF 动画循环或分散的 Tailwind transition 类；替换旧动效时，同一变更必须删除被替换的自定义动画代码。文章展开、收起、卡片让位和回顶滚动需要保留接近原有体验的动效；底部文章定位要预留临时滚动空间，用户 wheel/touch/键盘滚动必须能取消程序化滚动，避免回弹；已经渲染出来的页面内容和没有状态差异的卡片不应在导航后重新播放入场动画。
+- 动画、骨架屏和加载过渡必须使用 `components/animata/` 中的 Animata-derived 原语。能用成熟库或 Animata 组件更少代码、更好效果地解决时，优先用库或现有原语；不要在业务组件里重新写 easing、RAF 动画循环或分散的 Tailwind transition 类。替换旧动效时，同一变更必须删除被替换的自定义动画代码。
+- 普通页面/路由切换必须通过 `components/animata/PageTransition.tsx` 保持可见的 SPA 式过渡；首屏初始渲染不应播放页面入场动画。`loading.tsx` 仍然负责 pending 导航和加载骨架屏，避免空白闪烁，不要把加载完成后的内容再做一次伪 loading 动画。
+- 文章展开、收起、卡片让位和回顶滚动由 `lib/hooks/useBlogExpansionState.ts` 与 `lib/postLayout.ts` 所属的文章状态机负责。只有 `lib/blogRouteState.ts` 中存在 pending 展开、pending 收起或浏览器 Back 的 list-return context 时，才应抑制通用页面切换动画；文章页直接跳到标签、分类或其他普通页面仍然必须播放通用页面切换动画。
+- 文章展开、收起、卡片让位和回顶滚动需要保留接近原有体验的动效；底部文章定位要预留临时滚动空间，用户 wheel/touch/键盘滚动必须能取消程序化滚动，避免回弹。
+- 已经渲染出来的页面内容和没有状态差异的卡片不应在导航后重新播放入场动画；没有真实差异的卡片不应该为了“看起来有动画”而动。
 - 第三方脚本默认不进首屏；必须接入时使用延迟加载，并确认 CSP、构建产物和交互性能。
 - 跨页面提速优先使用浏览器原生能力。当前站点使用 Speculation Rules 的 `moderate` 预渲染作为渐进增强；涉及统计脚本时必须避免 prerender 阶段提前上报。
 

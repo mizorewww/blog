@@ -281,6 +281,101 @@ function getPendingTargetPathname(targetPath: string) {
   return normalizePathname(decodeURI(new URL(targetPath, window.location.origin).pathname))
 }
 
+function isFreshPendingBlogNavigationMotion(pendingMotion: PendingBlogNavigationMotion) {
+  return Date.now() - pendingMotion.createdAt <= PENDING_MOTION_MAX_AGE
+}
+
+function normalizePostPath(postPath: string) {
+  return normalizePathname(`/${postPath}`)
+}
+
+function pathnameMatchesPost(pathname: string, postPath: string) {
+  const pathCandidates = [
+    normalizePathname(pathname),
+    normalizePathname(stripLocaleFromPathname(pathname)),
+  ]
+  const postCandidates = [
+    normalizePostPath(postPath),
+    normalizePathname(stripLocaleFromPathname(normalizePostPath(postPath))),
+  ]
+
+  return pathCandidates.some((pathCandidate) => postCandidates.includes(pathCandidate))
+}
+
+function getPathnameFromUrl(value: string | null | undefined) {
+  if (typeof window === 'undefined' || typeof value !== 'string') {
+    return null
+  }
+
+  try {
+    return normalizePathname(decodeURI(new URL(value, window.location.origin).pathname))
+  } catch {
+    return null
+  }
+}
+
+function listReturnContextMatchesRoute(
+  previousPath: string,
+  nextPath: string,
+  postPath: string | undefined,
+  previousUrl: string | null | undefined
+) {
+  return Boolean(
+    postPath &&
+    pathnameMatchesPost(previousPath, postPath) &&
+    getPathnameFromUrl(previousUrl) === nextPath
+  )
+}
+
+export function isPendingBlogRouteMotion(previousPathname: string, nextPathname: string) {
+  if (typeof window === 'undefined') {
+    return false
+  }
+
+  const previousPath = normalizePathname(decodeURI(previousPathname))
+  const nextPath = normalizePathname(decodeURI(nextPathname))
+  const pendingMotion = readPendingBlogNavigationMotion()
+
+  if (pendingMotion && isFreshPendingBlogNavigationMotion(pendingMotion)) {
+    const targetPath = getPendingTargetPathname(pendingMotion.targetPath)
+
+    if (
+      pendingMotion.motion === 'expand' &&
+      pathnameMatchesPost(targetPath, pendingMotion.postPath) &&
+      pathnameMatchesPost(nextPath, pendingMotion.postPath)
+    ) {
+      return true
+    }
+
+    if (
+      targetPath === nextPath &&
+      pendingMotion.motion === 'collapse' &&
+      pathnameMatchesPost(previousPath, pendingMotion.postPath)
+    ) {
+      return true
+    }
+  }
+
+  const listReturn = (window.history.state as BlogHistoryState | null)?.blogListReturn
+
+  if (
+    listReturnContextMatchesRoute(
+      previousPath,
+      nextPath,
+      listReturn?.postPath,
+      listReturn?.previousUrl
+    )
+  ) {
+    return true
+  }
+
+  const storedContexts = readBlogListReturnContexts()
+
+  return Object.entries(storedContexts).some(([postPath, context]) =>
+    listReturnContextMatchesRoute(previousPath, nextPath, postPath, context.previousUrl)
+  )
+}
+
 export function consumePendingBlogNavigationMotion(postPath: string): BlogMotionContext | null {
   const pendingMotion = readPendingBlogNavigationMotion()
 

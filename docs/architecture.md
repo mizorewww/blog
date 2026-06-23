@@ -9,6 +9,10 @@ related_code:
   - app
   - components
   - components/animata
+  - components/animata/PageTransition.tsx
+  - lib/blogRouteState.ts
+  - lib/hooks/useBlogExpansionState.ts
+  - lib/postLayout.ts
   - contentlayer
   - lib
   - next.config.js
@@ -97,7 +101,9 @@ Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/
 
 所有新的可见动效、骨架屏和加载过渡都必须复用或扩展 `components/animata/`。业务 hook 可以保存路由上下文、滚动位置和列表状态，但不能重新实现 easing、RAF 动画循环或分散的 Tailwind transition 类。
 
-内部应用链接通过 `components/Link.tsx` 使用 Next.js `Link`，静态资源、RSS、站外链接和 hash 锚点仍使用原生 anchor。各路由段的 `loading.tsx` 复用 Animata 骨架屏，让 App Router 客户端导航保持稳定页面外壳，避免用户看到空白闪烁；已经提交到页面的内容和没有状态差异的卡片不做额外入场动画，只有展开、收起、让位、加载更多等真实状态变化触发动效。
+内部应用链接通过 `components/Link.tsx` 使用 Next.js `Link`，静态资源、RSS、站外链接和 hash 锚点仍使用原生 anchor。各路由段的 `loading.tsx` 复用 Animata 骨架屏，让 App Router 客户端导航保持稳定页面外壳，避免用户看到空白闪烁；`components/animata/PageTransition.tsx` 负责普通页面/路由切换的可见过渡。初始渲染、已经提交到页面的内容和没有状态差异的卡片不做额外入场动画；页面切换、文章展开、收起、让位、回顶滚动、加载更多等真实状态变化触发动效。
+
+文章展开、收起和浏览器 Back 返回原列表时，通用页面切换动画会让位给文章状态机；这个判断由 `lib/blogRouteState.ts` 中的 pending 展开、pending 收起和 list-return context 决定。文章页直接跳到标签、分类或其他普通页面不属于文章状态机，仍然播放普通页面切换动画。
 
 静态导出模式下，Next.js 不会在运行时优化图片。新增主图和作者头像时，应在提交前压缩到适合网页使用的尺寸和体积。
 
