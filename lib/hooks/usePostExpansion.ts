@@ -1,10 +1,11 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import type { BlogListPost } from '@/lib/listPosts'
 import {
   BLOG_PATH_CHANGE_EVENT,
+  consumePendingBlogCollapseMotion,
   consumePendingBlogNavigationMotion,
   getBlogListReturnContext,
   isHomePath,
@@ -18,16 +19,13 @@ import {
   getExpandedTargetOffset,
   getMainColumnHeight,
   getPostShell,
+  prefersReducedMotion,
   setPostTop,
 } from '@/lib/postMotion'
 
 export const POSTS_PER_BATCH = 5
 
 export type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
-
-export type MotionOptions = {
-  afterMotion?: () => void
-}
 
 function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
   const currentPath = normalizePathname(decodeURI(pathname))
@@ -85,13 +83,32 @@ export function usePostExpansion({
     shouldAnimateInitialExpansion ? null : initialExpandedPath
   )
   const [motionMinHeight, setMotionMinHeight] = useState<number | null>(null)
+  const collapsePrepFrameRef = useRef<number | null>(null)
   const scrollFrameRef = useRef<number | null>(null)
+  const transformCleanupRef = useRef<(() => void) | null>(null)
 
   const clearMotionTimers = useCallback(() => {
+    if (collapsePrepFrameRef.current !== null) {
+      window.cancelAnimationFrame(collapsePrepFrameRef.current)
+      collapsePrepFrameRef.current = null
+    }
+
     if (scrollFrameRef.current !== null) {
       window.cancelAnimationFrame(scrollFrameRef.current)
       scrollFrameRef.current = null
     }
+
+    if (transformCleanupRef.current) {
+      transformCleanupRef.current()
+      transformCleanupRef.current = null
+    }
+  }, [])
+
+  const finishExpansion = useCallback((postPath: string) => {
+    setPostTop(postPath, getExpandedTargetOffset())
+    setMotionPhase('idle')
+    setMotionPath(postPath)
+    setMotionMinHeight(null)
   }, [])
 
   const getCollapsedTargetTop = useCallback(
@@ -116,65 +133,116 @@ export function usePostExpansion({
   )
 
   const expandPost = useCallback(
-    (post: BlogListPost, context: MotionContext, options?: MotionOptions) => {
+    (post: BlogListPost, context: MotionContext) => {
       clearMotionTimers()
 
-      const nextVisibleCount = Math.max(
-        visibleCount,
-        posts.findIndex((item) => item.path === post.path) + 1
-      )
+      const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
       const startTop =
-        getPostShell(post.path)?.getBoundingClientRect().top ??
         context.previousCardTop ??
+        getPostShell(post.path)?.getBoundingClientRect().top ??
         getExpandedTargetOffset()
+      const targetTop = getExpandedTargetOffset()
 
       flushSync(() => {
         setMotionMinHeight(getMainColumnHeight())
-        setVisibleCount(nextVisibleCount)
+        setVisibleCount((count) => Math.max(count, nextVisibleCount))
         setMotionPath(post.path)
         setExpandedPath(post.path)
         setMotionPhase('expanding')
       })
 
-      animatePostTopTo(
-        post.path,
-        startTop,
-        getExpandedTargetOffset(),
-        MOTION_DURATION,
-        scrollFrameRef,
-        () => {
-          setPostTop(post.path, getExpandedTargetOffset())
-          setMotionPhase('idle')
-          setMotionPath(post.path)
-          setMotionMinHeight(null)
-          options?.afterMotion?.()
+      const shell = getPostShell(post.path)
+
+      if (shell && context.previousCardTop !== null) {
+        const currentTop = shell.getBoundingClientRect().top
+        const deltaY = startTop - currentTop
+
+        if (!prefersReducedMotion() && Math.abs(deltaY) > 1) {
+          let active = true
+          let timer: number | null = null
+
+          function onTransitionEnd(event: TransitionEvent) {
+            if (event.target === shell && event.propertyName === 'transform') {
+              complete()
+            }
+          }
+
+          const dispose = () => {
+            shell.removeEventListener('transitionend', onTransitionEnd)
+            if (timer !== null) {
+              window.clearTimeout(timer)
+              timer = null
+            }
+            shell.style.transition = ''
+            shell.style.transform = ''
+          }
+
+          const complete = () => {
+            if (!active) {
+              return
+            }
+
+            active = false
+            dispose()
+            transformCleanupRef.current = null
+            finishExpansion(post.path)
+          }
+
+          transformCleanupRef.current = () => {
+            if (!active) {
+              return
+            }
+
+            active = false
+            dispose()
+          }
+
+          shell.style.transition = 'none'
+          shell.style.transform = `translate3d(0, ${deltaY}px, 0)`
+          void shell.offsetHeight
+          shell.addEventListener('transitionend', onTransitionEnd)
+          shell.style.transition = ''
+          timer = window.setTimeout(complete, MOTION_DURATION + 80)
+          scrollFrameRef.current = window.requestAnimationFrame(() => {
+            scrollFrameRef.current = null
+            shell.style.transform = ''
+          })
+
+          return
         }
+      }
+
+      animatePostTopTo(post.path, startTop, targetTop, MOTION_DURATION, scrollFrameRef, () =>
+        finishExpansion(post.path)
       )
     },
-    [clearMotionTimers, posts, visibleCount]
+    [clearMotionTimers, finishExpansion, posts]
   )
 
   const collapsePost = useCallback(
-    (post: BlogListPost, context: MotionContext) => {
+    (post: BlogListPost, context: MotionContext, startTopOverride?: number) => {
       clearMotionTimers()
 
-      const nextVisibleCount = Math.max(
-        visibleCount,
-        posts.findIndex((item) => item.path === post.path) + 1
-      )
-      const startTop =
-        getPostShell(post.path)?.getBoundingClientRect().top ?? getExpandedTargetOffset()
-      const targetTop = getCollapsedTargetTop(post, context)
+      const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
 
       flushSync(() => {
-        setVisibleCount(nextVisibleCount)
+        setVisibleCount((count) => Math.max(count, nextVisibleCount))
         setMotionPath(post.path)
         setExpandedPath(null)
         setMotionPhase('collapsing-prep')
       })
+
+      const startTop =
+        startTopOverride ??
+        getPostShell(post.path)?.getBoundingClientRect().top ??
+        getExpandedTargetOffset()
+      const targetTop = getCollapsedTargetTop(post, context)
+
       setPostTop(post.path, startTop)
 
-      requestAnimationFrame(() => {
+      collapsePrepFrameRef.current = window.requestAnimationFrame(() => {
+        collapsePrepFrameRef.current = null
+
         flushSync(() => {
           setMotionPhase('collapsing')
         })
@@ -187,7 +255,7 @@ export function usePostExpansion({
         })
       })
     },
-    [clearMotionTimers, getCollapsedTargetTop, posts, visibleCount]
+    [clearMotionTimers, getCollapsedTargetTop, posts]
   )
 
   const loadMorePosts = useCallback(() => {
@@ -212,9 +280,14 @@ export function usePostExpansion({
     }
   }, [])
 
-  useEffect(() => {
-    const nextExpandedPath = getExpandedPathFromPathname(posts, pathname) || initialExpandedPath
-    const pendingInitialMotion = pendingInitialMotionRef.current
+  useLayoutEffect(() => {
+    const nextExpandedPath = getExpandedPathFromPathname(posts, pathname)
+    const pendingInitialMotion =
+      pendingInitialMotionRef.current ||
+      (nextExpandedPath ? consumePendingBlogNavigationMotion(nextExpandedPath) : null)
+    const pendingCollapseMotion = nextExpandedPath
+      ? null
+      : consumePendingBlogCollapseMotion(posts.map((post) => post.path))
 
     if (pendingInitialMotion && nextExpandedPath) {
       const post = posts.find((item) => item.path === nextExpandedPath)
@@ -236,13 +309,40 @@ export function usePostExpansion({
       }
     }
 
+    if (pendingCollapseMotion) {
+      const post = posts.find((item) => item.path === pendingCollapseMotion.postPath)
+
+      pendingInitialMotionRef.current = null
+      clearMotionTimers()
+      setExpandedPath(null)
+      setMotionPath(null)
+      setMotionMinHeight(null)
+      setMotionPhase('idle')
+
+      if (post) {
+        const frame = window.requestAnimationFrame(() => {
+          collapsePost(post, pendingCollapseMotion, getExpandedTargetOffset())
+        })
+
+        return () => window.cancelAnimationFrame(frame)
+      }
+    }
+
     clearMotionTimers()
     setVisibleCount(getInitialVisibleCount(posts, initialDisplayCount, nextExpandedPath))
     setExpandedPath(nextExpandedPath)
     setMotionPath(nextExpandedPath)
     setMotionMinHeight(null)
     setMotionPhase('idle')
-  }, [clearMotionTimers, expandPost, initialDisplayCount, initialExpandedPath, pathname, posts])
+  }, [
+    clearMotionTimers,
+    collapsePost,
+    expandPost,
+    initialDisplayCount,
+    initialExpandedPath,
+    pathname,
+    posts,
+  ])
 
   useEffect(() => {
     const collapseOnHomeClick = (event: MouseEvent) => {
@@ -281,16 +381,17 @@ export function usePostExpansion({
   }, [clearMotionTimers])
 
   useEffect(() => {
-    const syncExpandedPath = (event?: PopStateEvent) => {
+    const syncExpandedPath = (event?: Event) => {
       const nextExpandedPath = getExpandedPathFromLocation(posts)
 
       if (!nextExpandedPath && expandedPath) {
         const expandedPost = posts.find((post) => post.path === expandedPath)
+        const eventState = event && 'state' in event ? event.state : undefined
 
         if (expandedPost) {
           collapsePost(
             expandedPost,
-            getBlogListReturnContext(event?.state, expandedPath) || {
+            getBlogListReturnContext(eventState, expandedPath) || {
               previousCardTop: null,
               previousScrollY: null,
             }
@@ -308,8 +409,12 @@ export function usePostExpansion({
     }
 
     window.addEventListener('popstate', syncExpandedPath)
+    window.addEventListener(BLOG_PATH_CHANGE_EVENT, syncExpandedPath)
 
-    return () => window.removeEventListener('popstate', syncExpandedPath)
+    return () => {
+      window.removeEventListener('popstate', syncExpandedPath)
+      window.removeEventListener(BLOG_PATH_CHANGE_EVENT, syncExpandedPath)
+    }
   }, [clearMotionTimers, collapsePost, expandedPath, initialDisplayCount, posts])
 
   useEffect(() => {
@@ -317,9 +422,7 @@ export function usePostExpansion({
   }, [clearMotionTimers])
 
   return {
-    collapsePost,
     expandedPath,
-    expandPost,
     loadMorePosts,
     motionMinHeight,
     motionPath,

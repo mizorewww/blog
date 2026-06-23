@@ -1,10 +1,11 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
+import { BLOG_PATH_CHANGE_EVENT } from '@/lib/blogRouteState'
 import { getCategoryCounts, getTagCounts } from '@/lib/content/terms'
 import { usePostExpansion } from '@/lib/hooks/usePostExpansion'
 import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
@@ -32,15 +33,14 @@ export default function ListLayoutWithTags({
   expandedPostBody,
 }: ListLayoutProps) {
   const pathname = usePathname()
+  const [currentPathname, setCurrentPathname] = useState(pathname)
   const loadMoreRef = useRef<HTMLDivElement | null>(null)
   const labels = ui[locale]
   const dateLocale = localeConfig[locale].dateLocale
   const categoryCounts = providedCategoryCounts || getCategoryCounts(posts)
   const tagCounts = providedTagCounts || getTagCounts(posts)
   const {
-    collapsePost,
     expandedPath,
-    expandPost,
     loadMorePosts,
     motionMinHeight,
     motionPath,
@@ -50,7 +50,7 @@ export default function ListLayoutWithTags({
   } = usePostExpansion({
     initialDisplayCount: initialDisplayPosts.length,
     initialExpandedPath,
-    pathname,
+    pathname: currentPathname,
     posts,
   })
   const displayPosts = posts.slice(0, visibleCount)
@@ -63,6 +63,22 @@ export default function ListLayoutWithTags({
   const visiblePosts = shouldRenderFullList ? displayPosts : [expandedPost]
   const motionIndex = motionPath ? displayPosts.findIndex((post) => post.path === motionPath) : -1
   const hasMore = !expandedPath && visibleCount < posts.length
+
+  useEffect(() => {
+    setCurrentPathname(pathname)
+  }, [pathname])
+
+  useEffect(() => {
+    const syncPathname = () => setCurrentPathname(window.location.pathname)
+
+    window.addEventListener('popstate', syncPathname)
+    window.addEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
+
+    return () => {
+      window.removeEventListener('popstate', syncPathname)
+      window.removeEventListener(BLOG_PATH_CHANGE_EVENT, syncPathname)
+    }
+  }, [])
 
   useEffect(() => {
     const loadMoreElement = loadMoreRef.current
@@ -126,15 +142,9 @@ export default function ListLayoutWithTags({
                   locale={locale}
                   dateLocale={dateLocale}
                   expanded={expandedPath === post.path}
-                  body={expandedPath === post.path ? expandedPostBody : null}
-                  onExpandedChange={(expanded, context, options) => {
-                    if (expanded) {
-                      expandPost(post, context, options)
-                      return
-                    }
-
-                    collapsePost(post, context)
-                  }}
+                  body={
+                    expandedPath === post.path || motionPath === post.path ? expandedPostBody : null
+                  }
                 />
               </div>
             </div>

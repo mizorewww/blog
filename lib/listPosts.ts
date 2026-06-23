@@ -17,25 +17,9 @@ export type BlogListPost = Pick<
   | 'gitCommits'
   | 'gitCommitCount'
   | 'githubUrl'
-> & {
-  bodyCode?: string
-}
+>
 
-type BodyCodeSelector = 'all' | 'none' | ((post: Blog) => boolean)
-
-type ToListPostsOptions = {
-  includeBodyCode?: BodyCodeSelector
-}
-
-function shouldIncludeBodyCode(post: Blog, selector: BodyCodeSelector) {
-  if (selector === 'all') return true
-  if (selector === 'none') return false
-  return selector(post)
-}
-
-export function toListPosts(posts: Blog[], options: ToListPostsOptions = {}): BlogListPost[] {
-  const includeBodyCode = options.includeBodyCode || 'none'
-
+export function toListPosts(posts: Blog[]): BlogListPost[] {
   return posts.map((post) => ({
     title: post.title,
     date: post.date,
@@ -52,6 +36,5 @@ export function toListPosts(posts: Blog[], options: ToListPostsOptions = {}): Bl
     gitCommits: post.gitCommits,
     gitCommitCount: post.gitCommitCount,
     githubUrl: post.githubUrl,
-    ...(shouldIncludeBodyCode(post, includeBodyCode) ? { bodyCode: post.body.code } : {}),
   }))
 }

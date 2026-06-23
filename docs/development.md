@@ -129,7 +129,7 @@ yarn perf:check
 rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.txt
 ```
 
-期望没有输出。列表页只能携带卡片所需的精简数据；文章正文通过详情页构建期渲染，或通过 `out/_post-data/` 在客户端预取后用于就地展开动画。
+期望没有输出。列表页只能携带卡片所需的精简数据；文章正文通过详情页构建期渲染。列表卡片通过 App Router 预取静态文章路由，路由提交后由现有展开动画接管视觉过渡。
 
 使用仓库内的静态 HTML 质量检查：
 
@@ -171,11 +171,12 @@ Core Web Vitals 约束：
 
 “继续阅读”交互的专项检查：
 
-1. 首页加载后正文预加载请求应命中 `/_post-data/{locale}/{slug}.json`。
-2. 点击后 URL 更新目标是 `/{locale}/{slug}`，但已预取正文时不应等待 App Router 提交详情页。
-3. 返回列表时应读取 `sessionStorage` 或 history state 中的展开动画上下文并播放收起动画。
-4. 点击响应应控制在 30ms 内。
-5. 展开动画应有折叠态、中间态和完成态，不得为了速度跳过动画。
+1. 首页卡片进入视口、hover 或 focus 后应预取目标文章路由。
+2. 点击后 URL 更新目标是 `/{locale}/{slug}`，文章路由提交后应播放展开动画。
+3. Network 面板不应出现 `/_post-data/` 正文 JSON 请求。
+4. 点击收起时应返回原列表 URL；从标签页或分类页进入文章后，收起完成时 URL 和渲染列表必须仍然匹配原筛选条件。
+5. 点击响应应控制在 30ms 内。
+6. 展开动画应有折叠态、中间态和完成态，不得为了速度跳过动画。
 
 ## 开发纪律
 
@@ -199,7 +200,7 @@ yarn build
 2. 执行 `next build`
 3. 静态导出页面
 4. 执行 `scripts/postbuild.mjs`
-5. 生成 RSS 和文章正文预加载数据
+5. 生成 RSS
 
 构建产物：
 

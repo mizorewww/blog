@@ -18,9 +18,14 @@ export type BlogHistoryState = {
 }
 
 type PendingBlogNavigationMotion = BlogMotionContext & {
+  motion: 'expand' | 'collapse'
   postPath: string
   targetPath: string
   createdAt: number
+}
+
+export type PendingBlogCollapseMotion = BlogMotionContext & {
+  postPath: string
 }
 
 let pendingBlogNavigationMotion: PendingBlogNavigationMotion | null = null
@@ -169,10 +174,29 @@ export function setPendingBlogNavigationMotion(
 ) {
   writePendingBlogNavigationMotion({
     ...context,
+    motion: 'expand',
     postPath,
     targetPath,
     createdAt: Date.now(),
   })
+}
+
+export function setPendingBlogCollapseMotion(
+  postPath: string,
+  targetPath: string,
+  context: BlogMotionContext
+) {
+  writePendingBlogNavigationMotion({
+    ...context,
+    motion: 'collapse',
+    postPath,
+    targetPath,
+    createdAt: Date.now(),
+  })
+}
+
+function getPendingTargetPathname(targetPath: string) {
+  return normalizePathname(decodeURI(new URL(targetPath, window.location.origin).pathname))
 }
 
 export function consumePendingBlogNavigationMotion(postPath: string): BlogMotionContext | null {
@@ -183,9 +207,12 @@ export function consumePendingBlogNavigationMotion(postPath: string): BlogMotion
   }
 
   const currentPath = normalizePathname(decodeURI(window.location.pathname))
-  const targetPath = normalizePathname(decodeURI(pendingMotion.targetPath))
+  const targetPath = getPendingTargetPathname(pendingMotion.targetPath)
   const isExpired = Date.now() - pendingMotion.createdAt > PENDING_MOTION_MAX_AGE
-  const isMatchingNavigation = pendingMotion.postPath === postPath && targetPath === currentPath
+  const isMatchingNavigation =
+    pendingMotion.motion !== 'collapse' &&
+    pendingMotion.postPath === postPath &&
+    targetPath === currentPath
 
   if (isExpired || !isMatchingNavigation) {
     if (isExpired) {
@@ -203,6 +230,36 @@ export function consumePendingBlogNavigationMotion(postPath: string): BlogMotion
   }
 }
 
-export function notifyBlogPathChange() {
-  window.dispatchEvent(new Event(BLOG_PATH_CHANGE_EVENT))
+export function consumePendingBlogCollapseMotion(
+  postPaths: string[]
+): PendingBlogCollapseMotion | null {
+  const pendingMotion = readPendingBlogNavigationMotion()
+
+  if (typeof window === 'undefined' || !pendingMotion) {
+    return null
+  }
+
+  const currentPath = normalizePathname(decodeURI(window.location.pathname))
+  const targetPath = getPendingTargetPathname(pendingMotion.targetPath)
+  const isExpired = Date.now() - pendingMotion.createdAt > PENDING_MOTION_MAX_AGE
+  const isMatchingNavigation =
+    pendingMotion.motion === 'collapse' &&
+    postPaths.includes(pendingMotion.postPath) &&
+    targetPath === currentPath
+
+  if (isExpired || !isMatchingNavigation) {
+    if (isExpired) {
+      clearPendingBlogNavigationMotion()
+    }
+    return null
+  }
+
+  clearPendingBlogNavigationMotion()
+
+  return {
+    postPath: pendingMotion.postPath,
+    previousCardTop: pendingMotion.previousCardTop,
+    previousScrollY: pendingMotion.previousScrollY,
+    previousUrl: pendingMotion.previousUrl,
+  }
 }

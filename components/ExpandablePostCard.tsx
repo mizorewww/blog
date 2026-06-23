@@ -4,13 +4,10 @@ import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import Image from '@/components/Image'
 import Link from '@/components/Link'
-import MDXRenderer from '@/components/MDXRenderer'
-import { components as mdxComponents } from '@/components/MDXComponents'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { cardClass, mutedText, skyLink } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
 import { useNow } from '@/lib/hooks/useNow'
-import { usePostBody } from '@/lib/hooks/usePostBody'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
@@ -18,25 +15,16 @@ import { formatDate } from '@/lib/formatDate'
 import {
   clearBlogListReturnContext,
   getStoredBlogListReturnContext,
-  notifyBlogPathChange,
+  setPendingBlogCollapseMotion,
   setBlogListReturnContext,
   setPendingBlogNavigationMotion,
+  type BlogMotionContext,
 } from '@/lib/blogRouteState'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { MouseEvent, ReactNode } from 'react'
 
 const BODY_MOTION_DURATION = 560
-
-type ExpandedChangeContext = {
-  previousCardTop: number | null
-  previousScrollY: number | null
-  previousUrl: string | null
-}
-
-type ExpandedChangeOptions = {
-  afterMotion?: () => void
-}
 
 function getHistoryState() {
   return typeof window.history.state === 'object' && window.history.state !== null
@@ -54,7 +42,6 @@ export default function ExpandablePostCard({
   dateLocale,
   expanded,
   body,
-  onExpandedChange,
   headingLevel = 'h2',
 }: {
   post: BlogListPost
@@ -62,36 +49,25 @@ export default function ExpandablePostCard({
   dateLocale: string
   expanded: boolean
   body?: ReactNode
-  onExpandedChange: (
-    expanded: boolean,
-    context: ExpandedChangeContext,
-    options?: ExpandedChangeOptions
-  ) => void
   headingLevel?: 'h1' | 'h2'
 }) {
   const router = useRouter()
+  const articleRef = useRef<HTMLElement | null>(null)
   const previousUrlRef = useRef<string | null>(null)
   const previousScrollYRef = useRef<number | null>(null)
   const previousCardTopRef = useRef<number | null>(null)
-  const expansionFrameRef = useRef<number | null>(null)
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const now = useNow()
-  const { bodyCode, prefetchPost, preloadedBodyCode, setPreloadedBodyCode } = usePostBody(post)
   const primaryTag = post.tags?.[0]
   const postHref = `/${post.path}/`
   const Heading = expanded ? 'h1' : headingLevel
   const labels = ui[locale]
-  const shouldPreMountBody = Boolean(preloadedBodyCode && !post.bodyCode)
-  const hasBody = Boolean(body || bodyCode)
-  const renderBody = hasBody && (expanded || shouldKeepBodyMounted || shouldPreMountBody)
+  const hasBody = Boolean(body)
+  const renderBody = hasBody && (expanded || shouldKeepBodyMounted)
 
-  useEffect(() => {
-    return () => {
-      if (expansionFrameRef.current !== null) {
-        window.cancelAnimationFrame(expansionFrameRef.current)
-      }
-    }
-  }, [])
+  const prefetchPost = useCallback(() => {
+    router.prefetch(postHref)
+  }, [postHref, router])
 
   useEffect(() => {
     if (expanded) {
@@ -110,17 +86,39 @@ export default function ExpandablePostCard({
     return () => window.clearTimeout(timer)
   }, [expanded, shouldKeepBodyMounted])
 
+  useEffect(() => {
+    const article = articleRef.current
+
+    if (!article || expanded) {
+      return
+    }
+
+    if (!('IntersectionObserver' in window)) {
+      prefetchPost()
+      return
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          prefetchPost()
+          observer.disconnect()
+        }
+      },
+      { rootMargin: '360px 0px' }
+    )
+
+    observer.observe(article)
+
+    return () => observer.disconnect()
+  }, [expanded, prefetchPost])
+
   const onReadMore = (event: MouseEvent<HTMLAnchorElement>) => {
     if (!isPlainPrimaryClick(event)) {
       return
     }
 
     event.preventDefault()
-
-    if (expansionFrameRef.current !== null) {
-      window.cancelAnimationFrame(expansionFrameRef.current)
-      expansionFrameRef.current = null
-    }
 
     if (expanded) {
       const storedContext = getStoredBlogListReturnContext(post.path)
@@ -129,13 +127,14 @@ export default function ExpandablePostCard({
       const previousScrollY = previousScrollYRef.current ?? storedContext?.previousScrollY ?? null
       const previousCardTop = previousCardTopRef.current ?? storedContext?.previousCardTop ?? null
 
-      window.history.pushState(null, '', previousUrl)
-      notifyBlogPathChange()
+      const collapseContext = { previousCardTop, previousScrollY, previousUrl }
+
+      setPendingBlogCollapseMotion(post.path, previousUrl, collapseContext)
       previousUrlRef.current = null
       previousScrollYRef.current = null
       previousCardTopRef.current = null
       clearBlogListReturnContext(post.path)
-      onExpandedChange(false, { previousCardTop, previousScrollY, previousUrl })
+      router.push(previousUrl, { scroll: false })
       return
     }
 
@@ -144,7 +143,7 @@ export default function ExpandablePostCard({
     previousCardTopRef.current =
       event.currentTarget.closest('article')?.getBoundingClientRect().top ?? null
 
-    const expansionContext = {
+    const expansionContext: BlogMotionContext = {
       previousCardTop: previousCardTopRef.current,
       previousScrollY: previousScrollYRef.current,
       previousUrl: previousUrlRef.current,
@@ -167,48 +166,13 @@ export default function ExpandablePostCard({
     )
     setBlogListReturnContext(post.path, expansionContext)
 
-    const availableBodyCode = bodyCode
-    const shouldPrimeBodyBeforeExpansion = Boolean(
-      availableBodyCode && !preloadedBodyCode && !post.bodyCode
-    )
-
-    if (availableBodyCode && shouldPrimeBodyBeforeExpansion) {
-      setPreloadedBodyCode(availableBodyCode)
-    }
-
-    if (availableBodyCode && window.location.pathname !== postHref) {
-      window.history.pushState(
-        {
-          ...historyState,
-          blogExpandedPath: post.path,
-          blogPreviousUrl: previousUrlRef.current,
-        },
-        '',
-        postHref
-      )
-      notifyBlogPathChange()
-    }
-
-    if (!availableBodyCode) {
-      setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
-      prefetchPost()
-      router.push(postHref, { scroll: false })
-      return
-    }
-
-    if (shouldPrimeBodyBeforeExpansion) {
-      expansionFrameRef.current = window.requestAnimationFrame(() => {
-        expansionFrameRef.current = null
-        onExpandedChange(true, expansionContext)
-      })
-      return
-    }
-
-    onExpandedChange(true, expansionContext)
+    setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
+    prefetchPost()
+    router.push(postHref, { scroll: false })
   }
 
   return (
-    <article className={`${cardClass} overflow-hidden`} data-post-path={post.path}>
+    <article ref={articleRef} className={`${cardClass} overflow-hidden`} data-post-path={post.path}>
       <Link href={postHref} aria-label={post.title} className="block overflow-hidden">
         <div className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100">
           <Image
@@ -245,7 +209,7 @@ export default function ExpandablePostCard({
               <div className="dark:border-border-subtle-dark border-t border-slate-200 pt-5 pb-1">
                 {renderBody && (
                   <div className="prose prose-slate dark:prose-invert max-w-none">
-                    {bodyCode ? <MDXRenderer code={bodyCode} components={mdxComponents} /> : body}
+                    {body}
                     <ArticleLicenseNotice locale={locale} />
                   </div>
                 )}

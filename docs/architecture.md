@@ -11,6 +11,7 @@ related_code:
   - contentlayer
   - lib
   - next.config.js
+  - public/_headers
 update_when:
   - architecture changes
   - build model changes
@@ -74,7 +75,6 @@ Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，�
 - `lib/content/terms.ts`：分类、标签的 slug、计数、过滤和静态参数。
 - `lib/contentlayer.ts`：排序和提取可序列化内容字段。
 - `lib/listPosts.ts`：把完整文章转换为精简的列表/卡片数据。
-- `lib/postBodyPreload.ts`：客户端文章正文预加载缓存，用于保留列表页就地展开动画。
 - `lib/toc.ts`：从 Markdown 标题生成目录数据。
 - `lib/i18n.ts`：语言配置、路径本地化、界面文案。
 - `lib/blogRouteState.ts`：文章展开路由、全局事件和 history state 边界。
@@ -84,7 +84,9 @@ Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，�
 
 列表页只传递卡片渲染需要的精简文章数据，不在 RSC payload 里携带所有 MDX 编译后的正文代码。文章详情页渲染当前展开文章的正文。
 
-Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。同时，构建后会生成 `out/_post-data/{locale}/{slug}.json`；列表卡片进入浏览器后预加载对应正文 code，点击“继续阅读”时先更新 URL，再在当前列表帧内播放展开动画。这个客户端展开路径依赖 Contentlayer runtime MDX code，因此 CSP 需要保留 `unsafe-eval`。
+Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开动画上下文并进入 `/{locale}/{slug}`。文章路由提交后，`usePostExpansion` 读取 pending motion context，在详情路由内播放展开动画。点击收起时，卡片保存收起动画上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再播放收起动画。
+
+这个模型保留列表到文章详情的展开/收起动效，同时让 MDX 正文继续走 Next.js 和 React 的正常渲染与 hydration 边界。客户端不再执行 Contentlayer runtime MDX code，Cloudflare Pages CSP 不需要为文章展开保留 eval 例外。
 
 静态导出模式下，Next.js 不会在运行时优化图片。新增主图和作者头像时，应在提交前压缩到适合网页使用的尺寸和体积。
 
