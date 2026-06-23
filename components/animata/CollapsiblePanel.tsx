@@ -25,6 +25,7 @@ export default function CollapsiblePanel({
       {open && (
         <motion.div
           key="content"
+          id={id}
           data-animata-collapsible={id}
           initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}

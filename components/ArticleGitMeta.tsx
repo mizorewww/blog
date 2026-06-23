@@ -1,3 +1,7 @@
+'use client'
+
+import { useId, useState } from 'react'
+import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import Link from '@/components/Link'
 import { MenuList, MenuListItem } from '@/components/animata/MenuList'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
@@ -12,15 +16,21 @@ export default function ArticleGitMeta({
   locale,
   dateLocale,
   now,
+  showCommits = false,
 }: {
   post: BlogListPost
   locale: Locale
   dateLocale: string
   now: Date
+  showCommits?: boolean
 }) {
+  const [commitsOpen, setCommitsOpen] = useState(false)
+  const commitsPanelId = useId()
   const updatedAt = post.gitUpdatedAt || post.lastmod || post.date
   const relativeUpdatedAt = formatRelativeTime(updatedAt, now, locale)
   const commits = getPostGitCommits(post.gitCommits)
+  const latestCommit = commits[0]
+  const latestCommitHash = latestCommit ? getCommitHash(latestCommit) : ''
   const commitCount = typeof post.gitCommitCount === 'number' ? post.gitCommitCount : commits.length
   const hiddenCommitCount = Math.max(0, commitCount - commits.length)
   const labels = ui[locale]
@@ -53,59 +63,77 @@ export default function ArticleGitMeta({
           </Link>
         )}
       </div>
-      {commits.length > 0 && (
+      {showCommits && commits.length > 0 && (
         <div className="space-y-2">
-          <div className="inline-flex items-center gap-1.5">
+          <button
+            type="button"
+            aria-expanded={commitsOpen}
+            aria-controls={commitsPanelId}
+            onClick={() => setCommitsOpen((open) => !open)}
+            className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-left hover:text-sky-500"
+          >
             <MetaIcon name="gitCommit" />
             <span>{labels.gitCommits}</span>
-          </div>
-          <MenuList className="space-y-1.5 border-l border-slate-200 pl-3 dark:border-white/10">
-            {commits.map((commit) => {
-              const hash = getCommitHash(commit)
+            {latestCommitHash && (
+              <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-500 dark:bg-white/10 dark:text-sky-400">
+                {latestCommitHash}
+              </span>
+            )}
+            <MetaIcon name={commitsOpen ? 'chevronUp' : 'chevronDown'} />
+          </button>
+          <CollapsiblePanel
+            id={commitsPanelId}
+            open={commitsOpen}
+            contentClassName="border-l border-slate-200 pl-3 dark:border-white/10"
+          >
+            <MenuList className="space-y-1.5">
+              {commits.map((commit) => {
+                const hash = getCommitHash(commit)
 
-              if (!hash) {
-                return null
-              }
+                if (!hash) {
+                  return null
+                }
 
-              const hashNode = (
-                <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-500 dark:bg-white/10 dark:text-sky-400">
-                  {hash}
-                </span>
-              )
-              const message = commit.subject || commit.hash || ''
-              const content = (
-                <>
-                  {hashNode}
-                  {message && (
-                    <span className="min-w-0 flex-1 basis-full break-words text-slate-600 sm:basis-0 dark:text-white/70">
-                      {message}
-                    </span>
-                  )}
-                </>
-              )
-              const className =
-                'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 rounded-[6px] py-0.5'
+                const hashNode = (
+                  <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-500 dark:bg-white/10 dark:text-sky-400">
+                    {hash}
+                  </span>
+                )
+                const message = commit.subject || commit.hash || ''
+                const content = (
+                  <>
+                    {hashNode}
+                    {message && (
+                      <span className="min-w-0 flex-1 basis-full break-words text-slate-600 sm:basis-0 dark:text-white/70">
+                        {message}
+                      </span>
+                    )}
+                  </>
+                )
+                const className =
+                  'flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 rounded-[6px] py-0.5'
 
-              return commit.url ? (
-                <MenuListItem key={commit.hash || hash}>
-                  <Link
-                    href={commit.url}
-                    title={message}
-                    className={`${className} hover:text-sky-400`}
-                  >
-                    {content}
-                  </Link>
-                </MenuListItem>
-              ) : (
-                <MenuListItem key={commit.hash || hash}>
-                  <div title={message} className={className}>
-                    {content}
-                  </div>
-                </MenuListItem>
-              )
-            })}
-            {hiddenCommitCount > 0 && <div>{labels.gitMore(hiddenCommitCount)}</div>}
-          </MenuList>
+                return commit.url ? (
+                  <MenuListItem key={commit.hash || hash}>
+                    <Link
+                      href={commit.url}
+                      title={message}
+                      className={`${className} hover:text-sky-400`}
+                    >
+                      {content}
+                    </Link>
+                  </MenuListItem>
+                ) : (
+                  <MenuListItem key={commit.hash || hash}>
+                    <div title={message} className={className}>
+                      {content}
+                    </div>
+                  </MenuListItem>
+                )
+              })}
+              {hiddenCommitCount > 0 && <div>{labels.gitMore(hiddenCommitCount)}</div>}
+            </MenuList>
+          </CollapsiblePanel>
         </div>
       )}
     </div>

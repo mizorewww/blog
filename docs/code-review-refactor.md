@@ -49,7 +49,7 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 - GitHub API access in Contentlayer uses `fetch` with timeout, retry, optional `GITHUB_TOKEN`/`GH_TOKEN`, and a `.contentlayer` cache.
 - `siteMetadata` is typed TypeScript and script-side RSS/SEO helpers reuse shared locale, URL, post sorting, and date utilities.
 - Post expansion keeps route-aware reading state while relying on App Router static article route prefetch instead of client MDX runtime code.
-- Contentlayer writes generated ESM modules for server-rendered detail pages; list-page expansion now enters the static article route and lets Animata-derived components own visible route and body transitions after route commit.
+- Contentlayer writes generated ESM modules for server-rendered detail pages; list-page expansion now enters the static article route and lets Animata-derived components own intentional body and menu disclosures after route commit.
 - `_post-data` body JSON generation and client body-code preloading were removed with the browser eval path.
 - Dark surface/border colors are semantic Tailwind tokens, strict TypeScript is enabled, ESLint unused variables is re-enabled, and `ecmaVersion` is set to `2022`.
 - Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
@@ -74,4 +74,4 @@ The previous cleanup list has been closed in the follow-on branch:
 ## Remaining Watch Items
 
 - The lucide icon registry is generated from source and MDX usage so articles can still use arbitrary `:icon-*:` shortcodes without bundling the entire lucide icon map.
-- The restored expansion path depends on App Router static route prefetch. Cold route payloads can delay the Animata route transition, so production preview checks should cover hover/focus prefetch and click-to-visible-feedback timing.
+- The restored expansion path depends on App Router static route prefetch. Cold route payloads should show route loading skeletons instead of replaying animation on already-rendered content, so production preview checks should cover hover/focus prefetch and click-to-visible-feedback timing.

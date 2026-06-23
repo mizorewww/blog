@@ -5,7 +5,6 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
-import PostLayoutMotion from '@/components/animata/PostLayoutMotion'
 import { getCategoryCounts, getTagCounts, type CountMap } from '@/lib/content/terms'
 import { useBlogExpansionState } from '@/lib/hooks/useBlogExpansionState'
 import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
@@ -95,9 +94,9 @@ export default function ListLayoutWithTags({
         )}
         {visiblePosts.map((post, index) => {
           return (
-            <PostLayoutMotion
+            <div
               key={post.path}
-              postPath={post.path}
+              data-post-shell={post.path}
               className={index === 0 ? 'mt-0' : 'mt-6'}
             >
               <ExpandablePostCard
@@ -107,7 +106,7 @@ export default function ListLayoutWithTags({
                 expanded={expandedPath === post.path}
                 body={expandedPath === post.path ? expandedPostBody : null}
               />
-            </PostLayoutMotion>
+            </div>
           )
         })}
         {hasMore && <div ref={loadMoreRef} className="mt-6 h-12" aria-hidden="true" />}

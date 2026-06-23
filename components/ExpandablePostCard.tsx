@@ -80,7 +80,13 @@ export default function ExpandablePostCard({
             {post.title}
           </Link>
         </Heading>
-        <ArticleGitMeta post={post} locale={locale} dateLocale={dateLocale} now={now} />
+        <ArticleGitMeta
+          post={post}
+          locale={locale}
+          dateLocale={dateLocale}
+          now={now}
+          showCommits={expanded}
+        />
         {post.summary && (
           <p className="mb-5 text-base leading-8 text-slate-600 dark:text-white/75">
             {post.summary}

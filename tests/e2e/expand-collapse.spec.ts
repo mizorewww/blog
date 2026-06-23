@@ -38,6 +38,14 @@ async function expectRestoredScrollY(page: Page, previousScrollY: number) {
     .toBeLessThanOrEqual(scrollTolerance)
 }
 
+async function expectAtPageTop(page: Page) {
+  await expect
+    .poll(async () => page.evaluate(() => window.scrollY), {
+      timeout: 1200,
+    })
+    .toBeLessThanOrEqual(scrollTolerance)
+}
+
 async function waitForExpandedArticleBody(page: Page) {
   await expect(page.getByRole('link', { name: /收起文章/ })).toBeVisible()
   await expect
@@ -59,7 +67,52 @@ async function waitForExpandedArticleBody(page: Page) {
     .toBe(true)
 }
 
-async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 1) {
+test('recent posts sidebar does not render article commit metadata', async ({ page }) => {
+  await page.goto('/zh/')
+
+  await expect(page.locator('.blog-sidebar-right a[href*="/commit/"]')).toHaveCount(0)
+})
+
+test('related commits are closed by default inside an expanded article', async ({ page }) => {
+  await openArticleFromHome(page)
+
+  const commitsButton = page.getByRole('button', { name: /相关提交/ })
+  await expect(commitsButton).toBeVisible()
+  await expect(commitsButton).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.locator('article a[href*="/commit/"]')).toHaveCount(0)
+
+  await commitsButton.click()
+  await expect(commitsButton).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.locator('article a[href*="/commit/"]').first()).toBeVisible()
+})
+
+test('back to top button scrolls the list back to the top', async ({ page }) => {
+  await page.goto('/zh/')
+  await scrollToPageBottom(page)
+
+  await page.getByRole('button', { name: /回到顶部/ }).click()
+  await expectAtPageTop(page)
+})
+
+test('stable list cards do not run direct shell animations', async ({ page }) => {
+  await page.goto('/zh/')
+
+  await expect
+    .poll(
+      () =>
+        page.evaluate(() =>
+          Array.from(document.querySelectorAll<HTMLElement>('[data-post-shell]')).some((shell) =>
+            shell
+              .getAnimations()
+              .some((animation) => ['pending', 'running'].includes(animation.playState))
+          )
+        ),
+      { timeout: 1200 }
+    )
+    .toBe(false)
+})
+
+async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 2) {
   await page.goto('/zh/')
   await page.evaluate(() => {
     ;(window as Window & { __mizoreSpaNavigationMarker?: string }).__mizoreSpaNavigationMarker =
@@ -112,7 +165,7 @@ for (const entry of ['read-more', 'title', 'cover'] as const) {
   test(`browser Back from the ${entry} article link restores the saved list scroll position`, async ({
     page,
   }) => {
-    const articleIndex = entry === 'read-more' ? 0 : 1
+    const articleIndex = 2
     const previousScrollY = await openArticleFromHome(page, entry, articleIndex)
 
     await waitForExpandedArticleBody(page)

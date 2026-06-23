@@ -41,7 +41,7 @@ The user requirement is to migrate animation-related behavior to <https://animat
 
 Adopt Animata as a vendored component pattern rather than an npm package. Animata's official docs describe it as a React and Tailwind component collection that is copied into a project, so selected primitives live under `components/animata/`.
 
-Use `motion`, `clsx`, and `tailwind-merge` as supporting dependencies for the adapted Animata primitives. `motion` owns layout, reveal, collapse, route, and menu animation. `clsx` and `tailwind-merge` provide the conventional `cn` helper used by Animata/shadcn-style components.
+Use `motion`, `clsx`, and `tailwind-merge` as supporting dependencies for the adapted Animata primitives. `motion` owns intentional reveal, collapse, loading, and menu animation. `clsx` and `tailwind-merge` provide the conventional `cn` helper used by Animata/shadcn-style components.
 
 Replace the old article animation utilities with:
 
@@ -50,7 +50,7 @@ Replace the old article animation utilities with:
 - `lib/postLayout.ts` for direct scroll positioning and restoration only.
 - `components/Link.tsx` backed by Next.js `Link` for internal client-side navigation.
 
-Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash.
+Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash. Already-rendered route content and unchanged cards do not replay entry animation after content has committed.
 
 New animation or loading work must reuse or extend `components/animata/*`. When a custom animation is replaced, the old hand-written animation code must be removed in the same change.
 

@@ -4,7 +4,6 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Footer from './Footer'
 import Header from './Header'
-import RouteTransition from '@/components/animata/RouteTransition'
 import { isBlogPostPath } from '@/lib/blogRouteState'
 
 const HEADER_HIDE_SCROLL_Y = 80
@@ -52,9 +51,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col">
       <Header hideOnMobile={isReadingPost && hideHeaderOnMobile} />
-      <main className="flex-1 pt-[72px] sm:pt-[96px]">
-        <RouteTransition>{children}</RouteTransition>
-      </main>
+      <main className="flex-1 pt-[72px] sm:pt-[96px]">{children}</main>
       <Footer />
     </div>
   )
