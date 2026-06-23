@@ -23,7 +23,9 @@ import {
   animateScrollTo,
   getExpandedTargetOffset,
   getMainColumnHeight,
+  getMissingScrollRunway,
   getPostShell,
+  holdPostTop,
   prefersReducedMotion,
   setPostTop,
   setScrollY,
@@ -39,6 +41,20 @@ function getExpandedPathFromLocation(posts: BlogListPost[]) {
 
 function stopMotion(control: AnimationPlaybackControls | null) {
   control?.stop()
+}
+
+function isScrollControlKey(event: KeyboardEvent) {
+  return [
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    'ArrowUp',
+    'End',
+    'Home',
+    'PageDown',
+    'PageUp',
+    ' ',
+  ].includes(event.key)
 }
 
 export function useBlogExpansionState({
@@ -75,6 +91,7 @@ export function useBlogExpansionState({
   const bodyExpansionTimerRef = useRef<number | null>(null)
   const frameRef = useRef<number | null>(null)
   const scrollControlRef = useRef<AnimationPlaybackControls | null>(null)
+  const userCancelledMotionRef = useRef(false)
 
   const clearMotionTimers = useCallback(() => {
     if (bodyExpansionTimerRef.current !== null) {
@@ -92,11 +109,46 @@ export function useBlogExpansionState({
   }, [])
 
   const finishExpansion = useCallback((postPath: string) => {
-    setPostTop(postPath, getExpandedTargetOffset())
-    setMotionPhase('idle')
-    setMotionPath(postPath)
-    setMotionMinHeight(null)
+    const targetTop = getExpandedTargetOffset()
+
+    flushSync(() => {
+      setMotionPhase('idle')
+      setMotionPath(postPath)
+      setMotionMinHeight(null)
+    })
+    userCancelledMotionRef.current = false
+    holdPostTop(postPath, targetTop, scrollControlRef, () => {
+      if (!userCancelledMotionRef.current) {
+        setPostTop(postPath, targetTop)
+      }
+    })
   }, [])
+
+  const settleCurrentRouteAfterUserCancel = useCallback(() => {
+    const nextExpandedPath = getExpandedPathFromLocation(posts)
+
+    flushSync(() => {
+      setVisibleCount(getInitialVisibleCount(posts, initialDisplayCount, nextExpandedPath))
+      setExpandedPath(nextExpandedPath)
+      setMotionPath(nextExpandedPath)
+      setMotionMinHeight(null)
+      setMotionPhase('idle')
+    })
+  }, [initialDisplayCount, posts])
+
+  const cancelActiveMotionFromUserInput = useCallback(() => {
+    if (
+      !scrollControlRef.current &&
+      bodyExpansionTimerRef.current === null &&
+      frameRef.current === null
+    ) {
+      return
+    }
+
+    userCancelledMotionRef.current = true
+    clearMotionTimers()
+    settleCurrentRouteAfterUserCancel()
+  }, [clearMotionTimers, settleCurrentRouteAfterUserCancel])
 
   const getSavedScrollTargetTop = useCallback(
     (postPath: string, previousScrollY: number | null) => {
@@ -171,14 +223,22 @@ export function useBlogExpansionState({
 
       const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
       const targetTop = getExpandedTargetOffset()
+      const mainColumnHeight = getMainColumnHeight()
 
       flushSync(() => {
-        setMotionMinHeight(getMainColumnHeight())
+        setMotionMinHeight(mainColumnHeight)
         setVisibleCount((count) => Math.max(count, nextVisibleCount))
         setMotionPath(post.path)
         setExpandedPath(null)
         setMotionPhase('positioning')
       })
+
+      const extraScrollRunway = getMissingScrollRunway(post.path, targetTop)
+      if (extraScrollRunway > 0 && mainColumnHeight) {
+        flushSync(() => {
+          setMotionMinHeight(mainColumnHeight + extraScrollRunway)
+        })
+      }
 
       const shell = getPostShell(post.path)
       const startTop = shell?.getBoundingClientRect().top ?? context.previousCardTop ?? targetTop
@@ -187,7 +247,14 @@ export function useBlogExpansionState({
         startBodyExpansion(post.path)
       }
 
-      animatePostTopTo(post.path, startTop, targetTop, scrollControlRef, completePositioning)
+      userCancelledMotionRef.current = false
+      animatePostTopTo(post.path, startTop, targetTop, scrollControlRef, () => {
+        if (userCancelledMotionRef.current) {
+          return
+        }
+
+        completePositioning()
+      })
     },
     [clearMotionTimers, posts, startBodyExpansion]
   )
@@ -226,7 +293,12 @@ export function useBlogExpansionState({
         })
         setPostTop(post.path, startTop)
 
+        userCancelledMotionRef.current = false
         animatePostTopTo(post.path, startTop, targetTop, scrollControlRef, () => {
+          if (userCancelledMotionRef.current) {
+            return
+          }
+
           setPostTop(post.path, targetTop)
           flushSync(() => {
             setMotionPhase('idle')
@@ -248,8 +320,30 @@ export function useBlogExpansionState({
 
   const scrollToTop = useCallback(() => {
     clearMotionTimers()
+    userCancelledMotionRef.current = false
     animateScrollTo(0, scrollControlRef)
   }, [clearMotionTimers])
+
+  useEffect(() => {
+    const cancelOnKey = (event: KeyboardEvent) => {
+      if (isScrollControlKey(event)) {
+        cancelActiveMotionFromUserInput()
+      }
+    }
+    const cancelOnScrollIntent = () => cancelActiveMotionFromUserInput()
+
+    window.addEventListener('wheel', cancelOnScrollIntent, { passive: true })
+    window.addEventListener('touchstart', cancelOnScrollIntent, { passive: true })
+    window.addEventListener('touchmove', cancelOnScrollIntent, { passive: true })
+    window.addEventListener('keydown', cancelOnKey)
+
+    return () => {
+      window.removeEventListener('wheel', cancelOnScrollIntent)
+      window.removeEventListener('touchstart', cancelOnScrollIntent)
+      window.removeEventListener('touchmove', cancelOnScrollIntent)
+      window.removeEventListener('keydown', cancelOnKey)
+    }
+  }, [cancelActiveMotionFromUserInput])
 
   useEffect(() => {
     if (!('scrollRestoration' in window.history)) {

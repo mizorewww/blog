@@ -46,11 +46,11 @@ Use `motion`, `clsx`, and `tailwind-merge` as supporting dependencies for the ad
 Replace the old article animation utilities with:
 
 - `components/animata/*` for visual animation and skeleton loading.
-- `lib/hooks/useBlogExpansionState.ts` for article route/list state, motion phase orchestration, and cleanup of Motion controls.
-- `lib/postLayout.ts` for DOM measurement, direct positioning, and Motion-backed scroll/top interpolation.
+- `lib/hooks/useBlogExpansionState.ts` for article route/list state, motion phase orchestration, user-input cancellation, and cleanup of Motion controls.
+- `lib/postLayout.ts` for DOM measurement, temporary scroll runway, direct positioning, and Motion-backed scroll/top interpolation.
 - `components/Link.tsx` backed by Next.js `Link` for internal client-side navigation.
 
-Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash. Already-rendered route content and unchanged cards do not replay entry animation after content has committed; post expansion, collapse, card reflow, and back-to-top scrolling remain animated through Animata/Motion primitives.
+Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash. Already-rendered route content and unchanged cards do not replay entry animation after content has committed; post expansion, collapse, card reflow, and back-to-top scrolling remain animated through Animata/Motion primitives. Motion-driven scroll positioning must reserve enough temporary runway for bottom-of-list posts, and explicit user scroll input must cancel active programmatic scroll controls instead of rebounding.
 
 New animation or loading work must reuse or extend `components/animata/*`. When a custom animation is replaced, the old hand-written animation code must be removed in the same change.
 

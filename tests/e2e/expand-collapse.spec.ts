@@ -46,6 +46,21 @@ async function expectAtPageTop(page: Page) {
     .toBeLessThanOrEqual(scrollTolerance)
 }
 
+async function expectExpandedArticleAtTargetOffset(page: Page) {
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const shell = document.querySelector<HTMLElement>('[data-post-shell]')
+          const targetTop = window.matchMedia('(max-width: 639px)').matches ? 88 : 96
+
+          return Math.abs((shell?.getBoundingClientRect().top ?? 0) - targetTop)
+        }),
+      { timeout: 1600 }
+    )
+    .toBeLessThanOrEqual(6)
+}
+
 async function waitForExpandedArticleBody(page: Page) {
   await expect(page.getByRole('link', { name: /收起文章/ })).toBeVisible()
   await expect
@@ -118,6 +133,18 @@ test('back to top button scrolls the list back to the top', async ({ page }) => 
   await expectAtPageTop(page)
 })
 
+test('manual scrolling interrupts the back-to-top motion without rebound', async ({ page }) => {
+  await page.goto('/zh/')
+  await scrollToPageBottom(page)
+
+  await page.getByRole('button', { name: /回到顶部/ }).click()
+  await page.waitForTimeout(80)
+  await page.mouse.wheel(0, 900)
+  await page.waitForTimeout(800)
+
+  await expect(page.evaluate(() => window.scrollY)).resolves.toBeGreaterThan(20)
+})
+
 test('stable list cards do not run direct shell animations', async ({ page }) => {
   await page.goto('/zh/')
 
@@ -145,6 +172,18 @@ test('opening an article keeps the intentional expansion motion', async ({ page 
   await expectIntentionalArticleMotion(page)
   await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
   await waitForExpandedArticleBody(page)
+})
+
+test('opening the bottom article lands at the reading offset', async ({ page }) => {
+  await page.goto('/zh/')
+  const shellCount = await page.locator('[data-post-shell]').count()
+  const link = getArticleEntryLink(page, shellCount - 1, 'read-more')
+  await link.scrollIntoViewIfNeeded()
+
+  await link.click()
+  await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
+  await waitForExpandedArticleBody(page)
+  await expectExpandedArticleAtTargetOffset(page)
 })
 
 async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 2) {
