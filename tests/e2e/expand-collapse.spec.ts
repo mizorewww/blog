@@ -67,6 +67,30 @@ async function waitForExpandedArticleBody(page: Page) {
     .toBe(true)
 }
 
+async function expectIntentionalArticleMotion(page: Page) {
+  await expect
+    .poll(
+      async () =>
+        page.evaluate(() => {
+          const shells = Array.from(document.querySelectorAll<HTMLElement>('[data-post-shell]'))
+          const shellIsAnimating = shells.some((shell) =>
+            shell
+              .getAnimations({ subtree: true })
+              .some((animation) => ['pending', 'running'].includes(animation.playState))
+          )
+          const body = document.querySelector<HTMLElement>('[data-animata-collapsible]')
+          const bodyIsAnimating =
+            body
+              ?.getAnimations({ subtree: true })
+              .some((animation) => ['pending', 'running'].includes(animation.playState)) || false
+
+          return shellIsAnimating || bodyIsAnimating
+        }),
+      { timeout: 2400 }
+    )
+    .toBe(true)
+}
+
 test('recent posts sidebar does not render article commit metadata', async ({ page }) => {
   await page.goto('/zh/')
 
@@ -110,6 +134,17 @@ test('stable list cards do not run direct shell animations', async ({ page }) =>
       { timeout: 1200 }
     )
     .toBe(false)
+})
+
+test('opening an article keeps the intentional expansion motion', async ({ page }) => {
+  await page.goto('/zh/')
+  const link = getArticleEntryLink(page, 2, 'read-more')
+  await link.scrollIntoViewIfNeeded()
+
+  await link.click()
+  await expectIntentionalArticleMotion(page)
+  await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
+  await waitForExpandedArticleBody(page)
 })
 
 async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 2) {

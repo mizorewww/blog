@@ -89,7 +89,7 @@ Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，�
 
 列表页只传递卡片渲染需要的精简文章数据，不在 RSC payload 里携带所有 MDX 编译后的正文代码。文章详情页渲染当前展开文章的正文。
 
-Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开上下文并进入 `/{locale}/{slug}`。文章路由提交后，`useBlogExpansionState` 读取 pending context 并恢复文章定位；正文展开、相关提交菜单和加载骨架屏由 `components/animata/` 下的 Motion/Animata 原语负责。点击收起时，卡片保存返回上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再恢复到点击“继续阅读”之前保存的列表 scrollY。
+Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开上下文并进入 `/{locale}/{slug}`。文章路由提交后，`useBlogExpansionState` 读取 pending context 并恢复文章定位；列表到文章的定位、卡片让位、正文展开/收起、相关提交菜单和加载骨架屏由 `components/animata/` 下的 Motion/Animata 原语负责。点击收起时，卡片保存返回上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再恢复到点击“继续阅读”之前保存的列表 scrollY。
 
 这个模型保留列表到文章详情的连续阅读体验，同时让 MDX 正文继续走 Next.js 和 React 的正常渲染与 hydration 边界。客户端不再执行 Contentlayer runtime MDX code，Cloudflare Pages CSP 不需要为文章展开保留 eval 例外。
 
@@ -97,7 +97,7 @@ Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/
 
 所有新的可见动效、骨架屏和加载过渡都必须复用或扩展 `components/animata/`。业务 hook 可以保存路由上下文、滚动位置和列表状态，但不能重新实现 easing、RAF 动画循环或分散的 Tailwind transition 类。
 
-内部应用链接通过 `components/Link.tsx` 使用 Next.js `Link`，静态资源、RSS、站外链接和 hash 锚点仍使用原生 anchor。各路由段的 `loading.tsx` 复用 Animata 骨架屏，让 App Router 客户端导航保持稳定页面外壳，避免用户看到空白闪烁；已经提交到页面的内容和没有状态差异的卡片不做额外入场动画。
+内部应用链接通过 `components/Link.tsx` 使用 Next.js `Link`，静态资源、RSS、站外链接和 hash 锚点仍使用原生 anchor。各路由段的 `loading.tsx` 复用 Animata 骨架屏，让 App Router 客户端导航保持稳定页面外壳，避免用户看到空白闪烁；已经提交到页面的内容和没有状态差异的卡片不做额外入场动画，只有展开、收起、让位、加载更多等真实状态变化触发动效。
 
 静态导出模式下，Next.js 不会在运行时优化图片。新增主图和作者头像时，应在提交前压缩到适合网页使用的尺寸和体积。
 

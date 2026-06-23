@@ -41,16 +41,16 @@ The user requirement is to migrate animation-related behavior to <https://animat
 
 Adopt Animata as a vendored component pattern rather than an npm package. Animata's official docs describe it as a React and Tailwind component collection that is copied into a project, so selected primitives live under `components/animata/`.
 
-Use `motion`, `clsx`, and `tailwind-merge` as supporting dependencies for the adapted Animata primitives. `motion` owns intentional reveal, collapse, loading, and menu animation. `clsx` and `tailwind-merge` provide the conventional `cn` helper used by Animata/shadcn-style components.
+Use `motion`, `clsx`, and `tailwind-merge` as supporting dependencies for the adapted Animata primitives. `motion` owns intentional post positioning, card reflow, reveal, collapse, loading, and menu animation. `clsx` and `tailwind-merge` provide the conventional `cn` helper used by Animata/shadcn-style components.
 
 Replace the old article animation utilities with:
 
 - `components/animata/*` for visual animation and skeleton loading.
-- `lib/hooks/useBlogExpansionState.ts` for article route/list state only.
-- `lib/postLayout.ts` for direct scroll positioning and restoration only.
+- `lib/hooks/useBlogExpansionState.ts` for article route/list state, motion phase orchestration, and cleanup of Motion controls.
+- `lib/postLayout.ts` for DOM measurement, direct positioning, and Motion-backed scroll/top interpolation.
 - `components/Link.tsx` backed by Next.js `Link` for internal client-side navigation.
 
-Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash. Already-rendered route content and unchanged cards do not replay entry animation after content has committed.
+Route-level `loading.tsx` files render the shared Animata skeleton so App Router transitions keep a stable shell instead of showing a blank flash. Already-rendered route content and unchanged cards do not replay entry animation after content has committed; post expansion, collapse, card reflow, and back-to-top scrolling remain animated through Animata/Motion primitives.
 
 New animation or loading work must reuse or extend `components/animata/*`. When a custom animation is replaced, the old hand-written animation code must be removed in the same change.
 
