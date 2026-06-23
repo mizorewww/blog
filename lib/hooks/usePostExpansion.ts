@@ -25,7 +25,7 @@ import {
 
 export const POSTS_PER_BATCH = 5
 
-export type MotionPhase = 'idle' | 'expanding' | 'collapsing-prep' | 'collapsing'
+export type MotionPhase = 'idle' | 'positioning' | 'expanding' | 'collapsing-prep' | 'collapsing'
 
 function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
   const currentPath = normalizePathname(decodeURI(pathname))
@@ -83,11 +83,16 @@ export function usePostExpansion({
     shouldAnimateInitialExpansion ? null : initialExpandedPath
   )
   const [motionMinHeight, setMotionMinHeight] = useState<number | null>(null)
+  const bodyExpansionTimerRef = useRef<number | null>(null)
   const collapsePrepFrameRef = useRef<number | null>(null)
   const scrollFrameRef = useRef<number | null>(null)
-  const transformCleanupRef = useRef<(() => void) | null>(null)
 
   const clearMotionTimers = useCallback(() => {
+    if (bodyExpansionTimerRef.current !== null) {
+      window.clearTimeout(bodyExpansionTimerRef.current)
+      bodyExpansionTimerRef.current = null
+    }
+
     if (collapsePrepFrameRef.current !== null) {
       window.cancelAnimationFrame(collapsePrepFrameRef.current)
       collapsePrepFrameRef.current = null
@@ -96,11 +101,6 @@ export function usePostExpansion({
     if (scrollFrameRef.current !== null) {
       window.cancelAnimationFrame(scrollFrameRef.current)
       scrollFrameRef.current = null
-    }
-
-    if (transformCleanupRef.current) {
-      transformCleanupRef.current()
-      transformCleanupRef.current = null
     }
   }, [])
 
@@ -132,91 +132,61 @@ export function usePostExpansion({
     [posts]
   )
 
-  const expandPost = useCallback(
+  const startBodyExpansion = useCallback(
+    (postPath: string) => {
+      flushSync(() => {
+        setExpandedPath(postPath)
+        setMotionPhase('expanding')
+      })
+      setPostTop(postPath, getExpandedTargetOffset())
+
+      const complete = () => {
+        bodyExpansionTimerRef.current = null
+        finishExpansion(postPath)
+      }
+
+      if (prefersReducedMotion()) {
+        complete()
+        return
+      }
+
+      bodyExpansionTimerRef.current = window.setTimeout(complete, MOTION_DURATION + 80)
+    },
+    [finishExpansion]
+  )
+
+  const positionThenExpandPost = useCallback(
     (post: BlogListPost, context: MotionContext) => {
       clearMotionTimers()
 
       const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
-      const startTop =
-        context.previousCardTop ??
-        getPostShell(post.path)?.getBoundingClientRect().top ??
-        getExpandedTargetOffset()
       const targetTop = getExpandedTargetOffset()
 
       flushSync(() => {
         setMotionMinHeight(getMainColumnHeight())
         setVisibleCount((count) => Math.max(count, nextVisibleCount))
         setMotionPath(post.path)
-        setExpandedPath(post.path)
-        setMotionPhase('expanding')
+        setExpandedPath(null)
+        setMotionPhase('positioning')
       })
 
       const shell = getPostShell(post.path)
-
-      if (shell && context.previousCardTop !== null) {
-        const currentTop = shell.getBoundingClientRect().top
-        const deltaY = startTop - currentTop
-
-        if (!prefersReducedMotion() && Math.abs(deltaY) > 1) {
-          let active = true
-          let timer: number | null = null
-
-          function onTransitionEnd(event: TransitionEvent) {
-            if (event.target === shell && event.propertyName === 'transform') {
-              complete()
-            }
-          }
-
-          const dispose = () => {
-            shell.removeEventListener('transitionend', onTransitionEnd)
-            if (timer !== null) {
-              window.clearTimeout(timer)
-              timer = null
-            }
-            shell.style.transition = ''
-            shell.style.transform = ''
-          }
-
-          const complete = () => {
-            if (!active) {
-              return
-            }
-
-            active = false
-            dispose()
-            transformCleanupRef.current = null
-            finishExpansion(post.path)
-          }
-
-          transformCleanupRef.current = () => {
-            if (!active) {
-              return
-            }
-
-            active = false
-            dispose()
-          }
-
-          shell.style.transition = 'none'
-          shell.style.transform = `translate3d(0, ${deltaY}px, 0)`
-          void shell.offsetHeight
-          shell.addEventListener('transitionend', onTransitionEnd)
-          shell.style.transition = ''
-          timer = window.setTimeout(complete, MOTION_DURATION + 80)
-          scrollFrameRef.current = window.requestAnimationFrame(() => {
-            scrollFrameRef.current = null
-            shell.style.transform = ''
-          })
-
-          return
-        }
+      const startTop = shell?.getBoundingClientRect().top ?? context.previousCardTop ?? targetTop
+      const completePositioning = () => {
+        setPostTop(post.path, targetTop)
+        startBodyExpansion(post.path)
       }
 
-      animatePostTopTo(post.path, startTop, targetTop, MOTION_DURATION, scrollFrameRef, () =>
-        finishExpansion(post.path)
+      animatePostTopTo(
+        post.path,
+        startTop,
+        targetTop,
+        MOTION_DURATION,
+        scrollFrameRef,
+        completePositioning
       )
     },
-    [clearMotionTimers, finishExpansion, posts]
+    [clearMotionTimers, posts, startBodyExpansion]
   )
 
   const collapsePost = useCallback(
@@ -302,7 +272,7 @@ export function usePostExpansion({
 
       if (post) {
         const frame = window.requestAnimationFrame(() => {
-          expandPost(post, pendingInitialMotion)
+          positionThenExpandPost(post, pendingInitialMotion)
         })
 
         return () => window.cancelAnimationFrame(frame)
@@ -337,10 +307,10 @@ export function usePostExpansion({
   }, [
     clearMotionTimers,
     collapsePost,
-    expandPost,
     initialDisplayCount,
     initialExpandedPath,
     pathname,
+    positionThenExpandPost,
     posts,
   ])
 

@@ -59,10 +59,14 @@ export default function ListLayoutWithTags({
     : -1
   const expandedPost = expandedIndex >= 0 ? displayPosts[expandedIndex] : undefined
   const shouldRenderFullList =
-    !expandedPost || motionPhase === 'expanding' || motionPhase.startsWith('collapsing')
+    !expandedPost ||
+    motionPhase === 'positioning' ||
+    motionPhase === 'expanding' ||
+    motionPhase.startsWith('collapsing')
   const visiblePosts = shouldRenderFullList ? displayPosts : [expandedPost]
   const motionIndex = motionPath ? displayPosts.findIndex((post) => post.path === motionPath) : -1
-  const hasMore = !expandedPath && visibleCount < posts.length
+  const hasMore =
+    motionPhase === 'idle' && !expandedPath && !motionPath && visibleCount < posts.length
 
   useEffect(() => {
     setCurrentPathname(pathname)
@@ -119,9 +123,15 @@ export default function ListLayoutWithTags({
         {visiblePosts.map((post, index) => {
           const isMotionTarget = post.path === motionPath
           const isCollapsedShell =
-            !isMotionTarget && (motionPhase === 'expanding' || motionPhase === 'collapsing-prep')
+            !isMotionTarget &&
+            (motionPhase === 'positioning' ||
+              motionPhase === 'expanding' ||
+              motionPhase === 'collapsing-prep')
           const isTransitionTarget =
-            isMotionTarget && (motionPhase === 'expanding' || motionPhase === 'collapsing-prep')
+            isMotionTarget &&
+            (motionPhase === 'positioning' ||
+              motionPhase === 'expanding' ||
+              motionPhase === 'collapsing-prep')
           const isBeforeMotionTarget = motionIndex >= 0 && index < motionIndex
           const collapsedTranslate = isBeforeMotionTarget ? '-translate-y-8' : 'translate-y-8'
 
