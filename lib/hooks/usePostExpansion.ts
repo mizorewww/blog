@@ -4,12 +4,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import { flushSync } from 'react-dom'
 import type { BlogListPost } from '@/lib/listPosts'
 import {
+  getExpandedPathFromPathname,
+  getInitialVisibleCount,
+  POSTS_PER_BATCH,
+  type MotionPhase,
+} from '@/lib/blogExpansionState'
+import {
   BLOG_PATH_CHANGE_EVENT,
   consumePendingBlogCollapseMotion,
   consumePendingBlogNavigationMotion,
   getBlogListReturnContext,
   isHomePath,
-  normalizePathname,
   type BlogMotionContext as MotionContext,
 } from '@/lib/blogRouteState'
 import {
@@ -21,18 +26,8 @@ import {
   getPostShell,
   prefersReducedMotion,
   setPostTop,
+  setScrollY,
 } from '@/lib/postMotion'
-
-export const POSTS_PER_BATCH = 5
-
-export type MotionPhase = 'idle' | 'positioning' | 'expanding' | 'collapsing-prep' | 'collapsing'
-
-function getExpandedPathFromPathname(posts: BlogListPost[], pathname: string) {
-  const currentPath = normalizePathname(decodeURI(pathname))
-  const matchingPost = posts.find((post) => normalizePathname(`/${post.path}`) === currentPath)
-
-  return matchingPost?.path || null
-}
 
 function getExpandedPathFromLocation(posts: BlogListPost[]) {
   if (typeof window === 'undefined') {
@@ -40,16 +35,6 @@ function getExpandedPathFromLocation(posts: BlogListPost[]) {
   }
 
   return getExpandedPathFromPathname(posts, window.location.pathname)
-}
-
-function getInitialVisibleCount(
-  posts: BlogListPost[],
-  initialDisplayCount: number,
-  expandedPath?: string | null
-) {
-  const expandedIndex = expandedPath ? posts.findIndex((post) => post.path === expandedPath) : -1
-
-  return Math.max(initialDisplayCount || POSTS_PER_BATCH, POSTS_PER_BATCH, expandedIndex + 1)
 }
 
 export function usePostExpansion({
@@ -111,8 +96,31 @@ export function usePostExpansion({
     setMotionMinHeight(null)
   }, [])
 
+  const getSavedScrollTargetTop = useCallback(
+    (postPath: string, previousScrollY: number | null) => {
+      if (typeof previousScrollY !== 'number') {
+        return null
+      }
+
+      const shell = getPostShell(postPath)
+
+      if (!shell) {
+        return null
+      }
+
+      return shell.getBoundingClientRect().top + window.scrollY - previousScrollY
+    },
+    []
+  )
+
   const getCollapsedTargetTop = useCallback(
     (post: BlogListPost, context: MotionContext) => {
+      const savedScrollTargetTop = getSavedScrollTargetTop(post.path, context.previousScrollY)
+
+      if (savedScrollTargetTop !== null) {
+        return savedScrollTargetTop
+      }
+
       if (context.previousCardTop !== null) {
         return context.previousCardTop
       }
@@ -129,7 +137,7 @@ export function usePostExpansion({
 
       return Math.max(targetOffset, (window.innerHeight - shellHeight) / 2)
     },
-    [posts]
+    [getSavedScrollTargetTop, posts]
   )
 
   const startBodyExpansion = useCallback(
@@ -207,6 +215,11 @@ export function usePostExpansion({
         getPostShell(post.path)?.getBoundingClientRect().top ??
         getExpandedTargetOffset()
       const targetTop = getCollapsedTargetTop(post, context)
+      const restorePreviousScrollY = () => {
+        if (typeof context.previousScrollY === 'number') {
+          setScrollY(context.previousScrollY)
+        }
+      }
 
       setPostTop(post.path, startTop)
 
@@ -220,6 +233,7 @@ export function usePostExpansion({
 
         animatePostTopTo(post.path, startTop, targetTop, MOTION_DURATION, scrollFrameRef, () => {
           setPostTop(post.path, targetTop)
+          restorePreviousScrollY()
           setMotionPhase('idle')
           setMotionPath(null)
         })

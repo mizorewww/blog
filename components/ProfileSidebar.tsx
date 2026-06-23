@@ -3,17 +3,9 @@ import Link from '@/components/Link'
 import BlogWidgetCard from '@/components/BlogWidgetCard'
 import { cardClass } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
-import type { CountMap } from '@/lib/content/terms'
+import { getSortedTermSummaries, type CountMap } from '@/lib/content/terms'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
-
-function sortedEntries(counts: CountMap) {
-  return Object.entries(counts).sort((a, b) => {
-    if (b[1] !== a[1]) return b[1] - a[1]
-    if (a[0] === b[0]) return 0
-    return a[0] > b[0] ? 1 : -1
-  })
-}
 
 function totalWords(posts: BlogListPost[]) {
   const words = posts.reduce((sum, post) => {
@@ -37,8 +29,8 @@ export default function ProfileSidebar({
   locale: Locale
 }) {
   const labels = ui[locale]
-  const categories = sortedEntries(categoryCounts)
-  const tags = sortedEntries(tagCounts)
+  const categories = getSortedTermSummaries(categoryCounts)
+  const tags = getSortedTermSummaries(tagCounts)
 
   return (
     <aside className="blog-sidebar-left space-y-5 bg-transparent">
@@ -82,15 +74,15 @@ export default function ProfileSidebar({
             {categories.length === 0 && (
               <p className="text-slate-500 dark:text-white/60">{labels.noCategories}</p>
             )}
-            {categories.slice(0, 8).map(([category, count]) => (
+            {categories.slice(0, 8).map((category) => (
               <Link
-                key={category}
-                href={localizePath(`/categories/${category}`, locale)}
+                key={category.slug}
+                href={localizePath(`/categories/${category.slug}`, locale)}
                 className="flex items-center justify-between text-base text-slate-700 transition hover:text-sky-500 dark:text-white/80"
               >
-                <span>{category}</span>
+                <span>{category.label}</span>
                 <span className="dark:bg-border-subtle-dark rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:text-white/70">
-                  {count}
+                  {category.count}
                 </span>
               </Link>
             ))}
@@ -102,13 +94,13 @@ export default function ProfileSidebar({
             {tags.length === 0 && (
               <p className="text-slate-500 dark:text-white/60">{labels.noTags}</p>
             )}
-            {tags.slice(0, 9).map(([tag]) => (
+            {tags.slice(0, 9).map((tag) => (
               <Link
-                key={tag}
-                href={localizePath(`/tags/${tag}`, locale)}
+                key={tag.slug}
+                href={localizePath(`/tags/${tag.slug}`, locale)}
                 className="text-slate-700 transition hover:text-sky-500 dark:text-white/80"
               >
-                # {tag}
+                # {tag.label}
               </Link>
             ))}
           </div>

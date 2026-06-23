@@ -7,34 +7,16 @@ import Link from '@/components/Link'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { cardClass, mutedText, skyLink } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
+import { useExpandablePostNavigation } from '@/lib/hooks/useExpandablePostNavigation'
 import { useNow } from '@/lib/hooks/useNow'
 import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
 import { formatDate } from '@/lib/formatDate'
-import {
-  clearBlogListReturnContext,
-  getStoredBlogListReturnContext,
-  setPendingBlogCollapseMotion,
-  setBlogListReturnContext,
-  setPendingBlogNavigationMotion,
-  type BlogMotionContext,
-} from '@/lib/blogRouteState'
-import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useRef, useState } from 'react'
-import type { MouseEvent, ReactNode } from 'react'
+import { useEffect, useState } from 'react'
+import type { ReactNode } from 'react'
 
 const BODY_MOTION_DURATION = 560
-
-function getHistoryState() {
-  return typeof window.history.state === 'object' && window.history.state !== null
-    ? window.history.state
-    : {}
-}
-
-function isPlainPrimaryClick(event: MouseEvent<HTMLAnchorElement>) {
-  return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
-}
 
 export default function ExpandablePostCard({
   post,
@@ -51,11 +33,6 @@ export default function ExpandablePostCard({
   body?: ReactNode
   headingLevel?: 'h1' | 'h2'
 }) {
-  const router = useRouter()
-  const articleRef = useRef<HTMLElement | null>(null)
-  const previousUrlRef = useRef<string | null>(null)
-  const previousScrollYRef = useRef<number | null>(null)
-  const previousCardTopRef = useRef<number | null>(null)
   const [shouldKeepBodyMounted, setShouldKeepBodyMounted] = useState(expanded)
   const now = useNow()
   const primaryTag = post.tags?.[0]
@@ -64,10 +41,12 @@ export default function ExpandablePostCard({
   const labels = ui[locale]
   const hasBody = Boolean(body)
   const renderBody = hasBody && (expanded || shouldKeepBodyMounted)
-
-  const prefetchPost = useCallback(() => {
-    router.prefetch(postHref)
-  }, [postHref, router])
+  const { articleRef, onReadMore, prefetchPost } = useExpandablePostNavigation({
+    expanded,
+    locale,
+    postHref,
+    postPath: post.path,
+  })
 
   useEffect(() => {
     if (expanded) {
@@ -85,91 +64,6 @@ export default function ExpandablePostCard({
 
     return () => window.clearTimeout(timer)
   }, [expanded, shouldKeepBodyMounted])
-
-  useEffect(() => {
-    const article = articleRef.current
-
-    if (!article || expanded) {
-      return
-    }
-
-    if (!('IntersectionObserver' in window)) {
-      prefetchPost()
-      return
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry?.isIntersecting) {
-          prefetchPost()
-          observer.disconnect()
-        }
-      },
-      { rootMargin: '360px 0px' }
-    )
-
-    observer.observe(article)
-
-    return () => observer.disconnect()
-  }, [expanded, prefetchPost])
-
-  const onReadMore = (event: MouseEvent<HTMLAnchorElement>) => {
-    if (!isPlainPrimaryClick(event)) {
-      return
-    }
-
-    event.preventDefault()
-
-    if (expanded) {
-      const storedContext = getStoredBlogListReturnContext(post.path)
-      const previousUrl =
-        previousUrlRef.current || storedContext?.previousUrl || localizePath('/', locale)
-      const previousScrollY = previousScrollYRef.current ?? storedContext?.previousScrollY ?? null
-      const previousCardTop = previousCardTopRef.current ?? storedContext?.previousCardTop ?? null
-
-      const collapseContext = { previousCardTop, previousScrollY, previousUrl }
-
-      setPendingBlogCollapseMotion(post.path, previousUrl, collapseContext)
-      previousUrlRef.current = null
-      previousScrollYRef.current = null
-      previousCardTopRef.current = null
-      clearBlogListReturnContext(post.path)
-      router.push(previousUrl, { scroll: false })
-      return
-    }
-
-    previousUrlRef.current = `${window.location.pathname}${window.location.search}${window.location.hash}`
-    previousScrollYRef.current = window.scrollY
-    previousCardTopRef.current =
-      event.currentTarget.closest('article')?.getBoundingClientRect().top ?? null
-
-    const expansionContext: BlogMotionContext = {
-      previousCardTop: previousCardTopRef.current,
-      previousScrollY: previousScrollYRef.current,
-      previousUrl: previousUrlRef.current,
-    }
-
-    const historyState = getHistoryState()
-
-    window.history.replaceState(
-      {
-        ...historyState,
-        blogListReturn: {
-          postPath: post.path,
-          previousCardTop: previousCardTopRef.current,
-          previousScrollY: previousScrollYRef.current,
-          previousUrl: previousUrlRef.current,
-        },
-      },
-      '',
-      previousUrlRef.current
-    )
-    setBlogListReturnContext(post.path, expansionContext)
-
-    setPendingBlogNavigationMotion(post.path, postHref, expansionContext)
-    prefetchPost()
-    router.push(postHref, { scroll: false })
-  }
 
   return (
     <article ref={articleRef} className={`${cardClass} overflow-hidden`} data-post-path={post.path}>

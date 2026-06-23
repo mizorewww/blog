@@ -1,19 +1,17 @@
 import Link from '@/components/Link'
 import Tag from '@/components/Tag'
-import { termSlug, type CountMap, type TermField } from '@/lib/content/terms'
+import type { TermField, TermSummary } from '@/lib/content/terms'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 
 export default function TermIndexView({
-  counts,
   field,
   locale,
-  sortedTerms,
+  terms,
   title,
 }: {
-  counts: CountMap
   field: TermField
   locale: Locale
-  sortedTerms: string[]
+  terms: TermSummary[]
   title: string
 }) {
   const isCategory = field === 'categories'
@@ -32,26 +30,26 @@ export default function TermIndexView({
         </h1>
       </div>
       <div className="flex max-w-lg flex-wrap">
-        {sortedTerms.length === 0 && emptyLabel}
-        {sortedTerms.map((term) =>
+        {terms.length === 0 && emptyLabel}
+        {terms.map((term) =>
           isCategory ? (
             <Link
-              key={term}
-              href={localizePath(`${route}/${termSlug(term)}`, locale)}
+              key={term.slug}
+              href={localizePath(`${route}/${term.slug}`, locale)}
               className="dark:bg-surface-card-dark mt-2 mr-3 mb-2 rounded-[8px] bg-white px-4 py-2 text-slate-700 transition hover:bg-sky-500 hover:text-white dark:text-white/80 dark:hover:bg-sky-500"
-              aria-label={labels.postsInCategory(term)}
+              aria-label={labels.postsInCategory(term.label)}
             >
-              {term} ({counts[term]})
+              {term.label} ({term.count})
             </Link>
           ) : (
-            <div key={term} className="mt-2 mr-5 mb-2">
-              <Tag text={term} locale={locale} />
+            <div key={term.slug} className="mt-2 mr-5 mb-2">
+              <Tag text={term.label} locale={locale} />
               <Link
-                href={localizePath(`${route}/${termSlug(term)}`, locale)}
+                href={localizePath(`${route}/${term.slug}`, locale)}
                 className="-ml-2 text-sm font-semibold text-gray-600 uppercase dark:text-gray-300"
-                aria-label={labels.postsTagged(term)}
+                aria-label={labels.postsTagged(term.label)}
               >
-                {` (${counts[term]})`}
+                {` (${term.count})`}
               </Link>
             </div>
           )

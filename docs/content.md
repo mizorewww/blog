@@ -111,6 +111,8 @@ content/blog/en/example.mdx
 
 默认语言是 `zh`。无语言前缀的历史路径由 Cloudflare Pages redirects 跳转到 `/zh/...`。
 
+分类和标签的路由片段由原始 term 生成 slug，例如 `Next.js` 生成 `nextjs`。页面展示、aria 文案、metadata 和 JSON-LD 保留 frontmatter 中的原始 term。
+
 ## 支持的 MDX 能力
 
 当前 MDX 管线支持：

@@ -2,10 +2,13 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "next.config.js",
+    "playwright.config.ts",
+    "vitest.config.ts",
     "contentlayer.config.ts",
     "app/**/*.{ts,tsx}",
     "contentlayer/**/*.{ts,tsx}",
-    "scripts/*.mjs"
+    "scripts/**/*.mjs",
+    "tests/**/*.{ts,tsx}"
   ],
   "project": [
     "app/**/*.{ts,tsx}",
@@ -16,9 +19,12 @@
     "layouts/**/*.{ts,tsx}",
     "lib/**/*.{ts,tsx}",
     "next.config.js",
+    "playwright.config.ts",
     "postcss.config.js",
     "prettier.config.js",
-    "scripts/**/*.{js,mjs}"
+    "scripts/**/*.{js,mjs}",
+    "tests/**/*.{ts,tsx}",
+    "vitest.config.ts"
   ],
   "ignoreBinaries": ["scripts/quality-html.sh"],
   "ignoreDependencies": [

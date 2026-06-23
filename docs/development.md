@@ -82,6 +82,8 @@ yarn check
 ```bash
 yarn format:check
 yarn lint:check
+yarn test:unit
+yarn test:e2e
 yarn typecheck
 yarn typecheck:scripts
 yarn docs:check
@@ -105,6 +107,18 @@ yarn format:write
 
 ```bash
 yarn check
+```
+
+`yarn check` 包含快速单元测试。浏览器端交互、路由、滚动或静态预览行为变化时，还要执行：
+
+```bash
+yarn test:e2e
+```
+
+`test:e2e` 使用 Playwright 启动 `yarn preview`，因此会先按生产静态导出路径构建并服务 `out/`。首次运行如果缺少 Chromium，可执行：
+
+```bash
+yarn playwright install chromium
 ```
 
 如果文章或组件新增了 lucide 图标引用，pre-commit 会自动更新并暂存 `lib/generated/lucide-icons.ts`。也可以手动执行：
@@ -177,6 +191,7 @@ Core Web Vitals 约束：
 4. 点击收起时应返回原列表 URL；从标签页或分类页进入文章后，收起完成时 URL 和渲染列表必须仍然匹配原筛选条件。
 5. 点击响应应控制在 30ms 内。
 6. 展开动画应有折叠态、中间态和完成态，不得为了速度跳过动画。
+7. 从首页、标签页或分类页展开文章后，无论在文章内滚动到哪里，点击收起都必须回到点击“继续阅读”之前的列表 scrollY。
 
 ## 开发纪律
 

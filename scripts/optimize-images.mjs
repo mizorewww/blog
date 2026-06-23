@@ -1,16 +1,11 @@
 import { readdir, rename, rm, stat } from 'node:fs/promises'
 import path from 'node:path'
 import sharp from 'sharp'
+import { formatBytes } from './lib/file-utils.mjs'
 
 const imageDir = path.join('public', 'static', 'images')
 const supportedExtensions = new Set(['.jpg', '.jpeg', '.png'])
 const maxPhotoWidth = 2000
-
-function formatBytes(bytes) {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / 1024 / 1024).toFixed(2)} MB`
-}
 
 async function optimizeImage(filePath) {
   const ext = path.extname(filePath).toLowerCase()

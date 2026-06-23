@@ -72,19 +72,21 @@ Contentlayer 在构建时读取 `content/` 下的 MDX frontmatter 和正文，�
 
 - `lib/blog.ts`：文章发布状态和语言归属判断。
 - `lib/content/posts.ts`：唯一读取 Contentlayer 文章/作者数据的查询层。
-- `lib/content/terms.ts`：分类、标签的 slug、计数、过滤和静态参数。
+- `lib/content/terms.ts`：分类、标签的 slug、原始展示 label、计数、过滤和静态参数。路由使用 slug，UI、metadata 和 JSON-LD 使用 label。
 - `lib/contentlayer.ts`：排序和提取可序列化内容字段。
 - `lib/listPosts.ts`：把完整文章转换为精简的列表/卡片数据。
 - `lib/toc.ts`：从 Markdown 标题生成目录数据。
 - `lib/i18n.ts`：语言配置、路径本地化、界面文案。
 - `lib/blogRouteState.ts`：文章展开路由、全局事件和 history state 边界。
+- `lib/hooks/useExpandablePostNavigation.ts`：列表卡片的预取、history state 和 App Router 跳转边界。
+- `lib/blogExpansionState.ts`：文章展开列表状态的纯计算。
 - `lib/postMotion.ts`：文章展开/收起的滚动动画工具。
 
 ## 性能边界
 
 列表页只传递卡片渲染需要的精简文章数据，不在 RSC payload 里携带所有 MDX 编译后的正文代码。文章详情页渲染当前展开文章的正文。
 
-Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开动画上下文并进入 `/{locale}/{slug}`。文章路由提交后，`usePostExpansion` 读取 pending motion context，在详情路由内播放展开动画。点击收起时，卡片保存收起动画上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再播放收起动画。
+Contentlayer 会把每篇文章的 compiled MDX 写成 `.contentlayer/generated/mdx/*.mjs`，详情页在构建阶段通过 server-side dynamic import 渲染正文。列表页不接收或公开 MDX runtime code；列表卡片进入浏览器后预取对应文章的静态 App Router 路由，点击“继续阅读”时保存展开动画上下文并进入 `/{locale}/{slug}`。文章路由提交后，`usePostExpansion` 读取 pending motion context，在详情路由内播放展开动画。点击收起时，卡片保存收起动画上下文并返回原列表 URL，让首页、标签页或分类页先恢复各自的服务端列表数据，再播放收起动画。收起完成时必须恢复到点击“继续阅读”之前保存的列表 scrollY，而不是只把卡片移动到近似的视口位置。
 
 这个模型保留列表到文章详情的展开/收起动效，同时让 MDX 正文继续走 Next.js 和 React 的正常渲染与 hydration 边界。客户端不再执行 Contentlayer runtime MDX code，Cloudflare Pages CSP 不需要为文章展开保留 eval 例外。
 

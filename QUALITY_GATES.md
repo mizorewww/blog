@@ -40,6 +40,8 @@ For this repo, the known project-level commands are:
 ```bash
 yarn lint:check
 yarn format:check
+yarn test:unit
+yarn test:e2e
 yarn typecheck
 yarn typecheck:scripts
 yarn docs:check
@@ -124,19 +126,22 @@ Recommended lint rules for AI-code workflows:
 
 Run affected unit tests if a test command exists.
 
-Common examples:
+This repo uses:
 
 ```bash
-pnpm test
-npm test
-yarn test
-vitest run
-jest
+yarn test:unit
 ```
 
 Fail if tests fail.
 
 Fail if tests were weakened to match implementation.
+
+Run the browser smoke suite when a diff touches article expansion/collapse, routing, static
+preview behavior, or browser-visible navigation:
+
+```bash
+yarn test:e2e
+```
 
 ### 6. Documentation Metadata
 

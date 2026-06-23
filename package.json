@@ -9,11 +9,14 @@
     "content:generate": "contentlayer2 build",
     "build": "yarn icons:generate && yarn clean && yarn content:generate && cross-env INIT_CWD=$PWD next build && node ./scripts/postbuild.mjs",
     "preview": "node ./scripts/preview-static.mjs",
+    "test": "yarn test:unit && yarn test:e2e",
+    "test:unit": "vitest run",
+    "test:e2e": "playwright test",
     "lint": "yarn lint:check",
-    "lint:check": "eslint app components contentlayer data lib layouts scripts contentlayer.config.ts eslint.config.mjs next.config.js postcss.config.js prettier.config.js --max-warnings=0",
+    "lint:check": "eslint app components contentlayer data lib layouts scripts tests contentlayer.config.ts eslint.config.mjs next.config.js playwright.config.ts postcss.config.js prettier.config.js vitest.config.ts --max-warnings=0",
     "lint:fix": "yarn lint:check --fix",
-    "format:check": "prettier --check package.json eslint.config.mjs tsconfig.json tsconfig.scripts.json next.config.js postcss.config.js prettier.config.js \"*.md\" \"docs/**/*.md\" \".agents/**/*.md\" \"{app,components,contentlayer,data,lib,layouts,scripts}/**/*.{js,mjs,ts,tsx,json,css,md,mdx}\"",
-    "format:write": "prettier --write package.json eslint.config.mjs tsconfig.json tsconfig.scripts.json next.config.js postcss.config.js prettier.config.js \"*.md\" \"docs/**/*.md\" \".agents/**/*.md\" \"{app,components,contentlayer,data,lib,layouts,scripts}/**/*.{js,mjs,ts,tsx,json,css,md,mdx}\"",
+    "format:check": "prettier --check package.json eslint.config.mjs tsconfig.json tsconfig.scripts.json next.config.js playwright.config.ts postcss.config.js prettier.config.js vitest.config.ts \"*.md\" \"docs/**/*.md\" \".agents/**/*.md\" \"{app,components,contentlayer,data,lib,layouts,scripts,tests}/**/*.{js,mjs,ts,tsx,json,css,md,mdx}\"",
+    "format:write": "prettier --write package.json eslint.config.mjs tsconfig.json tsconfig.scripts.json next.config.js playwright.config.ts postcss.config.js prettier.config.js vitest.config.ts \"*.md\" \"docs/**/*.md\" \".agents/**/*.md\" \"{app,components,contentlayer,data,lib,layouts,scripts,tests}/**/*.{js,mjs,ts,tsx,json,css,md,mdx}\"",
     "typecheck": "yarn content:generate && tsc --noEmit --pretty false",
     "typecheck:scripts": "tsc --noEmit --pretty false -p tsconfig.scripts.json",
     "docs:check": "node ./scripts/check-doc-metadata.mjs",
@@ -25,9 +28,9 @@
     "images:optimize": "node ./scripts/optimize-images.mjs",
     "icons:generate": "node ./scripts/generate-lucide-icons.mjs",
     "icons:check": "node ./scripts/generate-lucide-icons.mjs --check",
-    "check": "yarn icons:check && yarn format:check && yarn lint:check && yarn typecheck && yarn typecheck:scripts && yarn docs:check && yarn deadcode:check",
+    "check": "yarn icons:check && yarn format:check && yarn lint:check && yarn test:unit && yarn typecheck && yarn typecheck:scripts && yarn docs:check && yarn deadcode:check",
     "perf:check": "yarn build && yarn quality:html && yarn size:budget",
-    "verify": "yarn check && yarn perf:check",
+    "verify": "yarn check && yarn test:e2e && yarn perf:check",
     "prepare": "husky"
   },
   "dependencies": {
@@ -54,6 +57,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.3",
     "@eslint/js": "^9.18.0",
+    "@playwright/test": "^1.61.0",
     "@types/mdx": "^2.0.13",
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
@@ -71,7 +75,8 @@
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "sharp": "^0.34.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.9"
   },
   "lint-staged": {
     "*.+(js|jsx|ts|tsx)": [

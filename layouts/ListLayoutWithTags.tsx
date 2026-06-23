@@ -6,7 +6,7 @@ import BackToTop from '@/components/BackToTop'
 import { BlogFrame } from '@/components/BlogWidgets'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
 import { BLOG_PATH_CHANGE_EVENT } from '@/lib/blogRouteState'
-import { getCategoryCounts, getTagCounts } from '@/lib/content/terms'
+import { getCategoryCounts, getTagCounts, type CountMap } from '@/lib/content/terms'
 import { usePostExpansion } from '@/lib/hooks/usePostExpansion'
 import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
@@ -15,8 +15,8 @@ interface ListLayoutProps {
   posts: BlogListPost[]
   title: string
   locale?: Locale
-  categoryCounts?: Record<string, number>
-  tagCounts?: Record<string, number>
+  categoryCounts?: CountMap
+  tagCounts?: CountMap
   initialDisplayPosts?: BlogListPost[]
   initialExpandedPath?: string | null
   expandedPostBody?: ReactNode
