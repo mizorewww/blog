@@ -3,6 +3,7 @@ import { cardClass, mutedText } from '@/components/ui/styles'
 import { type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
 import { formatDate } from '@/lib/formatDate'
+import Icon from '@/components/Icon'
 
 export default function PostNavLinks({
   currentPost,
@@ -20,7 +21,6 @@ export default function PostNavLinks({
 
   if (index < 0) return null
 
-  // Posts are sorted newest-first: prev = older (index+1), next = newer (index-1)
   const prevPost = index + 1 < allPosts.length ? allPosts[index + 1] : null
   const nextPost = index - 1 >= 0 ? allPosts[index - 1] : null
 
@@ -29,15 +29,23 @@ export default function PostNavLinks({
   return (
     <nav
       aria-label={labels.previousArticle}
-      className={`not-prose mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2`}
+      className="not-prose mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
     >
       {prevPost ? (
         <Link
           href={`/${prevPost.path}/`}
           aria-label={labels.previousPost(prevPost.title)}
-          className={`${cardClass} group flex flex-col gap-1 px-5 py-4 hover:border-sky-300 dark:hover:border-sky-700`}
+          className={`${cardClass} group flex flex-col gap-1.5 px-5 py-4 transition-shadow hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] sm:items-start dark:hover:shadow-none`}
         >
-          <span className={`text-xs tracking-wide uppercase ${mutedText}`}>
+          <span
+            className={`flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase ${mutedText}`}
+          >
+            <Icon
+              name="ChevronDown"
+              className="h-3.5 w-3.5 rotate-90"
+              inlineSpacing={false}
+              decorative
+            />
             {labels.previousArticle}
           </span>
           <span className="font-medium text-slate-900 group-hover:text-sky-700 dark:text-white/90 dark:group-hover:text-sky-300">
@@ -58,10 +66,18 @@ export default function PostNavLinks({
         <Link
           href={`/${nextPost.path}/`}
           aria-label={labels.nextPost(nextPost.title)}
-          className={`${cardClass} group flex flex-col gap-1 px-5 py-4 text-right hover:border-sky-300 sm:text-right dark:hover:border-sky-700`}
+          className={`${cardClass} group flex flex-col gap-1.5 px-5 py-4 text-right transition-shadow hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] sm:items-end dark:hover:shadow-none`}
         >
-          <span className={`text-xs tracking-wide uppercase ${mutedText}`}>
+          <span
+            className={`flex items-center justify-end gap-1.5 text-xs font-medium tracking-wide uppercase ${mutedText}`}
+          >
             {labels.nextArticle}
+            <Icon
+              name="ChevronDown"
+              className="h-3.5 w-3.5 -rotate-90"
+              inlineSpacing={false}
+              decorative
+            />
           </span>
           <span className="font-medium text-slate-900 group-hover:text-sky-700 dark:text-white/90 dark:group-hover:text-sky-300">
             {nextPost.title}

@@ -20,6 +20,7 @@ import {
   Pencil,
   Rss,
   ScrollText,
+  Search,
   Tag,
   Tags,
   type LucideIcon,
@@ -46,6 +47,7 @@ export const generatedLucideIcons: Record<string, LucideIcon> = {
   Pencil,
   Rss,
   ScrollText,
+  Search,
   Tag,
   Tags,
 }

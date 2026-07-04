@@ -100,6 +100,7 @@ export default function ListLayoutWithTags({
       tagCounts={tagCounts}
       locale={locale}
       dateLocale={dateLocale}
+      expandedPath={expandedPath}
     >
       <div style={motionMinHeight ? { minHeight: motionMinHeight } : undefined}>
         {!expandedPost && <h1 className="sr-only">{title}</h1>}
