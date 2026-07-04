@@ -37,7 +37,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
         <div className="z-10 shrink-0">
           <HeaderLogo />
         </div>
-        <div className="absolute top-1/2 left-1/2 max-w-[calc(100vw-132px)] min-w-0 -translate-x-1/2 -translate-y-1/2 text-sm leading-5 sm:static sm:ml-auto sm:max-w-none sm:translate-x-0 sm:translate-y-0 sm:text-lg lg:text-xl">
+        <div className="absolute top-1/2 left-1/2 max-w-[calc(100vw-224px)] min-w-0 -translate-x-1/2 -translate-y-1/2 text-sm leading-5 sm:static sm:ml-auto sm:max-w-none sm:translate-x-0 sm:translate-y-0 sm:text-lg lg:text-xl">
           <HeaderNavLinks />
         </div>
         <div className="z-10 flex shrink-0 items-center gap-x-3 text-slate-600 sm:gap-x-4 dark:text-white/90">
@@ -48,9 +48,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
           >
             <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />
           </Link>
-          <div className="hidden sm:block">
-            <LanguageSwitcher />
-          </div>
+          <LanguageSwitcher />
           <ThemeSwitch />
         </div>
       </div>
