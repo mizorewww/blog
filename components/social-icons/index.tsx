@@ -1,4 +1,5 @@
 import { Mail, Github, X, Telegram } from './icons'
+import { ui, type Locale } from '@/lib/i18n'
 
 const components = {
   mail: Mail,
@@ -11,9 +12,10 @@ type SocialIconProps = {
   kind: keyof typeof components
   href: string | undefined
   size?: number
+  locale: Locale
 }
 
-const SocialIcon = ({ kind, href, size = 8 }: SocialIconProps) => {
+const SocialIcon = ({ kind, href, size = 8, locale }: SocialIconProps) => {
   if (
     !href ||
     (kind === 'mail' && !/^mailto:[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(href))
@@ -28,8 +30,9 @@ const SocialIcon = ({ kind, href, size = 8 }: SocialIconProps) => {
       target="_blank"
       rel="noopener noreferrer"
       href={href}
+      aria-label={ui[locale].socialLabels[kind]}
     >
-      <span className="sr-only">{kind}</span>
+      <span className="sr-only">{ui[locale].socialLabels[kind]}</span>
       <SocialSvg
         className={`hover:text-primary-500 dark:hover:text-primary-400 fill-current text-gray-700 dark:text-gray-200 h-${size} w-${size}`}
       />

@@ -12,7 +12,7 @@ const rules = {
           { not: { href_matches: '/_next/*' } },
         ],
       },
-      eagerness: 'moderate',
+      eagerness: 'conservative',
     },
   ],
 }

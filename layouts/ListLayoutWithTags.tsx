@@ -136,6 +136,7 @@ export default function ListLayoutWithTags({
                 locale={locale}
                 dateLocale={dateLocale}
                 expanded={expandedPath === post.path}
+                priority={index === 0}
                 body={
                   expandedPath === post.path || motionPath === post.path ? expandedPostBody : null
                 }

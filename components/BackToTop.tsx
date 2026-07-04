@@ -8,18 +8,33 @@ export default function BackToTop({ label, onClick }: { label: string; onClick: 
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    const updateVisibility = () => setVisible(window.scrollY > 420)
+    let frame = 0
+
+    const updateVisibility = () => {
+      frame = 0
+      setVisible(window.scrollY > 420)
+    }
+
+    const onScroll = () => {
+      if (frame) return
+      frame = window.requestAnimationFrame(updateVisibility)
+    }
 
     updateVisibility()
-    window.addEventListener('scroll', updateVisibility, { passive: true })
+    window.addEventListener('scroll', onScroll, { passive: true })
 
-    return () => window.removeEventListener('scroll', updateVisibility)
+    return () => {
+      if (frame) window.cancelAnimationFrame(frame)
+      window.removeEventListener('scroll', onScroll)
+    }
   }, [])
 
   return (
     <RevealButton
       type="button"
       aria-label={label}
+      aria-hidden={!visible}
+      tabIndex={visible ? 0 : -1}
       onClick={onClick}
       visible={visible}
       y={12}

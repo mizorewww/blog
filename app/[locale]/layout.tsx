@@ -91,6 +91,8 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         <link rel="mask-icon" href="/static/favicons/safari-pinned-tab.svg" color="#000000" />
         <meta name="msapplication-TileColor" content="#000000" />
         <link rel="alternate" type="application/rss+xml" href="/feed.xml" />
+        <link rel="preconnect" href="https://analytics.umami.is" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://s3.tradingview.com" />
         <SpeculationRules />
       </head>
       <body className="bg-surface-page dark:bg-surface-page-dark min-h-screen overflow-y-scroll font-sans text-slate-900 antialiased dark:text-white/90">

@@ -59,6 +59,12 @@ export const ui = {
     gitCommits: '相关提交',
     gitSource: '查看源文',
     gitMore: (count: number) => `另有 ${count} 次提交`,
+    socialLabels: {
+      mail: '电子邮件',
+      github: 'GitHub',
+      x: 'X',
+      telegram: 'Telegram',
+    },
     siteDescription: 'mizorewww 的个人博客，记录折腾、KDE Plasma、小米笔记本、Web 开发与日常笔记。',
     categoriesIndexDescription: 'mizorewww 的文章分类索引，按主题浏览全部文章。',
     tagsIndexDescription: 'mizorewww 的文章标签索引，按标签浏览全部文章。',
@@ -110,6 +116,12 @@ export const ui = {
     gitCommits: 'Related commits',
     gitSource: 'View source',
     gitMore: (count: number) => `+${count} more`,
+    socialLabels: {
+      mail: 'Email',
+      github: 'GitHub',
+      x: 'X',
+      telegram: 'Telegram',
+    },
     siteDescription:
       'Personal blog of mizorewww — notes on tinkering, KDE Plasma, the Xiaomi Book Pro 14, web development, and everyday experiments.',
     categoriesIndexDescription:

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import SlideHeader from '@/components/animata/SlideHeader'
 import HeaderLogo from './HeaderLogo'
 import HeaderNavLinks from './HeaderNavLinks'
@@ -8,10 +9,11 @@ import ThemeSwitch from './ThemeSwitch'
 import LanguageSwitcher from './LanguageSwitcher'
 import Link from './Link'
 import Icon from './Icon'
-import { defaultLocale, ui } from '@/lib/i18n'
+import { getLocaleFromPathname, ui } from '@/lib/i18n'
 
 const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
   const [isMobile, setIsMobile] = useState(false)
+  const labels = ui[getLocaleFromPathname(usePathname())]
   const shouldHide = hideOnMobile && isMobile
 
   useEffect(() => {
@@ -41,7 +43,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
         <div className="z-10 flex shrink-0 items-center gap-x-3 text-slate-600 sm:gap-x-4 dark:text-white/90">
           <Link
             href="/feed.xml"
-            aria-label={ui[defaultLocale].subscribeRss}
+            aria-label={labels.subscribeRss}
             className="hidden hover:text-sky-500 sm:inline-flex"
           >
             <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />

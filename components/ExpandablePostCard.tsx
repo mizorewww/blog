@@ -24,6 +24,7 @@ export default function ExpandablePostCard({
   expanded,
   body,
   headingLevel = 'h2',
+  priority = false,
 }: {
   post: BlogListPost
   locale: Locale
@@ -31,6 +32,7 @@ export default function ExpandablePostCard({
   expanded: boolean
   body?: ReactNode
   headingLevel?: 'h1' | 'h2'
+  priority?: boolean
 }) {
   const now = useNow()
   const primaryTag = post.tags?.[0]
@@ -63,6 +65,7 @@ export default function ExpandablePostCard({
               alt=""
               fill
               sizes="(min-width: 1024px) 600px, 100vw"
+              priority={priority}
               className="object-cover"
             />
           </HoverScale>
