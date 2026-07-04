@@ -1,10 +1,13 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import Link from '@/components/Link'
 import Icon from '@/components/Icon'
+import { Skeleton } from '@/components/animata/Skeleton'
 import { cardClass, mutedText } from '@/components/ui/styles'
 import { type Locale, ui } from '@/lib/i18n'
+import { animataEase, animataQuickDuration } from '@/components/animata/motion'
 
 type SearchResult = {
   url: string
@@ -25,6 +28,7 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
   const labels = ui[locale]
   const [query, setQuery] = useState('')
   const [state, setState] = useState<SearchState>({ phase: 'idle' })
+  const shouldReduceMotion = useReducedMotion()
   const pagefindRef = useRef<{
     init: () => void
     debouncedSearch: (
@@ -104,6 +108,10 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
     [performSearch]
   )
 
+  const itemTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: animataQuickDuration, ease: animataEase }
+
   return (
     <div className="blog-shell mx-auto w-full px-4 py-10 sm:px-0">
       <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white/90">
@@ -111,7 +119,9 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
       </h1>
 
       {/* Search input */}
-      <div className={`relative mb-6 ${cardClass} flex items-center gap-3 px-5 py-4`}>
+      <div
+        className={`relative mb-6 ${cardClass} flex items-center gap-3 px-5 py-4 transition-shadow focus-within:ring-2 focus-within:ring-sky-500/30`}
+      >
         <Icon
           name="Search"
           className="h-5 w-5 shrink-0 text-slate-400 dark:text-white/40"
@@ -135,9 +145,9 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
       {state.phase === 'loading' && (
         <div className="space-y-3">
           {[0, 1, 2].map((i) => (
-            <div key={i} className={`${cardClass} animate-pulse px-5 py-4`}>
-              <div className="mb-2 h-5 w-2/3 rounded bg-slate-200 dark:bg-white/10" />
-              <div className="h-4 w-full rounded bg-slate-100 dark:bg-white/5" />
+            <div key={i} className={`${cardClass} px-5 py-4`}>
+              <Skeleton className="mb-2 h-5 w-2/3" />
+              <Skeleton className="h-4 w-full" />
             </div>
           ))}
         </div>
@@ -152,23 +162,33 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
           <p className={`mb-2 px-1 text-sm ${mutedText}`}>
             {labels.searchResultCount(state.results.length, state.query)}
           </p>
-          {state.results.map((result) => (
-            <Link
-              key={result.url}
-              href={result.url}
-              className={`${cardClass} block px-5 py-4 transition-shadow hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:shadow-none`}
-            >
-              <h2 className="mb-1.5 text-lg font-medium text-slate-900 dark:text-white/90">
-                {result.meta?.title || result.url}
-              </h2>
-              {result.excerpt && (
-                <p
-                  className="text-sm leading-6 text-slate-600 dark:text-white/70 [&_mark]:rounded [&_mark]:bg-sky-100 [&_mark]:px-0.5 [&_mark]:text-sky-700 dark:[&_mark]:bg-sky-900/40 dark:[&_mark]:text-sky-300"
-                  dangerouslySetInnerHTML={{ __html: result.excerpt }}
-                />
-              )}
-            </Link>
-          ))}
+          <AnimatePresence mode="popLayout">
+            {state.results.map((result, i) => (
+              <motion.div
+                key={result.url}
+                layout
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                transition={{ ...itemTransition, delay: shouldReduceMotion ? 0 : i * 0.04 }}
+              >
+                <Link
+                  href={result.url}
+                  className={`${cardClass} block px-5 py-4 transition-shadow hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:shadow-none dark:hover:ring-white/20`}
+                >
+                  <h2 className="mb-1.5 text-lg font-medium text-slate-900 dark:text-white/90">
+                    {result.meta?.title || result.url}
+                  </h2>
+                  {result.excerpt && (
+                    <p
+                      className="text-sm leading-6 text-slate-600 dark:text-white/70 [&_mark]:rounded [&_mark]:bg-sky-100 [&_mark]:px-0.5 [&_mark]:text-sky-700 dark:[&_mark]:bg-sky-900/40 dark:[&_mark]:text-sky-300"
+                      dangerouslySetInnerHTML={{ __html: result.excerpt }}
+                    />
+                  )}
+                </Link>
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       )}
     </div>

@@ -1,33 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { useScroll, useMotionValueEvent } from 'motion/react'
 import RevealButton from '@/components/animata/RevealButton'
 import Icon from '@/components/Icon'
 
 export default function BackToTop({ label, onClick }: { label: string; onClick: () => void }) {
   const [visible, setVisible] = useState(false)
+  const { scrollY } = useScroll()
 
-  useEffect(() => {
-    let frame = 0
-
-    const updateVisibility = () => {
-      frame = 0
-      setVisible(window.scrollY > 420)
-    }
-
-    const onScroll = () => {
-      if (frame) return
-      frame = window.requestAnimationFrame(updateVisibility)
-    }
-
-    updateVisibility()
-    window.addEventListener('scroll', onScroll, { passive: true })
-
-    return () => {
-      if (frame) window.cancelAnimationFrame(frame)
-      window.removeEventListener('scroll', onScroll)
-    }
-  }, [])
+  useMotionValueEvent(scrollY, 'change', (y) => setVisible(y > 420))
 
   return (
     <RevealButton
