@@ -1,4 +1,4 @@
-import type { Locale } from '@/lib/i18n'
+import { localeConfig, type Locale } from '@/lib/i18n'
 
 const RELATIVE_TIME_UNITS: { unit: Intl.RelativeTimeFormatUnit; ms: number }[] = [
   { unit: 'year', ms: 365 * 24 * 60 * 60 * 1000 },
@@ -43,7 +43,7 @@ export function formatRelativeTime(date: string | undefined, now: Date, locale: 
     RELATIVE_TIME_UNITS.find((candidate) => absDiffMs >= candidate.ms) ||
     RELATIVE_TIME_UNITS[RELATIVE_TIME_UNITS.length - 1]
   const value = Math.round(diffMs / unit.ms)
-  const formatter = new Intl.RelativeTimeFormat(locale === 'zh' ? 'zh-CN' : 'en-US', {
+  const formatter = new Intl.RelativeTimeFormat(localeConfig[locale].dateLocale, {
     numeric: 'auto',
   })
 

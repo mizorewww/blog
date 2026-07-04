@@ -2,7 +2,9 @@
 
 import { normalizeTradingViewSymbol } from '@/lib/tradingview'
 import { useTheme } from 'next-themes'
+import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { getLocaleFromPathname, localeConfig } from '@/lib/i18n'
 
 type TradingViewTheme = 'light' | 'dark'
 
@@ -37,6 +39,14 @@ const miniChartScript =
 const advancedChartScript =
   'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js'
 const tradingViewDarkBackground = 'rgb(16 22 31)'
+const DEFAULT_TRADINGVIEW_TIMEZONE = 'Asia/Shanghai'
+
+function useTradingViewLocale() {
+  const pathname = usePathname()
+  const locale = getLocaleFromPathname(pathname)
+
+  return localeConfig[locale].htmlLang.replace('-', '_')
+}
 
 function useTradingViewTheme() {
   const [mounted, setMounted] = useState(false)
@@ -117,10 +127,12 @@ function TradingViewWidget({ config, scriptSrc }: TradingViewWidgetProps) {
 export function TradingViewMiniChart({
   dateRange = '12M',
   height = 220,
-  locale = 'zh_CN',
+  locale,
   symbol,
 }: TradingViewMiniChartProps) {
   const theme = useTradingViewTheme()
+  const tradingViewLocale = useTradingViewLocale()
+  const resolvedLocale = locale ?? tradingViewLocale
   const normalizedSymbol = normalizeTradingViewSymbol(symbol)
   const config = useMemo(
     () => ({
@@ -131,14 +143,14 @@ export function TradingViewMiniChart({
       height: '100%',
       isTransparent: false,
       largeChartUrl: '',
-      locale,
+      locale: resolvedLocale,
       symbol: normalizedSymbol,
       trendLineColor: theme === 'dark' ? 'rgba(56, 189, 248, 1)' : 'rgba(2, 132, 199, 1)',
       underLineBottomColor: theme === 'dark' ? 'rgba(56, 189, 248, 0)' : 'rgba(2, 132, 199, 0)',
       underLineColor: theme === 'dark' ? 'rgba(56, 189, 248, 0.18)' : 'rgba(2, 132, 199, 0.1)',
       width: '100%',
     }),
-    [dateRange, locale, normalizedSymbol, theme]
+    [dateRange, resolvedLocale, normalizedSymbol, theme]
   )
 
   return (
@@ -151,11 +163,13 @@ export function TradingViewMiniChart({
 export function TradingViewAdvancedChart({
   height = 520,
   interval = 'D',
-  locale = 'zh_CN',
+  locale,
   symbol,
-  timezone = 'Asia/Shanghai',
+  timezone = DEFAULT_TRADINGVIEW_TIMEZONE,
 }: TradingViewAdvancedChartProps) {
   const theme = useTradingViewTheme()
+  const tradingViewLocale = useTradingViewLocale()
+  const resolvedLocale = locale ?? tradingViewLocale
   const normalizedSymbol = normalizeTradingViewSymbol(symbol)
   const config = useMemo(
     () => ({
@@ -168,7 +182,7 @@ export function TradingViewAdvancedChart({
       height: '100%',
       hide_top_toolbar: false,
       interval,
-      locale,
+      locale: resolvedLocale,
       save_image: false,
       style: '1',
       support_host: 'https://www.tradingview.com',
@@ -177,7 +191,7 @@ export function TradingViewAdvancedChart({
       timezone,
       width: '100%',
     }),
-    [interval, locale, normalizedSymbol, theme, timezone]
+    [interval, resolvedLocale, normalizedSymbol, theme, timezone]
   )
 
   return (

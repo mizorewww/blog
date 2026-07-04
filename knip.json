@@ -2,6 +2,9 @@
   "$schema": "https://unpkg.com/knip@6/schema.json",
   "entry": [
     "next.config.js",
+    "postcss.config.js",
+    "prettier.config.js",
+    "eslint.config.mjs",
     "playwright.config.ts",
     "vitest.config.ts",
     "contentlayer.config.ts",
