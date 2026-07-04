@@ -76,6 +76,7 @@
     "husky": "^9.1.7",
     "knip": "^6.18.0",
     "lint-staged": "^16.2.7",
+    "pagefind": "^1.5.2",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "sharp": "^0.34.5",

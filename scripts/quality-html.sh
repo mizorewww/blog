@@ -84,7 +84,7 @@ analyze_html() {
 if [ -d "$TARGET" ]; then
   while IFS= read -r -d '' file; do
     analyze_html "$file"
-  done < <(find "$TARGET" \( -name "*.html" -o -name "*.htm" \) -print0)
+  done < <(find "$TARGET" \( -name "*.html" -o -name "*.htm" \) -not -path "*/pagefind/*" -print0)
 elif [ -f "$TARGET" ]; then
   analyze_html "$TARGET"
 else

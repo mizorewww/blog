@@ -1,4 +1,5 @@
 import { collectFiles, formatBytes } from './lib/file-utils.mjs'
+import path from 'node:path'
 
 const targetDir = process.argv[2] || 'out'
 const budgets = {
@@ -10,7 +11,9 @@ const budgets = {
 
 const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif'])
 
-const files = await collectFiles(targetDir)
+const files = (await collectFiles(targetDir)).filter(
+  (file) => !file.path.includes(`${path.sep}pagefind${path.sep}`)
+)
 const failures = []
 const imageFiles = files.filter((file) => imageExtensions.has(file.ext))
 const imagesTotal = imageFiles.reduce((total, file) => total + file.size, 0)

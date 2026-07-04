@@ -29,12 +29,13 @@
     "tests/**/*.{ts,tsx}",
     "vitest.config.ts"
   ],
-  "ignoreBinaries": ["scripts/quality-html.sh"],
+  "ignoreBinaries": ["scripts/quality-html.sh", "pagefind"],
   "ignoreDependencies": [
     "@tailwindcss/typography",
     "eslint-config-next",
     "eslint-config-prettier",
     "eslint-plugin-jsx-a11y",
+    "pagefind",
     "sharp",
     "tailwindcss"
   ]
