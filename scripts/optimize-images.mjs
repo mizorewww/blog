@@ -20,11 +20,20 @@ const IMAGE_OPTIMIZATION_PRESETS = {
 // generated variant files stay in sync.
 const RESPONSIVE_WIDTHS = [400, 640, 768, 1024, 1280]
 
+/**
+ * @param {string} filePath - source image path
+ * @param {number} width - responsive width variant
+ * @returns {string}
+ */
 function variantPath(filePath, width) {
   const ext = path.extname(filePath)
   return `${filePath.slice(0, filePath.length - ext.length)}.${width}.webp`
 }
 
+/**
+ * @param {string} filePath - source image path
+ * @returns {Promise<void>}
+ */
 async function optimizeOriginal(filePath) {
   const ext = path.extname(filePath).toLowerCase()
   const before = (await stat(filePath)).size
@@ -59,6 +68,10 @@ async function optimizeOriginal(filePath) {
   )
 }
 
+/**
+ * @param {string} filePath - source image path
+ * @returns {Promise<void>}
+ */
 async function generateVariants(filePath) {
   const ext = path.extname(filePath).toLowerCase()
 
@@ -83,6 +96,10 @@ async function generateVariants(filePath) {
   }
 }
 
+/**
+ * @param {string} filePath - source image path
+ * @returns {Promise<void>}
+ */
 async function processImage(filePath) {
   if (checkOnly) {
     const meta = await sharp(filePath).metadata()

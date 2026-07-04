@@ -1,5 +1,10 @@
 export const defaultPreviewPort = '3001'
 
+/**
+ * @param {string[]} args - raw argument list
+ * @param {string} name - option flag name
+ * @returns {string | null}
+ */
 export function readArg(args, name) {
   const withEquals = args.find((arg) => arg.startsWith(`${name}=`))
 
@@ -11,6 +16,11 @@ export function readArg(args, name) {
   return index === -1 ? null : args[index + 1]
 }
 
+/**
+ * @param {string[]} rawArgs - raw argument list
+ * @param {NodeJS.ProcessEnv} [env] - environment variables
+ * @returns {{ args: string[], port: string, skipBuild: boolean, updateCaddy: boolean }}
+ */
 export function parsePreviewArgs(rawArgs, env = process.env) {
   const args = rawArgs[0] === '--' ? rawArgs.slice(1) : rawArgs
 

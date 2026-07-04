@@ -3,6 +3,12 @@ import { networkInterfaces } from 'node:os'
 
 const previewReminderIntervalMs = 30000
 
+/**
+ * @param {string} command - executable to spawn
+ * @param {string[]} commandArgs - arguments forwarded to the executable
+ * @param {import('node:child_process').SpawnOptions} [options] - spawn options
+ * @returns {Promise<void>}
+ */
 export function run(command, commandArgs, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, commandArgs, {
@@ -28,6 +34,10 @@ export function run(command, commandArgs, options = {}) {
   })
 }
 
+/**
+ * @param {string} port - preview port
+ * @returns {string[]}
+ */
 export function getNetworkUrls(port) {
   const urls = [`http://localhost:${port}/`]
   const interfaces = networkInterfaces()
@@ -49,6 +59,10 @@ export function getNetworkUrls(port) {
   return [...new Set(urls)]
 }
 
+/**
+ * @param {string} prefix - heading printed before the url list
+ * @param {string[]} urls - urls to print
+ */
 export function printPreviewUrls(prefix, urls) {
   console.log(`\n${prefix}`)
   urls.forEach((url, index) => {
@@ -58,6 +72,13 @@ export function printPreviewUrls(prefix, urls) {
   console.log('  Stop:  Ctrl+C\n')
 }
 
+/**
+ * @param {string} command - executable to spawn
+ * @param {string[]} commandArgs - arguments forwarded to the executable
+ * @param {string[]} urls - urls printed in reminders
+ * @param {import('node:child_process').SpawnOptions} [options] - spawn options
+ * @returns {Promise<void>}
+ */
 export function runWithPreviewReminders(command, commandArgs, urls, options = {}) {
   return new Promise((resolve, reject) => {
     printPreviewUrls('Static preview is running:', urls)

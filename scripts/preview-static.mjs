@@ -8,6 +8,10 @@ import { getNetworkUrls, run, runWithPreviewReminders } from './preview-static/p
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const { port, skipBuild, updateCaddy } = parsePreviewArgs(process.argv.slice(2))
 
+/**
+ * @param {string} filePath - path to check
+ * @returns {Promise<boolean>}
+ */
 async function exists(filePath) {
   try {
     await access(filePath)

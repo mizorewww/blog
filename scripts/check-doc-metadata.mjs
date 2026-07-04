@@ -32,6 +32,10 @@ const allowedValues = {
   verified_by: new Set(['command', 'agent review', 'source citation']),
 }
 
+/**
+ * @param {string} target - path relative to repo root
+ * @returns {string[]}
+ */
 function listMarkdownFiles(target) {
   const absolute = path.join(root, target)
   if (!fs.existsSync(absolute)) return []
@@ -45,11 +49,16 @@ function listMarkdownFiles(target) {
   })
 }
 
+/**
+ * @param {string} filePath - path relative to repo root
+ * @param {string} text - file contents
+ */
 function parseFrontMatter(filePath, text) {
   if (!text.startsWith('---\n')) return null
   const end = text.indexOf('\n---', 4)
   if (end === -1) return null
 
+  /** @type {Record<string, string | string[]>} */
   const metadata = {}
   let currentListKey = null
   const body = text.slice(4, end).split('\n')
@@ -67,7 +76,8 @@ function parseFrontMatter(filePath, text) {
 
     const listMatch = line.match(/^\s+-\s+(.+)$/)
     if (listMatch && currentListKey) {
-      metadata[currentListKey].push(listMatch[1].trim())
+      const currentList = /** @type {string[]} */ (metadata[currentListKey])
+      currentList.push(listMatch[1].trim())
     }
   }
 
@@ -99,12 +109,15 @@ for (const filePath of files) {
   }
 
   for (const [key, values] of Object.entries(allowedValues)) {
-    if (metadata[key] && !values.has(metadata[key])) {
+    if (metadata[key] && !values.has(/** @type {string} */ (metadata[key]))) {
       failures.push(`${filePath}: invalid ${key} "${metadata[key]}"`)
     }
   }
 
-  if (metadata.last_verified && !/^\d{4}-\d{2}-\d{2}$/.test(metadata.last_verified)) {
+  if (
+    metadata.last_verified &&
+    !/^\d{4}-\d{2}-\d{2}$/.test(/** @type {string} */ (metadata.last_verified))
+  ) {
     failures.push(`${filePath}: last_verified must be YYYY-MM-DD`)
   }
 }

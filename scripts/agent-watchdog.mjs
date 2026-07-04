@@ -5,6 +5,11 @@ const defaultTimeoutSeconds = 1800
 const defaultHeartbeatSeconds = 60
 const args = process.argv.slice(2)
 
+/**
+ * @param {string} name - option flag name
+ * @param {string} fallback - value to return when the option is absent
+ * @returns {string}
+ */
 function readOption(name, fallback) {
   const withEquals = args.find((arg) => arg.startsWith(`${name}=`))
   if (withEquals) return withEquals.slice(name.length + 1)
@@ -19,6 +24,11 @@ function readCommand() {
   return args.slice(separator + 1)
 }
 
+/**
+ * @param {string} name - option flag name
+ * @param {number} fallback - value to return when the option is absent
+ * @returns {number}
+ */
 function readPositiveInteger(name, fallback) {
   const rawValue = readOption(name, String(fallback))
   const parsed = Number.parseInt(rawValue, 10)

@@ -17,6 +17,7 @@ const caddyVersion = '2.11.4'
 const caddyReleaseTag = `v${caddyVersion}`
 const caddyReleaseBaseUrl = `https://github.com/caddyserver/caddy/releases/download/${caddyReleaseTag}`
 const caddyBinaryName = process.platform === 'win32' ? 'caddy.exe' : 'caddy'
+/** @type {Record<string, { name: string, sha512: string }>} */
 const caddyAssets = {
   linux_amd64: {
     name: 'caddy_2.11.4_linux_amd64.tar.gz',
@@ -45,6 +46,10 @@ const caddyAssets = {
   },
 }
 
+/**
+ * @param {string} filePath - path to check
+ * @returns {Promise<boolean>}
+ */
 async function exists(filePath) {
   try {
     await access(filePath)
@@ -54,6 +59,11 @@ async function exists(filePath) {
   }
 }
 
+/**
+ * @param {string} directory - directory to search recursively
+ * @param {string} fileName - file name to locate
+ * @returns {Promise<string | null>}
+ */
 async function findFile(directory, fileName) {
   const entries = await readdir(directory, { withFileTypes: true })
 
@@ -76,7 +86,11 @@ async function findFile(directory, fileName) {
   return null
 }
 
+/**
+ * @returns {string}
+ */
 function getCaddyPlatform() {
+  /** @type {Record<string, string>} */
   const platforms = {
     darwin: 'mac',
     linux: 'linux',
@@ -91,7 +105,11 @@ function getCaddyPlatform() {
   return platform
 }
 
+/**
+ * @returns {string}
+ */
 function getCaddyArch() {
+  /** @type {Record<string, string>} */
   const architectures = {
     arm64: 'arm64',
     x64: 'amd64',
@@ -105,6 +123,9 @@ function getCaddyArch() {
   return architecture
 }
 
+/**
+ * @returns {{ platform: string, architecture: string, name: string, sha512: string }}
+ */
 function getCaddyAsset() {
   const platform = getCaddyPlatform()
   const architecture = getCaddyArch()
@@ -118,6 +139,11 @@ function getCaddyAsset() {
   return { platform, architecture, ...asset }
 }
 
+/**
+ * @param {string} url - download url
+ * @param {string} outputPath - destination file path
+ * @returns {Promise<void>}
+ */
 async function downloadFile(url, outputPath) {
   const response = await fetch(url, {
     headers: {
@@ -132,6 +158,11 @@ async function downloadFile(url, outputPath) {
   await writeFile(outputPath, Buffer.from(await response.arrayBuffer()))
 }
 
+/**
+ * @param {string} filePath - path to the file to verify
+ * @param {string} expectedSha512 - expected sha512 hex digest
+ * @returns {Promise<void>}
+ */
 async function verifySha512(filePath, expectedSha512) {
   const file = await readFile(filePath)
   const actualSha512 = createHash('sha512').update(file).digest('hex')
@@ -143,6 +174,10 @@ async function verifySha512(filePath, expectedSha512) {
   }
 }
 
+/**
+ * @param {string} toolsDir - directory containing the VERSION file
+ * @returns {Promise<{ version: string | undefined, assetName: string | undefined, sha512: string | undefined }>}
+ */
 async function readInstalledCaddyVersion(toolsDir) {
   const versionPath = path.join(toolsDir, 'VERSION')
   const contents = await readFile(versionPath, 'utf8').catch(() => '')
@@ -151,6 +186,10 @@ async function readInstalledCaddyVersion(toolsDir) {
   return { version, assetName, sha512 }
 }
 
+/**
+ * @param {{ caddyBinaryPath: string, downloadDir: string, projectRoot: string, toolsDir: string }} paths - caddy tool paths
+ * @returns {Promise<void>}
+ */
 async function downloadCaddy({ caddyBinaryPath, downloadDir, projectRoot, toolsDir }) {
   await mkdir(toolsDir, { recursive: true })
   await rm(downloadDir, { recursive: true, force: true })
@@ -182,6 +221,10 @@ async function downloadCaddy({ caddyBinaryPath, downloadDir, projectRoot, toolsD
   await rm(downloadDir, { recursive: true, force: true })
 }
 
+/**
+ * @param {string} projectRoot - repository root path
+ * @returns {{ caddyBinaryPath: string, caddyXdgConfigDir: string, caddyXdgDataDir: string, downloadDir: string, toolsDir: string }}
+ */
 export function getCaddyPaths(projectRoot) {
   const toolsDir = path.join(projectRoot, '.tools', 'caddy')
 
@@ -194,6 +237,10 @@ export function getCaddyPaths(projectRoot) {
   }
 }
 
+/**
+ * @param {{ projectRoot: string, updateCaddy: boolean }} options - ensure options
+ * @returns {Promise<{ caddyBinaryPath: string, caddyXdgConfigDir: string, caddyXdgDataDir: string, downloadDir: string, toolsDir: string }>}
+ */
 export async function ensureCaddy({ projectRoot, updateCaddy }) {
   const paths = getCaddyPaths(projectRoot)
   const asset = getCaddyAsset()
@@ -220,14 +267,27 @@ export async function ensureCaddy({ projectRoot, updateCaddy }) {
   return paths
 }
 
+/**
+ * @param {string} value - value to quote
+ * @returns {string}
+ */
 function quoteCaddyfileValue(value) {
   return JSON.stringify(value)
 }
 
+/**
+ * @param {string} value - value to escape
+ * @returns {string}
+ */
 function escapeCaddyRegexp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 }
 
+/**
+ * @param {string} source - redirect source pattern
+ * @param {string} name - matcher name
+ * @returns {{ directive: string, matcher: string }}
+ */
 function createRedirectMatcher(source, name) {
   if (!source.includes('*')) {
     return {
@@ -242,6 +302,10 @@ function createRedirectMatcher(source, name) {
   }
 }
 
+/**
+ * @param {string} outDir - output directory containing _redirects
+ * @returns {Promise<string[]>}
+ */
 async function readRedirectDirectives(outDir) {
   const redirects = await readFile(path.join(outDir, '_redirects'), 'utf8').catch(() => '')
 
@@ -264,6 +328,10 @@ async function readRedirectDirectives(outDir) {
     })
 }
 
+/**
+ * @param {{ port: string, projectRoot: string, toolsDir: string }} options - write options
+ * @returns {Promise<string>}
+ */
 export async function writeCaddyfile({ port, projectRoot, toolsDir }) {
   const outDir = path.join(projectRoot, 'out')
   const outStats = await stat(outDir).catch(() => null)

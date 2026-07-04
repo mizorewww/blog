@@ -4,6 +4,8 @@ import * as lucide from 'lucide-react'
 import { collectFiles as collectFilesIn } from './lib/file-utils.mjs'
 import { normalizeIconKey, pascalizeKey } from '../lib/iconName.ts'
 
+const lucideIcons = /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (lucide))
+
 const projectRoot = process.cwd()
 const outputPath = path.join(projectRoot, 'lib', 'generated', 'lucide-icons.ts')
 const scanRoots = ['app', 'components', 'content', 'lib']
@@ -62,6 +64,11 @@ function readIconAliases() {
   return aliases
 }
 
+/**
+ * @param {string} value - raw icon name
+ * @param {Map<string, string>} aliases - alias map
+ * @returns {string}
+ */
 function normalizeIconName(value, aliases) {
   const key = normalizeIconKey(value)
 
@@ -72,14 +79,23 @@ function normalizeIconName(value, aliases) {
   return aliases.get(key) || pascalizeKey(key)
 }
 
+/**
+ * @param {Set<string>} iconNames - accumulated icon name set
+ * @param {string} rawName - raw icon name from source
+ * @param {Map<string, string>} aliases - alias map
+ */
 function addIcon(iconNames, rawName, aliases) {
   const iconName = normalizeIconName(rawName, aliases)
 
-  if (lucide[iconName]) {
+  if (lucideIcons[iconName]) {
     iconNames.add(iconName)
   }
 }
 
+/**
+ * @param {string} root - repo-relative scan root
+ * @returns {Promise<string[]>}
+ */
 async function collectSourceFiles(root) {
   const directory = path.join(projectRoot, root)
 
@@ -91,6 +107,11 @@ async function collectSourceFiles(root) {
   return files.map((file) => file.path)
 }
 
+/**
+ * @param {string} source - source file contents
+ * @param {Set<string>} iconNames - accumulated icon name set
+ * @param {Map<string, string>} aliases - alias map
+ */
 function collectIconsFromSource(source, iconNames, aliases) {
   for (const match of source.matchAll(/:icon-([A-Za-z0-9_-]+):/g)) {
     addIcon(iconNames, match[1], aliases)
@@ -111,6 +132,10 @@ function collectIconsFromSource(source, iconNames, aliases) {
   }
 }
 
+/**
+ * @param {string} iconName - icon name to make import-safe
+ * @returns {string}
+ */
 function safeImportName(iconName) {
   if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(iconName) && !reservedIdentifiers.has(iconName)) {
     return iconName
@@ -119,6 +144,10 @@ function safeImportName(iconName) {
   return `${iconName}Icon`
 }
 
+/**
+ * @param {Set<string>} iconNames - icon names to emit
+ * @returns {string}
+ */
 function generateSource(iconNames) {
   const sortedIconNames = [...iconNames].sort((a, b) => a.localeCompare(b))
   const imports = sortedIconNames
