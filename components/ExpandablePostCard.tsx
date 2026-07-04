@@ -4,6 +4,7 @@ import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import HoverScale from '@/components/animata/HoverScale'
 import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
+import PostNavLinks from '@/components/PostNavLinks'
 import ResponsiveImage from '@/components/ResponsiveImage'
 import Link from '@/components/Link'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
@@ -23,6 +24,7 @@ export default function ExpandablePostCard({
   dateLocale,
   expanded,
   body,
+  allPosts,
   headingLevel = 'h2',
   priority = false,
 }: {
@@ -31,6 +33,7 @@ export default function ExpandablePostCard({
   dateLocale: string
   expanded: boolean
   body?: ReactNode
+  allPosts?: BlogListPost[]
   headingLevel?: 'h1' | 'h2'
   priority?: boolean
 }) {
@@ -109,10 +112,20 @@ export default function ExpandablePostCard({
             contentClassName="dark:border-border-subtle-dark border-t border-slate-200 pt-5 pb-1"
           >
             {expanded && renderBody && (
-              <div className="prose prose-slate dark:prose-invert max-w-none">
-                {body}
-                <ArticleLicenseNotice locale={locale} />
-              </div>
+              <>
+                <div className="prose prose-slate dark:prose-invert max-w-none">
+                  {body}
+                  <ArticleLicenseNotice locale={locale} />
+                </div>
+                {allPosts && allPosts.length > 1 && (
+                  <PostNavLinks
+                    currentPost={post}
+                    allPosts={allPosts}
+                    locale={locale}
+                    dateLocale={dateLocale}
+                  />
+                )}
+              </>
             )}
           </CollapsiblePanel>
         )}
