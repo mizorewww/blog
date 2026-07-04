@@ -35,7 +35,7 @@ const SocialIcon = ({ kind, href, size = 8, locale }: SocialIconProps) => {
 
   return (
     <a
-      className="text-sm text-gray-500 hover:text-sky-700 dark:hover:text-sky-400"
+      className="text-sm text-slate-500 hover:text-sky-700 dark:hover:text-sky-400"
       target="_blank"
       rel="noopener noreferrer"
       href={href}
@@ -43,7 +43,7 @@ const SocialIcon = ({ kind, href, size = 8, locale }: SocialIconProps) => {
     >
       <span className="sr-only">{ui[locale].socialLabels[kind]}</span>
       <SocialSvg
-        className={`fill-current text-gray-700 hover:text-sky-700 dark:text-gray-200 dark:hover:text-sky-400 ${sizeClasses[size] ?? 'h-8 w-8'}`}
+        className={`fill-current text-slate-700 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-400 ${sizeClasses[size] ?? 'h-8 w-8'}`}
       />
     </a>
   )

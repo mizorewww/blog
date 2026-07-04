@@ -22,7 +22,7 @@ const LanguageSwitcher = () => {
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <div className="flex items-center rounded-md border border-gray-200 p-0.5 text-sm font-medium dark:border-gray-700">
+    <div className="flex items-center rounded-md border border-slate-200 p-0.5 text-sm font-medium dark:border-white/10">
       {locales.map((locale) => {
         const isActive = locale === currentLocale
 
@@ -33,15 +33,15 @@ const LanguageSwitcher = () => {
             aria-current={isActive ? 'page' : undefined}
             className={`relative isolate rounded px-2 py-1 ${
               isActive
-                ? 'text-white dark:text-gray-900'
-                : 'text-gray-600 hover:text-sky-700 dark:text-gray-300 dark:hover:text-sky-300'
+                ? 'text-white dark:text-slate-900'
+                : 'text-slate-600 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300'
             }`}
           >
             {isActive && (
               <motion.span
                 layoutId="animata-language-switcher-active"
                 data-animata-language-switcher-active
-                className="absolute inset-0 -z-10 rounded bg-gray-900 dark:bg-gray-100"
+                className="absolute inset-0 -z-10 rounded bg-slate-900 dark:bg-slate-100"
                 transition={{
                   duration: shouldReduceMotion ? 0 : animataQuickDuration,
                   ease: animataEase,

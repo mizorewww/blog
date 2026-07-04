@@ -20,12 +20,12 @@ export default function TermIndexView({
   const route = isCategory ? '/categories' : '/tags'
   const containerClass = isCategory
     ? 'mx-auto flex w-full max-w-5xl flex-col items-start justify-start px-4 pt-10 pb-16 sm:px-6 md:mt-24 md:flex-row md:items-center md:justify-center md:space-x-6'
-    : 'flex flex-col items-start justify-start divide-y divide-gray-200 md:mt-24 md:flex-row md:items-center md:justify-center md:space-x-6 md:divide-y-0 dark:divide-gray-700'
+    : 'flex flex-col items-start justify-start divide-y divide-slate-200 md:mt-24 md:flex-row md:items-center md:justify-center md:space-x-6 md:divide-y-0 dark:divide-white/10'
 
   return (
     <div className={containerClass}>
       <div className="space-x-2 pt-6 pb-8 md:space-y-5">
-        <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-gray-900 sm:text-4xl sm:leading-10 md:border-r-2 md:px-6 md:text-6xl md:leading-14 dark:text-gray-100">
+        <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-slate-900 sm:text-4xl sm:leading-10 md:border-r-2 md:px-6 md:text-6xl md:leading-14 dark:text-white/90">
           {title}
         </h1>
       </div>
@@ -46,7 +46,7 @@ export default function TermIndexView({
               <Tag text={term.label} locale={locale} />
               <Link
                 href={localizePath(`${route}/${term.slug}`, locale)}
-                className="-ml-2 text-sm font-semibold text-gray-600 uppercase dark:text-gray-300"
+                className="-ml-2 text-sm font-semibold text-slate-600 uppercase dark:text-white/70"
                 aria-label={labels.postsTagged(term.label)}
               >
                 {` (${term.count})`}

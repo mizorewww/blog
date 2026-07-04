@@ -83,7 +83,7 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--color-slate-200, currentColor);
   }
 
   a,
@@ -156,7 +156,7 @@
       }
     }
     & :where(h1, h2, h3, h4, h5, h6) {
-      color: var(--color-gray-100);
+      color: var(--color-slate-100);
     }
     & :where(code):not(pre code) {
       border-color: color-mix(in oklab, #cdd6f4 20%, transparent);
@@ -253,7 +253,7 @@
 }
 
 .footnotes {
-  @apply mt-12 border-t border-gray-200 pt-8 dark:border-gray-700;
+  @apply mt-12 border-t border-slate-200 pt-8 dark:border-white/10;
 }
 
 .data-footnote-backref {
