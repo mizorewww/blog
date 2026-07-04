@@ -7,14 +7,14 @@ import { getSortedTermSummaries, type CountMap } from '@/lib/content/terms'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
 
-function totalWords(posts: BlogListPost[]) {
+function totalWords(posts: BlogListPost[], locale: Locale) {
   const words = posts.reduce((sum, post) => {
     const readingWords = (post.readingTime as { words?: number } | undefined)?.words
     if (typeof readingWords === 'number') return sum + readingWords
     return sum + `${post.title} ${post.summary || ''}`.replace(/\s+/g, '').length
   }, 0)
 
-  return (words / 10000).toFixed(1)
+  return (locale === 'zh' ? words / 10000 : words / 1000).toFixed(1)
 }
 
 export default function ProfileSidebar({
@@ -62,7 +62,9 @@ export default function ProfileSidebar({
             <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.tags}</dd>
           </div>
           <div>
-            <dt className="text-2xl text-slate-900 dark:text-white/90">{totalWords(posts)}</dt>
+            <dt className="text-2xl text-slate-900 dark:text-white/90">
+              {totalWords(posts, locale)}
+            </dt>
             <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.words}</dd>
           </div>
         </dl>

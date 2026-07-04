@@ -91,7 +91,7 @@ export const ui = {
     allCategories: 'Categories',
     allTags: 'Tags',
     articles: 'Articles',
-    words: '10k words',
+    words: 'k words',
     recentPosts: 'Recent Posts',
     popularTags: 'Popular Tags',
     noPosts: 'No posts found.',
