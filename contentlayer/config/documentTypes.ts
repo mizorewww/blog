@@ -1,8 +1,5 @@
 import { defineDocumentType } from 'contentlayer2/source-files'
-import siteMetadata from '../../data/siteMetadata'
-import { getPostImageUrls } from '../../lib/postImages'
-import { absoluteSiteUrl } from '../../lib/urls'
-import { blogComputedFields, blogPath, computedFields, getBlogGitUpdatedAt } from './computedFields'
+import { blogComputedFields, computedFields } from './computedFields'
 
 export const Blog = defineDocumentType(() => ({
   name: 'Blog',
@@ -26,32 +23,6 @@ export const Blog = defineDocumentType(() => ({
   },
   computedFields: {
     ...blogComputedFields,
-    structuredData: {
-      type: 'json',
-      resolve: async (doc) => {
-        const url = absoluteSiteUrl(siteMetadata.siteUrl, blogPath(doc))
-        const gitUpdatedAt = await getBlogGitUpdatedAt(doc)
-
-        return {
-          '@context': 'https://schema.org',
-          '@type': 'BlogPosting',
-          headline: doc.title,
-          datePublished: doc.date,
-          dateModified: gitUpdatedAt || doc.lastmod || doc.date,
-          description: doc.summary,
-          articleSection: doc.categories,
-          keywords: doc.tags,
-          image: getPostImageUrls({
-            image: doc.image,
-            images: doc.images,
-            fallback: siteMetadata.socialBanner,
-            siteUrl: siteMetadata.siteUrl,
-          }),
-          url,
-          mainEntityOfPage: url,
-        }
-      },
-    },
   },
 }))
 

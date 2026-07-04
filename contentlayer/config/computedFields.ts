@@ -1,6 +1,5 @@
 import type { ComputedFields } from 'contentlayer2/source-files'
 import readingTime from 'reading-time'
-import siteMetadata from '../../data/siteMetadata'
 import { defaultLocale, isLocale } from '../../lib/i18n'
 import { extractTocHeadings } from '../../lib/toc'
 import { getFileUrl, getPostGitHistory, getRepoSourceFilePath, toIsoDate } from './gitHistory'
@@ -63,7 +62,7 @@ const blogSlug = (doc: ContentlayerDoc) => {
   return rawSlug
 }
 
-export const blogPath = (doc: ContentlayerDoc) => `${blogLocale(doc)}/${blogSlug(doc)}`
+const blogPath = (doc: ContentlayerDoc) => `${blogLocale(doc)}/${blogSlug(doc)}`
 
 export const blogComputedFields: ComputedFields = {
   readingTime: { type: 'json', resolve: (doc) => readingTime(doc.body.raw) },
@@ -108,12 +107,4 @@ export const blogComputedFields: ComputedFields = {
   },
   toc: { type: 'json', resolve: (doc) => extractTocHeadings(doc.body.raw) },
   mdxModulePath: { type: 'string', resolve: writeMdxModule },
-}
-
-export async function getBlogGitUpdatedAt(doc: ContentlayerDoc) {
-  return (await getPostGitHistory(getRepoSourceFilePath(doc)))[0]?.committedAt
-}
-
-export function getBlogStructuredDataUrl(doc: ContentlayerDoc) {
-  return `${siteMetadata.siteUrl.replace(/\/+$/, '')}/${blogPath(doc)}/`
 }

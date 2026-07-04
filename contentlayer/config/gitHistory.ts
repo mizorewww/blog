@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import siteMetadata from '../../data/siteMetadata'
+import { getGitOutput } from '../../scripts/lib/git-exec.mjs'
 
 export type PostGitCommit = {
   hash: string
@@ -36,18 +37,6 @@ export const siteRepo = (siteMetadata.siteRepo || '').replace(/\/+$/, '')
 export const siteRepoPath = siteRepo.startsWith('https://github.com/')
   ? siteRepo.replace(/^https:\/\/github\.com\//, '')
   : ''
-
-export function getGitOutput(args: string[]) {
-  try {
-    return execFileSync('git', args, {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
-  } catch {
-    return ''
-  }
-}
 
 function gitCommandSucceeds(args: string[]) {
   try {

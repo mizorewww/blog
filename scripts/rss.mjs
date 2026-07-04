@@ -1,10 +1,10 @@
 import { writeFileSync, mkdirSync } from 'fs'
 import path from 'path'
-import { slug } from 'github-slugger'
 import siteMetadata from '../data/siteMetadata.ts'
 import { allBlogs } from '../.contentlayer/generated/index.mjs'
 import { getPostLocale } from '../lib/blog.ts'
 import { sortPosts } from '../lib/contentlayer.ts'
+import { countTerms, getPostsByTerm } from '../lib/content/terms.ts'
 import { defaultLocale } from '../lib/i18n.ts'
 import { absoluteSiteUrl } from '../lib/urls.ts'
 
@@ -22,13 +22,7 @@ function escape(value) {
 }
 
 function getTagSlugs(posts) {
-  const tagSlugs = new Set()
-
-  posts.forEach((post) => {
-    post.tags?.forEach((tag) => tagSlugs.add(slug(tag)))
-  })
-
-  return Array.from(tagSlugs)
+  return Object.keys(countTerms(posts, 'tags'))
 }
 
 const generateRssItem = (config, post) => `
@@ -71,9 +65,7 @@ async function generateRSS(config, allBlogs, page = 'feed.xml') {
 
   const generateTagFeeds = (posts, routePrefix) => {
     for (const tag of getTagSlugs(posts)) {
-      const filteredPosts = posts.filter((post) =>
-        post.tags?.map((postTag) => slug(postTag)).includes(tag)
-      )
+      const filteredPosts = getPostsByTerm(posts, 'tags', tag)
       const rss = generateRss(config, filteredPosts, `${routePrefix}/${tag}/${page}`)
       const rssPath = path.join(outputFolder, routePrefix, tag)
       mkdirSync(rssPath, { recursive: true })

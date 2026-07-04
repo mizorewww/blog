@@ -1,7 +1,8 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { readdir } from 'node:fs/promises'
 import path from 'node:path'
 import * as lucide from 'lucide-react'
+import { collectFiles as collectFilesIn } from './lib/file-utils.mjs'
+import { normalizeIconKey, pascalizeKey } from '../lib/iconName.ts'
 
 const projectRoot = process.cwd()
 const outputPath = path.join(projectRoot, 'lib', 'generated', 'lucide-icons.ts')
@@ -44,25 +45,6 @@ const reservedIdentifiers = new Set([
   'yield',
 ])
 
-function toIconComponentName(value) {
-  const key = value
-    .trim()
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
-
-  if (!key) {
-    return 'CircleHelp'
-  }
-
-  return key
-    .split('-')
-    .filter(Boolean)
-    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
-    .join('')
-}
-
 function readIconAliases() {
   const source = readFileSync(path.join(projectRoot, 'lib', 'iconAliases.ts'), 'utf8')
   const aliases = new Map()
@@ -81,14 +63,13 @@ function readIconAliases() {
 }
 
 function normalizeIconName(value, aliases) {
-  const key = value
-    .trim()
-    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
-    .replace(/[\s_]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-    .toLowerCase()
+  const key = normalizeIconKey(value)
 
-  return aliases.get(key) || toIconComponentName(value)
+  if (!key) {
+    return 'CircleHelp'
+  }
+
+  return aliases.get(key) || pascalizeKey(key)
 }
 
 function addIcon(iconNames, rawName, aliases) {
@@ -99,30 +80,15 @@ function addIcon(iconNames, rawName, aliases) {
   }
 }
 
-async function collectFiles(root) {
+async function collectSourceFiles(root) {
   const directory = path.join(projectRoot, root)
 
   if (!existsSync(directory)) {
     return []
   }
 
-  const entries = await readdir(directory, { withFileTypes: true })
-  const files = []
-
-  for (const entry of entries) {
-    const entryPath = path.join(directory, entry.name)
-
-    if (entry.isDirectory()) {
-      files.push(...(await collectFiles(path.relative(projectRoot, entryPath))))
-      continue
-    }
-
-    if (entry.isFile() && scanExtensions.has(path.extname(entry.name))) {
-      files.push(entryPath)
-    }
-  }
-
-  return files
+  const files = await collectFilesIn(directory, { extensions: scanExtensions })
+  return files.map((file) => file.path)
 }
 
 function collectIconsFromSource(source, iconNames, aliases) {
@@ -188,7 +154,7 @@ for (const iconName of aliases.values()) {
 }
 
 for (const root of scanRoots) {
-  for (const file of await collectFiles(root)) {
+  for (const file of await collectSourceFiles(root)) {
     collectIconsFromSource(readFileSync(file, 'utf8'), iconNames, aliases)
   }
 }

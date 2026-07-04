@@ -10,7 +10,7 @@ import {
   getTagListData,
 } from '@/lib/content/posts'
 import { buildTermIndexPageData, buildTermPageMeta } from '@/lib/content/termPages'
-import type { TermField } from '@/lib/content/terms'
+import { getTermRouteField, type TermField } from '@/lib/content/terms'
 import { isLocale, type Locale } from '@/lib/i18n'
 import { createPostCollectionJsonLd } from '@/lib/structuredData'
 import { genPageMetadata } from 'app/seo'
@@ -29,15 +29,11 @@ type RawTermParams = {
   params: Promise<{ locale: string; category?: string; tag?: string }>
 }
 
-function getRouteParamField(field: TermField) {
-  return field === 'categories' ? 'category' : 'tag'
-}
-
 function normalizeTermParams(field: TermField, props: RawTermParams): TermParams {
   return {
     params: props.params.then((params) => ({
       locale: params.locale,
-      term: params[getRouteParamField(field)] || '',
+      term: params[getTermRouteField(field)] || '',
     })),
   }
 }

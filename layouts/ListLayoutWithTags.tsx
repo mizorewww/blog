@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import BackToTop from '@/components/BackToTop'
-import { BlogFrame } from '@/components/BlogWidgets'
+import BlogFrame from '@/components/BlogFrame'
 import ExpandablePostCard from '@/components/ExpandablePostCard'
 import PostLayoutMotion from '@/components/animata/PostLayoutMotion'
 import { getCategoryCounts, getTagCounts, type CountMap } from '@/lib/content/terms'

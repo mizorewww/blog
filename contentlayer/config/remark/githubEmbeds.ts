@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
-import { encodeGitHubPath, getGitOutput, siteRepoPath } from '../gitHistory'
+import { encodeGitHubPath, siteRepoPath } from '../gitHistory'
+import { getGitOutput } from '../../../scripts/lib/git-exec.mjs'
 import type { MdastNode } from '../types'
 import { parseEmbedAttributes } from './mdxNodes'
 

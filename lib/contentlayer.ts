@@ -26,9 +26,3 @@ export function coreContent<T extends ContentLike>(content: T): CoreContent<T> {
 
   return rest as CoreContent<T>
 }
-
-export function allCoreContent<T extends ContentLike>(contents: T[]): CoreContent<T>[] {
-  return contents
-    .filter((content) => process.env.NODE_ENV !== 'production' || content.draft !== true)
-    .map(coreContent)
-}

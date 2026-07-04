@@ -1,17 +1,5 @@
-import { execFileSync } from 'node:child_process'
 import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js'
-
-function getGitOutput(args) {
-  try {
-    return execFileSync('git', args, {
-      cwd: process.cwd(),
-      encoding: 'utf8',
-      stdio: ['ignore', 'pipe', 'ignore'],
-    }).trim()
-  } catch {
-    return ''
-  }
-}
+import { getGitOutput } from './scripts/lib/git-exec.mjs'
 
 const gitFullCommitHash = process.env.VERCEL_GIT_COMMIT_SHA || getGitOutput(['rev-parse', 'HEAD'])
 const gitShortCommitHash = gitFullCommitHash
