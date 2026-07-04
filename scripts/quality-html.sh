@@ -69,6 +69,16 @@ analyze_html() {
   while IFS=: read -r ln _; do
     add_limited_warning http_count "$file" "$ln" "HTTP URL in resource attribute"
   done < <(grep -noiE '\b(href|src|action|poster)=["'\'']http://[^"'\'']+' "$file" || true)
+  local missingimg_count=0
+  local url=""
+  while IFS= read -r url; do
+    if [ ! -e "${TARGET}${url}" ]; then
+      if [ "$missingimg_count" -lt "$MAX_PER_CATEGORY_PER_FILE" ]; then
+        ISSUES+=("$file:0: Image reference not found on disk: ${url}")
+      fi
+      missingimg_count=$((missingimg_count + 1))
+    fi
+  done < <(grep -oE '/static/[A-Za-z0-9_./-]+\.(webp|avif|jpg|jpeg|png|gif)' "$file" || true)
 }
 
 if [ -d "$TARGET" ]; then

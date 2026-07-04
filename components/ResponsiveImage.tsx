@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element -- ResponsiveImage emits a <picture> with pre-generated WebP variants and a srcset, which next/image cannot do under static export with images.unoptimized. */
 import { cn } from '@/lib/utils'
-import { isLocalImage, responsiveSrcset } from '@/lib/images'
+import { imageDimensions, isLocalImage, responsiveEntry, responsiveSrcset } from '@/lib/images'
 
 type ResponsiveImageProps = {
   src: string
@@ -25,8 +25,11 @@ export default function ResponsiveImage({
 }: ResponsiveImageProps) {
   const loading = priority ? 'eager' : 'lazy'
   const fetchPriority: 'high' | 'auto' = priority ? 'high' : 'auto'
+  const entry = isLocalImage(src) ? responsiveEntry(src) : undefined
 
-  if (!isLocalImage(src)) {
+  // No manifest entry means the image was not processed by the optimize script
+  // (or is remote). Render a plain <img> so no dangling srcset URLs are emit.
+  if (!entry) {
     return (
       <img
         src={src}
@@ -35,12 +38,18 @@ export default function ResponsiveImage({
         loading={loading}
         decoding="async"
         fetchPriority={fetchPriority}
+        width={width}
+        height={height}
         className={className}
       />
     )
   }
 
   const srcset = responsiveSrcset(src)
+  const intrinsic = imageDimensions(src)
+  const renderWidth = width ?? intrinsic?.width
+  const renderHeight = height ?? intrinsic?.height
+
   const img = fill ? (
     <img
       src={src}
@@ -61,8 +70,8 @@ export default function ResponsiveImage({
       loading={loading}
       decoding="async"
       fetchPriority={fetchPriority}
-      width={width}
-      height={height}
+      width={renderWidth}
+      height={renderHeight}
       className={className}
     />
   )
