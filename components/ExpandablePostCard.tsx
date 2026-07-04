@@ -5,7 +5,9 @@ import HoverScale from '@/components/animata/HoverScale'
 import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import PostNavLinks from '@/components/PostNavLinks'
+import ReadingProgress from '@/components/ReadingProgress'
 import ResponsiveImage from '@/components/ResponsiveImage'
+import TableOfContents from '@/components/TableOfContents'
 import Link from '@/components/Link'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { cardClass, mutedText, skyLink } from '@/components/ui/styles'
@@ -105,6 +107,7 @@ export default function ExpandablePostCard({
           </Link>
         )}
 
+        {expanded && <ReadingProgress targetRef={articleRef} />}
         {hasBody && (
           <CollapsiblePanel
             id={post.path}
@@ -113,6 +116,7 @@ export default function ExpandablePostCard({
           >
             {expanded && renderBody && (
               <>
+                <TableOfContents containerRef={articleRef} locale={locale} />
                 <div className="prose prose-slate dark:prose-invert max-w-none">
                   {body}
                   <ArticleLicenseNotice locale={locale} />
