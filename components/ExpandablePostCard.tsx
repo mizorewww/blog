@@ -4,7 +4,7 @@ import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import HoverScale from '@/components/animata/HoverScale'
 import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
-import Image from '@/components/Image'
+import ResponsiveImage from '@/components/ResponsiveImage'
 import Link from '@/components/Link'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { cardClass, mutedText, skyLink } from '@/components/ui/styles'
@@ -60,7 +60,7 @@ export default function ExpandablePostCard({
       >
         <div className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100">
           <HoverScale className="absolute inset-0">
-            <Image
+            <ResponsiveImage
               src={post.image || siteMetadata.socialBanner}
               alt=""
               fill

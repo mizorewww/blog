@@ -26,9 +26,10 @@
     "size:report": "node ./scripts/asset-report.mjs",
     "size:budget": "node ./scripts/asset-budget.mjs",
     "images:optimize": "node ./scripts/optimize-images.mjs",
+    "images:check": "node ./scripts/optimize-images.mjs --check",
     "icons:generate": "node ./scripts/generate-lucide-icons.mjs",
     "icons:check": "node ./scripts/generate-lucide-icons.mjs --check",
-    "check": "yarn icons:check && yarn format:check && yarn lint:check && yarn test:unit && yarn typecheck && yarn typecheck:scripts && yarn docs:check && yarn deadcode:check",
+    "check": "yarn icons:check && yarn images:check && yarn format:check && yarn lint:check && yarn test:unit && yarn typecheck && yarn typecheck:scripts && yarn docs:check && yarn deadcode:check",
     "perf:check": "yarn build && yarn quality:html && yarn size:budget",
     "verify": "yarn check && yarn test:e2e && yarn perf:check",
     "prepare": "husky"
