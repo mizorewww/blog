@@ -12,7 +12,7 @@ const Tag = ({ text, locale }: Props) => {
   return (
     <Link
       href={href}
-      className="mr-3 text-sm font-medium text-sky-500 uppercase hover:text-sky-600 dark:hover:text-sky-400"
+      className="mr-3 text-sm font-medium text-sky-700 uppercase hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300"
     >
       {text.split(' ').join('-')}
     </Link>

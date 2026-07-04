@@ -78,7 +78,7 @@ export default function ExpandablePostCard({
             onClick={expanded ? undefined : onOpenPost}
             onMouseEnter={prefetchPost}
             onFocus={prefetchPost}
-            className="hover:text-sky-500"
+            className="hover:text-sky-700 dark:hover:text-sky-300"
           >
             {post.title}
           </Link>
@@ -121,7 +121,7 @@ export default function ExpandablePostCard({
             <MetaItem icon="tag">
               <Link
                 href={localizePath(`/tags/${slug(primaryTag)}`, locale)}
-                className="hover:text-sky-500"
+                className="hover:text-sky-700 dark:hover:text-sky-300"
               >
                 {primaryTag}
               </Link>

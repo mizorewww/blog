@@ -17,7 +17,7 @@ const ThemeSwitch = () => {
     <button
       type="button"
       aria-label={labels.toggleTheme}
-      className="hover:text-sky-500"
+      className="hover:text-sky-700 dark:hover:text-sky-300"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
     >
       {mounted && resolvedTheme === 'light' ? (

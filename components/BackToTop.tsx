@@ -38,7 +38,7 @@ export default function BackToTop({ label, onClick }: { label: string; onClick: 
       onClick={onClick}
       visible={visible}
       y={12}
-      className={`dark:bg-surface-card-dark/90 fixed right-4 bottom-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur hover:text-sky-500 sm:right-6 lg:right-8 dark:text-white/75 dark:hover:text-sky-400 ${
+      className={`dark:bg-surface-card-dark/90 fixed right-4 bottom-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur hover:text-sky-700 sm:right-6 lg:right-8 dark:text-white/75 dark:hover:text-sky-300 ${
         visible ? 'pointer-events-auto' : 'pointer-events-none'
       }`}
     >

@@ -70,12 +70,12 @@ export default function ArticleGitMeta({
             aria-expanded={commitsOpen}
             aria-controls={commitsPanelId}
             onClick={() => setCommitsOpen((open) => !open)}
-            className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-left hover:text-sky-500"
+            className="inline-flex min-w-0 flex-wrap items-center gap-1.5 text-left hover:text-sky-700 dark:hover:text-sky-300"
           >
             <MetaIcon name="gitCommit" />
             <span>{labels.gitCommits}</span>
             {latestCommitHash && (
-              <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-500 dark:bg-white/10 dark:text-sky-400">
+              <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-700 dark:bg-white/10 dark:text-sky-400">
                 {latestCommitHash}
               </span>
             )}
@@ -95,7 +95,7 @@ export default function ArticleGitMeta({
                 }
 
                 const hashNode = (
-                  <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-500 dark:bg-white/10 dark:text-sky-400">
+                  <span className="inline-flex rounded-[6px] bg-slate-100 px-1.5 py-0.5 font-mono text-xs leading-5 text-sky-700 dark:bg-white/10 dark:text-sky-400">
                     {hash}
                   </span>
                 )

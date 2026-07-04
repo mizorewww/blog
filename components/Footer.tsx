@@ -37,7 +37,7 @@ export default function Footer() {
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={labels.latestCommit(commitHash)}
-                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 hover:text-sky-500 dark:bg-white/10"
+                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 hover:text-sky-700 dark:bg-white/10 dark:hover:text-sky-300"
               >
                 <Icon name="GitCommit" className="h-3.5 w-3.5" inlineSpacing={false} />
                 <span className="text-xs tracking-[0.08em] uppercase">commit</span>

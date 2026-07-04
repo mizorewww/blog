@@ -34,7 +34,7 @@ const LanguageSwitcher = () => {
             className={`relative isolate rounded px-2 py-1 ${
               isActive
                 ? 'text-white dark:text-gray-900'
-                : 'hover:text-primary-500 dark:hover:text-primary-400 text-gray-600 dark:text-gray-300'
+                : 'text-gray-600 hover:text-sky-700 dark:text-gray-300 dark:hover:text-sky-300'
             }`}
           >
             {isActive && (

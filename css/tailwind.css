@@ -88,14 +88,14 @@
 
   a,
   button {
-    outline-color: var(--color-sky-500);
+    outline-color: var(--color-sky-700);
   }
 
   a:focus-visible,
   button:focus-visible {
     outline: 2px solid;
     border-radius: var(--radius-sm);
-    outline-color: var(--color-sky-500);
+    outline-color: var(--color-sky-700);
   }
 }
 
@@ -108,12 +108,12 @@
 
   .prose {
     & a {
-      color: var(--color-primary-500);
+      color: var(--color-sky-700);
       &:hover {
-        color: var(--color-primary-600);
+        color: var(--color-sky-800);
       }
       & code {
-        color: var(--color-primary-400);
+        color: var(--color-sky-700);
       }
     }
     & :where(h1, h2) {
@@ -147,12 +147,12 @@
 
   .prose-invert {
     & a {
-      color: var(--color-primary-500);
+      color: var(--color-sky-400);
       &:hover {
-        color: var(--color-primary-400);
+        color: var(--color-sky-300);
       }
       & code {
-        color: var(--color-primary-400);
+        color: var(--color-sky-400);
       }
     }
     & :where(h1, h2, h3, h4, h5, h6) {

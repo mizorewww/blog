@@ -78,7 +78,7 @@ export default function ProfileSidebar({
               <Link
                 key={category.slug}
                 href={localizePath(`/categories/${category.slug}`, locale)}
-                className="flex items-center justify-between text-base text-slate-700 hover:text-sky-500 dark:text-white/80"
+                className="flex items-center justify-between text-base text-slate-700 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300"
               >
                 <span>{category.label}</span>
                 <span className="dark:bg-border-subtle-dark rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:text-white/70">
@@ -98,7 +98,7 @@ export default function ProfileSidebar({
               <Link
                 key={tag.slug}
                 href={localizePath(`/tags/${tag.slug}`, locale)}
-                className="text-slate-700 hover:text-sky-500 dark:text-white/80"
+                className="text-slate-700 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300"
               >
                 # {tag.label}
               </Link>

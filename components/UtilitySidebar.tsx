@@ -28,7 +28,7 @@ export default function UtilitySidebar({
               >
                 {formatDate(post.date, dateLocale)}
               </time>
-              <span className="mt-2 block text-base leading-7 text-slate-800 hover:text-sky-500 dark:text-white/80">
+              <span className="mt-2 block text-base leading-7 text-slate-800 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300">
                 {post.title}
               </span>
             </Link>

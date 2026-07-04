@@ -44,7 +44,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
           <Link
             href="/feed.xml"
             aria-label={labels.subscribeRss}
-            className="hidden hover:text-sky-500 sm:inline-flex"
+            className="hidden hover:text-sky-700 sm:inline-flex dark:hover:text-sky-300"
           >
             <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />
           </Link>
