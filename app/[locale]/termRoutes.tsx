@@ -12,6 +12,7 @@ import {
 import { buildTermIndexPageData, buildTermPageMeta } from '@/lib/content/termPages'
 import { getTermRouteField, type TermField } from '@/lib/content/terms'
 import { isLocale, type Locale } from '@/lib/i18n'
+import { localizedAlternates, localizedTermAlternates } from '@/lib/seo/alternates'
 import { createPostCollectionJsonLd } from '@/lib/structuredData'
 import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
@@ -65,6 +66,8 @@ export async function generateTermIndexMetadata(
   return genPageMetadata({
     title: data.title,
     description: data.description,
+    locale: params.locale,
+    alternates: localizedAlternates(siteMetadata.siteUrl, data.route),
   })
 }
 
@@ -110,8 +113,10 @@ export async function generateTermPageMetadata(
   return genPageMetadata({
     title: termMeta.term,
     description: termMeta.description,
+    locale: params.locale,
     alternates: {
       canonical: termMeta.url,
+      languages: localizedTermAlternates(siteMetadata.siteUrl, field, termMeta.slug).languages,
       ...rssAlternate,
     },
   })

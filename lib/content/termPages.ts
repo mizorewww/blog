@@ -11,19 +11,19 @@ import { createTermCollectionJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl, decodeRouteParam } from '@/lib/urls'
 
 type TermIndexConfig = {
-  description: string
+  description: (locale: Locale) => string
   route: string
   title: (locale: Locale) => string
 }
 
 const termIndexConfig: Record<TermField, TermIndexConfig> = {
   categories: {
-    description: 'Article categories',
+    description: (locale) => ui[locale].categoriesIndexDescription,
     route: '/categories',
     title: (locale) => ui[locale].allCategories,
   },
   tags: {
-    description: 'Things I blog about',
+    description: (locale) => ui[locale].tagsIndexDescription,
     route: '/tags',
     title: (locale) => ui[locale].allTags,
   },
@@ -42,13 +42,13 @@ export function buildTermIndexPageData(locale: Locale, field: TermField) {
 
   return {
     title,
-    description: config.description,
+    description: config.description(locale),
     route: config.route,
     counts,
     terms,
     jsonLd: createTermCollectionJsonLd({
       title,
-      description: config.description,
+      description: config.description(locale),
       url: absoluteSiteUrl(siteMetadata.siteUrl, localizePath(config.route, locale)),
       locale,
       items: terms.map((term) => ({
@@ -72,7 +72,10 @@ export function buildTermPageMeta(locale: Locale, field: TermField, rawTerm: str
   const title = formatTermTitle(term)
   const config = getTermIndexConfig(field)
   const path = `${config.route}/${slug}`
-  const description = `${siteMetadata.title} ${term} ${field === 'categories' ? 'category' : 'tagged'} content`
+  const description =
+    field === 'categories'
+      ? ui[locale].categoryPageDescription(term)
+      : ui[locale].tagPageDescription(term)
 
   return {
     term,

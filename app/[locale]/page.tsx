@@ -5,11 +5,8 @@ import { isLocale, localeConfig, ui } from '@/lib/i18n'
 import { genPageMetadata } from 'app/seo'
 import type { Metadata } from 'next'
 import { buildHomePageData } from '@/lib/content/homePage'
-import { getLocaleParams } from '@/lib/content/posts'
-
-export const generateStaticParams = async () => {
-  return getLocaleParams()
-}
+import { localizedAlternates } from '@/lib/seo/alternates'
+import siteMetadata from '@/data/siteMetadata'
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string }>
@@ -22,6 +19,9 @@ export async function generateMetadata(props: {
 
   return genPageMetadata({
     title: ui[params.locale].home,
+    description: ui[params.locale].siteDescription,
+    locale: params.locale,
+    alternates: localizedAlternates(siteMetadata.siteUrl),
     openGraph: {
       locale: localeConfig[params.locale].htmlLang.replace('-', '_'),
     },

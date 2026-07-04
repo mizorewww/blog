@@ -10,8 +10,9 @@ import {
   getPostBySlug,
   getPostPageData,
 } from '@/lib/content/posts'
-import { isLocale, localeConfig, locales, localizePath, ui } from '@/lib/i18n'
+import { isLocale, localeConfig, ui } from '@/lib/i18n'
 import { getPostModifiedDate, getPostPublishedDate } from '@/lib/postDates'
+import { localizedPostAlternates } from '@/lib/seo/alternates'
 import { createArticleJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl } from '@/lib/urls'
 import ListLayout from '@/layouts/ListLayoutWithTags'
@@ -44,15 +45,7 @@ export async function generateMetadata(props: {
     siteUrl: siteMetadata.siteUrl,
   })
   const ogImages = imageUrls.map((url) => ({ url, alt: post.title }))
-  const languages = locales.reduce<Record<string, string>>((alternates, locale) => {
-    const alternatePost = getPostBySlug(locale, slug)
-
-    if (alternatePost) {
-      alternates[localeConfig[locale].htmlLang] = localizePath(`/${slug}`, locale)
-    }
-
-    return alternates
-  }, {})
+  const languages = localizedPostAlternates(siteMetadata.siteUrl, post).languages
 
   return {
     title: post.title,

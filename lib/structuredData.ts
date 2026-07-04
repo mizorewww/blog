@@ -17,7 +17,11 @@ type CollectionItem = {
 
 const siteUrl = absoluteSiteUrl(siteMetadata.siteUrl)
 const websiteId = `${siteUrl}#website`
-const publisherId = `${siteUrl}#author`
+const publisherId = `${siteUrl}#publisher`
+
+function authorPersonId(author?: CoreContent<Authors>) {
+  return author?.slug ? `${siteUrl}/authors/${author.slug}#person` : publisherId
+}
 
 function compactObject<T extends JsonLdNode>(value: T): T {
   return Object.fromEntries(
@@ -44,6 +48,16 @@ function createWebsiteNode(): JsonLdNode {
   }
 }
 
+function createPublisherNode(): JsonLdNode {
+  return compactObject({
+    '@type': 'Person',
+    '@id': publisherId,
+    name: siteMetadata.author,
+    url: siteUrl,
+    email: siteMetadata.email,
+  })
+}
+
 function createPersonNode(author?: CoreContent<Authors>): JsonLdNode {
   const sameAs = [author?.github, author?.x, author?.telegram].filter(Boolean)
   const image = author?.avatar
@@ -56,13 +70,41 @@ function createPersonNode(author?: CoreContent<Authors>): JsonLdNode {
 
   return compactObject({
     '@type': 'Person',
-    '@id': publisherId,
+    '@id': authorPersonId(author),
     name: author?.name || siteMetadata.author,
     url: siteUrl,
     email: author?.email || siteMetadata.email,
     image,
     sameAs,
   })
+}
+
+function dedupeNodes(nodes: JsonLdNode[]): JsonLdNode[] {
+  const seen = new Set<string>()
+
+  return nodes.filter((node) => {
+    const id = node['@id']
+
+    if (typeof id !== 'string' || seen.has(id)) {
+      return false
+    }
+
+    seen.add(id)
+    return true
+  })
+}
+
+function createBreadcrumbNode(url: string, items: { name: string; item: string }[]): JsonLdNode {
+  return {
+    '@type': 'BreadcrumbList',
+    '@id': `${url}#breadcrumb`,
+    itemListElement: items.map((entry, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: entry.name,
+      item: entry.item,
+    })),
+  }
 }
 
 function postUrl(post: Pick<BlogListPost, 'path'>) {
@@ -122,14 +164,21 @@ export function createArticleJsonLd({
     fallback: siteMetadata.socialBanner,
     siteUrl: siteMetadata.siteUrl,
   })
-  const authorRefs = authors.length > 0 ? authors.map(() => ({ '@id': publisherId })) : undefined
-  const primaryAuthor = authors[0]
+  const authorRefs =
+    authors.length > 0
+      ? authors.map((author) => ({ '@id': authorPersonId(author) }))
+      : [{ '@id': publisherId }]
+  const breadcrumb = createBreadcrumbNode(url, [
+    { name: siteMetadata.title, item: siteUrl },
+    { name: post.title, item: url },
+  ])
 
   return {
     '@context': 'https://schema.org',
-    '@graph': [
+    '@graph': dedupeNodes([
       createWebsiteNode(),
-      createPersonNode(primaryAuthor),
+      createPublisherNode(),
+      ...authors.map(createPersonNode),
       compactObject({
         '@type': 'WebPage',
         '@id': pageId,
@@ -141,6 +190,7 @@ export function createArticleJsonLd({
         mainEntity: { '@id': articleId },
         datePublished: dateToIso(post.date),
         dateModified: dateToIso(getPostModifiedDate(post)),
+        breadcrumb: { '@id': `${url}#breadcrumb` },
       }),
       compactObject({
         '@type': 'BlogPosting',
@@ -163,7 +213,8 @@ export function createArticleJsonLd({
         keywords: post.tags,
         wordCount: (post.readingTime as { words?: number } | undefined)?.words,
       }),
-    ],
+      breadcrumb,
+    ]),
   }
 }
 
@@ -182,12 +233,16 @@ export function createPostCollectionJsonLd({
 }) {
   const pageId = `${url}#webpage`
   const itemListId = `${url}#itemlist`
+  const breadcrumb = createBreadcrumbNode(url, [
+    { name: siteMetadata.title, item: siteUrl },
+    { name: title, item: url },
+  ])
 
   return {
     '@context': 'https://schema.org',
-    '@graph': [
+    '@graph': dedupeNodes([
       createWebsiteNode(),
-      createPersonNode(),
+      createPublisherNode(),
       compactObject({
         '@type': 'CollectionPage',
         '@id': pageId,
@@ -197,6 +252,7 @@ export function createPostCollectionJsonLd({
         inLanguage: localeConfig[locale].htmlLang,
         isPartOf: { '@id': websiteId },
         mainEntity: { '@id': itemListId },
+        breadcrumb: { '@id': `${url}#breadcrumb` },
       }),
       {
         '@type': 'ItemList',
@@ -205,7 +261,8 @@ export function createPostCollectionJsonLd({
         numberOfItems: posts.length,
         itemListElement: posts.map(createPostListItem),
       },
-    ],
+      breadcrumb,
+    ]),
   }
 }
 
@@ -223,12 +280,16 @@ export function createTermCollectionJsonLd({
   items: CollectionItem[]
 }) {
   const pageId = `${url}#webpage`
+  const breadcrumb = createBreadcrumbNode(url, [
+    { name: siteMetadata.title, item: siteUrl },
+    { name: title, item: url },
+  ])
 
   return {
     '@context': 'https://schema.org',
-    '@graph': [
+    '@graph': dedupeNodes([
       createWebsiteNode(),
-      createPersonNode(),
+      createPublisherNode(),
       compactObject({
         '@type': 'CollectionPage',
         '@id': pageId,
@@ -238,7 +299,9 @@ export function createTermCollectionJsonLd({
         inLanguage: localeConfig[locale].htmlLang,
         isPartOf: { '@id': websiteId },
         mainEntity: createCollectionItemList(items),
+        breadcrumb: { '@id': `${url}#breadcrumb` },
       }),
-    ],
+      breadcrumb,
+    ]),
   }
 }

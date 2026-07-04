@@ -12,7 +12,6 @@ export type SiteMetadata = {
   github: string
   x: string
   telegram: string
-  locale: string
   analytics: {
     umami: {
       websiteId?: string
@@ -34,7 +33,6 @@ const siteMetadata: SiteMetadata = {
   github: 'https://github.com/mizorewww',
   x: 'https://x.com/mizorewww',
   telegram: 'https://t.me/aac6fef',
-  locale: 'en-US',
   analytics: {
     umami: {
       websiteId: process.env.NEXT_UMAMI_ID,

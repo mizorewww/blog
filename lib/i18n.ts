@@ -59,6 +59,13 @@ export const ui = {
     gitCommits: '相关提交',
     gitSource: '查看源文',
     gitMore: (count: number) => `另有 ${count} 次提交`,
+    siteDescription: 'mizorewww 的个人博客，记录折腾、KDE Plasma、小米笔记本、Web 开发与日常笔记。',
+    categoriesIndexDescription: 'mizorewww 的文章分类索引，按主题浏览全部文章。',
+    tagsIndexDescription: 'mizorewww 的文章标签索引，按标签浏览全部文章。',
+    categoryPageDescription: (term: string) =>
+      `在 mizorewww 浏览分类「${term}」下的全部文章，了解相关主题的写作与笔记。`,
+    tagPageDescription: (term: string) =>
+      `在 mizorewww 浏览标签「${term}」下的全部文章，汇集相关主题的写作与笔记。`,
     discussOnX: '在 X 讨论',
     viewOnGithub: '在 GitHub 查看',
     readMoreLabel: (title: string) => `继续阅读：“${title}”`,
@@ -103,6 +110,16 @@ export const ui = {
     gitCommits: 'Related commits',
     gitSource: 'View source',
     gitMore: (count: number) => `+${count} more`,
+    siteDescription:
+      'Personal blog of mizorewww — notes on tinkering, KDE Plasma, the Xiaomi Book Pro 14, web development, and everyday experiments.',
+    categoriesIndexDescription:
+      'Browse all article categories on mizorewww — writing and notes organized by topic.',
+    tagsIndexDescription:
+      'Browse all article tags on mizorewww — writing and notes organized by tag.',
+    categoryPageDescription: (term: string) =>
+      `Browse all articles in the ${term} category on mizorewww — writing and notes by topic.`,
+    tagPageDescription: (term: string) =>
+      `Browse all articles tagged ${term} on mizorewww — writing and notes by topic.`,
     discussOnX: 'Discuss on X',
     viewOnGithub: 'View on GitHub',
     readMoreLabel: (title: string) => `Read more: "${title}"`,

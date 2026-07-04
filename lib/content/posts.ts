@@ -10,7 +10,6 @@ import {
   getTagCounts,
   getTermCounts,
   getTermKeys,
-  getTermRouteField,
   type CountMap,
   type TermField,
 } from '@/lib/content/terms'
@@ -99,35 +98,43 @@ export function getLocalizedPostParams() {
   )
 }
 
-export function getDefaultCategoryParams() {
-  return getTermParams(null, 'categories')
+export type CategoryParam = { locale: Locale; category: string }
+export type TagParam = { locale: Locale; tag: string }
+
+export function getDefaultCategoryParams(): CategoryParam[] {
+  return getTermParams(null, 'categories') as CategoryParam[]
 }
 
-export function getLocalizedCategoryParams() {
-  return getTermParamsForLocales('categories')
+export function getLocalizedCategoryParams(): CategoryParam[] {
+  return locales.flatMap((locale) => getTermParams(locale, 'categories') as CategoryParam[])
 }
 
-export function getDefaultTagParams() {
-  return getTermParams(null, 'tags')
+export function getDefaultTagParams(): TagParam[] {
+  return getTermParams(null, 'tags') as TagParam[]
 }
 
-export function getLocalizedTagParams() {
-  return getTermParamsForLocales('tags')
+export function getLocalizedTagParams(): TagParam[] {
+  return locales.flatMap((locale) => getTermParams(locale, 'tags') as TagParam[])
 }
 
 export function getTermParams(locale: Locale | null, field: TermField) {
   const targetLocale = locale || defaultLocale
-  const routeField = getTermRouteField(field)
   const counts = getTermCounts(getLocalePosts(targetLocale), field)
+  const keys = getTermKeys(counts)
 
-  return getTermKeys(counts).map((term) => ({
-    ...(locale ? { locale } : {}),
-    [routeField]: term,
-  }))
+  if (field === 'categories') {
+    return keys.map((term) => ({ locale: targetLocale, category: term }))
+  }
+
+  return keys.map((term) => ({ locale: targetLocale, tag: term }))
 }
 
-export function getTermParamsForLocales(field: TermField) {
-  return locales.flatMap((locale) => getTermParams(locale, field))
+export function getTermParamsForLocales(field: TermField): CategoryParam[] | TagParam[] {
+  if (field === 'categories') {
+    return getLocalizedCategoryParams()
+  }
+
+  return getLocalizedTagParams()
 }
 
 export function getPublishedSitemapPosts() {
