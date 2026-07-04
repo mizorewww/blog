@@ -2,8 +2,8 @@ import { Skeleton } from '@/components/animata/Skeleton'
 
 export default function BlogRouteSkeleton() {
   return (
-    <div className="blog-frame mx-auto grid w-full gap-y-5 px-4 pt-2 pb-16 sm:px-0 xl:grid-cols-[23fr_minmax(0,54fr)_23fr] xl:gap-x-[var(--blog-gap)]">
-      <aside className="hidden space-y-5 xl:block">
+    <div className="blog-frame mx-auto grid w-full gap-y-5 px-4 pt-2 pb-16 sm:px-0 lg:grid-cols-[23fr_minmax(0,54fr)_23fr] lg:gap-x-[var(--blog-gap)]">
+      <aside className="hidden space-y-5 lg:block">
         <Skeleton className="h-64" />
         <Skeleton className="h-48" />
       </aside>
@@ -23,7 +23,7 @@ export default function BlogRouteSkeleton() {
         </div>
         <Skeleton className="h-40" />
       </section>
-      <aside className="hidden space-y-5 xl:block">
+      <aside className="hidden space-y-5 lg:block">
         <Skeleton className="h-80" />
       </aside>
     </div>

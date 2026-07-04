@@ -208,7 +208,7 @@
     }
   }
 
-  @media (min-width: 1280px) and (min-height: 760px) {
+  @media (min-width: 1024px) {
     .blog-frame {
       max-width: min(calc(100% - 30px), var(--blog-wide-width));
       grid-template-columns: 23fr minmax(0, 54fr) 23fr;

@@ -91,9 +91,15 @@ export default function ExpandablePostCard({
           showCommits={expanded}
         />
         {post.summary && (
-          <p className="mb-5 text-base leading-8 text-slate-600 dark:text-white/75">
+          <Link
+            href={postHref}
+            onClick={expanded ? undefined : onOpenPost}
+            onMouseEnter={prefetchPost}
+            onFocus={prefetchPost}
+            className="mb-5 block text-base leading-8 text-slate-600 hover:text-sky-700 dark:text-white/75 dark:hover:text-sky-300"
+          >
             {post.summary}
-          </p>
+          </Link>
         )}
 
         {hasBody && (
