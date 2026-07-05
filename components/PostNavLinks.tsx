@@ -2,23 +2,20 @@
 
 import { motion, useReducedMotion } from 'motion/react'
 import Link from '@/components/Link'
-import { cardClass, mutedText } from '@/components/ui/styles'
+import { mutedText } from '@/components/ui/styles'
 import { type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
-import { formatDate } from '@/lib/formatDate'
-import Icon from '@/components/Icon'
 import { animataEase, animataQuickDuration } from '@/components/animata/motion'
 
 export default function PostNavLinks({
   currentPost,
   allPosts,
   locale,
-  dateLocale,
 }: {
   currentPost: BlogListPost
   allPosts: BlogListPost[]
   locale: Locale
-  dateLocale: string
+  dateLocale?: string
 }) {
   const labels = ui[locale]
   const shouldReduceMotion = useReducedMotion()
@@ -31,94 +28,57 @@ export default function PostNavLinks({
 
   if (!prevPost && !nextPost) return null
 
-  const itemVariants = {
-    hidden: shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 8 },
-    show: {
-      opacity: 1,
-      y: 0,
-      transition: shouldReduceMotion
-        ? { duration: 0 }
-        : { duration: animataQuickDuration, ease: animataEase },
-    },
-  }
+  const transition = shouldReduceMotion
+    ? { duration: 0 }
+    : { duration: animataQuickDuration, ease: animataEase, delay: 0.1 }
 
   return (
-    <motion.nav
+    <nav
       aria-label={labels.previousArticle}
-      className="not-prose mt-8 grid grid-cols-1 gap-3 sm:grid-cols-2"
-      initial="hidden"
-      animate="show"
-      variants={{
-        hidden: {},
-        show: { transition: { staggerChildren: shouldReduceMotion ? 0 : 0.06 } },
-      }}
+      className="not-prose mt-10 flex items-stretch justify-between gap-4 border-t border-slate-200 pt-6 dark:border-white/10"
     >
       {prevPost ? (
-        <motion.div variants={itemVariants}>
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={transition}
+          className="flex-1"
+        >
           <Link
             href={`/${prevPost.path}/`}
             aria-label={labels.previousPost(prevPost.title)}
-            className={`${cardClass} group flex flex-col gap-1.5 px-5 py-4 transition-shadow duration-200 hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] sm:items-start dark:hover:ring-white/20`}
+            className="group flex flex-col gap-1"
           >
-            <span
-              className={`flex items-center gap-1.5 text-xs font-medium tracking-wide uppercase ${mutedText}`}
-            >
-              <Icon
-                name="ChevronDown"
-                className="h-3.5 w-3.5 rotate-90"
-                inlineSpacing={false}
-                decorative
-              />
-              {labels.previousArticle}
-            </span>
-            <span className="font-medium text-slate-900 group-hover:text-sky-700 dark:text-white/90 dark:group-hover:text-sky-300">
+            <span className={`text-xs ${mutedText}`}>← {labels.previousArticle}</span>
+            <span className="font-medium text-slate-700 transition-colors duration-200 group-hover:text-sky-700 dark:text-white/80 dark:group-hover:text-sky-300">
               {prevPost.title}
             </span>
-            <time
-              dateTime={prevPost.date}
-              suppressHydrationWarning
-              className={`text-sm ${mutedText}`}
-            >
-              {formatDate(prevPost.date, dateLocale)}
-            </time>
           </Link>
         </motion.div>
       ) : (
-        <div className="hidden sm:block" />
+        <div className="flex-1" />
       )}
       {nextPost ? (
-        <motion.div variants={itemVariants}>
+        <motion.div
+          initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ ...transition, delay: shouldReduceMotion ? 0 : 0.16 }}
+          className="flex-1 text-right"
+        >
           <Link
             href={`/${nextPost.path}/`}
             aria-label={labels.nextPost(nextPost.title)}
-            className={`${cardClass} group flex flex-col gap-1.5 px-5 py-4 text-right transition-shadow duration-200 hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] sm:items-end dark:hover:ring-white/20`}
+            className="group flex flex-col items-end gap-1"
           >
-            <span
-              className={`flex items-center justify-end gap-1.5 text-xs font-medium tracking-wide uppercase ${mutedText}`}
-            >
-              {labels.nextArticle}
-              <Icon
-                name="ChevronDown"
-                className="h-3.5 w-3.5 -rotate-90"
-                inlineSpacing={false}
-                decorative
-              />
-            </span>
-            <span className="font-medium text-slate-900 group-hover:text-sky-700 dark:text-white/90 dark:group-hover:text-sky-300">
+            <span className={`text-xs ${mutedText}`}>{labels.nextArticle} →</span>
+            <span className="font-medium text-slate-700 transition-colors duration-200 group-hover:text-sky-700 dark:text-white/80 dark:group-hover:text-sky-300">
               {nextPost.title}
             </span>
-            <time
-              dateTime={nextPost.date}
-              suppressHydrationWarning
-              className={`text-sm ${mutedText}`}
-            >
-              {formatDate(nextPost.date, dateLocale)}
-            </time>
           </Link>
         </motion.div>
       ) : (
-        <div className="hidden sm:block" />
+        <div className="flex-1" />
       )}
-    </motion.nav>
+    </nav>
   )
 }

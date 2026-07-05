@@ -57,9 +57,7 @@ export default function ExpandablePostCard({
     <article
       ref={articleRef}
       className={`${cardClass} overflow-hidden ${
-        !expanded
-          ? 'transition-shadow duration-200 hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:ring-white/20'
-          : ''
+        !expanded ? 'transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700' : ''
       }`}
       data-post-path={post.path}
     >
