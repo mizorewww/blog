@@ -1,5 +1,4 @@
 import Link from '@/components/Link'
-import Tag from '@/components/Tag'
 import type { TermField, TermSummary } from '@/lib/content/terms'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 
@@ -18,43 +17,46 @@ export default function TermIndexView({
   const labels = ui[locale]
   const emptyLabel = isCategory ? labels.noCategories : labels.noTags
   const route = isCategory ? '/categories' : '/tags'
-  const containerClass = isCategory
-    ? 'mx-auto flex w-full max-w-5xl flex-col items-start justify-start px-4 pt-10 pb-16 sm:px-6 md:mt-24 md:flex-row md:items-center md:justify-center md:space-x-6'
-    : 'flex flex-col items-start justify-start divide-y divide-slate-200 md:mt-24 md:flex-row md:items-center md:justify-center md:space-x-6 md:divide-y-0 dark:divide-white/10'
 
   return (
-    <div className={containerClass}>
-      <div className="space-x-2 pt-6 pb-8 md:space-y-5">
-        <h1 className="text-3xl leading-9 font-extrabold tracking-tight text-slate-900 sm:text-4xl sm:leading-10 md:border-r-2 md:px-6 md:text-6xl md:leading-14 dark:text-white/90">
-          {title}
-        </h1>
-      </div>
-      <div className="flex max-w-lg flex-wrap">
-        {terms.length === 0 && emptyLabel}
-        {terms.map((term) =>
-          isCategory ? (
+    <div className="blog-shell mx-auto w-full px-4 pt-10 pb-16 sm:px-6">
+      <h1 className="mb-8 text-3xl font-extrabold tracking-tight text-slate-900 sm:text-4xl dark:text-white/90">
+        {title}
+      </h1>
+
+      {terms.length === 0 ? (
+        <p className="text-slate-500 dark:text-white/60">{emptyLabel}</p>
+      ) : isCategory ? (
+        <div className="flex flex-wrap gap-3">
+          {terms.map((term) => (
             <Link
               key={term.slug}
               href={localizePath(`${route}/${term.slug}`, locale)}
-              className="dark:bg-surface-card-dark mt-2 mr-3 mb-2 rounded-[8px] bg-white px-4 py-2 text-slate-700 hover:bg-sky-700 hover:text-white dark:text-white/80 dark:hover:bg-sky-700"
+              className="dark:bg-surface-card-dark inline-flex items-center gap-2 rounded-[8px] bg-white px-4 py-2 text-slate-700 ring-1 ring-slate-200/70 transition-all duration-200 hover:text-sky-700 hover:ring-sky-400 dark:text-white/80 dark:ring-white/10 dark:hover:text-sky-300 dark:hover:ring-sky-700"
               aria-label={labels.postsInCategory(term.label)}
             >
-              {term.label} ({term.count})
+              <span className="font-medium">{term.label}</span>
+              <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 dark:bg-white/10 dark:text-white/60">
+                {term.count}
+              </span>
             </Link>
-          ) : (
-            <div key={term.slug} className="mt-2 mr-5 mb-2">
-              <Tag text={term.label} locale={locale} />
-              <Link
-                href={localizePath(`${route}/${term.slug}`, locale)}
-                className="-ml-2 text-sm font-semibold text-slate-600 uppercase dark:text-white/70"
-                aria-label={labels.postsTagged(term.label)}
-              >
-                {` (${term.count})`}
-              </Link>
-            </div>
-          )
-        )}
-      </div>
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2.5">
+          {terms.map((term) => (
+            <Link
+              key={term.slug}
+              href={localizePath(`${route}/${term.slug}`, locale)}
+              className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1.5 text-sm text-slate-600 transition-all duration-200 hover:bg-sky-100 hover:text-sky-700 dark:bg-white/10 dark:text-white/70 dark:hover:bg-sky-900/30 dark:hover:text-sky-300"
+              aria-label={labels.postsTagged(term.label)}
+            >
+              <span className="font-medium">#{term.label}</span>
+              <span className="text-xs text-slate-400 dark:text-white/40">{term.count}</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

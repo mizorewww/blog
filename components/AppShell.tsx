@@ -1,6 +1,8 @@
 'use client'
 
 import { usePathname } from 'next/navigation'
+import { useTheme } from 'next-themes'
+import { Toaster } from 'sonner'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import Footer from './Footer'
 import Header from './Header'
@@ -17,6 +19,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const [hideHeaderOnMobile, setHideHeaderOnMobile] = useState(false)
   const previousScrollYRef = useRef(0)
   const isReadingPost = isBlogPostPath(currentPathname)
+  const { resolvedTheme } = useTheme()
 
   useEffect(() => {
     setCurrentPathname(pathname)
@@ -63,6 +66,11 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <PageTransition pathname={pathname}>{children}</PageTransition>
       </main>
       <Footer />
+      <Toaster
+        theme={resolvedTheme === 'dark' ? 'dark' : 'light'}
+        position="bottom-right"
+        richColors
+      />
     </div>
   )
 }

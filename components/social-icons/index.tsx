@@ -35,7 +35,7 @@ const SocialIcon = ({ kind, href, size = 8, locale }: SocialIconProps) => {
 
   return (
     <a
-      className="text-sm text-slate-500 hover:text-sky-700 dark:hover:text-sky-400"
+      className="rounded-full p-2 transition-colors duration-200 hover:bg-slate-100 dark:hover:bg-white/10"
       target="_blank"
       rel="noopener noreferrer"
       href={href}
