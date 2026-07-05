@@ -54,7 +54,15 @@ export default function ExpandablePostCard({
   })
 
   return (
-    <article ref={articleRef} className={`${cardClass} overflow-hidden`} data-post-path={post.path}>
+    <article
+      ref={articleRef}
+      className={`${cardClass} overflow-hidden ${
+        !expanded
+          ? 'transition-shadow duration-200 hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:ring-white/20'
+          : ''
+      }`}
+      data-post-path={post.path}
+    >
       <Link
         href={postHref}
         aria-label={post.title}

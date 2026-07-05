@@ -73,7 +73,7 @@ export default function TableOfContents({
         </span>
         <Icon
           name={open ? 'ChevronUp' : 'ChevronDown'}
-          className={`h-4 w-4 transition-transform ${mutedText}`}
+          className={`h-4 w-4 transition-transform duration-200 ${mutedText}`}
           inlineSpacing={false}
           decorative
         />
@@ -86,7 +86,7 @@ export default function TableOfContents({
                 <Link
                   href={`#${h.id}`}
                   onClick={() => setOpen(false)}
-                  className={`-ml-px block border-l-2 py-1 pl-3 transition-colors ${
+                  className={`-ml-px block border-l-2 py-1 pl-3 transition-colors duration-200 ${
                     activeId === h.id
                       ? 'border-sky-500 font-medium text-sky-700 dark:border-sky-400 dark:text-sky-300'
                       : 'border-transparent text-slate-600 hover:border-slate-300 hover:text-sky-700 dark:text-white/70 dark:hover:text-sky-300'

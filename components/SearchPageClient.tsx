@@ -120,7 +120,7 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
 
       {/* Search input */}
       <div
-        className={`relative mb-6 ${cardClass} flex items-center gap-3 px-5 py-4 transition-shadow focus-within:ring-2 focus-within:ring-sky-500/30`}
+        className={`relative mb-6 ${cardClass} flex items-center gap-3 px-5 py-4 transition-shadow duration-200 focus-within:ring-2 focus-within:ring-sky-500/30`}
       >
         <Icon
           name="Search"
@@ -174,7 +174,7 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
               >
                 <Link
                   href={result.url}
-                  className={`${cardClass} block px-5 py-4 transition-shadow hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:shadow-none dark:hover:ring-white/20`}
+                  className={`${cardClass} block px-5 py-4 transition-shadow duration-200 hover:shadow-[0_18px_44px_rgba(21,30,43,0.1)] dark:hover:shadow-none dark:hover:ring-white/20`}
                 >
                   <h2 className="mb-1.5 text-lg font-medium text-slate-900 dark:text-white/90">
                     {result.meta?.title || result.url}
