@@ -2,6 +2,7 @@
 
 import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import HoverScale from '@/components/animata/HoverScale'
+import { animataEase, animataQuickDuration } from '@/components/animata/motion'
 import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import PostNavLinks from '@/components/PostNavLinks'
@@ -19,6 +20,7 @@ import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
 import { formatDate } from '@/lib/formatDate'
 import type { ReactNode } from 'react'
+import { motion, useReducedMotion } from 'motion/react'
 
 export default function ExpandablePostCard({
   post,
@@ -46,6 +48,7 @@ export default function ExpandablePostCard({
   const labels = ui[locale]
   const hasBody = Boolean(body)
   const renderBody = hasBody && expanded
+  const shouldReduceMotion = useReducedMotion()
   const { articleRef, onOpenPost, onReadMore, prefetchPost } = useExpandablePostNavigation({
     expanded,
     locale,
@@ -168,7 +171,17 @@ export default function ExpandablePostCard({
             }
           >
             <span>{expanded ? labels.collapse : labels.readMore}</span>
-            <MetaIcon name={expanded ? 'chevronUp' : 'chevronDown'} />
+            <motion.span
+              animate={{ rotate: expanded ? 180 : 0 }}
+              transition={
+                shouldReduceMotion
+                  ? { duration: 0 }
+                  : { duration: animataQuickDuration, ease: animataEase }
+              }
+              className="inline-flex"
+            >
+              <MetaIcon name="chevronDown" />
+            </motion.span>
           </Link>
         </div>
       </div>

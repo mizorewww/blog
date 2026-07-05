@@ -4,7 +4,7 @@ export const cardClass =
 export const widgetCardClass =
   'overflow-hidden rounded-[8px] bg-white shadow-[0_6px_18px_rgba(21,30,43,0.045)] ring-1 ring-slate-200/70 dark:bg-surface-card-dark dark:shadow-none dark:ring-white/10'
 
-export const skyLink = 'text-sky-500 hover:text-sky-400'
+export const skyLink = 'text-sky-700 hover:text-sky-800 dark:text-sky-400 dark:hover:text-sky-300'
 
 export const mutedText = 'text-slate-500 dark:text-white/60'
 

@@ -47,8 +47,8 @@ export default function PageTransition({
     }
 
     setTransitionState('active')
-    container.style.opacity = '0.94'
-    container.style.transform = 'translateY(12px)'
+    container.style.opacity = '0.88'
+    container.style.transform = 'translateY(20px)'
 
     const controls = animate(
       container,
