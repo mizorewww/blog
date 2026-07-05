@@ -283,8 +283,13 @@ function useCollapseMotion({
 
       setPostTop(post.path, startTop)
 
-      refs.frame.current = window.requestAnimationFrame(() => {
-        refs.frame.current = null
+      // Wait for the CollapsiblePanel exit animation (body collapse) to
+      // complete before moving the card back to its list position.
+      // This mirrors the expand flow, which positions the card first and
+      // then expands the body — doing both simultaneously makes the
+      // collapse look like an instant jump instead of an animation.
+      const startCardMovement = () => {
+        refs.bodyExpansionTimer.current = null
 
         flushSync(() => {
           setters.setMotionPhase('collapsing')
@@ -307,7 +312,13 @@ function useCollapseMotion({
             restorePreviousScrollY()
           })
         })
-      })
+      }
+
+      if (prefersReducedMotion()) {
+        startCardMovement()
+      } else {
+        refs.bodyExpansionTimer.current = window.setTimeout(startCardMovement, 250)
+      }
     },
     [clearMotionTimers, getCollapsedTargetTop, posts, refs, setters]
   )
