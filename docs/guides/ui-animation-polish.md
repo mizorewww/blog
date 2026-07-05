@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: guide
 owner: codex-agent
-last_verified: 2026-07-04
+last_verified: 2026-07-05
 verified_by: agent review
 related_code:
   - components/ui/styles.ts
@@ -203,31 +203,31 @@ collapsed 状态 hover 只有 cover HoverScale 和标题 color change,卡片本�
 
 ### Batch 9 — P0 设计系统基础
 
-- [ ] `cardClass` 加 `dark:ring-1 dark:ring-white/10`
-- [ ] 全站 `gray-*` → `slate-*` 统一(6+ 文件机械替换)
-- [ ] 文章卡片深色模式边界修复(同 cardClass)
+- [x] `cardClass` 加 `dark:ring-1 dark:ring-white/10`
+- [x] 全站 `gray-*` → `slate-*` 统一(6+ 文件机械替换)
+- [x] 文章卡片深色模式边界修复(同 cardClass)
 
 ### Batch 10 — P1 核心动画升级(Motion 已有 API)
 
-- [ ] ReadingProgress → Motion `useScroll` + `useSpring`
-- [ ] BackToTop → Motion `useScroll` + `useMotionValueEvent`
-- [ ] 搜索结果 → `AnimatePresence` + stagger
-- [ ] ThemeSwitch → `AnimatePresence` 图标交叉动画
-- [ ] 搜索加载 → 用 `Skeleton` 组件
-- [ ] 搜索输入 → focus-within ring
+- [x] ReadingProgress → Motion `useScroll` + `useSpring`
+- [x] BackToTop → Motion `useScroll` + `useMotionValueEvent`
+- [x] 搜索结果 → `AnimatePresence` + stagger
+- [x] ThemeSwitch → `AnimatePresence` 图标交叉动画
+- [x] 搜索加载 → 用 `Skeleton` 组件
+- [x] 搜索输入 → focus-within ring
 
 ### Batch 11 — P2 交互细节打磨
 
-- [ ] SidebarTOC → `layoutId` 激活指示器滑动
-- [ ] Header nav → `layoutId` 下划线滑动
-- [ ] PostNavLinks → Motion stagger 入场
-- [ ] 文章卡片 collapsed hover shadow
-- [ ] CSS transition token 统一(`duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]`)
+- [x] SidebarTOC → `layoutId` 激活指示器滑动
+- [x] Header nav → `layoutId` 下划线滑动
+- [x] PostNavLinks → Motion stagger 入场
+- [x] 文章卡片 collapsed hover shadow
+- [x] CSS transition token 统一(`duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]`)
 
 ### Batch 12 — P3 收尾
 
-- [ ] TermIndexView 重新设计
-- [ ] 404 按钮 transition
-- [ ] Footer 社交图标容器化
-- [ ] `sonner` toast 引入 + CodeBlock 复制反馈
-- [ ] 圆角/shadow token(如需要)
+- [x] TermIndexView 重新设计
+- [x] 404 按钮 transition
+- [x] Footer 社交图标容器化
+- [x] `sonner` toast 引入 + CodeBlock 复制反馈
+- [x] 圆角/shadow token(如需要)
