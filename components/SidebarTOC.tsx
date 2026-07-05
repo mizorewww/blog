@@ -9,6 +9,8 @@ import { animataEase, animataQuickDuration } from '@/components/animata/motion'
 
 type Heading = { id: string; text: string; level: number }
 
+const TOP_THRESHOLD = 120
+
 export default function SidebarTOC({
   expandedPath,
   locale,
@@ -28,51 +30,60 @@ export default function SidebarTOC({
       return
     }
 
-    const article = document.querySelector<HTMLElement>(
-      `[data-post-path="${CSS.escape(expandedPath)}"]`
-    )
-    if (!article) {
-      setHeadings([])
-      return
-    }
+    // Delay one frame so the CollapsiblePanel has committed the prose
+    // content to the DOM before we query headings.
+    const raf = requestAnimationFrame(() => {
+      const article = document.querySelector<HTMLElement>(
+        `[data-post-path="${CSS.escape(expandedPath)}"]`
+      )
+      if (!article) {
+        setHeadings([])
+        return
+      }
 
-    const elements = article.querySelectorAll<HTMLElement>('.prose h2, .prose h3')
-    const items: Heading[] = Array.from(elements)
-      .map((el) => ({
-        id: el.id,
-        text: el.textContent || '',
-        level: el.tagName === 'H2' ? 2 : 3,
-      }))
-      .filter((h) => h.id && h.text)
+      const elements = article.querySelectorAll<HTMLElement>('.prose h2, .prose h3')
+      const items: Heading[] = Array.from(elements)
+        .map((el) => ({
+          id: el.id,
+          text: el.textContent || '',
+          level: el.tagName === 'H2' ? 2 : 3,
+        }))
+        .filter((h) => h.id && h.text)
 
-    setHeadings(items)
-    if (items.length < 2) return
+      setHeadings(items)
+      if (items.length < 2) return
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id)
-            break
+      // Scroll-spy: find the last heading whose top is above the threshold.
+      // This is more reliable than IntersectionObserver because it doesn't
+      // depend on ancestor overflow visibility.
+      const headingEls = items
+        .map((h) => document.getElementById(h.id))
+        .filter((el): el is HTMLElement => el !== null)
+
+      const updateActive = () => {
+        let active = items[0].id
+        for (const el of headingEls) {
+          if (el.getBoundingClientRect().top <= TOP_THRESHOLD) {
+            active = el.id
           }
         }
-      },
-      { rootMargin: '-80px 0px -70% 0px' }
-    )
+        setActiveId(active)
+      }
 
-    for (const h of items) {
-      const el = document.getElementById(h.id)
-      if (el) observer.observe(el)
+      updateActive()
+      window.addEventListener('scroll', updateActive, { passive: true })
+      cleanup = () => window.removeEventListener('scroll', updateActive)
+    })
+
+    let cleanup: (() => void) | undefined
+
+    return () => {
+      cancelAnimationFrame(raf)
+      cleanup?.()
     }
-
-    return () => observer.disconnect()
   }, [expandedPath])
 
   if (!expandedPath || headings.length < 2) return null
-
-  const indicatorTransition = shouldReduceMotion
-    ? { duration: 0 }
-    : { duration: animataQuickDuration, ease: animataEase }
 
   return (
     <BlogWidgetCard title={labels.tableOfContents}>
@@ -83,8 +94,12 @@ export default function SidebarTOC({
               {activeId === h.id && (
                 <motion.div
                   layoutId="sidebar-toc-active"
-                  className="absolute top-0 bottom-0 left-0 w-0.5 bg-sky-500 dark:bg-sky-400"
-                  transition={indicatorTransition}
+                  className="absolute top-0 bottom-0 left-0 w-0.5 rounded-full bg-sky-500 dark:bg-sky-400"
+                  transition={
+                    shouldReduceMotion
+                      ? { duration: 0 }
+                      : { duration: animataQuickDuration, ease: animataEase }
+                  }
                 />
               )}
               <Link

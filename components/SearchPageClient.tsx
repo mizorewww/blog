@@ -169,6 +169,7 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
                 initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                whileHover={shouldReduceMotion ? undefined : { y: -2 }}
                 transition={{ ...itemTransition, delay: shouldReduceMotion ? 0 : i * 0.04 }}
               >
                 <Link

@@ -19,11 +19,14 @@ const ThemeSwitch = () => {
   const transition = shouldReduceMotion ? { duration: 0 } : { duration: 0.2, ease: animataEase }
 
   return (
-    <button
+    <motion.button
       type="button"
       aria-label={labels.toggleTheme}
       className="hover:text-sky-700 dark:hover:text-sky-300"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+      whileHover={shouldReduceMotion ? undefined : { scale: 1.1 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     >
       <AnimatePresence mode="wait" initial={false}>
         {mounted && resolvedTheme === 'light' ? (
@@ -50,7 +53,7 @@ const ThemeSwitch = () => {
           </motion.div>
         )}
       </AnimatePresence>
-    </button>
+    </motion.button>
   )
 }
 
