@@ -115,7 +115,8 @@ export default function ListLayoutWithTags({
             !isMotionTarget &&
             (motionPhase === 'positioning' ||
               motionPhase === 'expanding' ||
-              motionPhase === 'collapsing-prep')
+              motionPhase === 'collapsing-prep' ||
+              motionPhase === 'collapsing')
           const isTransitionTarget =
             isMotionTarget &&
             (motionPhase === 'positioning' ||

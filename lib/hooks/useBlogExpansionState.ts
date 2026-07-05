@@ -263,11 +263,20 @@ function useCollapseMotion({
 
       const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
 
+      // Preserve enough page height for restorePreviousScrollY to work.
+      // Without this, non-target cards at 0fr during 'collapsing' make
+      // the page too short for the saved scroll position.
+      const neededMinHeight =
+        typeof context.previousScrollY === 'number'
+          ? context.previousScrollY + window.innerHeight
+          : null
+
       flushSync(() => {
         setters.setVisibleCount((count) => Math.max(count, nextVisibleCount))
         setters.setMotionPath(post.path)
         setters.setExpandedPath(null)
         setters.setMotionPhase('collapsing-prep')
+        if (neededMinHeight) setters.setMotionMinHeight(neededMinHeight)
       })
 
       const startTop =
@@ -310,6 +319,14 @@ function useCollapseMotion({
           refs.frame.current = window.requestAnimationFrame(() => {
             refs.frame.current = null
             restorePreviousScrollY()
+            // Delay clearing minHeight until PostLayoutMotion has finished
+            // expanding non-target cards from 0fr to 1fr (~560ms). Otherwise
+            // the page shrinks before posts reach full height and the browser
+            // clamps the just-restored scroll position.
+            refs.bodyExpansionTimer.current = window.setTimeout(() => {
+              refs.bodyExpansionTimer.current = null
+              setters.setMotionMinHeight(null)
+            }, 700)
           })
         })
       }

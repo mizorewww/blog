@@ -224,6 +224,7 @@
     .blog-sidebar-left {
       grid-column: 1;
       grid-row: 1;
+      min-height: calc(100vh - 96px);
     }
 
     .blog-sidebar-left-sticky,
