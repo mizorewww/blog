@@ -43,6 +43,7 @@ export default function ListLayoutWithTags({
     expandedPath,
     loadMorePosts,
     motionMinHeight,
+    motionExtraRunway,
     motionPath,
     motionPhase,
     scrollToTop,
@@ -94,62 +95,65 @@ export default function ListLayoutWithTags({
   }, [hasMore, loadMorePosts])
 
   return (
-    <BlogFrame
-      posts={posts}
-      categoryCounts={categoryCounts}
-      tagCounts={tagCounts}
-      locale={locale}
-      dateLocale={dateLocale}
-      expandedPath={expandedPath}
-    >
-      <div style={motionMinHeight ? { minHeight: motionMinHeight } : undefined}>
-        {!expandedPost && <h1 className="sr-only">{title}</h1>}
-        {!visiblePosts.length && (
-          <div className="dark:bg-surface-card-dark rounded-[10px] bg-white px-8 py-10 text-slate-600 dark:text-white/70">
-            {labels.noPosts}
-          </div>
-        )}
-        {visiblePosts.map((post, index) => {
-          const isMotionTarget = post.path === motionPath
-          const isCollapsedShell =
-            !isMotionTarget &&
-            (motionPhase === 'positioning' ||
-              motionPhase === 'expanding' ||
-              motionPhase === 'collapsing-prep' ||
-              motionPhase === 'collapsing')
-          const isTransitionTarget =
-            isMotionTarget &&
-            (motionPhase === 'positioning' ||
-              motionPhase === 'expanding' ||
-              motionPhase === 'collapsing-prep')
-          const isBeforeMotionTarget = motionIndex >= 0 && index < motionIndex
+    <>
+      <BlogFrame
+        posts={posts}
+        categoryCounts={categoryCounts}
+        tagCounts={tagCounts}
+        locale={locale}
+        dateLocale={dateLocale}
+        expandedPath={expandedPath}
+      >
+        <div style={motionMinHeight ? { minHeight: motionMinHeight } : undefined}>
+          {!expandedPost && <h1 className="sr-only">{title}</h1>}
+          {!visiblePosts.length && (
+            <div className="dark:bg-surface-card-dark rounded-[10px] bg-white px-8 py-10 text-slate-600 dark:text-white/70">
+              {labels.noPosts}
+            </div>
+          )}
+          {visiblePosts.map((post, index) => {
+            const isMotionTarget = post.path === motionPath
+            const isCollapsedShell =
+              !isMotionTarget &&
+              (motionPhase === 'positioning' ||
+                motionPhase === 'expanding' ||
+                motionPhase === 'collapsing-prep' ||
+                motionPhase === 'collapsing')
+            const isTransitionTarget =
+              isMotionTarget &&
+              (motionPhase === 'positioning' ||
+                motionPhase === 'expanding' ||
+                motionPhase === 'collapsing-prep')
+            const isBeforeMotionTarget = motionIndex >= 0 && index < motionIndex
 
-          return (
-            <PostLayoutMotion
-              key={post.path}
-              postPath={post.path}
-              collapsed={isCollapsedShell}
-              direction={isBeforeMotionTarget ? 'up' : 'down'}
-              isTransitionTarget={isTransitionTarget}
-              className={index === 0 ? 'mt-0' : 'mt-6'}
-            >
-              <ExpandablePostCard
-                post={post}
-                locale={locale}
-                dateLocale={dateLocale}
-                expanded={expandedPath === post.path}
-                priority={index === 0}
-                allPosts={posts}
-                body={
-                  expandedPath === post.path || motionPath === post.path ? expandedPostBody : null
-                }
-              />
-            </PostLayoutMotion>
-          )
-        })}
-        {hasMore && <div ref={loadMoreRef} className="mt-6 h-12" aria-hidden="true" />}
-        <BackToTop label={labels.backToTop} onClick={scrollToTop} />
-      </div>
-    </BlogFrame>
+            return (
+              <PostLayoutMotion
+                key={post.path}
+                postPath={post.path}
+                collapsed={isCollapsedShell}
+                direction={isBeforeMotionTarget ? 'up' : 'down'}
+                isTransitionTarget={isTransitionTarget}
+                className={index === 0 ? 'mt-0' : 'mt-6'}
+              >
+                <ExpandablePostCard
+                  post={post}
+                  locale={locale}
+                  dateLocale={dateLocale}
+                  expanded={expandedPath === post.path}
+                  priority={index === 0}
+                  allPosts={posts}
+                  body={
+                    expandedPath === post.path || motionPath === post.path ? expandedPostBody : null
+                  }
+                />
+              </PostLayoutMotion>
+            )
+          })}
+          {hasMore && <div ref={loadMoreRef} className="mt-6 h-12" aria-hidden="true" />}
+          <BackToTop label={labels.backToTop} onClick={scrollToTop} />
+        </div>
+      </BlogFrame>
+      {motionExtraRunway ? <div aria-hidden="true" style={{ height: motionExtraRunway }} /> : null}
+    </>
   )
 }

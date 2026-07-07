@@ -73,6 +73,7 @@ type MotionSetters = {
   setMotionPhase: Dispatch<SetStateAction<MotionPhase>>
   setMotionPath: Dispatch<SetStateAction<string | null>>
   setMotionMinHeight: Dispatch<SetStateAction<number | null>>
+  setMotionExtraRunway: Dispatch<SetStateAction<number | null>>
 }
 
 function useMotionRefs(): MotionRefs {
@@ -123,6 +124,7 @@ function useExpandMotion({
         setters.setMotionPhase('idle')
         setters.setMotionPath(postPath)
         setters.setMotionMinHeight(null)
+        setters.setMotionExtraRunway(null)
       })
       refs.userCancelledMotion.current = false
       holdPostTop(postPath, targetTop, refs.scrollControl, () => {
@@ -174,9 +176,9 @@ function useExpandMotion({
       })
 
       const extraScrollRunway = getMissingScrollRunway(post.path, targetTop)
-      if (extraScrollRunway > 0 && mainColumnHeight) {
+      if (extraScrollRunway > 0) {
         flushSync(() => {
-          setters.setMotionMinHeight(mainColumnHeight + extraScrollRunway)
+          setters.setMotionExtraRunway(extraScrollRunway)
         })
       }
 
@@ -264,11 +266,17 @@ function useCollapseMotion({
       const nextVisibleCount = posts.findIndex((item) => item.path === post.path) + 1
 
       // Preserve enough page height for restorePreviousScrollY to work.
-      // Without this, non-target cards at 0fr during 'collapsing' make
-      // the page too short for the saved scroll position.
-      const neededMinHeight =
+      // motionMinHeight prevents the main column from shrinking when
+      // non-target cards collapse to 0fr. motionExtraRunway adds scroll
+      // space OUTSIDE the grid so the sidebar doesn't stretch/jump.
+      const currentMainHeight = getMainColumnHeight()
+      const neededTotalHeight =
         typeof context.previousScrollY === 'number'
           ? context.previousScrollY + window.innerHeight
+          : null
+      const extraRunway =
+        neededTotalHeight && currentMainHeight
+          ? Math.max(0, neededTotalHeight - currentMainHeight)
           : null
 
       flushSync(() => {
@@ -276,7 +284,8 @@ function useCollapseMotion({
         setters.setMotionPath(post.path)
         setters.setExpandedPath(null)
         setters.setMotionPhase('collapsing-prep')
-        if (neededMinHeight) setters.setMotionMinHeight(neededMinHeight)
+        if (currentMainHeight) setters.setMotionMinHeight(currentMainHeight)
+        if (extraRunway) setters.setMotionExtraRunway(extraRunway)
       })
 
       const startTop =
@@ -319,13 +328,10 @@ function useCollapseMotion({
           refs.frame.current = window.requestAnimationFrame(() => {
             refs.frame.current = null
             restorePreviousScrollY()
-            // Delay clearing minHeight until PostLayoutMotion has finished
-            // expanding non-target cards from 0fr to 1fr (~560ms). Otherwise
-            // the page shrinks before posts reach full height and the browser
-            // clamps the just-restored scroll position.
             refs.bodyExpansionTimer.current = window.setTimeout(() => {
               refs.bodyExpansionTimer.current = null
               setters.setMotionMinHeight(null)
+              setters.setMotionExtraRunway(null)
             }, 700)
           })
         })
@@ -360,6 +366,7 @@ function useSettleCurrentRoute({
       setters.setExpandedPath(nextExpandedPath)
       setters.setMotionPath(nextExpandedPath)
       setters.setMotionMinHeight(null)
+      setters.setMotionExtraRunway(null)
       setters.setMotionPhase('idle')
     })
   }, [initialDisplayCount, posts, setters])
@@ -458,6 +465,7 @@ export function useBlogExpansionState({
     shouldAnimateInitialExpansion ? null : initialExpandedPath
   )
   const [motionMinHeight, setMotionMinHeight] = useState<number | null>(null)
+  const [motionExtraRunway, setMotionExtraRunway] = useState<number | null>(null)
 
   const refs = useMotionRefs()
   const clearMotionTimers = useClearMotionTimers(refs)
@@ -468,8 +476,16 @@ export function useBlogExpansionState({
       setMotionPhase,
       setMotionPath,
       setMotionMinHeight,
+      setMotionExtraRunway,
     }),
-    [setExpandedPath, setMotionMinHeight, setMotionPath, setMotionPhase, setVisibleCount]
+    [
+      setExpandedPath,
+      setMotionExtraRunway,
+      setMotionMinHeight,
+      setMotionPath,
+      setMotionPhase,
+      setVisibleCount,
+    ]
   )
   const settleCurrentRouteAfterUserCancel = useSettleCurrentRoute({
     posts,
@@ -515,6 +531,7 @@ export function useBlogExpansionState({
       setExpandedPath(null)
       setMotionPath(null)
       setMotionMinHeight(null)
+      setMotionExtraRunway(null)
       setMotionPhase('idle')
 
       if (post) {
@@ -535,6 +552,7 @@ export function useBlogExpansionState({
       setExpandedPath(null)
       setMotionPath(null)
       setMotionMinHeight(null)
+      setMotionExtraRunway(null)
       setMotionPhase('idle')
 
       if (post) {
@@ -552,6 +570,7 @@ export function useBlogExpansionState({
     setExpandedPath(nextExpandedPath)
     setMotionPath(nextExpandedPath)
     setMotionMinHeight(null)
+    setMotionExtraRunway(null)
     setMotionPhase('idle')
   }, [
     clearMotionTimers,
@@ -588,6 +607,7 @@ export function useBlogExpansionState({
       setExpandedPath(nextExpandedPath)
       setMotionPath(nextExpandedPath)
       setMotionMinHeight(null)
+      setMotionExtraRunway(null)
       setMotionPhase('idle')
     }
 
@@ -604,6 +624,7 @@ export function useBlogExpansionState({
     expandedPath,
     loadMorePosts,
     motionMinHeight,
+    motionExtraRunway,
     motionPath,
     motionPhase,
     scrollToTop,
