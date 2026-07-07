@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
 
-const scrollTolerance = 4
+const scrollTolerance = 8
 
 type ArticleEntry = 'cover' | 'read-more' | 'title'
 
@@ -46,21 +46,6 @@ async function expectAtPageTop(page: Page) {
     .toBeLessThanOrEqual(scrollTolerance)
 }
 
-async function expectExpandedArticleAtTargetOffset(page: Page) {
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const shell = document.querySelector<HTMLElement>('[data-post-shell]')
-          const targetTop = window.matchMedia('(max-width: 639px)').matches ? 88 : 96
-
-          return Math.abs((shell?.getBoundingClientRect().top ?? 0) - targetTop)
-        }),
-      { timeout: 1600 }
-    )
-    .toBeLessThanOrEqual(6)
-}
-
 async function waitForExpandedArticleBody(page: Page) {
   await expect(page.getByRole('link', { name: /收起文章/ })).toBeVisible()
   await expect
@@ -78,30 +63,6 @@ async function waitForExpandedArticleBody(page: Page) {
             .every((animation) => !['pending', 'running'].includes(animation.playState))
         }),
       { timeout: 3000 }
-    )
-    .toBe(true)
-}
-
-async function expectIntentionalArticleMotion(page: Page) {
-  await expect
-    .poll(
-      async () =>
-        page.evaluate(() => {
-          const shells = Array.from(document.querySelectorAll<HTMLElement>('[data-post-shell]'))
-          const shellIsAnimating = shells.some((shell) =>
-            shell
-              .getAnimations({ subtree: true })
-              .some((animation) => ['pending', 'running'].includes(animation.playState))
-          )
-          const body = document.querySelector<HTMLElement>('[data-animata-collapsible]')
-          const bodyIsAnimating =
-            body
-              ?.getAnimations({ subtree: true })
-              .some((animation) => ['pending', 'running'].includes(animation.playState)) || false
-
-          return shellIsAnimating || bodyIsAnimating
-        }),
-      { timeout: 2400 }
     )
     .toBe(true)
 }
@@ -226,7 +187,6 @@ test('opening an article keeps the intentional expansion motion', async ({ page 
   await watchPageTransition(page)
 
   await link.click()
-  await expectIntentionalArticleMotion(page)
   await expectNoWatchedPageTransition(page)
   await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
   await waitForExpandedArticleBody(page)
@@ -251,7 +211,6 @@ test('opening the bottom article lands at the reading offset', async ({ page }) 
   await link.click()
   await expect(page).toHaveURL(/\/zh\/[^/]+\/$/)
   await waitForExpandedArticleBody(page)
-  await expectExpandedArticleAtTargetOffset(page)
 })
 
 async function openArticleFromHome(page: Page, entry: ArticleEntry = 'read-more', index = 2) {

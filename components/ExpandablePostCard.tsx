@@ -19,8 +19,8 @@ import type { BlogListPost } from '@/lib/listPosts'
 import { localizePath, type Locale, ui } from '@/lib/i18n'
 import { slug } from 'github-slugger'
 import { formatDate } from '@/lib/formatDate'
-import type { ReactNode } from 'react'
 import { motion, useReducedMotion } from 'motion/react'
+import type { ReactNode } from 'react'
 
 export default function ExpandablePostCard({
   post,
@@ -31,6 +31,7 @@ export default function ExpandablePostCard({
   allPosts,
   headingLevel = 'h2',
   priority = false,
+  onSaveScroll,
 }: {
   post: BlogListPost
   locale: Locale
@@ -40,6 +41,7 @@ export default function ExpandablePostCard({
   allPosts?: BlogListPost[]
   headingLevel?: 'h1' | 'h2'
   priority?: boolean
+  onSaveScroll?: () => void
 }) {
   const now = useNow()
   const primaryTag = post.tags?.[0]
@@ -47,21 +49,18 @@ export default function ExpandablePostCard({
   const Heading = expanded ? 'h1' : headingLevel
   const labels = ui[locale]
   const hasBody = Boolean(body)
-  const renderBody = hasBody && expanded
   const shouldReduceMotion = useReducedMotion()
   const { articleRef, onOpenPost, onReadMore, prefetchPost } = useExpandablePostNavigation({
     expanded,
     locale,
     postHref,
-    postPath: post.path,
+    onSaveScroll: onSaveScroll ?? (() => {}),
   })
 
   return (
     <article
       ref={articleRef}
-      className={`${cardClass} overflow-hidden ${
-        !expanded ? 'transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700' : ''
-      }`}
+      className={`${cardClass} overflow-hidden ${!expanded ? 'transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700' : ''}`}
       data-post-path={post.path}
     >
       <Link
@@ -123,7 +122,7 @@ export default function ExpandablePostCard({
             open={expanded}
             contentClassName="dark:border-border-subtle-dark border-t border-slate-200 pt-5 pb-1"
           >
-            {expanded && renderBody && (
+            {expanded && (
               <>
                 <TableOfContents containerRef={articleRef} locale={locale} />
                 <div className="prose prose-slate dark:prose-invert max-w-none">

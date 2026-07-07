@@ -5,46 +5,36 @@ import type { ReactNode } from 'react'
 import { animataEase, animataPostDuration } from '@/components/animata/motion'
 import { cn } from '@/lib/utils'
 
+/**
+ * Wraps each post card. Uses Motion layout="position" to animate the
+ * card's position when the layout changes (e.g. another card's body
+ * expands/collapses, pushing this card down/up).
+ *
+ * No collapsed/hidden state — cards are always visible. The reflow
+ * animation is handled entirely by Motion's layout engine.
+ */
 export default function PostLayoutMotion({
   children,
   className,
-  collapsed,
-  direction = 'down',
-  isTransitionTarget,
   postPath,
 }: {
   children: ReactNode
   className?: string
-  collapsed?: boolean
-  direction?: 'up' | 'down'
-  isTransitionTarget?: boolean
   postPath: string
 }) {
   const shouldReduceMotion = useReducedMotion()
-  const offset = direction === 'up' ? -32 : 32
 
   return (
     <motion.div
       data-post-shell={postPath}
       layout="position"
       initial={false}
-      animate={{
-        opacity: collapsed ? 0 : 1,
-        y: collapsed ? offset : 0,
-        gridTemplateRows: collapsed ? '0fr' : '1fr',
-      }}
-      transition={{
-        duration: shouldReduceMotion ? 0 : animataPostDuration,
-        ease: animataEase,
-      }}
-      aria-hidden={collapsed || undefined}
-      className={cn(
-        'grid transform-gpu overflow-hidden',
-        isTransitionTarget ? 'mt-0' : className,
-        shouldReduceMotion && 'motion-reduce:transition-none'
-      )}
+      transition={
+        shouldReduceMotion ? { duration: 0 } : { duration: animataPostDuration, ease: animataEase }
+      }
+      className={cn('transform-gpu', className)}
     >
-      <div className="min-h-0 overflow-hidden">{children}</div>
+      {children}
     </motion.div>
   )
 }
