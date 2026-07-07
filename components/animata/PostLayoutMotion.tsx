@@ -1,17 +1,12 @@
-'use client'
-
-import { motion, useReducedMotion } from 'motion/react'
 import type { ReactNode } from 'react'
-import { animataEase, animataPostDuration } from '@/components/animata/motion'
 import { cn } from '@/lib/utils'
 
 /**
- * Wraps each post card. Uses Motion layout="position" to animate the
- * card's position when the layout changes (e.g. another card's body
- * expands/collapses, pushing this card down/up).
- *
- * No collapsed/hidden state — cards are always visible. The reflow
- * animation is handled entirely by Motion's layout engine.
+ * Plain wrapper for each post card. No Motion layout animation —
+ * cards below the expanded card follow the CollapsiblePanel's height
+ * change naturally via CSS flow. This is smoother and more reliable
+ * than layout="position", which never fired because CollapsiblePanel
+ * animates via WAAPI (no React re-render between frames).
  */
 export default function PostLayoutMotion({
   children,
@@ -22,19 +17,9 @@ export default function PostLayoutMotion({
   className?: string
   postPath: string
 }) {
-  const shouldReduceMotion = useReducedMotion()
-
   return (
-    <motion.div
-      data-post-shell={postPath}
-      layout="position"
-      initial={false}
-      transition={
-        shouldReduceMotion ? { duration: 0 } : { duration: animataPostDuration, ease: animataEase }
-      }
-      className={cn('transform-gpu', className)}
-    >
+    <div data-post-shell={postPath} className={cn(className)}>
       {children}
-    </motion.div>
+    </div>
   )
 }

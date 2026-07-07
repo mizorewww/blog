@@ -21,7 +21,7 @@ export default function CollapsiblePanel({
   const shouldReduceMotion = useReducedMotion()
 
   return (
-    <AnimatePresence initial={false}>
+    <AnimatePresence>
       {open && (
         <motion.div
           key="content"
