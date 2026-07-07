@@ -527,18 +527,14 @@ export function useBlogExpansionState({
 
       pendingInitialContextRef.current = null
       clearMotionTimers()
-      setVisibleCount(getInitialVisibleCount(posts, initialDisplayCount, nextExpandedPath))
-      setExpandedPath(null)
-      setMotionPath(null)
-      setMotionMinHeight(null)
-      setMotionExtraRunway(null)
-      setMotionPhase('idle')
 
+      // Call positionThenExpandPost directly — its internal flushSync
+      // atomically sets motionPhase='positioning' and hides non-target
+      // cards. The previous code reset state to idle first, which caused
+      // a one-frame paint of all cards visible before the animation
+      // started, making the sidebar jump and cards flash.
       if (post) {
-        refs.frame.current = window.requestAnimationFrame(() => {
-          refs.frame.current = null
-          positionThenExpandPost(post, pendingInitialContext)
-        })
+        positionThenExpandPost(post, pendingInitialContext)
       }
 
       return
@@ -549,17 +545,15 @@ export function useBlogExpansionState({
 
       pendingInitialContextRef.current = null
       clearMotionTimers()
-      setExpandedPath(null)
-      setMotionPath(null)
-      setMotionMinHeight(null)
-      setMotionExtraRunway(null)
-      setMotionPhase('idle')
 
+      // Call collapsePost directly — its internal flushSync atomically
+      // sets expandedPath=null and motionPhase='collapsing-prep'. The
+      // previous code reset state to idle first (all cards visible)
+      // then delayed collapsePost via requestAnimationFrame, causing a
+      // one-frame flash of the full list + sidebar jump before the
+      // collapse animation started.
       if (post) {
-        refs.frame.current = window.requestAnimationFrame(() => {
-          refs.frame.current = null
-          collapsePost(post, pendingCollapseContext, getExpandedTargetOffset())
-        })
+        collapsePost(post, pendingCollapseContext, getExpandedTargetOffset())
       }
 
       return
