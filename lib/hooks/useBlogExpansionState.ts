@@ -39,26 +39,27 @@ export function useBlogExpansionState({
     // the CollapsiblePanel exit animation changing page height.
     if (next === null && expandedPathRef.current !== null && savedScrollYRef.current !== null) {
       const y = savedScrollYRef.current
+      savedScrollYRef.current = null
 
-      // Immediate restore (before paint)
+      // Restore scroll and continuously enforce it during the
+      // CollapsiblePanel exit animation (~480ms). Mobile Chrome's
+      // scroll anchoring can override window.scrollTo despite
+      // overflow-anchor:none, so we pin the scroll every frame.
       const root = document.documentElement
       const prev = root.style.scrollBehavior
       root.style.scrollBehavior = 'auto'
       window.scrollTo(0, y)
-      root.style.scrollBehavior = prev
 
-      // Delayed re-restore: some mobile browsers adjust the scroll
-      // after navigation/render. Re-check after 100ms and fix.
-      setTimeout(() => {
-        if (Math.abs(window.scrollY - y) > 2) {
-          const r = document.documentElement
-          const p = r.style.scrollBehavior
-          r.style.scrollBehavior = 'auto'
+      const pin = setInterval(() => {
+        if (Math.abs(window.scrollY - y) > 1) {
           window.scrollTo(0, y)
-          r.style.scrollBehavior = p
         }
-        savedScrollYRef.current = null
-      }, 100)
+      }, 16)
+
+      setTimeout(() => {
+        clearInterval(pin)
+        root.style.scrollBehavior = prev
+      }, 600)
     }
 
     expandedPathRef.current = next

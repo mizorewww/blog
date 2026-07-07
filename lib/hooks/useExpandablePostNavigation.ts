@@ -47,14 +47,17 @@ export function useExpandablePostNavigation({
   }, [onSaveScroll, postHref, prefetchPost, router])
 
   const navigateBack = useCallback(() => {
-    const listUrl = localizePath('/', locale)
-    // Set pending collapse motion so PageTransition suppresses itself.
-    setPendingBlogCollapseMotion(postHref, listUrl, {
+    // Use router.back() so the browser's native scroll restoration
+    // handles the scroll position (same as pressing the Back button).
+    // This is more reliable than router.push + manual scrollTo,
+    // especially on mobile Chrome where scroll anchoring can override
+    // window.scrollTo despite overflow-anchor:none.
+    setPendingBlogCollapseMotion(postHref, localizePath('/', locale), {
       previousCardTop: null,
       previousScrollY: null,
       previousUrl: null,
     })
-    router.push(listUrl, { scroll: false })
+    router.back()
   }, [locale, postHref, router])
 
   const onOpenPost = useCallback(
