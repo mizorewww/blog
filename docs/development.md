@@ -9,8 +9,10 @@ related_code:
   - package.json
   - app/[locale]/page.tsx
   - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/categories/loading.tsx
-  - app/[locale]/tags/loading.tsx
+  - app/[locale]/categories/page.tsx
+  - app/[locale]/categories/[category]/page.tsx
+  - app/[locale]/tags/page.tsx
+  - app/[locale]/tags/[tag]/page.tsx
   - app/theme-providers.tsx
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
@@ -21,13 +23,13 @@ related_code:
   - components/ArticleReader.tsx
   - components/ReadingProgress.tsx
   - components/animata/ArticleRouteSkeleton.tsx
-  - components/animata/BlogRouteSkeleton.tsx
   - lib/articleFragment.ts
   - lib/articleReturn.ts
   - lib/blogRouteState.ts
   - lib/listPosts.ts
   - scripts
   - tests/e2e
+  - tests/e2e/term-routes.spec.ts
   - playwright.config.ts
   - tsconfig.scripts.json
   - eslint.config.mjs
@@ -143,6 +145,8 @@ yarn size:budget
 yarn images:optimize
 ```
 
+分类和标签路由的回归门禁位于 `tests/e2e/term-routes.spec.ts`。它必须覆盖 zh/en 的 index 与 detail：禁用 JavaScript 时，响应的原始 HTML 不含 `id="B:0"`、`id="S:0"` 或 shimmer fallback，标题、term chip 和文章卡片直接可见；启用 JavaScript 时，Header -> term index -> term chip -> detail 的普通 Link 链路正常提交。
+
 Core Web Vitals 边界：
 
 - LCP 内容来自静态 HTML 或构建期数据，首屏标题、正文和主图不改成客户端请求后显示。
@@ -180,9 +184,9 @@ Motion 与 Animata-derived 组件只能提供有限反馈，不能拥有文章�
 - 可见位移使用 `transform`，不超过 8 px；允许局部 opacity，不允许用 opacity 隐藏整篇正文。
 - 一次交互最多一个主要动画；已经提交且状态未变的内容不重播入场。
 - 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
-- Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先或文章路由定义 `loading.tsx`，因为 Next.js 静态导出的 streaming 边界会在禁用 JavaScript 时让最终文章保持隐藏。
+- Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先、文章路由或分类/标签的 index/detail 定义 `loading.tsx`，因为 Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时把最终内容留在隐藏的 `S:0` segment 后面。
 - 普通客户端文章 Link 通过 `AppShell` 在 pathname 提交前显示 `ArticleRouteSkeleton` 覆盖层；修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
-- 分类和标签嵌套路由保留列表几何的 route skeleton；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
+- 分类和标签页面由预渲染 HTML 直接显示标题、term chip 与文章卡片；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
 - 骨架只覆盖 pending navigation，不在内容提交后伪装第二次加载。
 
 路由或动画变更的浏览器验收矩阵至少覆盖：

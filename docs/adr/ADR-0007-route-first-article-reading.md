@@ -7,10 +7,10 @@ last_verified: 2026-07-10
 verified_by: command
 related_code:
   - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/categories/loading.tsx
-  - app/[locale]/categories/[category]/loading.tsx
-  - app/[locale]/tags/loading.tsx
-  - app/[locale]/tags/[tag]/loading.tsx
+  - app/[locale]/categories/page.tsx
+  - app/[locale]/categories/[category]/page.tsx
+  - app/[locale]/tags/page.tsx
+  - app/[locale]/tags/[tag]/page.tsx
   - app/theme-providers.tsx
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
@@ -21,19 +21,19 @@ related_code:
   - components/ArticleReader.tsx
   - components/ArticleTableOfContents.tsx
   - components/animata/ArticleRouteSkeleton.tsx
-  - components/animata/BlogRouteSkeleton.tsx
   - lib/articleFragment.ts
   - lib/articleReturn.ts
   - lib/blogRouteState.ts
   - lib/content/posts.ts
   - lib/listPosts.ts
   - tests/e2e/article-navigation.spec.ts
+  - tests/e2e/term-routes.spec.ts
 update_when:
   - article or list route rendering changes
   - article return navigation changes
   - scroll restoration ownership changes
   - animation or reduced-motion policy changes
-  - route loading skeleton geometry changes
+  - route loading or static HTML visibility changes
 supersedes: docs/adr/ADR-0005-adopt-animata-for-blog-animation.md
 superseded_by:
 ---
@@ -43,7 +43,7 @@ superseded_by:
 Status: accepted
 Date: 2026-07-10
 Owner: codex-agent
-Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/loading.tsx`, `app/[locale]/categories/[category]/loading.tsx`, `app/[locale]/tags/loading.tsx`, `app/[locale]/tags/[tag]/loading.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/BlogRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`
+Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/page.tsx`, `app/[locale]/categories/[category]/page.tsx`, `app/[locale]/tags/page.tsx`, `app/[locale]/tags/[tag]/page.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/e2e/term-routes.spec.ts`
 Supersedes: ADR-0005
 Superseded by:
 
@@ -78,13 +78,13 @@ Use two timing bands:
 
 The application-level Motion configuration uses `reducedMotion="user"`. Reduced-motion mode removes nonessential transforms, stagger, smooth scrolling, and animation-dependent waits. Content and focus behavior remain identical.
 
-Loading UI is opt-in and must match the destination geometry. The localized ancestor and article route do not define `loading.tsx`: with this static export, a streaming loading boundary can leave the final article hidden when JavaScript is disabled, which violates the server-first reading contract. For an ordinary in-app article Link, `BlogListNavigationRecorder` asks `AppShell` to show an `ArticleRouteSkeleton` overlay until the pathname commits; the overlay is presentation-only and does not prevent or replace Link navigation. Modified clicks, direct requests, refreshes, and JavaScript-disabled loads do not depend on that overlay. Nested term routes may keep their own route loading boundary, while search uses its already-rendered shell and local result loading state. No route may briefly display a skeleton for a different destination geometry.
+Loading UI is opt-in and must match the destination geometry. The localized ancestor, article route, and category/tag index and detail routes do not define `loading.tsx`: with this static export, a streaming fallback can leave the final content in a hidden `S:0` segment behind a `B:0` boundary when JavaScript is disabled, which violates the server-first content contract. These routes expose their pre-rendered final HTML directly. For an ordinary in-app article Link, `BlogListNavigationRecorder` asks `AppShell` to show an `ArticleRouteSkeleton` overlay until the pathname commits; the overlay is presentation-only and does not prevent or replace Link navigation. Modified clicks, direct requests, refreshes, and JavaScript-disabled loads do not depend on that overlay. Search uses its already-rendered shell and local result loading state. No route may briefly display a skeleton for a different destination geometry.
 
 ## Consequences
 
 Benefits:
 
-- Direct, refreshed, and JavaScript-disabled article requests put the requested content first and keep it readable.
+- Direct, refreshed, and JavaScript-disabled article and term requests put the requested content first and keep it readable.
 - List and article RSC payloads have explicit, testable content boundaries.
 - Opening an article no longer animates document height or coordinates multiple scroll owners.
 - Return behavior is deterministic for list-origin navigation and safe for direct entry.

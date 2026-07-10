@@ -8,10 +8,10 @@ verified_by: command
 related_code:
   - app/[locale]/page.tsx
   - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/categories/loading.tsx
-  - app/[locale]/categories/[category]/loading.tsx
-  - app/[locale]/tags/loading.tsx
-  - app/[locale]/tags/[tag]/loading.tsx
+  - app/[locale]/categories/page.tsx
+  - app/[locale]/categories/[category]/page.tsx
+  - app/[locale]/tags/page.tsx
+  - app/[locale]/tags/[tag]/page.tsx
   - app/theme-providers.tsx
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
@@ -23,7 +23,6 @@ related_code:
   - components/ArticleReader.tsx
   - components/ArticleTableOfContents.tsx
   - components/animata/ArticleRouteSkeleton.tsx
-  - components/animata/BlogRouteSkeleton.tsx
   - lib/articleFragment.ts
   - lib/articleReturn.ts
   - lib/blogRouteState.ts
@@ -33,6 +32,7 @@ related_code:
   - lib/toc.ts
   - next.config.js
   - public/_headers
+  - tests/e2e/term-routes.spec.ts
 update_when:
   - architecture or build model changes
   - list or article RSC boundaries change
@@ -62,7 +62,7 @@ MDX files
 ## 目录职责
 
 ```text
-app/          Next.js 路由、页面、SEO、全局布局和按路由划分的 loading UI
+app/          Next.js 路由、页面、SEO、全局布局和渐进增强 UI
 components/   UI、有限动效、MDX 渲染和文章阅读 client islands
 layouts/      列表与文章的页面级布局边界
 content/      文章和作者 MDX 内容
@@ -129,11 +129,11 @@ Motion 和 `components/animata/` 只负责有界面的视觉反馈，不负责�
 
 Loading UI 是可选的渐进增强，必须匹配目标页面几何，不能成为静态内容可见性的前提。
 
-`app/[locale]/loading.tsx` 和文章路由的 `loading.tsx` 已删除。当前 Next.js 静态导出中的 streaming 边界会让禁用 JavaScript 的客户端停留在 loading shell，最终文章保持隐藏；这与正文必须直接存在并显示在静态 HTML 中的契约冲突。因此直达、刷新、新标签页和禁用 JavaScript 的文章请求直接使用预渲染文章，不经过 route loading 边界。
+本地化祖先、文章路由以及分类/标签的 index 和 detail 路由都不设置 `loading.tsx`。当前 Next.js 静态导出中的 streaming fallback 会把最终内容放在隐藏的 `S:0` segment，并依赖 JavaScript 把它替换到 `B:0` boundary；禁用 JavaScript 时客户端会停留在 loading shell。这与静态内容必须直接可见的契约冲突，因此这些路由的直达、刷新、新标签页和无脚本请求直接使用预渲染的最终 HTML。
 
 从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。`AppShell` 在 pathname 提交前显示单篇阅读几何的 `ArticleRouteSkeleton` 覆盖层，提交后立即移除；它不阻止 Link、不替代导航，也不控制正文可见性。修改键点击和新标签页不会触发该覆盖层。
 
-分类和标签的嵌套路由仍各自拥有 `loading.tsx` 并使用列表几何的 `BlogRouteSkeleton`。搜索没有 route loading 骨架，输入后的等待状态只显示在已经渲染的结果区域。当前实现不声称每个路由都有 loading skeleton；任何新增边界都必须先验证目标几何、静态导出和禁用 JavaScript 行为。
+分类和标签的 index/detail 页面不依赖骨架显示标题、term chip 或文章卡片。搜索没有 route loading 骨架，输入后的等待状态只显示在已经渲染的结果区域。当前实现不声称每个路由都有 loading skeleton；任何新增边界都必须先验证目标几何、原始静态 HTML 和禁用 JavaScript 行为。
 
 ## 性能与安全边界
 

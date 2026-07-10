@@ -7,8 +7,10 @@ last_verified: 2026-07-10
 verified_by: command
 related_code:
   - app/theme-providers.tsx
-  - app/[locale]/categories/loading.tsx
-  - app/[locale]/tags/loading.tsx
+  - app/[locale]/categories/page.tsx
+  - app/[locale]/categories/[category]/page.tsx
+  - app/[locale]/tags/page.tsx
+  - app/[locale]/tags/[tag]/page.tsx
   - components/AppShell.tsx
   - components/Header.tsx
   - components/HeaderNavLinks.tsx
@@ -21,13 +23,13 @@ related_code:
   - components/PostNavLinks.tsx
   - components/ThemeSwitch.tsx
   - components/animata/ArticleRouteSkeleton.tsx
-  - components/animata/BlogRouteSkeleton.tsx
   - components/animata/CollapsiblePanel.tsx
   - components/animata/motion.ts
   - lib/articleFragment.ts
   - app/[locale]/[...slug]/page.tsx
   - layouts/PostLayout.tsx
   - css/tailwind.css
+  - tests/e2e/term-routes.spec.ts
 update_when:
   - animation timing or easing changes
   - route loading geometry changes
@@ -87,9 +89,9 @@ hover 和 focus 只能改变阴影、边框、颜色、opacity 或小范围 tran
 
 Loading UI 必须匹配目标路由，但当前实现并不为每个 route 提供 skeleton：
 
-- 本地化祖先和文章路由不设置 `loading.tsx`。Next.js 静态导出的 streaming loading 边界会在禁用 JavaScript 时让最终文章保持隐藏，因此静态文章 HTML 直接承担直达、刷新和无脚本阅读。
+- 本地化祖先、文章路由以及分类/标签的 index/detail 不设置 `loading.tsx`。Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时让最终内容留在隐藏 segment，因此这些页面由预渲染 HTML 直接承担直达、刷新和无脚本阅读。
 - 列表、搜索结果和侧栏中的普通文章 Link 会触发 `AppShell` 的 `ArticleRouteSkeleton` 覆盖层；它只持续到 pathname 提交，不阻止 Link，也不参与正文显示。
-- 分类/标签嵌套路由保留列表几何的 `BlogRouteSkeleton`。搜索静态外壳没有 route skeleton，查询等待只在结果区域内显示。
+- 分类/标签页面不依赖骨架显示标题、term chip 与文章卡片。搜索静态外壳没有 route skeleton，查询等待只在结果区域内显示。
 
 骨架只存在于 pending navigation。修改键、新标签页和直达请求不触发文章覆盖层；内容提交后不再播放 loading 入场，也不能先显示三栏卡片再突然替换为单篇文章或 term index。
 
@@ -112,6 +114,6 @@ UI 或动效变更至少验证以下视口：
 | `390x844`  | 移动文章首屏、TOC、阅读控件、列表返回和原生滚动恢复      |
 | `1440x900` | 阅读栏宽度、TOC、列表/文章几何差异、首屏信息层级和稳定性 |
 
-每个视口覆盖浅色、深色、正常动态效果和 reduced motion。文章流程覆盖列表进入、浏览器 Back、顶部返回、直达、刷新和新标签页。
+每个视口覆盖浅色、深色、正常动态效果和 reduced motion。文章流程覆盖列表进入、浏览器 Back、顶部返回、直达、刷新和新标签页；term 流程覆盖 zh/en 的 index/detail 直达、无脚本可见性以及 Header -> index -> chip -> detail 导航。
 
 浏览器检查同时记录交互早期帧、动画结束帧和 250 ms 后稳定帧。验收条件是没有 UI 重叠、长文布局补间、二次滚动、骨架错型或 hydration 后正文闪现；只检查最终截图或最终 URL 不足以通过。
