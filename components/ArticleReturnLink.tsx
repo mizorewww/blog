@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { useArticleTransitionReturn } from '@/components/ArticleTransitionContext'
 import Link from '@/components/Link'
 import { consumeArticleReturnMarker } from '@/lib/articleReturn'
 
@@ -20,6 +21,7 @@ export default function ArticleReturnLink({
   href: string
 }) {
   const [canUseHistoryBack, setCanUseHistoryBack] = useState(false)
+  const requestReturnTransition = useArticleTransitionReturn()
 
   useEffect(() => {
     setCanUseHistoryBack(
@@ -38,6 +40,7 @@ export default function ArticleReturnLink({
 
     event.preventDefault()
     setCanUseHistoryBack(false)
+    requestReturnTransition?.()
     window.history.back()
   }
 

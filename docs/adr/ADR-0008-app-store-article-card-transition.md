@@ -8,15 +8,20 @@ verified_by: source citation
 related_code:
   - app/theme-providers.tsx
   - components/AppShell.tsx
+  - components/ArticleTransitionContext.tsx
   - components/PostCard.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReturnLink.tsx
+  - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
   - components/animata/motion.ts
   - layouts/PostLayout.tsx
   - lib/articleReturn.ts
+  - lib/articleTransition.ts
   - lib/blogRouteState.ts
+  - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/article-navigation.spec.ts
+  - tests/unit/articleTransition.test.ts
 update_when:
   - article open or return transition behavior changes
   - transition snapshot geometry or ownership changes
@@ -32,7 +37,7 @@ superseded_by:
 Status: accepted
 Date: 2026-07-10
 Owner: codex-agent
-Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/PostCard.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-navigation.spec.ts`
+Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/ArticleTransitionContext.tsx`, `components/PostCard.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleCardTransitionOverlay.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/articleTransition.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-card-transition.spec.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/unit/articleTransition.test.ts`
 Amends: the article-overlay, maximum-displacement, and 220 ms transition constraints in ADR-0007 only
 Supersedes:
 Superseded by:

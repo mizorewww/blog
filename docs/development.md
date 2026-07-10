@@ -17,19 +17,24 @@ related_code:
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
   - components/AppShell.tsx
+  - components/ArticleTransitionContext.tsx
   - components/PostCard.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReader.tsx
   - components/ReadingProgress.tsx
+  - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
   - lib/articleFragment.ts
   - lib/articleReturn.ts
+  - lib/articleTransition.ts
   - lib/blogRouteState.ts
   - lib/listPosts.ts
   - scripts
   - tests/e2e
+  - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/term-routes.spec.ts
+  - tests/unit/articleTransition.test.ts
   - playwright.config.ts
   - tsconfig.scripts.json
   - eslint.config.mjs

@@ -18,13 +18,16 @@ related_code:
   - components/PostCard.tsx
   - components/MDXServerRenderer.tsx
   - components/AppShell.tsx
+  - components/ArticleTransitionContext.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReader.tsx
   - components/ArticleTableOfContents.tsx
+  - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
   - lib/articleFragment.ts
   - lib/articleReturn.ts
+  - lib/articleTransition.ts
   - lib/blogRouteState.ts
   - lib/content/posts.ts
   - lib/content/terms.ts
@@ -32,7 +35,9 @@ related_code:
   - lib/toc.ts
   - next.config.js
   - public/_headers
+  - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/term-routes.spec.ts
+  - tests/unit/articleTransition.test.ts
 update_when:
   - architecture or build model changes
   - list or article RSC boundaries change

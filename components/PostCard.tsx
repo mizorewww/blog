@@ -32,6 +32,8 @@ export default function PostCard({
     <article
       className={`${cardClass} overflow-hidden transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700`}
       data-post-shell={post.path}
+      data-article-transition-card
+      data-article-transition-key={post.path}
     >
       <Link
         href={postHref}
@@ -39,7 +41,10 @@ export default function PostCard({
         data-blog-post-link
         className="block overflow-hidden"
       >
-        <div className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100">
+        <div
+          className="dark:bg-surface-cover-dark relative aspect-[2.65/1] bg-slate-100"
+          data-article-transition-cover
+        >
           <ResponsiveImage
             src={post.image || siteMetadata.socialBanner}
             alt=""
@@ -51,7 +56,10 @@ export default function PostCard({
         </div>
       </Link>
       <div className="px-5 py-5 sm:px-6 sm:py-6">
-        <Heading className="mb-3 text-[1.55rem] leading-tight font-medium text-slate-900 sm:text-[1.75rem] dark:text-white/90">
+        <Heading
+          className="mb-3 text-[1.55rem] leading-tight font-medium text-slate-900 sm:text-[1.75rem] dark:text-white/90"
+          data-article-transition-title
+        >
           <Link
             href={postHref}
             data-blog-post-link
@@ -65,6 +73,7 @@ export default function PostCard({
           <Link
             href={postHref}
             data-blog-post-link
+            data-article-transition-summary
             className="mb-5 block text-base leading-8 text-slate-600 hover:text-sky-700 dark:text-white/75 dark:hover:text-sky-300"
           >
             {post.summary}
@@ -72,24 +81,27 @@ export default function PostCard({
         )}
 
         <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 text-sm ${mutedText}`}>
-          <MetaItem icon="calendar">
-            <time dateTime={post.date} suppressHydrationWarning>
-              {formatDate(post.date, dateLocale)}
-            </time>
-          </MetaItem>
-          {primaryTag && (
-            <MetaItem icon="tag">
-              <Link
-                href={localizePath(`/tags/${slug(primaryTag)}`, locale)}
-                className="hover:text-sky-700 dark:hover:text-sky-300"
-              >
-                {primaryTag}
-              </Link>
+          <div data-article-transition-meta className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <MetaItem icon="calendar">
+              <time dateTime={post.date} suppressHydrationWarning>
+                {formatDate(post.date, dateLocale)}
+              </time>
             </MetaItem>
-          )}
+            {primaryTag && (
+              <MetaItem icon="tag">
+                <Link
+                  href={localizePath(`/tags/${slug(primaryTag)}`, locale)}
+                  className="hover:text-sky-700 dark:hover:text-sky-300"
+                >
+                  {primaryTag}
+                </Link>
+              </MetaItem>
+            )}
+          </div>
           <Link
             href={postHref}
             data-blog-post-link
+            data-article-transition-read-more
             className={`ml-auto inline-flex items-center gap-1.5 ${skyLink}`}
             aria-label={labels.readMoreLabel(post.title)}
           >

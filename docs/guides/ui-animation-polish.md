@@ -12,6 +12,7 @@ related_code:
   - app/[locale]/tags/page.tsx
   - app/[locale]/tags/[tag]/page.tsx
   - components/AppShell.tsx
+  - components/ArticleTransitionContext.tsx
   - components/Header.tsx
   - components/HeaderNavLinks.tsx
   - components/PostCard.tsx
@@ -22,14 +23,18 @@ related_code:
   - components/ArticleTableOfContents.tsx
   - components/PostNavLinks.tsx
   - components/ThemeSwitch.tsx
+  - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
   - components/animata/CollapsiblePanel.tsx
   - components/animata/motion.ts
   - lib/articleFragment.ts
+  - lib/articleTransition.ts
   - app/[locale]/[...slug]/page.tsx
   - layouts/PostLayout.tsx
   - css/tailwind.css
+  - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/term-routes.spec.ts
+  - tests/unit/articleTransition.test.ts
 update_when:
   - animation timing or easing changes
   - route loading geometry changes
