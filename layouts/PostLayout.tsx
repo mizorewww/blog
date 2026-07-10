@@ -11,7 +11,7 @@ import MDXServerRenderer from '@/components/MDXServerRenderer'
 import { MetaItem } from '@/components/PostMeta'
 import PostNavLinks from '@/components/PostNavLinks'
 import ResponsiveImage from '@/components/ResponsiveImage'
-import { mutedText, skyLink } from '@/components/ui/styles'
+import { mutedText } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from '@/lib/formatDate'
 import { localizePath, localeConfig, type Locale, ui } from '@/lib/i18n'
@@ -41,67 +41,92 @@ export default function PostLayout({
   const postMeta = toListPost(post)
 
   return (
-    <div className="article-shell mx-auto w-full px-4 pt-4 pb-16 sm:px-5 sm:pt-6 lg:px-0">
+    <div className="article-shell mx-auto w-full pb-16 sm:pt-6">
       <ArticleReader>
-        <header className="article-header min-w-0">
-          <ArticleReturnLink
-            key={post.path}
-            href={homeHref}
-            ariaLabel={labels.backToList}
-            className={`mb-6 inline-flex items-center gap-2 text-sm font-medium ${skyLink}`}
-          >
-            <Icon name="ArrowLeft" className="h-4 w-4" inlineSpacing={false} decorative />
-            <span>{labels.backToArticles}</span>
-          </ArticleReturnLink>
-          <h1 className="text-3xl leading-tight font-semibold text-slate-950 sm:text-4xl dark:text-white/95">
-            {post.title}
-          </h1>
-          {post.summary && (
-            <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-white/70">
-              {post.summary}
-            </p>
-          )}
-          <div className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm ${mutedText}`}>
-            {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}
-            <MetaItem icon="calendar">
-              <span>{labels.publishedOn} </span>
-              <time dateTime={post.date}>{formatDate(post.date, dateLocale)}</time>
-            </MetaItem>
-            {post.tags.slice(0, 3).map((tag) => (
-              <Link
-                key={tag}
-                href={localizePath(`/tags/${slug(tag)}`, locale)}
-                className="hover:text-sky-700 dark:hover:text-sky-300"
+        <div
+          className="article-reading-surface dark:bg-surface-card-dark relative z-0 min-w-0 overflow-hidden bg-white shadow-sm ring-1 shadow-slate-300/70 ring-slate-950/5 dark:shadow-black/20 dark:ring-white/10"
+          data-article-surface
+        >
+          <header className="article-header min-w-0">
+            <div
+              className="dark:bg-surface-cover-dark relative aspect-[16/9] overflow-hidden bg-slate-100"
+              data-article-cover
+            >
+              <ResponsiveImage
+                src={post.image || siteMetadata.socialBanner}
+                alt=""
+                fill
+                sizes="(min-width: 640px) 780px, 100vw"
+                priority
+                className="object-cover"
+              />
+              <ArticleReturnLink
+                key={post.path}
+                href={homeHref}
+                ariaLabel={labels.backToList}
+                className="absolute top-3 right-3 z-10 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-800 shadow-sm ring-1 ring-slate-950/10 backdrop-blur transition-colors duration-180 hover:bg-white hover:text-sky-700 dark:bg-slate-950/80 dark:text-white/90 dark:ring-white/15 dark:hover:bg-slate-950 dark:hover:text-sky-300"
               >
-                #{tag}
-              </Link>
-            ))}
-          </div>
-          <div className="mt-5">
-            <ArticleGitMeta post={postMeta} locale={locale} dateLocale={dateLocale} showCommits />
-          </div>
-          <div className="dark:bg-surface-cover-dark relative mt-7 aspect-[16/9] overflow-hidden rounded-[8px] bg-slate-100">
-            <ResponsiveImage
-              src={post.image || siteMetadata.socialBanner}
-              alt=""
-              fill
-              sizes="(min-width: 1280px) 780px, 100vw"
-              priority
-              className="object-cover"
-            />
-          </div>
-        </header>
+                <Icon name="X" className="h-5 w-5" inlineSpacing={false} decorative />
+              </ArticleReturnLink>
+            </div>
 
-        <ArticleTableOfContents headings={toc} locale={locale} />
+            <div className="px-5 pt-6 pb-8 sm:px-8 sm:pt-8 lg:px-10 xl:pb-0">
+              <h1 className="text-3xl leading-tight font-semibold text-slate-950 sm:text-4xl dark:text-white/95">
+                {post.title}
+              </h1>
+              {post.summary && (
+                <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-white/70">
+                  {post.summary}
+                </p>
+              )}
+              <div
+                className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm ${mutedText}`}
+              >
+                {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}
+                <MetaItem icon="calendar">
+                  <span>{labels.publishedOn} </span>
+                  <time dateTime={post.date}>{formatDate(post.date, dateLocale)}</time>
+                </MetaItem>
+                {post.tags.slice(0, 3).map((tag) => (
+                  <Link
+                    key={tag}
+                    href={localizePath(`/tags/${slug(tag)}`, locale)}
+                    className="hover:text-sky-700 dark:hover:text-sky-300"
+                  >
+                    #{tag}
+                  </Link>
+                ))}
+              </div>
+              <div className="mt-5">
+                <ArticleGitMeta
+                  post={postMeta}
+                  locale={locale}
+                  dateLocale={dateLocale}
+                  showCommits
+                />
+              </div>
+            </div>
+          </header>
 
-        <div className="article-body min-w-0" data-article-body>
-          <div className="prose prose-slate dark:prose-invert max-w-none">
-            <MDXServerRenderer modulePath={post.mdxModulePath} />
-            <ArticleLicenseNotice locale={locale} />
+          <ArticleTableOfContents headings={toc} locale={locale} variant="mobile" />
+
+          <div className="px-5 pt-10 pb-10 sm:px-8 lg:px-10">
+            <div className="article-body min-w-0" data-article-body>
+              <div className="prose prose-slate dark:prose-invert max-w-none">
+                <MDXServerRenderer modulePath={post.mdxModulePath} />
+                <ArticleLicenseNotice locale={locale} />
+              </div>
+            </div>
+
+            {(previousPost || nextPost) && (
+              <div className="mt-10">
+                <PostNavLinks previousPost={previousPost} nextPost={nextPost} locale={locale} />
+              </div>
+            )}
           </div>
         </div>
 
-        <PostNavLinks previousPost={previousPost} nextPost={nextPost} locale={locale} />
+        <ArticleTableOfContents headings={toc} locale={locale} variant="desktop" />
       </ArticleReader>
     </div>
   )

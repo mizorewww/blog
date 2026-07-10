@@ -46,7 +46,7 @@ export default function ArticleReader({ children }: { children: ReactNode }) {
       <ReadingProgress targetRef={articleRef} />
       <article
         ref={articleRef}
-        className="article-reading-grid"
+        className="article-surface-layout"
         data-article-reader
         onClickCapture={navigateToArticleFragment}
       >

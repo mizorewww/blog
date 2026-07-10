@@ -124,6 +124,236 @@ test('direct article entry renders one static reader with a safe return link', a
   await expect(link).toBeInViewport()
 })
 
+for (const viewport of [
+  { width: 320, height: 720, top: 72, radius: 0 },
+  { width: 390, height: 844, top: 72, radius: 0 },
+  { width: 1440, height: 900, top: 120, radius: 8 },
+] as const) {
+  test(`article reading surface is stable at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+    await page.goto(ARTICLE_PATH)
+
+    const surface = page.locator('[data-article-surface]')
+    const body = page.locator('[data-article-body]')
+    const close = returnLink(page)
+
+    await expect(surface).toBeVisible()
+    await expect(body).toContainText(BODY_TEXT)
+
+    const geometry = await page.evaluate(() => {
+      const rect = (selector: string) => {
+        const element = document.querySelector<HTMLElement>(selector)
+
+        if (!element) throw new Error(`Missing ${selector}`)
+
+        const bounds = element.getBoundingClientRect()
+        return {
+          top: bounds.top,
+          left: bounds.left,
+          right: bounds.right,
+          width: bounds.width,
+          height: bounds.height,
+        }
+      }
+
+      const surfaceElement = document.querySelector<HTMLElement>('[data-article-surface]')
+      const bodyElement = document.querySelector<HTMLElement>('[data-article-body]')
+      const headerElement = document.querySelector<HTMLElement>('body header')
+      const mobileTocElement = document.querySelector<HTMLElement>('.article-toc-mobile')
+      const desktopTocElement = document.querySelector<HTMLElement>('.article-toc-desktop')
+
+      if (!surfaceElement || !bodyElement || !headerElement) {
+        throw new Error('Missing article geometry target')
+      }
+
+      return {
+        surface: rect('[data-article-surface]'),
+        cover: rect('[data-article-cover]'),
+        title: rect('h1'),
+        body: rect('[data-article-body]'),
+        close: rect('a[aria-label="返回列表"]'),
+        radius: Number.parseFloat(getComputedStyle(surfaceElement).borderTopLeftRadius),
+        bodyOpacity: Number.parseFloat(getComputedStyle(bodyElement).opacity),
+        bodyHeight: bodyElement.getBoundingClientRect().height,
+        headerZ: Number.parseInt(getComputedStyle(headerElement).zIndex, 10),
+        surfaceZ: Number.parseInt(getComputedStyle(surfaceElement).zIndex, 10),
+        mobileToc: mobileTocElement
+          ? {
+              top: mobileTocElement.getBoundingClientRect().top,
+              bottom: mobileTocElement.getBoundingClientRect().bottom,
+            }
+          : null,
+        desktopToc: desktopTocElement
+          ? {
+              left: desktopTocElement.getBoundingClientRect().left,
+              right: desktopTocElement.getBoundingClientRect().right,
+            }
+          : null,
+        viewportWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }
+    })
+
+    const expectedWidth = viewport.width < 640 ? viewport.width : 780
+    const expectedLeft = (viewport.width - expectedWidth) / 2
+
+    expect(Math.abs(geometry.surface.top - viewport.top)).toBeLessThanOrEqual(4)
+    expect(Math.abs(geometry.surface.left - expectedLeft)).toBeLessThanOrEqual(4)
+    expect(Math.abs(geometry.surface.width - expectedWidth)).toBeLessThanOrEqual(4)
+    expect(Math.abs(geometry.radius - viewport.radius)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(geometry.close.width - 44)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(geometry.close.height - 44)).toBeLessThanOrEqual(0.5)
+    expect(Math.abs(geometry.cover.width / geometry.cover.height - 16 / 9)).toBeLessThan(0.02)
+    expect(geometry.cover.top).toBeLessThan(geometry.title.top)
+    expect(geometry.cover.right).toBeLessThanOrEqual(geometry.surface.right + 0.5)
+    expect(geometry.bodyHeight).toBeGreaterThan(0)
+    expect(geometry.bodyOpacity).toBe(1)
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth)
+    expect(geometry.headerZ).toBe(50)
+    expect(geometry.surfaceZ).toBeLessThan(geometry.headerZ)
+
+    await expect(close).toHaveAttribute('href', '/zh/')
+
+    if (viewport.width >= 1280) {
+      await expect(page.locator('.article-toc-desktop')).toBeVisible()
+      await expect(surface.locator('.article-toc-desktop')).toHaveCount(0)
+      expect(geometry.desktopToc).not.toBeNull()
+      expect(geometry.desktopToc!.left).toBeGreaterThanOrEqual(geometry.surface.right + 32)
+      expect(geometry.desktopToc!.right).toBeLessThanOrEqual(geometry.viewportWidth - 14)
+    } else {
+      await expect(page.locator('.article-toc-mobile')).toBeVisible()
+      await expect(surface.locator('.article-toc-mobile')).toHaveCount(1)
+      expect(geometry.mobileToc).not.toBeNull()
+      expect(geometry.mobileToc!.top).toBeGreaterThan(geometry.title.top)
+      expect(geometry.mobileToc!.bottom).toBeLessThanOrEqual(geometry.body.top)
+    }
+  })
+}
+
+for (const viewport of [
+  { width: 320, height: 720, top: 72, radius: 0 },
+  { width: 390, height: 844, top: 72, radius: 0 },
+  { width: 1440, height: 900, top: 120, radius: 8 },
+] as const) {
+  test(`a compact article link shows one cover-first pending surface at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height })
+
+    let releaseArticleRequest!: () => void
+    let delayedArticleRequests = 0
+    const articleRequestReleased = new Promise<void>((resolve) => {
+      releaseArticleRequest = resolve
+    })
+
+    await page.route(`**${ARTICLE_PATH}index.txt*`, async (route) => {
+      delayedArticleRequests += 1
+      await articleRequestReleased
+      await route.continue()
+    })
+
+    await page.goto('/zh/')
+
+    const compactLink = page.locator(
+      `.blog-sidebar-right a[data-blog-post-link][href="${ARTICLE_PATH}"]`
+    )
+    await expect(compactLink).toHaveCount(1)
+    await compactLink.scrollIntoViewIfNeeded()
+
+    const clickPromise = compactLink.click()
+    const skeleton = page.locator('[data-article-route-skeleton]')
+
+    try {
+      await expect.poll(() => delayedArticleRequests).toBeGreaterThan(0)
+      await expect(skeleton).toHaveCount(1)
+      await expect(skeleton).toBeVisible()
+      await expect(skeleton).toHaveAttribute('aria-hidden', 'true')
+
+      const geometry = await skeleton.evaluate((root) => {
+        const rect = (selector: string) => {
+          const element = root.querySelector<HTMLElement>(selector)
+
+          if (!element) throw new Error(`Missing pending article ${selector}`)
+
+          const bounds = element.getBoundingClientRect()
+          return {
+            top: bounds.top,
+            bottom: bounds.bottom,
+            left: bounds.left,
+            right: bounds.right,
+            width: bounds.width,
+            height: bounds.height,
+          }
+        }
+
+        const surface = root.querySelector<HTMLElement>('[data-article-skeleton-surface]')
+        const mobileToc = root.querySelector<HTMLElement>('[data-article-skeleton-mobile-toc]')
+        const desktopToc = root.querySelector<HTMLElement>('[data-article-skeleton-desktop-toc]')
+
+        if (!surface || !mobileToc || !desktopToc) {
+          throw new Error('Missing pending article surface geometry target')
+        }
+
+        return {
+          surface: rect('[data-article-skeleton-surface]'),
+          cover: rect('[data-article-skeleton-cover]'),
+          body: rect('[data-article-skeleton-body]'),
+          radius: Number.parseFloat(getComputedStyle(surface).borderTopLeftRadius),
+          background: getComputedStyle(surface).backgroundColor,
+          mobileToc:
+            getComputedStyle(mobileToc).display === 'none'
+              ? null
+              : rect('[data-article-skeleton-mobile-toc]'),
+          desktopToc:
+            getComputedStyle(desktopToc).display === 'none'
+              ? null
+              : rect('[data-article-skeleton-desktop-toc]'),
+          surfaceCount: root.querySelectorAll('[data-article-skeleton-surface]').length,
+          viewportWidth: window.innerWidth,
+          scrollWidth: document.documentElement.scrollWidth,
+        }
+      })
+
+      const expectedWidth = viewport.width < 640 ? viewport.width : 780
+      const expectedLeft = (viewport.width - expectedWidth) / 2
+
+      expect(geometry.surfaceCount).toBe(1)
+      expect(Math.abs(geometry.surface.top - viewport.top)).toBeLessThanOrEqual(4)
+      expect(Math.abs(geometry.surface.left - expectedLeft)).toBeLessThanOrEqual(4)
+      expect(Math.abs(geometry.surface.width - expectedWidth)).toBeLessThanOrEqual(4)
+      expect(Math.abs(geometry.radius - viewport.radius)).toBeLessThanOrEqual(0.5)
+      expect(Math.abs(geometry.cover.top - geometry.surface.top)).toBeLessThanOrEqual(0.5)
+      expect(Math.abs(geometry.cover.left - geometry.surface.left)).toBeLessThanOrEqual(0.5)
+      expect(Math.abs(geometry.cover.right - geometry.surface.right)).toBeLessThanOrEqual(0.5)
+      expect(Math.abs(geometry.cover.width / geometry.cover.height - 16 / 9)).toBeLessThan(0.02)
+      expect(geometry.cover.bottom).toBeLessThan(geometry.body.top)
+      expect(geometry.background).not.toBe('rgba(0, 0, 0, 0)')
+      expect(geometry.surface.right).toBeLessThanOrEqual(geometry.viewportWidth + 0.5)
+      expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth)
+
+      if (viewport.width >= 1280) {
+        expect(geometry.mobileToc).toBeNull()
+        expect(geometry.desktopToc).not.toBeNull()
+        expect(geometry.desktopToc!.left).toBeGreaterThanOrEqual(geometry.surface.right + 32)
+        expect(geometry.desktopToc!.right).toBeLessThanOrEqual(geometry.viewportWidth - 14)
+      } else {
+        expect(geometry.desktopToc).toBeNull()
+        expect(geometry.mobileToc).not.toBeNull()
+        expect(geometry.mobileToc!.top).toBeGreaterThan(geometry.cover.bottom)
+        expect(geometry.mobileToc!.bottom).toBeLessThanOrEqual(geometry.body.top)
+      }
+    } finally {
+      releaseArticleRequest()
+      await clickPromise
+    }
+
+    await expect(page).toHaveURL(ARTICLE_PATH)
+    await expect(page.locator('[data-article-body]')).toContainText(BODY_TEXT)
+  })
+}
+
 test('the static list payload excludes article MDX while the article payload includes it', async ({
   request,
 }) => {

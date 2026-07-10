@@ -52,9 +52,11 @@ function TocLinks({
 export default function ArticleTableOfContents({
   headings,
   locale,
+  variant,
 }: {
   headings: TocHeading[]
   locale: Locale
+  variant: 'mobile' | 'desktop'
 }) {
   const [activeId, setActiveId] = useState(() => (headings[0] ? headingId(headings[0]) : ''))
   const [open, setOpen] = useState(false)
@@ -104,15 +106,15 @@ export default function ArticleTableOfContents({
     return null
   }
 
-  return (
-    <>
-      <section className="article-toc-mobile dark:border-border-subtle-dark overflow-hidden rounded-[8px] border border-slate-200 lg:hidden">
+  if (variant === 'mobile') {
+    return (
+      <section className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 xl:hidden">
         <button
           type="button"
           aria-controls={panelId}
           aria-expanded={open}
           onClick={() => setOpen((current) => !current)}
-          className="flex w-full items-center justify-between px-4 py-3 text-left"
+          className="flex w-full items-center justify-between px-5 py-3 text-left sm:px-8 lg:px-10"
         >
           <span className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-white/80">
             <Icon name="ScrollText" className="h-4 w-4" inlineSpacing={false} decorative />
@@ -125,7 +127,7 @@ export default function ArticleTableOfContents({
             decorative
           />
         </button>
-        <CollapsiblePanel id={panelId} open={open} contentClassName="px-4 pb-4">
+        <CollapsiblePanel id={panelId} open={open} contentClassName="px-5 pb-4 sm:px-8 lg:px-10">
           <nav aria-label={labels.tableOfContents}>
             <TocLinks
               activeId={activeId}
@@ -138,14 +140,17 @@ export default function ArticleTableOfContents({
           </nav>
         </CollapsiblePanel>
       </section>
-      <aside className="article-toc-desktop hidden lg:block">
-        <h2 className="mb-3 text-sm font-semibold text-slate-800 dark:text-white/85">
-          {labels.tableOfContents}
-        </h2>
-        <nav aria-label={labels.tableOfContents}>
-          <TocLinks activeId={activeId} headings={headings} onNavigate={setActiveId} />
-        </nav>
-      </aside>
-    </>
+    )
+  }
+
+  return (
+    <aside className="article-toc-desktop hidden xl:block">
+      <h2 className="mb-3 text-sm font-semibold text-slate-800 dark:text-white/85">
+        {labels.tableOfContents}
+      </h2>
+      <nav aria-label={labels.tableOfContents}>
+        <TocLinks activeId={activeId} headings={headings} onNavigate={setActiveId} />
+      </nav>
+    </aside>
   )
 }
