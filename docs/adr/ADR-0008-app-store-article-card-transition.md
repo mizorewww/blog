@@ -1,0 +1,112 @@
+---
+status: active
+audience: both
+authority: source-of-truth
+owner: codex-agent
+last_verified: 2026-07-10
+verified_by: source citation
+related_code:
+  - app/theme-providers.tsx
+  - components/AppShell.tsx
+  - components/PostCard.tsx
+  - components/BlogListNavigationRecorder.tsx
+  - components/ArticleReturnLink.tsx
+  - components/animata/ArticleRouteSkeleton.tsx
+  - components/animata/motion.ts
+  - layouts/PostLayout.tsx
+  - lib/articleReturn.ts
+  - lib/blogRouteState.ts
+  - tests/e2e/article-navigation.spec.ts
+update_when:
+  - article open or return transition behavior changes
+  - transition snapshot geometry or ownership changes
+  - article navigation, history, or scroll ownership changes
+  - reduced-motion policy changes
+  - Motion or Next.js transition APIs change
+supersedes:
+superseded_by:
+---
+
+# ADR-0008: App Store Article Card Transition
+
+Status: accepted
+Date: 2026-07-10
+Owner: codex-agent
+Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/PostCard.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-navigation.spec.ts`
+Amends: the article-overlay, maximum-displacement, and 220 ms transition constraints in ADR-0007 only
+Supersedes:
+Superseded by:
+
+## Context
+
+ADR-0007 separated article content from the list and made each article URL an independent, statically rendered reading page. That boundary fixed direct-entry, refresh, no-JavaScript, history, and long-document layout failures, but the replacement pending skeleton does not preserve the visual relationship between the card the reader selected and the article that opens. The requested interaction is the visual guidance of the iOS App Store: the selected card appears to expand into a bounded reading surface, and a proven return appears to settle back into its source card, while the URL and content remain route-first.
+
+This is a continuity problem, not a request to restore inline article disclosure. The article body must remain owned by the destination route and directly visible in static HTML. A transition layer therefore cannot clone the live card DOM, host MDX, become an interactive modal, intercept navigation, delay history traversal, or take ownership of scroll restoration.
+
+The decision is based on the following primary documentation, accessed 2026-07-10:
+
+- Next.js [`Link`](https://nextjs.org/docs/app/api-reference/components/link) documents native anchor attributes, client navigation, prefetching, and default history/scroll behavior. [Static exports](https://nextjs.org/docs/app/guides/static-exports) defines the deployment boundary that requires final article HTML to stand alone. Next.js marks [`experimental.viewTransition`](https://nextjs.org/docs/app/api-reference/config/next-config-js/viewTransition) experimental and not recommended for production.
+- Motion documents transform-based [`layout` and `layoutId` animations](https://motion.dev/docs/react-layout-animations), its official [iOS App Store card example](https://motion.dev/examples/react-app-store), and [`AnimatePresence`](https://motion.dev/docs/react-animate-presence) for retaining a visual element through exit. Its [accessibility guide](https://motion.dev/docs/react-accessibility) specifies `MotionConfig reducedMotion="user"` and replacing large transform motion for reduced-motion users. Its [installation guide](https://motion.dev/docs/react-installation) confirms App Router support and the existing `motion/react` client boundary.
+- MDN documents that [`popstate`](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event) follows history traversal, that [`history.scrollRestoration`](https://developer.mozilla.org/en-US/docs/Web/API/History/scrollRestoration) controls browser restoration mode, and that [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) expresses the user's request to minimize nonessential motion.
+
+## Decision
+
+Keep ADR-0007's route-first content and navigation architecture. Add one App Store-inspired, presentation-only transition layer above route content using the already-installed Motion package. No dependency is added, and the experimental Next.js/React View Transition integration is not enabled.
+
+The transition layer follows these ownership rules:
+
+- Every article target remains an ordinary Next.js `Link`. The observer may capture a plain primary navigation and render transition state, but it must not call `preventDefault()`, replace the link action, set `scroll: false`, or defer navigation until animation completion. Modified clicks, new tabs, downloads, external targets, and failed capture keep native behavior and do not start the large transition.
+- The visual is a fixed, structured React snapshot with `aria-hidden="true"` and `pointer-events: none`. It is reconstructed from the minimum serialized card fields and measured rectangles; it never uses `cloneNode()`, cloned interactive descendants, copied article HTML, or client MDX evaluation. It cannot receive focus or obscure the semantic destination from assistive technology.
+- A full `PostCard` source supplies cover, title, summary, metadata, surface, radius, and measured viewport rectangle so the complete card morphs. An article link from search results or a sidebar, where full card data and geometry are unavailable, uses the single-article skeleton snapshot rather than inventing a partial card. Missing data, an invalid rectangle, storage failure, route mismatch, interruption, or a viewport resize immediately removes the snapshot and leaves ordinary routing visible.
+- The overlay is fixed to the viewport at `z-index: 40`; the Header remains above it at `z-index: 50`. It does not change document layout or lock scrolling. At `320px` and `390px`, the destination surface spans the viewport width, begins at `top: 72px`, and has `border-radius: 0`. At `1440px`, it is `780px` wide, centered horizontally, begins at `top: 120px`, and has an `8px` radius. Intermediate widths interpolate through responsive CSS constraints without covering the Header.
+- A normal open transition lasts `380 ms`; a proven return transition lasts `340 ms`. Both use easing `[0.32, 0.72, 0, 1]`. The opening snapshot expands from the measured source card to the destination reading-surface geometry while the route commits independently. The snapshot may remain just long enough to finish its own bounded exit, but the real article is not withheld, opacity-gated, or height-animated beneath it.
+- A return action starts history or fallback Link navigation immediately. It does not wait for the `340 ms` animation. A collapse snapshot is allowed only when the current article has a proven same-tab list source and the restored destination exposes the matching full card target. After the list route commits, it resolves the target's current rectangle and settles there. If the target is absent, virtualized away, changed, or invalid, the overlay disappears immediately; the application does not scroll to manufacture a target.
+- Browser and Next.js remain the only owners of route history and scroll. The transition does not set `history.scrollRestoration`, synthesize `popstate`, save or restore `scrollY`, add history entries, correct Back position, or smooth-scroll. It observes committed path changes only to advance or dispose visual state.
+- `AnimatePresence` may retain only the inert snapshot while it exits. It must not retain the old route, old `PostCard` tree, article body, focusable controls, or scroll container. Motion `layoutId` is not shared across simultaneously live route trees; geometry is explicit so stale list and article layouts never become competing owners.
+- `MotionConfig reducedMotion="user"` remains application-wide. When reduced motion is requested, large translation and scale morphs are disabled. Navigation and content commit immediately, and the transition may use only a brief, nonblocking opacity change on the already bounded snapshot. The final content, focus result, and history result are identical.
+
+The article body and its ancestors remain outside the transition snapshot. They must not use `height: 0 -> auto`, full-body opacity gating, delayed mounting, or route-dependent `AnimatePresence`. The snapshot can visually suggest expansion, but the implementation remains two independent route documents connected by an inert overlay.
+
+## Consequences
+
+Benefits:
+
+- A selected full card provides a single, legible motion path toward the article reading surface without reviving list-owned article state.
+- Direct entry, refresh, no-JavaScript reading, modified clicks, and static export remain correct because the effect is progressive enhancement over ordinary links.
+- The real article can commit and become readable independently of animation duration, dropped frames, missing geometry, or Motion runtime failure.
+- Return motion can reinforce spatial memory when a validated browser restoration exposes the same card, while native history remains authoritative.
+
+Costs:
+
+- The persistent app shell needs a small transition state machine and structured visual duplicate of `PostCard`; card visual changes must keep the snapshot contract synchronized.
+- Browser tests must inspect early, mid, end, and settled frames across mobile and desktop, not only the final URL.
+- The `380 ms` and `340 ms` bands are deliberate exceptions to ADR-0007's standard `220 ms` ceiling, and the full-card transform is a deliberate exception to its `8 px` displacement ceiling.
+- Search and sidebar origins cannot produce an exact shared-card morph and intentionally retain a destination-shaped skeleton fallback.
+
+Constraints:
+
+- ADR-0007 still governs route ownership, static article visibility, return provenance, and scroll behavior. This ADR revises only its claim that all article-opening overlays are skeletons and its duration/displacement limits for this one inert transition layer.
+- ADR-0003 still prohibits sending MDX runtime code to list routes or evaluating article code in the browser.
+- Transition snapshots are disposable visual hints. Any ambiguity must resolve by removing the snapshot, never by delaying navigation or hiding final content.
+
+## Rejected alternatives
+
+Rejected: restore inline card expansion and render the article body inside the list.
+
+Reason: it reintroduces two content owners, long-document height animation, route ambiguity, and scroll coordination failures that ADR-0007 removed.
+
+Rejected: clone the selected DOM subtree into a fixed overlay.
+
+Reason: cloned IDs and controls create semantic and focus hazards, DOM structure is not a stable data contract, and copied layout can retain event or style assumptions. A small structured snapshot is explicit, inert, and testable.
+
+Rejected: prevent the Link, finish the open animation, and then navigate; or delay Back until collapse finishes.
+
+Reason: animation failure would become navigation failure, modified-click semantics would diverge, and the application would compete with browser history and scroll restoration.
+
+Rejected: enable Next.js `experimental.viewTransition` or add another animation library.
+
+Reason: Next.js still labels its deeper View Transition integration experimental and not recommended for production. The installed Motion package already supplies the required fixed-element transform and exit lifecycle.
+
+Rejected: animate or crossfade the entire article body.
+
+Reason: readable static content must not wait for hydration or animation, and a long-document visual gate would recreate the accessibility and performance failures of the former disclosure model.

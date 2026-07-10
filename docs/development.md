@@ -158,7 +158,7 @@ Core Web Vitals 边界：
 
 ## 文章路由规范
 
-文章阅读架构由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义，并由独立的 `PostLayout`、普通文章 Link、来源记录器和安全返回控制实现。
+文章阅读与历史所有权由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义，App Store 风格卡片转场由 [ADR-0008](./adr/ADR-0008-app-store-article-card-transition.md) 定义。独立 `PostLayout`、普通文章 Link、来源记录器和安全返回控制仍是正确性的基础；视觉快照只是渐进增强。
 
 列表与导航：
 
@@ -178,16 +178,21 @@ Core Web Vitals 边界：
 
 ## 动画与加载规范
 
-Motion 与 Animata-derived 组件只能提供有限反馈，不能拥有文章路由、正文生命周期或滚动恢复。
+Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章路由、正文生命周期或滚动恢复。下列条目是必须由源代码与 E2E 共同证明的合同，不表示仅凭文档已完成实现。
 
 - Fast 动效为 160-180 ms，standard 动效为 200-220 ms。
 - 可见位移使用 `transform`，不超过 8 px；允许局部 opacity，不允许用 opacity 隐藏整篇正文。
 - 一次交互最多一个主要动画；已经提交且状态未变的内容不重播入场。
 - 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
+- App Store 文章卡片转场是唯一 timing/displacement 例外：打开 `380 ms`，经验证的返回 `340 ms`，easing 为 `[0.32, 0.72, 0, 1]`。完整 `PostCard` 必须以 fixed 结构化快照 morph；搜索与侧栏来源只使用单篇 skeleton。
+- 快照必须 `aria-hidden="true"`、`pointer-events: none`，只含最小展示数据和数值 rectangle，不用 `cloneNode()`、复制控件、文章 HTML 或 MDX。Header 保持 `z-index: 50`，覆盖层为 `z-index: 40`。
+- `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`1440px` 目标面宽 `780px`、居中、`top: 120px`、radius `8px`。
+- Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除快照。
+- reduced motion 下禁止完整卡片的大范围 translate/scale，只允许极短 opacity 提示；正文、URL、focus 和 history 结果必须与正常模式一致。
 - Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先、文章路由或分类/标签的 index/detail 定义 `loading.tsx`，因为 Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时把最终内容留在隐藏的 `S:0` segment 后面。
-- 普通客户端文章 Link 通过 `AppShell` 在 pathname 提交前显示 `ArticleRouteSkeleton` 覆盖层；修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
+- 普通客户端文章 Link 的目标合同是由 `AppShell` 显示 ADR-0008 快照；完整卡片使用卡片 morph，搜索/侧栏才保留 `ArticleRouteSkeleton` 几何。修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
 - 分类和标签页面由预渲染 HTML 直接显示标题、term chip 与文章卡片；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
-- 骨架只覆盖 pending navigation，不在内容提交后伪装第二次加载。
+- 快照可跨 route commit 完成有界视觉退出，但真实文章从提交时起直接可读；它不能在内容提交后伪装第二次加载或遮住正文等待 animation complete。
 
 路由或动画变更的浏览器验收矩阵至少覆盖：
 
@@ -196,8 +201,10 @@ Motion 与 Animata-derived 组件只能提供有限反馈，不能拥有文章�
 - 正常动态效果与 reduced motion。
 - 首页、分类或标签列表进入文章，再使用浏览器 Back 和页面返回控制。
 - 文章直达、刷新、新标签页、外部来源和禁用 JavaScript。
+- 完整 PostCard、搜索结果与侧栏三种来源；前者验证 card morph，后两者验证单篇 skeleton fallback。
+- 正常完成、快速重复点击、动画中 resize、目标卡片缺失和 route mismatch 等退化路径。
 
-E2E 需要验证 URL、目标内容、scrollY 与动画中间帧。对于应在 220 ms 内结束的效果，记录点击后早期帧、结束帧和 250 ms 之后的稳定帧；仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms 结束帧和 450 ms 稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
 
 ## 开发纪律
 

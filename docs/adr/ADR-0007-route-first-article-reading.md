@@ -45,6 +45,7 @@ Date: 2026-07-10
 Owner: codex-agent
 Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/page.tsx`, `app/[locale]/categories/[category]/page.tsx`, `app/[locale]/tags/page.tsx`, `app/[locale]/tags/[tag]/page.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/e2e/term-routes.spec.ts`
 Supersedes: ADR-0005
+Amended by: ADR-0008 for the article transition overlay, duration, and displacement clauses only
 Superseded by:
 
 ## Context
@@ -69,7 +70,7 @@ The article header provides an explicit return control. Its normal destination i
 
 The browser and Next.js are the single owners of route scroll behavior. The application does not use `scroll: false`, saved `scrollY`, delayed scroll restoration, temporary scroll runway, smooth-scroll timers, or post-route correction for article open and return. A validated browser Back uses native history restoration. The localized-home fallback performs normal Link navigation. A plain same-document fragment anchor inside the article validates its same-origin pathname, search, decoded target ID, and target existence, then uses `history.replaceState()` with the existing Next.js history state before scrolling the target without smooth behavior. This updates the shareable hash without inserting an entry between the proven article and its list source. Modified clicks and new-tab targets retain native behavior.
 
-The article body is not a disclosure. It must not use height interpolation, opacity gating, `AnimatePresence` exit, or a client-mounted collapsed state. Motion is limited to optional, local opacity and transform effects on small interface elements or bounded article-header media. Those effects finish within 220 ms, move no more than 8 px, do not delay readable content, and do not cause layout movement. A single interaction has at most one primary visible animation.
+The article body is not a disclosure. It must not use height interpolation, opacity gating, `AnimatePresence` exit, or a client-mounted collapsed state. Motion is normally limited to optional, local opacity and transform effects on small interface elements or bounded article-header media. Those effects finish within 220 ms, move no more than 8 px, do not delay readable content, and do not cause layout movement. A single interaction has at most one primary visible animation. ADR-0008 defines one narrow exception: an inert fixed snapshot may use a longer, larger transform to connect a source card and the independent article route. That snapshot never owns, gates, or retains the article body.
 
 Use two timing bands:
 
@@ -78,7 +79,7 @@ Use two timing bands:
 
 The application-level Motion configuration uses `reducedMotion="user"`. Reduced-motion mode removes nonessential transforms, stagger, smooth scrolling, and animation-dependent waits. Content and focus behavior remain identical.
 
-Loading UI is opt-in and must match the destination geometry. The localized ancestor, article route, and category/tag index and detail routes do not define `loading.tsx`: with this static export, a streaming fallback can leave the final content in a hidden `S:0` segment behind a `B:0` boundary when JavaScript is disabled, which violates the server-first content contract. These routes expose their pre-rendered final HTML directly. For an ordinary in-app article Link, `BlogListNavigationRecorder` asks `AppShell` to show an `ArticleRouteSkeleton` overlay until the pathname commits; the overlay is presentation-only and does not prevent or replace Link navigation. Modified clicks, direct requests, refreshes, and JavaScript-disabled loads do not depend on that overlay. Search uses its already-rendered shell and local result loading state. No route may briefly display a skeleton for a different destination geometry.
+Loading UI is opt-in and must match the destination geometry. The localized ancestor, article route, and category/tag index and detail routes do not define `loading.tsx`: with this static export, a streaming fallback can leave the final content in a hidden `S:0` segment behind a `B:0` boundary when JavaScript is disabled, which violates the server-first content contract. These routes expose their pre-rendered final HTML directly. An ordinary in-app article Link may trigger a presentation-only overlay in `AppShell`; ADR-0008 changes that overlay from an always-skeletal pending state to a structured full-card snapshot when complete card data and geometry exist, with the single-article skeleton retained for search and sidebar origins. The overlay does not prevent or replace Link navigation. Modified clicks, direct requests, refreshes, and JavaScript-disabled loads do not depend on it. Search uses its already-rendered shell and local result loading state. No route may briefly display a skeleton for a different destination geometry.
 
 ## Consequences
 
@@ -93,8 +94,8 @@ Benefits:
 
 Costs:
 
-- The previous illusion that a card expands in place is removed.
-- Article and list routes need distinct layouts, and client article navigation needs a small pending-state overlay.
+- Inline expansion is removed, but ADR-0008 permits a route-independent App Store-style snapshot to visually connect the card and reading surface without moving the body back into the list.
+- Article and list routes need distinct layouts, and client article navigation needs a small disposable transition overlay.
 - Native Back restoration can vary by browser, so browser tests must cover supported desktop and mobile viewports without adding corrective scroll logic.
 - A reliable same-tab source marker adds a small client boundary around the return action, even though article rendering remains server-first.
 
@@ -110,9 +111,9 @@ Rejected: continue repairing the inline list-card expansion and collapse state m
 
 Reason: the long-document layout, route commit, body lifetime, and scroll-restoration conflicts are consequences of that ownership model, not isolated easing defects.
 
-Rejected: present articles in an overlay, drawer, or modal above the list.
+Rejected: present the readable article itself in a persistent overlay, drawer, or modal above the list.
 
-Reason: article URLs must remain directly loadable, refreshable, linkable, searchable, and readable without client state. An overlay also preserves two competing page layouts and focus/scroll owners.
+Reason: article URLs must remain directly loadable, refreshable, linkable, searchable, and readable without client state. A persistent reading overlay also preserves two competing page layouts and focus/scroll owners. ADR-0008's fixed snapshot is allowed because it is short-lived, inert, presentation-only, and never contains or owns the article.
 
 Rejected: adopt experimental View Transition APIs or a new transition library.
 

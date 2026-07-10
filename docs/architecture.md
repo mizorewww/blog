@@ -44,7 +44,7 @@ superseded_by:
 
 # 软件架构
 
-本项目是纯静态双语博客。生产环境不运行 Node.js 服务，文章、列表和索引页面均在构建阶段预渲染。文章阅读采用路由优先架构：文章 URL 是独立阅读页面，不是列表卡片的展开状态。文章阅读决策以 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 为准，MDX 安全边界以 [ADR-0003](./adr/ADR-0003-remove-client-mdx-eval.md) 为准。
+本项目是纯静态双语博客。生产环境不运行 Node.js 服务，文章、列表和索引页面均在构建阶段预渲染。文章阅读采用路由优先架构：文章 URL 是独立阅读页面，不是列表卡片的展开状态。文章与历史所有权以 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 为准，卡片到独立文章页的视觉连续性以 [ADR-0008](./adr/ADR-0008-app-store-article-card-transition.md) 为准，MDX 安全边界以 [ADR-0003](./adr/ADR-0003-remove-client-mdx-eval.md) 为准。
 
 ## 构建模型
 
@@ -96,7 +96,7 @@ docs/         架构决策与维护文档
 
 首页、分类页和标签页必须只查询、排序并渲染 `BlogListPost` 卡片数据。列表 RSC payload 不得包含正文、`mdxModulePath`、编译后 MDX code 或隐藏的文章阅读树。分页或无限加载只改变可见卡片数量，不改变文章路由身份。
 
-卡片必须使用普通 Next.js `Link` 指向 `/{locale}/{slug}`。修改键点击、新标签页、焦点、预取和浏览器语义保持原生；列表点击不得以 sessionStorage pending motion、卡片让位或正文展开状态机作为正确性前提。
+卡片必须使用普通 Next.js `Link` 指向 `/{locale}/{slug}`。修改键点击、新标签页、焦点、预取和浏览器语义保持原生；列表点击不得以 sessionStorage pending motion、卡片让位或正文展开状态机作为正确性前提。捕获阶段可以为普通主键导航采集完整卡片的最小展示字段与 viewport rectangle，但不得 `preventDefault()`、克隆 DOM 或把展示快照作为导航前提。
 
 ### 文章路由
 
@@ -112,6 +112,18 @@ TOC、阅读进度、代码复制、主题、第三方 widget 和经过验证的
 
 路由滚动只有一个所有者：Next.js 与浏览器。文章导航不使用 `scroll: false`，不保存 `scrollY`，不设置延迟恢复 timer，不创建临时滚动 runway，也不在路由提交后执行位置修正。有效 Back 使用浏览器原生位置恢复，首页 fallback 使用普通 Link 导航。文章边界内的普通同文档 fragment 锚点必须验证同源 pathname、search、可解码目标 ID 和目标存在性，再以保留现有 Next.js `history.state` 的 `history.replaceState()` 更新当前文章 entry，并使用无 smooth 的 `scrollIntoView()` 定位；它不能在文章与已验证列表来源之间插入 history entry。修改键和新标签页继续使用原生行为。
 
+## 文章卡片转场
+
+本节是 ADR-0008 的规范性合同；是否已经落地必须以对应源代码与浏览器测试为准，不能从文档状态推断。
+
+从完整 `PostCard` 打开文章时，App Shell 必须使用一个 fixed、结构化、`aria-hidden="true"`、`pointer-events: none` 的 React 快照，把封面、标题、摘要、元信息和卡片表面从实测起始 rectangle 变换到文章阅读面。快照只消费最小序列化卡片字段，不使用 `cloneNode()`、复制交互控件、文章 HTML 或 MDX。搜索结果和侧栏文章链接缺少完整卡片合同时，改用单篇文章 skeleton 快照，不拼接不完整的共享元素。
+
+转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`1440px` 下目标面宽 `780px`、水平居中、`top: 120px`、radius 为 `8px`。打开使用 `380 ms`，经验证的返回使用 `340 ms`，二者 easing 均为 `[0.32, 0.72, 0, 1]`。
+
+转场不等待路由，路由也不等待转场。普通文章 Link 立即导航；返回控制立即执行已验证的 Back 或本地化 fallback Link。返回折叠只有在列表提交后能找到匹配的完整卡片和有效 rectangle 时才继续，否则立即移除覆盖层；它不能滚动列表来制造目标。缺数据、无效矩形、storage 失败、route mismatch、动画中断和 viewport resize 同样立即退化为无覆盖层的普通导航。
+
+覆盖层不拥有正文、焦点、history 或 scroll，不锁页面滚动，不设置 `history.scrollRestoration`，不合成 `popstate`，不保存或矫正 `scrollY`。`AnimatePresence` 只能短暂保留 inert 快照，不能保留旧路由、旧卡片树或文章正文。reduced motion 下移除大范围 translate/scale，只允许短促且不阻塞的 opacity 提示；URL、正文、焦点与历史结果不变。
+
 ## 动画边界
 
 Motion 和 `components/animata/` 只负责有界面的视觉反馈，不负责文章数据、文章生命周期或滚动正确性。
@@ -123,6 +135,8 @@ Motion 和 `components/animata/` 只负责有界面的视觉反馈，不负责�
 - 一次交互最多有一个主要动画。已提交且没有状态变化的内容不重播入场。
 - 应用级 Motion 配置使用 `reducedMotion="user"`。减弱动态效果时取消非必要位移、stagger、smooth scroll 和等待 timer，不改变内容或焦点结果。
 
+ADR-0008 的单个卡片转场是 timing 与 displacement 的唯一例外：其 inert overlay 可使用 `380/340 ms` 和大于 `8px` 的 transform，但不能让正文、route commit 或 history traversal 等待。其他控件继续使用 fast/standard 两档。
+
 通用页面转场不得掩盖路由提交、延迟可读正文或与文章返回竞争。实验性 View Transition API 和新动画依赖不属于当前架构。
 
 ## 加载边界
@@ -131,13 +145,13 @@ Loading UI 是可选的渐进增强，必须匹配目标页面几何，不能成
 
 本地化祖先、文章路由以及分类/标签的 index 和 detail 路由都不设置 `loading.tsx`。当前 Next.js 静态导出中的 streaming fallback 会把最终内容放在隐藏的 `S:0` segment，并依赖 JavaScript 把它替换到 `B:0` boundary；禁用 JavaScript 时客户端会停留在 loading shell。这与静态内容必须直接可见的契约冲突，因此这些路由的直达、刷新、新标签页和无脚本请求直接使用预渲染的最终 HTML。
 
-从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。`AppShell` 在 pathname 提交前显示单篇阅读几何的 `ArticleRouteSkeleton` 覆盖层，提交后立即移除；它不阻止 Link、不替代导航，也不控制正文可见性。修改键点击和新标签页不会触发该覆盖层。
+从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。ADR-0008 要求 `AppShell` 把完整 `PostCard` 来源显示为结构化卡片快照；只有搜索或侧栏等缺少完整卡片数据与几何的来源才使用单篇阅读 skeleton。覆盖层可跨 pathname commit 完成自身的有界退出，但不阻止 Link、不替代导航、也不控制正文可见性。修改键点击和新标签页不会触发该覆盖层。
 
 分类和标签的 index/detail 页面不依赖骨架显示标题、term chip 或文章卡片。搜索没有 route loading 骨架，输入后的等待状态只显示在已经渲染的结果区域。当前实现不声称每个路由都有 loading skeleton；任何新增边界都必须先验证目标几何、原始静态 HTML 和禁用 JavaScript 行为。
 
 ## 性能与安全边界
 
-列表页只序列化卡片需要的字段，文章页只导入当前 MDX 模块。上一篇/下一篇和 TOC 数据保持精简，避免把完整文章集合传给 client islands。
+列表页只序列化卡片需要的字段，文章页只导入当前 MDX 模块。上一篇/下一篇和 TOC 数据保持精简，避免把完整文章集合传给 client islands。转场状态只能重复当前选中卡片已经拥有的最小展示字段和数值 geometry；不得为动画把正文、完整文章集合、DOM HTML 或 MDX code 带入 App Shell。
 
 静态导出模式下，Next.js 不在运行时优化图片。主图和头像应在提交前压缩并提供稳定尺寸或宽高比，以控制 LCP 与 CLS。第三方脚本默认不进入首屏；接入时需要验证 CSP、静态构建产物和交互性能。
 

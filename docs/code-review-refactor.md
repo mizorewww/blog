@@ -14,6 +14,7 @@ related_code:
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - lib/articleReturn.ts
+  - docs/adr/ADR-0008-app-store-article-card-transition.md
   - contentlayer/config
   - lib/content/posts.ts
   - lib/listPosts.ts
@@ -82,5 +83,5 @@ The durable cleanup outcomes are:
 ## Remaining Watch Items
 
 - The lucide icon registry is generated from source and MDX usage so articles can still use arbitrary `:icon-*:` shortcodes without bundling the entire lucide icon map.
-- Article visibility in the static export must remain independent of route loading boundaries. The localized ancestor and article `loading.tsx` files were removed because their streaming handoff hides the final article when JavaScript is disabled; ordinary in-app article links instead use the presentation-only `ArticleRouteSkeleton` overlay.
+- Article visibility in the static export must remain independent of route loading boundaries. The localized ancestor and article `loading.tsx` files were removed because their streaming handoff hides the final article when JavaScript is disabled. Ordinary in-app article navigation remains a route-first `Link`: complete `PostCard` sources use the structured, inert card snapshot defined by ADR-0008, while search, sidebar, and other sources without complete card data and geometry fall back to the presentation-only `ArticleRouteSkeleton`. Neither overlay is required for direct requests or JavaScript-disabled reading.
 - Safe article return is implemented through an explicit same-tab, same-origin list marker. Reviews must keep direct entry, refresh, new-tab entry, expired markers, and unknown history on the localized-home fallback.
