@@ -10,6 +10,8 @@ related_code:
   - app/[locale]/categories/loading.tsx
   - app/[locale]/tags/loading.tsx
   - components/AppShell.tsx
+  - components/Header.tsx
+  - components/HeaderNavLinks.tsx
   - components/PostCard.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
@@ -72,6 +74,14 @@ superseded_by:
 短 TOC、提交记录和菜单可以使用 disclosure 动效，但需要稳定的触发按钮、`aria-expanded`、可识别的内容关系和 reduced-motion 等价行为。ThemeSwitch、复制反馈、active indicator 与 BackToTop 使用 fast 档，不与路由主动画同时 stagger。
 
 hover 和 focus 只能改变阴影、边框、颜色、opacity 或小范围 transform，不得改变控件占位尺寸。图标按钮使用稳定的点击区域和 tooltip/accessible name；文本必须在 320 px 宽度下不与相邻控件重叠。
+
+## 移动 Header
+
+- `<640px` 使用 `Menu`/`X` 图标按钮控制普通 primary navigation disclosure。触发器固定为 `44x44px`，提供随状态变化的 accessible name、`aria-expanded` 和 `aria-controls`。
+- `Escape` 关闭面板并把焦点还给触发器；路由 pathname 变化、进入 `>=640px` 断点或点击 Header 外部都会关闭面板。
+- 面板打开时，文章滚动隐藏逻辑不得隐藏 Header，确保触发器和导航始终可见。
+- `>=640px` 保留既有桌面导航布局和 Motion active underline，不渲染移动 disclosure。
+- 移动面板直接挂载，不播放入场或退出动画。它使用普通 `<nav>` 与链接语义，不使用 `role="menu"`、focus trap 或页面 scroll lock。
 
 ## 路由加载
 

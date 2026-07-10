@@ -18,6 +18,7 @@ import {
   Hash,
   History,
   Link,
+  Menu,
   MessageSquareText,
   Pencil,
   Rss,
@@ -25,6 +26,7 @@ import {
   Search,
   Tag,
   Tags,
+  X,
   type LucideIcon,
 } from 'lucide-react'
 
@@ -47,6 +49,7 @@ export const generatedLucideIcons: Record<string, LucideIcon> = {
   Hash,
   History,
   Link,
+  Menu,
   MessageSquareText,
   Pencil,
   Rss,
@@ -54,4 +57,5 @@ export const generatedLucideIcons: Record<string, LucideIcon> = {
   Search,
   Tag,
   Tags,
+  X,
 }
