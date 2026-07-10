@@ -3,23 +3,29 @@ status: active
 audience: both
 authority: source-of-truth
 owner: docs-maintainer
-last_verified: 2026-06-23
+last_verified: 2026-07-10
 verified_by: command
 related_code:
+  - package.json
+  - app/[locale]/page.tsx
+  - app/[locale]/[...slug]/page.tsx
+  - app/[locale]/[...slug]/loading.tsx
+  - app/[locale]/loading.tsx
+  - layouts/ListLayoutWithTags.tsx
   - components/AppShell.tsx
   - components/animata
-  - package.json
-  - tsconfig.scripts.json
+  - lib/listPosts.ts
   - scripts
+  - tests/e2e
+  - playwright.config.ts
+  - tsconfig.scripts.json
   - eslint.config.mjs
   - knip.json
-  - lib/hooks/useBlogExpansionState.ts
-  - lib/postLayout.ts
 update_when:
-  - animation or loading behavior changes
-  - development command changes
-  - package manager changes
-  - quality gate changes
+  - development commands or package manager change
+  - quality gates change
+  - list or article route behavior changes
+  - animation, reduced-motion, or loading policy changes
 supersedes:
 superseded_by:
 ---
@@ -28,14 +34,7 @@ superseded_by:
 
 ## 环境
 
-使用仓库指定的 Node.js 和 Yarn 版本：
-
-```text
-.node-version
-package.json#packageManager
-```
-
-安装依赖：
+使用 `.node-version` 和 `package.json#packageManager` 指定的 Node.js 与 Yarn 版本。
 
 ```bash
 yarn install
@@ -47,40 +46,27 @@ yarn install
 yarn dev
 ```
 
-默认端口是 `3000`。
+默认地址是 `http://localhost:3000/`。
 
 ## 静态预览
 
-需要检查真实静态导出效果时，使用：
+需要验证真实静态导出、App Router 预取、history 恢复或构建后搜索时，使用：
 
 ```bash
 yarn preview
 ```
 
-该命令会先执行 `yarn build`，然后用项目本地的 Caddy 服务 `out/`。第一次运行会自动下载固定版本的 Caddy 到 `.tools/caddy/`，并在解压前校验 checksum；该目录只保存本机工具和运行状态，不提交到仓库。
+该命令先执行 `yarn build`，再用仓库固定版本的 Caddy 服务 `out/`。首次运行会下载 Caddy 到 `.tools/caddy/` 并在解压前校验 checksum；该目录只保存本机工具和运行状态，不提交。
 
-默认端口是 `3001`。服务启动后，终端会显示并定期重复 Local 和 Network 预览地址，例如：
-
-```text
-Local:   http://localhost:3001/
-Network: http://192.168.31.129:3001/
-```
-
-可选参数：
+默认端口是 `3001`。终端会显示 Local 和 Network 地址。可选参数：
 
 ```bash
-yarn preview --port 4000       # 指定端口
-yarn preview --no-build        # 跳过构建，直接服务已有 out/
-yarn preview --update-caddy    # 重新下载仓库固定版本的 Caddy
+yarn preview --port 4000
+yarn preview --no-build
+yarn preview --update-caddy
 ```
 
-## 检查
-
-```bash
-yarn check
-```
-
-`check` 会依次执行图标注册表检查、格式检查、ESLint、TypeScript、维护脚本 JS/MJS 类型检查、文档 metadata 检查和 Knip dead-code/dependency 检查。
+## 质量检查
 
 常用单项检查：
 
@@ -96,17 +82,7 @@ yarn deadcode:check
 yarn perf:check
 ```
 
-`lint:check` 只做检查，不会改写文件。需要自动修复 ESLint 问题时使用：
-
-```bash
-yarn lint:fix
-```
-
-需要自动格式化时使用：
-
-```bash
-yarn format:write
-```
+`lint:check` 不改写文件；需要自动修复时使用 `yarn lint:fix`。需要格式化时使用 `yarn format:write`，或只对当前写集运行 Prettier。
 
 合并前的完整静态检查：
 
@@ -114,136 +90,112 @@ yarn format:write
 yarn check
 ```
 
-`yarn check` 包含快速单元测试。浏览器端交互、路由、滚动或静态预览行为变化时，还要执行：
+`yarn check` 包含图标、图片、格式、ESLint、单元测试、应用与脚本 TypeScript、文档 metadata 和 dead-code/dependency 检查。路由、浏览器交互、滚动或静态预览行为变化时还要执行 `yarn test:e2e`；渲染、路由输出、图片、bundle 或第三方客户端依赖变化时还要执行 `yarn perf:check`。
 
-```bash
-yarn test:e2e
-```
-
-`test:e2e` 使用 Playwright 启动 `yarn preview`，因此会先按生产静态导出路径构建并服务 `out/`。首次运行如果缺少 Chromium，可执行：
+`test:e2e` 通过 Playwright 使用生产静态导出路径。首次缺少 Chromium 时运行：
 
 ```bash
 yarn playwright install chromium
 ```
 
-如果文章或组件新增了 lucide 图标引用，pre-commit 会自动更新并暂存 `lib/generated/lucide-icons.ts`。也可以手动执行：
+新增 lucide 图标引用后可运行 `yarn icons:generate`；pre-commit 也会更新并暂存 `lib/generated/lucide-icons.ts`。
 
-```bash
-yarn icons:generate
-```
+## 构建与性能
 
-## 性能防退化
-
-性能检查以构建产物为准。不要手工修改 `out/`，不要提交一次性压缩出的 `.gz`、`.br` 或临时转码资源；生产环境的传输压缩由 GitHub Actions 构建后的 Cloudflare Pages 交付层负责。
-
-修改路由、列表、文章渲染、图片、字体或第三方脚本时，合并前执行：
-
-```bash
-yarn perf:check
-```
-
-构建后检查列表页没有重新携带 MDX 正文代码：
-
-```bash
-rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.txt
-```
-
-期望没有输出。列表页只能携带卡片所需的精简数据；文章正文通过详情页构建期渲染。列表卡片通过 App Router 预取静态文章路由，路由提交后的可见过渡由 `components/animata/` 接管。
-
-使用仓库内的静态 HTML 质量检查：
-
-```bash
-yarn quality:html
-```
-
-`issues` 需要修复后再合并。`warnings` 需要由执行 agent 或维护 owner 按上下文判断；例如 SVG/RSS 命名空间里的 `http://www.w3.org/...`、文章代码块中的 `http://` 示例可能是误报。
-
-GitHub Actions 会在 `yarn build` 后重复执行同一类检查：
-
-- 列表页 RSC payload 不得包含 MDX 正文代码。
-- 静态 HTML 质量检查的 `issueCount` 必须为 `0`。
-- 静态资源必须通过 `yarn size:budget`。
-- 构建日志会通过 `yarn size:report` 输出静态资源体积，供 review 判断趋势。
-
-排查资源体积时使用只读命令观察构建产物：
-
-```bash
-yarn size:report
-```
-
-这个命令用于 review 和定位问题，不作为手工改文件的理由。需要优化图片或其他静态资源时，应改源文件或引入可重复的构建/Actions 步骤，并在文档中说明规则。
-
-优化 `public/static/images/` 下的图片：
-
-```bash
-yarn images:optimize
-```
-
-Core Web Vitals 约束：
-
-- LCP 内容必须来自静态 HTML 或构建期数据，不要把首屏主要内容改成客户端加载。
-- INP 敏感路径中的点击处理要短，先给视觉反馈，再做预取、统计等低优先级工作。
-- CLS 依赖稳定尺寸：图片、嵌入内容、固定格式 UI 要有 `width`/`height`、`aspect-ratio` 或稳定容器。
-- 动画、骨架屏和加载过渡必须使用 `components/animata/` 中的 Animata-derived 原语。能用成熟库或 Animata 组件更少代码、更好效果地解决时，优先用库或现有原语；不要在业务组件里重新写 easing、RAF 动画循环或分散的 Tailwind transition 类。替换旧动效时，同一变更必须删除被替换的自定义动画代码。
-- 普通页面/路由切换必须通过 `components/animata/PageTransition.tsx` 保持可见的 SPA 式过渡；首屏初始渲染不应播放页面入场动画。`loading.tsx` 仍然负责 pending 导航和加载骨架屏，避免空白闪烁，不要把加载完成后的内容再做一次伪 loading 动画。
-- 文章展开、收起、卡片让位和回顶滚动由 `lib/hooks/useBlogExpansionState.ts` 与 `lib/postLayout.ts` 所属的文章状态机负责。只有 `lib/blogRouteState.ts` 中存在 pending 展开、pending 收起或浏览器 Back 的 list-return context 时，才应抑制通用页面切换动画；文章页直接跳到标签、分类或其他普通页面仍然必须播放通用页面切换动画。
-- 文章展开、收起、卡片让位和回顶滚动需要保留接近原有体验的动效；底部文章定位要预留临时滚动空间，用户 wheel/touch/键盘滚动必须能取消程序化滚动，避免回弹。
-- 已经渲染出来的页面内容和没有状态差异的卡片不应在导航后重新播放入场动画；没有真实差异的卡片不应该为了“看起来有动画”而动。
-- 第三方脚本默认不进首屏；必须接入时使用延迟加载，并确认 CSP、构建产物和交互性能。
-- 跨页面提速优先使用浏览器原生能力。当前站点使用 Speculation Rules 的 `moderate` 预渲染作为渐进增强；涉及统计脚本时必须避免 prerender 阶段提前上报。
-
-“继续阅读”交互的专项检查：
-
-1. 首页卡片进入视口、hover 或 focus 后应预取目标文章路由。
-2. 点击后 URL 更新目标是 `/{locale}/{slug}`，文章路由提交后应通过 Animata-derived 原语呈现展开反馈。
-3. Network 面板不应出现 `/_post-data/` 正文 JSON 请求。
-4. 点击收起时应返回原列表 URL；从标签页或分类页进入文章后，收起完成时 URL 和渲染列表必须仍然匹配原筛选条件。
-5. 点击响应应控制在 30ms 内。
-6. 展开视觉状态应有折叠态、中间态和完成态，不得为了速度跳过可见反馈。
-7. 从首页、标签页或分类页展开文章后，无论在文章内滚动到哪里，点击收起都必须回到点击“继续阅读”之前的列表 scrollY。
-
-## 开发纪律
-
-不允许手工 hack 性能问题：
-
-- 不手工改 `out/`。
-- 不提交本地临时压缩或转码结果。
-- 不依赖某台机器上才有的工具链。
-- 不把检查结果只写在聊天里，必须沉淀到代码、GitHub Actions 或文档。
-- 任何性能优化都要能由 `yarn build`、GitHub Actions 或 Cloudflare Pages 稳定复现。
-
-## 本地构建
+生产构建：
 
 ```bash
 yarn build
 ```
 
-构建流程：
+构建依次生成图标注册表、清理旧产物、生成 Contentlayer 数据、执行 `next build`，再生成 RSS 与 Pagefind 索引。不要手工修改 `out/`，也不要提交一次性 `.gz`、`.br` 或临时转码文件。
 
-1. 清空 `.next/` 和 `out/`
-2. 执行 `next build`
-3. 静态导出页面
-4. 执行 `scripts/postbuild.mjs`
-5. 生成 RSS
+验证列表页没有携带编译后 MDX 正文：
 
-构建产物：
-
-```text
-out/
+```bash
+rg "bodyCode|function MDXContent|var Component" out/zh/index.txt out/en/index.txt
 ```
 
-`out/` 是生产部署产物。生产发布只通过 GitHub Actions 上传到 Cloudflare Pages；本地需要检查静态产物时，优先用 `yarn preview` 预览 `out/`。
+期望没有输出。首页、分类页和标签页只能序列化卡片数据；文章路由只导入并渲染当前文章的 MDX 模块。相邻文章导航和 TOC 使用精简数据，不把完整文章集合传给 client islands。
 
-## 修改站点信息
+静态 HTML 与资源检查：
 
-站点标题、作者、社交链接、站点 URL、默认主题、Umami 配置位于：
-
-```text
-data/siteMetadata.ts
+```bash
+yarn quality:html
+yarn size:report
+yarn size:budget
 ```
 
-导航位于：
+`quality:html` 的 `issues` 必须修复。`warnings` 需要按上下文判断，例如 SVG/RSS 命名空间或代码示例中的 `http://` 可能是误报。`size:report` 只读构建产物；图片优化应改源文件或使用可重复的命令：
 
-```text
-data/headerNavLinks.ts
+```bash
+yarn images:optimize
 ```
+
+Core Web Vitals 边界：
+
+- LCP 内容来自静态 HTML 或构建期数据，首屏标题、正文和主图不改成客户端请求后显示。
+- 点击处理保持短小；预取、分析等非关键工作不能阻塞导航。
+- 图片、嵌入内容和固定格式 UI 提供稳定尺寸、宽高比或容器，避免 CLS。
+- 列表 RSC 不含正文，文章 RSC 只含当前文章的 MDX 阅读树。
+- 第三方脚本默认不进首屏；接入时验证 CSP、构建产物和 INP。
+- Speculation Rules 的 `moderate` 预渲染是渐进增强，不能成为导航正确性的前提；分析脚本不得在 prerender 阶段提前上报。
+
+## 文章路由规范
+
+文章阅读的目标架构由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义。
+
+### 迁移状态
+
+截至 2026-07-10，ADR-0007 已接受，但源码迁移尚未落地。文章路由仍复用完整列表，`ExpandablePostCard` 及相关导航、展开状态和滚动协调代码仍提供列表内展开行为。该实现只是在迁移期间继续存在，不再是开发规范；新增代码和测试不得扩大对它的依赖。
+
+本节余下内容以及后续动画、loading 和浏览器验收要求都是迁移完成后的验收契约，不是对当前源码行为的完成声明。调试现有行为时以源码和当前测试结果为准。
+
+列表与导航：
+
+1. 首页、分类页和标签页必须使用普通 Next.js `Link` 打开文章。
+2. 列表链接不阻止修改键、新标签页或浏览器默认语义，不使用 pending motion 状态决定页面正确性。
+3. 文章 URL 必须渲染独立阅读页，只显示当前文章、TOC 和相邻文章导航。
+4. 文章顶部返回控制始终具有本地化首页 `href`。只有明确的同标签页、同源列表来源标记与当前文章匹配时，普通主键点击才使用 `history.back()`。
+5. 直达、刷新、外链、新标签页和未知 history 走本地化首页，不能离开站点或进入空白历史项。
+
+滚动与正文：
+
+1. Next.js 和浏览器是路由滚动的唯一所有者。
+2. 文章打开和返回不使用 `scroll: false`、保存的 `scrollY`、延迟恢复、临时 runway 或提交后的二次滚动。
+3. 正文在静态 HTML 中默认可见，不是列表内 disclosure。
+4. 正文及其祖先不执行 `height: 0 -> auto`、整篇 opacity gating 或依赖 `AnimatePresence` 的退出折叠。
+5. TOC、阅读进度、代码复制和 widget 保持小型 client islands；禁用 JavaScript不影响正文阅读。
+
+## 动画与加载规范
+
+Motion 与 Animata-derived 组件只能提供有限反馈，不能拥有文章路由、正文生命周期或滚动恢复。
+
+- Fast 动效为 160-180 ms，standard 动效为 200-220 ms。
+- 可见位移使用 `transform`，不超过 8 px；允许局部 opacity，不允许用 opacity 隐藏整篇正文。
+- 一次交互最多一个主要动画；已经提交且状态未变的内容不重播入场。
+- 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
+- 列表、文章、分类/标签和搜索使用与最终页面几何一致的 loading UI。静态且即时的页面可以不显示骨架。
+- 骨架只覆盖 pending navigation，不在内容提交后伪装第二次加载。
+
+路由或动画变更的浏览器验收矩阵至少覆盖：
+
+- `320x720`、`390x844` 和 `1440x900`。
+- 浅色与深色主题。
+- 正常动态效果与 reduced motion。
+- 首页、分类或标签列表进入文章，再使用浏览器 Back 和页面返回控制。
+- 文章直达、刷新、新标签页、外部来源和禁用 JavaScript。
+
+E2E 需要验证 URL、目标内容、scrollY 与动画中间帧。对于应在 220 ms 内结束的效果，记录点击后早期帧、结束帧和 250 ms 之后的稳定帧；仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+
+## 开发纪律
+
+- 不手工修改 `out/`。
+- 不依赖某台机器才有的工具链。
+- 不用文档或注释代替源代码实现。
+- 替换旧动效或状态机时，在同一实现批次删除被替换代码，避免双重所有者。
+- 性能与行为优化必须能由构建、测试或质量门禁稳定复现。
+
+## 站点配置
+
+站点标题、作者、社交链接、站点 URL、默认主题和 Umami 配置位于 `data/siteMetadata.ts`。导航位于 `data/headerNavLinks.ts`。

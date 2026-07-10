@@ -3,18 +3,22 @@ status: active
 audience: agent
 authority: note
 owner: docs-maintainer
-last_verified: 2026-06-23
+last_verified: 2026-07-10
 verified_by: command
 related_code:
-  - app
-  - components
-  - contentlayer
-  - lib
-  - layouts
+  - app/[locale]/[...slug]/page.tsx
+  - components/ExpandablePostCard.tsx
+  - components/MDXServerRenderer.tsx
+  - contentlayer/config
+  - layouts/ListLayoutWithTags.tsx
+  - lib/content/posts.ts
+  - lib/listPosts.ts
+  - scripts/postbuild.mjs
 update_when:
   - refactor status changes
   - architecture changes
-  - cleanup item status changes
+  - article rendering boundaries change
+  - historical cleanup records need correction
 supersedes:
 superseded_by:
 ---
@@ -23,6 +27,8 @@ superseded_by:
 
 Date: 2026-06-22
 Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals`
+
+This note records the scope and durable outcomes of the 2026-06 refactor. It is not the source of truth for current article interaction. [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) governs route-first reading, return navigation, scroll ownership, loading geometry, and animation limits; [architecture.md](./architecture.md) describes the current target boundaries.
 
 ## Goals
 
@@ -40,20 +46,19 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 - `contentlayer.config.ts` is now an entry file; implementation lives under `contentlayer/config/`.
 - Home, category, and tag page data builders are shared through `lib/content/homePage.ts` and `lib/content/termPages.ts`.
 - `ExpandablePostCard` delegates Git metadata, license copy, relative time, route prefetching, and meta icons to focused modules.
-- `ListLayoutWithTags` delegates expansion route/list state to `useBlogExpansionState`; visible animation is centralized in `components/animata`.
 - Blog sidebars are split into `BlogFrame`, `ProfileSidebar`, `UtilitySidebar`, and `BlogWidgetCard`.
-- Pending blog navigation motion is persisted in `sessionStorage` instead of relying only on a module variable.
 - Root metadata uses the shared SEO generator, and `app/seo.tsx` is now `app/seo.ts`.
 - Common post date selection is centralized in `lib/postDates.ts`.
 - No-locale `app/` mirror routes and empty legacy blog route directories were removed; redirects now send historical `/`, `/tags`, and `/categories` paths to `/zh/...`.
 - GitHub API access in Contentlayer uses `fetch` with timeout, retry, optional `GITHUB_TOKEN`/`GH_TOKEN`, and a `.contentlayer` cache.
 - `siteMetadata` is typed TypeScript and script-side RSS/SEO helpers reuse shared locale, URL, post sorting, and date utilities.
-- Post expansion keeps route-aware reading state while relying on App Router static article route prefetch instead of client MDX runtime code.
-- Contentlayer writes generated ESM modules for server-rendered detail pages; list-page expansion now enters the static article route and lets Animata-derived components own intentional post positioning, card reflow, body disclosure, and menu disclosure after route commit.
+- Contentlayer writes generated ESM modules for server-rendered detail pages, and list routes receive card projections instead of compiled MDX code.
 - `_post-data` body JSON generation and client body-code preloading were removed with the browser eval path.
 - Dark surface/border colors are semantic Tailwind tokens, strict TypeScript is enabled, ESLint unused variables is re-enabled, and `ecmaVersion` is set to `2022`.
 - Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
 - Production builds generate Contentlayer data before `next build` instead of loading the Contentlayer webpack plugin, which avoids upstream webpack cache warnings from Contentlayer's dynamic generated-module import.
+
+The same refactor also introduced sessionStorage pending motion, `useBlogExpansionState`, list-card body disclosure, `scroll: false`, and delayed position restoration to preserve the earlier expansion interaction. Those details are historical, not durable outcomes. ADR-0007 supersedes that route/list state machine; this note does not prescribe it as current behavior.
 
 ## Verification
 
@@ -63,10 +68,9 @@ Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals
 
 ## Completed Cleanup Items
 
-The previous cleanup list has been closed in the follow-on branch:
+The durable cleanup outcomes are:
 
-- The post-open interaction now uses static article route prefetch plus route commit: clicking a card enters the article route with `router.push(..., { scroll: false })`, while collapse routes back to the original list URL and preserves the return context for scroll restoration.
-- Contentlayer runtime MDX eval was removed from server-rendered detail pages and from the client expansion path. Article bodies now render through the static detail route.
+- Contentlayer runtime MDX eval was removed from server-rendered detail pages and from the former client expansion path. Article bodies render through a static detail route boundary.
 - Hard-coded dark surface colors were replaced by semantic tokens where they appeared in the reviewed UI paths.
 - `strict: true` is enabled.
 - No-locale static route implementations were removed and replaced with redirect rules.
@@ -74,4 +78,5 @@ The previous cleanup list has been closed in the follow-on branch:
 ## Remaining Watch Items
 
 - The lucide icon registry is generated from source and MDX usage so articles can still use arbitrary `:icon-*:` shortcodes without bundling the entire lucide icon map.
-- The restored expansion path depends on App Router static route prefetch. Cold route payloads should show route loading skeletons instead of replaying animation on already-rendered content, so production preview checks should cover hover/focus prefetch and click-to-visible-feedback timing.
+- ADR-0007 accepts route-specific loading geometry as a source implementation requirement. List, article, term, and search routes must use geometry-specific loading UI, and committed content must not replay a loading or expansion animation.
+- ADR-0007 accepts safe article return as a source implementation requirement. Return behavior must depend on explicit same-tab, same-origin list provenance; direct entry, refresh, new-tab entry, and unknown history must use the localized-home fallback.

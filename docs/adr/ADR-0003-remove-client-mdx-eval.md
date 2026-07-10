@@ -3,19 +3,18 @@ status: active
 audience: both
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-06-23
+last_verified: 2026-07-10
 verified_by: command
 related_code:
-  - components/ExpandablePostCard.tsx
-  - layouts/ListLayoutWithTags.tsx
-  - lib/blogRouteState.ts
-  - lib/hooks/useBlogExpansionState.ts
+  - app/[locale]/[...slug]/page.tsx
   - components/MDXServerRenderer.tsx
+  - lib/content/posts.ts
+  - lib/listPosts.ts
   - scripts/postbuild.mjs
   - public/_headers
 update_when:
   - MDX rendering path changes
-  - article expansion behavior changes
+  - list or article RSC payload boundaries change
   - Content Security Policy changes
   - static export route behavior changes
 supersedes:
@@ -27,7 +26,7 @@ superseded_by:
 Status: accepted
 Date: 2026-06-23
 Owner: codex-agent
-Related code: `components/ExpandablePostCard.tsx`, `layouts/ListLayoutWithTags.tsx`, `lib/blogRouteState.ts`, `lib/hooks/useBlogExpansionState.ts`, `components/MDXServerRenderer.tsx`, `scripts/postbuild.mjs`, `public/_headers`
+Related code: `app/[locale]/[...slug]/page.tsx`, `components/MDXServerRenderer.tsx`, `lib/content/posts.ts`, `lib/listPosts.ts`, `scripts/postbuild.mjs`, `public/_headers`
 Supersedes:
 Superseded by:
 
@@ -37,15 +36,13 @@ The blog is a static Next.js App Router export. Contentlayer compiles MDX at bui
 
 The list-page expansion path previously generated public post-body JSON containing Contentlayer runtime MDX code and reconstructed the article body in the browser. That preserved the in-place expansion animation, but it required browser-side JavaScript evaluation and a Content Security Policy eval exception.
 
-The project still needs the article expansion animation. Replacing the body with an injected HTML fragment would preserve some visual behavior, but MDX content can contain client components such as code-copy controls and TradingView widgets. Static HTML injection would not hydrate those components correctly.
+MDX content can contain client components such as code-copy controls and TradingView widgets. Replacing the route-rendered body with an injected HTML fragment would not hydrate those components correctly.
 
 ## Decision
 
-Article bodies render only through the static article detail route. List pages keep carrying only card data.
+Article bodies render only through the static article detail route. List pages carry only serialized card data and do not import, serialize, or expose compiled MDX body code. The article route imports the requested generated MDX module at build time and renders it through `MDXServerRenderer`, preserving normal React rendering and hydration for MDX client islands.
 
-Cards prefetch the target article route when they enter the viewport, receive focus, or are hovered. On “continue reading”, the card stores the existing motion context, calls `router.push(postHref, { scroll: false })`, and lets the article detail route render the body with `MDXServerRenderer`.
-
-After the detail route commits, `useBlogExpansionState` consumes the pending route context and restores article positioning while Animata-derived components handle the visible transition. During explicit collapse, the card stores a collapse context and routes back to the original list URL so home, tag, and category pages regain their server-rendered list data before scroll restoration completes.
+ADR-0007 supersedes this ADR's former interaction details. It governs ordinary Link navigation, the dedicated article layout, return behavior, loading geometry, scroll ownership, and bounded motion. Those behaviors must not reintroduce client MDX evaluation or place article body code in a list RSC payload.
 
 The `_post-data` generation step and client MDX runtime renderer are removed. The Cloudflare Pages CSP no longer includes the eval exception for article expansion.
 
@@ -56,14 +53,13 @@ Benefits:
 - Browser code no longer evaluates Contentlayer MDX runtime strings.
 - Public build output no longer exposes article body runtime code through post-body JSON.
 - MDX client components keep their normal React hydration path on article routes.
-- The existing list-to-article reading flow remains the user-facing transition, with visible motion centralized in Animata-derived components.
+- Article navigation and animation can change independently without weakening the MDX rendering boundary.
 - CSP is stricter.
 
 Costs:
 
-- A cold article route payload can delay the start of visible route feedback.
-- Production preview must verify route prefetch behavior because development mode does not match production prefetch semantics.
-- The visible transition now depends on App Router route commit timing rather than local body-code availability.
+- Article routes must keep a server-rendered MDX boundary and hydrate any client islands normally.
+- Build and performance checks must continue proving that list payloads do not contain compiled MDX bodies.
 
 Limits:
 
@@ -78,7 +74,7 @@ Reason: injected HTML would not hydrate MDX client components such as code-copy 
 
 Rejected: keep client MDX runtime code and only document the risk.
 
-Reason: the architecture can preserve the animation without browser-side MDX evaluation.
+Reason: static article routes can preserve full MDX behavior without browser-side MDX evaluation.
 
 Rejected: migrate the entire content pipeline to a new MDX library in this change.
 

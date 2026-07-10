@@ -1,10 +1,10 @@
 ---
-status: active
+status: superseded
 audience: both
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-06-23
-verified_by: source citation
+last_verified: 2026-07-10
+verified_by: command
 related_code:
   - components/AppShell.tsx
   - components/animata
@@ -13,27 +13,25 @@ related_code:
   - components/Link.tsx
   - app/[locale]/loading.tsx
   - app/[locale]/[...slug]/loading.tsx
-  - layouts/ListLayoutWithTags.tsx
-  - lib/blogRouteState.ts
-  - lib/hooks/useBlogExpansionState.ts
-  - lib/postLayout.ts
   - package.json
 update_when:
-  - animation library changes
-  - route loading behavior changes
-  - client navigation behavior changes
+  - ADR-0007 status changes
+  - historical animation dependency records change
+  - supersession references change
 supersedes:
-superseded_by:
+superseded_by: docs/adr/ADR-0007-route-first-article-reading.md
 ---
 
 # ADR-0005: Adopt Animata For Blog Animation
 
-Status: accepted
+Status: superseded
 Date: 2026-06-23
 Owner: codex-agent
-Related code: `components/AppShell.tsx`, `components/animata`, `components/animata/PageTransition.tsx`, `components/LanguageSwitcher.tsx`, `components/Link.tsx`, `app/[locale]/loading.tsx`, `app/[locale]/[...slug]/loading.tsx`, `layouts/ListLayoutWithTags.tsx`, `lib/blogRouteState.ts`, `lib/hooks/useBlogExpansionState.ts`, `lib/postLayout.ts`, `package.json`
+Related code: `components/AppShell.tsx`, `components/animata`, `components/animata/PageTransition.tsx`, `components/LanguageSwitcher.tsx`, `components/Link.tsx`, `app/[locale]/loading.tsx`, `app/[locale]/[...slug]/loading.tsx`, `package.json`
 Supersedes:
-Superseded by:
+Superseded by: ADR-0007
+
+This ADR is retained as the historical record of the Animata adoption. ADR-0007 replaces its decisions about article/list route ownership, inline expansion and collapse, pending motion state, scroll orchestration, generic loading geometry, and animation timing. The installed Motion and Animata-derived primitives may still be used within the bounded policy defined by ADR-0007.
 
 ## Context
 
@@ -54,7 +52,7 @@ Replace the old article animation utilities with:
 - `components/animata/*` for visual animation and skeleton loading.
 - `components/animata/PageTransition.tsx` mounted by `components/AppShell.tsx` for normal route/page switches.
 - `lib/hooks/useBlogExpansionState.ts` for article route/list state, motion phase orchestration, user-input cancellation, and cleanup of Motion controls.
-- `lib/postLayout.ts` for DOM measurement, temporary scroll runway, direct positioning, and Motion-backed scroll/top interpolation.
+- DOM measurement and temporary scroll runway helpers for direct positioning and Motion-backed scroll/top interpolation.
 - `lib/blogRouteState.ts` for route classification shared by the page transition and article state machine.
 - `components/Link.tsx` backed by Next.js `Link` for internal client-side navigation.
 
