@@ -3,7 +3,8 @@ import type { Authors, Blog } from 'contentlayer/generated'
 import { getPostLocale, getPostsByLocale, isPublishedPost } from '@/lib/blog'
 import { coreContent, sortPosts, type CoreContent } from '@/lib/contentlayer'
 import { defaultLocale, locales, type Locale } from '@/lib/i18n'
-import { toListPosts, type BlogListPost } from '@/lib/listPosts'
+import { toListPosts, toPostNavItem, type BlogListPost } from '@/lib/listPosts'
+import { normalizeTocHeadings } from '@/lib/toc'
 import {
   getCategoryCounts,
   getPostsByTerm,
@@ -70,18 +71,23 @@ export function getTermListData(locale: Locale, field: TermField, term: string):
 }
 
 export function getPostPageData(locale: Locale, slug: string) {
-  const post = getPostBySlug(locale, slug)
+  const sortedPosts = sortPosts(getLocalePosts(locale))
+  const postIndex = sortedPosts.findIndex((candidate) => candidate.slug === slug)
+  const post = sortedPosts[postIndex]
 
   if (!post) {
     return null
   }
 
-  const listData = getBlogListData(locale)
+  const previousPost = sortedPosts[postIndex + 1]
+  const nextPost = sortedPosts[postIndex - 1]
 
   return {
     post,
     authorDetails: getAuthorDetails(post.authors || ['default']),
-    listData,
+    toc: normalizeTocHeadings(post.toc),
+    previousPost: previousPost ? toPostNavItem(previousPost) : null,
+    nextPost: nextPost ? toPostNavItem(nextPost) : null,
   }
 }
 

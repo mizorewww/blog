@@ -6,6 +6,23 @@ export type TocHeading = {
   depth: number
 }
 
+export function normalizeTocHeadings(value: unknown): TocHeading[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(
+    (heading): heading is TocHeading =>
+      typeof heading === 'object' &&
+      heading !== null &&
+      typeof heading.value === 'string' &&
+      heading.value.length > 0 &&
+      typeof heading.url === 'string' &&
+      heading.url.startsWith('#') &&
+      (heading.depth === 2 || heading.depth === 3)
+  )
+}
+
 function stripMarkdown(value: string) {
   return value
     .replace(/`([^`]+)`/g, '$1')

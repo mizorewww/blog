@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extractTocHeadings } from '@/lib/toc'
+import { extractTocHeadings, normalizeTocHeadings } from '@/lib/toc'
 
 describe('extractTocHeadings', () => {
   it('collects headings with depth and slug urls', () => {
@@ -30,5 +30,27 @@ describe('extractTocHeadings', () => {
   it('skips lines that are not headings', () => {
     const headings = extractTocHeadings('plain text\n\n- not a heading\n')
     expect(headings).toEqual([])
+  })
+})
+
+describe('normalizeTocHeadings', () => {
+  it('keeps only valid level-two and level-three headings', () => {
+    expect(
+      normalizeTocHeadings([
+        { value: 'Title', url: '#title', depth: 1 },
+        { value: 'Section', url: '#section', depth: 2 },
+        { value: 'Detail', url: '#detail', depth: 3 },
+        { value: 'Deep', url: '#deep', depth: 4 },
+        { value: '', url: '#empty', depth: 2 },
+        null,
+      ])
+    ).toEqual([
+      { value: 'Section', url: '#section', depth: 2 },
+      { value: 'Detail', url: '#detail', depth: 3 },
+    ])
+  })
+
+  it('returns an empty list for a non-array value', () => {
+    expect(normalizeTocHeadings(null)).toEqual([])
   })
 })

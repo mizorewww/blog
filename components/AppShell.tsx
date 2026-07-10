@@ -3,10 +3,11 @@
 import { usePathname } from 'next/navigation'
 import { useTheme } from 'next-themes'
 import { Toaster } from 'sonner'
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import BlogListNavigationRecorder from './BlogListNavigationRecorder'
 import Footer from './Footer'
 import Header from './Header'
-import PageTransition from './animata/PageTransition'
+import ArticleRouteSkeleton from './animata/ArticleRouteSkeleton'
 import { isBlogPostPath } from '@/lib/blogRouteState'
 import { getLocaleFromPathname, ui } from '@/lib/i18n'
 
@@ -15,14 +16,18 @@ const SCROLL_DELTA_THRESHOLD = 6
 
 export default function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const [currentPathname, setCurrentPathname] = useState(pathname)
+  const [articleNavigationPending, setArticleNavigationPending] = useState(false)
   const [hideHeaderOnMobile, setHideHeaderOnMobile] = useState(false)
   const previousScrollYRef = useRef(0)
-  const isReadingPost = isBlogPostPath(currentPathname)
+  const isReadingPost = isBlogPostPath(pathname)
   const { resolvedTheme } = useTheme()
 
+  const showArticleNavigationFallback = useCallback(() => {
+    setArticleNavigationPending(true)
+  }, [])
+
   useEffect(() => {
-    setCurrentPathname(pathname)
+    setArticleNavigationPending(false)
   }, [pathname])
 
   useEffect(() => {
@@ -55,6 +60,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-screen flex-col">
+      <BlogListNavigationRecorder onArticleNavigation={showArticleNavigationFallback} />
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[60] focus:rounded focus:bg-slate-900 focus:px-4 focus:py-2 focus:text-white"
@@ -62,8 +68,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {ui[getLocaleFromPathname(pathname)].skipToContent}
       </a>
       <Header hideOnMobile={isReadingPost && hideHeaderOnMobile} />
+      {articleNavigationPending && (
+        <div className="dark:bg-surface-page-dark bg-surface-page pointer-events-none fixed inset-x-0 top-[72px] bottom-0 z-40 overflow-hidden sm:top-[96px]">
+          <ArticleRouteSkeleton />
+        </div>
+      )}
       <main id="main-content" tabIndex={-1} className="flex-1 pt-[72px] sm:pt-[96px]">
-        <PageTransition pathname={pathname}>{children}</PageTransition>
+        {children}
       </main>
       <Footer />
       <Toaster

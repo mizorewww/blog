@@ -9,11 +9,22 @@ related_code:
   - package.json
   - app/[locale]/page.tsx
   - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/[...slug]/loading.tsx
-  - app/[locale]/loading.tsx
+  - app/[locale]/categories/loading.tsx
+  - app/[locale]/tags/loading.tsx
+  - app/theme-providers.tsx
+  - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
   - components/AppShell.tsx
-  - components/animata
+  - components/PostCard.tsx
+  - components/ArticleReturnLink.tsx
+  - components/BlogListNavigationRecorder.tsx
+  - components/ArticleReader.tsx
+  - components/ReadingProgress.tsx
+  - components/animata/ArticleRouteSkeleton.tsx
+  - components/animata/BlogRouteSkeleton.tsx
+  - lib/articleFragment.ts
+  - lib/articleReturn.ts
+  - lib/blogRouteState.ts
   - lib/listPosts.ts
   - scripts
   - tests/e2e
@@ -143,29 +154,23 @@ Core Web Vitals 边界：
 
 ## 文章路由规范
 
-文章阅读的目标架构由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义。
-
-### 迁移状态
-
-截至 2026-07-10，ADR-0007 已接受，但源码迁移尚未落地。文章路由仍复用完整列表，`ExpandablePostCard` 及相关导航、展开状态和滚动协调代码仍提供列表内展开行为。该实现只是在迁移期间继续存在，不再是开发规范；新增代码和测试不得扩大对它的依赖。
-
-本节余下内容以及后续动画、loading 和浏览器验收要求都是迁移完成后的验收契约，不是对当前源码行为的完成声明。调试现有行为时以源码和当前测试结果为准。
+文章阅读架构由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义，并由独立的 `PostLayout`、普通文章 Link、来源记录器和安全返回控制实现。
 
 列表与导航：
 
 1. 首页、分类页和标签页必须使用普通 Next.js `Link` 打开文章。
 2. 列表链接不阻止修改键、新标签页或浏览器默认语义，不使用 pending motion 状态决定页面正确性。
 3. 文章 URL 必须渲染独立阅读页，只显示当前文章、TOC 和相邻文章导航。
-4. 文章顶部返回控制始终具有本地化首页 `href`。只有明确的同标签页、同源列表来源标记与当前文章匹配时，普通主键点击才使用 `history.back()`。
+4. 文章顶部返回控制始终具有本地化首页 `href`。只有普通主键列表 Link 写入的同标签页、同源、同 locale 一次性凭证与当前文章精确匹配时，普通主键点击才使用 `history.back()`。凭证只保存来源、目标和创建时间，在 hydration 时按 document time origin 和短到达窗口验证并立即清除；验证结果只属于当前文章路径对应的返回组件实例，不用 `history.length` 推断邻接。
 5. 直达、刷新、外链、新标签页和未知 history 走本地化首页，不能离开站点或进入空白历史项。
 
 滚动与正文：
 
 1. Next.js 和浏览器是路由滚动的唯一所有者。
-2. 文章打开和返回不使用 `scroll: false`、保存的 `scrollY`、延迟恢复、临时 runway 或提交后的二次滚动。
+2. 文章打开和返回不使用 `scroll: false`、保存的 `scrollY`、延迟恢复、临时 runway 或提交后的二次滚动。文章内普通同文档 fragment 链接以保留现有 Next.js history state 的 `replaceState()` 更新当前文章 entry，并即时滚动已验证目标；不得新增位于文章和列表来源之间的 history entry。
 3. 正文在静态 HTML 中默认可见，不是列表内 disclosure。
 4. 正文及其祖先不执行 `height: 0 -> auto`、整篇 opacity gating 或依赖 `AnimatePresence` 的退出折叠。
-5. TOC、阅读进度、代码复制和 widget 保持小型 client islands；禁用 JavaScript不影响正文阅读。
+5. TOC、阅读进度、代码复制和 widget 保持小型 client islands；禁用 JavaScript不影响正文阅读。`ArticleReader` 的 children 由服务端渲染；该边界只持有文章 DOM ref 供 `ReadingProgress` 使用，并捕获经 `lib/articleFragment.ts` 验证的普通同文档 fragment，以保留现有 history state 的 `replaceState()` 和即时滚动避免新增 history entry。不得在该边界导入 `Blog`、MDX、正文状态或可见性逻辑。
 
 ## 动画与加载规范
 
@@ -175,7 +180,9 @@ Motion 与 Animata-derived 组件只能提供有限反馈，不能拥有文章�
 - 可见位移使用 `transform`，不超过 8 px；允许局部 opacity，不允许用 opacity 隐藏整篇正文。
 - 一次交互最多一个主要动画；已经提交且状态未变的内容不重播入场。
 - 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
-- 列表、文章、分类/标签和搜索使用与最终页面几何一致的 loading UI。静态且即时的页面可以不显示骨架。
+- Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先或文章路由定义 `loading.tsx`，因为 Next.js 静态导出的 streaming 边界会在禁用 JavaScript 时让最终文章保持隐藏。
+- 普通客户端文章 Link 通过 `AppShell` 在 pathname 提交前显示 `ArticleRouteSkeleton` 覆盖层；修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
+- 分类和标签嵌套路由保留列表几何的 route skeleton；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
 - 骨架只覆盖 pending navigation，不在内容提交后伪装第二次加载。
 
 路由或动画变更的浏览器验收矩阵至少覆盖：

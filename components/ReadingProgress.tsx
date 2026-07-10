@@ -1,39 +1,29 @@
 'use client'
 
-import { motion, useScroll, useSpring, useTransform, useReducedMotion } from 'motion/react'
+import { motion, useReducedMotion, useScroll, useSpring } from 'motion/react'
+import type { RefObject } from 'react'
 
 export default function ReadingProgress({
   targetRef,
 }: {
-  targetRef: React.RefObject<HTMLElement | null>
+  targetRef: RefObject<HTMLElement | null>
 }) {
   const shouldReduceMotion = useReducedMotion()
   const { scrollYProgress } = useScroll({
     target: targetRef,
     offset: ['start 96px', 'end end'],
   })
-  const rawWidth = useTransform(scrollYProgress, [0, 1], ['0%', '100%'])
-  const width = useSpring(rawWidth, {
+  const width = useSpring(scrollYProgress, {
     stiffness: 400,
     damping: 40,
     restSpeed: 0.1,
   })
-  const opacity = useTransform(scrollYProgress, [0, 0.02], [0, 1])
-
-  if (shouldReduceMotion) {
-    return (
-      <motion.div
-        style={{ width: rawWidth, opacity }}
-        className="fixed top-0 left-0 z-[55] h-1 origin-left bg-sky-500 dark:bg-sky-400"
-        aria-hidden="true"
-      />
-    )
-  }
 
   return (
     <motion.div
-      style={{ width, opacity }}
-      className="fixed top-0 left-0 z-[55] h-1 origin-left bg-sky-500 dark:bg-sky-400"
+      data-reading-progress
+      style={{ scaleX: shouldReduceMotion ? scrollYProgress : width }}
+      className="fixed top-0 left-0 z-[55] h-1 w-full origin-left bg-sky-500 dark:bg-sky-400"
       aria-hidden="true"
     />
   )

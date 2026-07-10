@@ -1,5 +1,4 @@
 import JsonLd from '@/components/JsonLd'
-import MDXServerRenderer from '@/components/MDXServerRenderer'
 import { Metadata } from 'next'
 import siteMetadata from '@/data/siteMetadata'
 import { notFound } from 'next/navigation'
@@ -10,12 +9,12 @@ import {
   getPostBySlug,
   getPostPageData,
 } from '@/lib/content/posts'
-import { isLocale, localeConfig, ui } from '@/lib/i18n'
+import { isLocale, localeConfig } from '@/lib/i18n'
 import { getPostModifiedDate, getPostPublishedDate } from '@/lib/postDates'
 import { localizedPostAlternates } from '@/lib/seo/alternates'
 import { createArticleJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl } from '@/lib/urls'
-import ListLayout from '@/layouts/ListLayoutWithTags'
+import PostLayout from '@/layouts/PostLayout'
 
 export async function generateMetadata(props: {
   params: Promise<{ locale: string; slug: string[] }>
@@ -96,7 +95,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
     return notFound()
   }
 
-  const { post, authorDetails, listData } = pageData
+  const { post, authorDetails, previousPost, nextPost, toc } = pageData
   const jsonLd = createArticleJsonLd({
     post,
     locale: params.locale,
@@ -106,14 +105,13 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
   return (
     <>
       <JsonLd data={jsonLd} />
-      <ListLayout
-        posts={listData.posts}
-        title={ui[params.locale].allPosts}
+      <PostLayout
+        post={post}
+        authorDetails={authorDetails}
+        previousPost={previousPost}
+        nextPost={nextPost}
+        toc={toc}
         locale={params.locale}
-        categoryCounts={listData.categoryCounts}
-        tagCounts={listData.tagCounts}
-        initialExpandedPath={post.path}
-        expandedPostBody={<MDXServerRenderer modulePath={post.mdxModulePath} />}
       />
     </>
   )

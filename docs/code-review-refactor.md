@@ -7,10 +7,14 @@ last_verified: 2026-07-10
 verified_by: command
 related_code:
   - app/[locale]/[...slug]/page.tsx
-  - components/ExpandablePostCard.tsx
-  - components/MDXServerRenderer.tsx
-  - contentlayer/config
+  - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
+  - components/PostCard.tsx
+  - components/MDXServerRenderer.tsx
+  - components/ArticleReturnLink.tsx
+  - components/BlogListNavigationRecorder.tsx
+  - lib/articleReturn.ts
+  - contentlayer/config
   - lib/content/posts.ts
   - lib/listPosts.ts
   - scripts/postbuild.mjs
@@ -28,7 +32,7 @@ superseded_by:
 Date: 2026-06-22
 Branches: `refactor/code-review-architecture`, `refactor/complete-deferred-goals`
 
-This note records the scope and durable outcomes of the 2026-06 refactor. It is not the source of truth for current article interaction. [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) governs route-first reading, return navigation, scroll ownership, loading geometry, and animation limits; [architecture.md](./architecture.md) describes the current target boundaries.
+This note records the scope and durable outcomes of the 2026-06 refactor. It is not the source of truth for current article interaction. [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) governs route-first reading, return navigation, scroll ownership, loading geometry, and animation limits; [architecture.md](./architecture.md) describes the current boundaries.
 
 ## Goals
 
@@ -45,7 +49,7 @@ This note records the scope and durable outcomes of the 2026-06 refactor. It is 
 
 - `contentlayer.config.ts` is now an entry file; implementation lives under `contentlayer/config/`.
 - Home, category, and tag page data builders are shared through `lib/content/homePage.ts` and `lib/content/termPages.ts`.
-- `ExpandablePostCard` delegates Git metadata, license copy, relative time, route prefetching, and meta icons to focused modules.
+- The former `ExpandablePostCard` delegated Git metadata, license copy, relative time, route prefetching, and meta icons to focused modules. It was later replaced by the route-first `PostCard` and `PostLayout` split from ADR-0007.
 - Blog sidebars are split into `BlogFrame`, `ProfileSidebar`, `UtilitySidebar`, and `BlogWidgetCard`.
 - Root metadata uses the shared SEO generator, and `app/seo.tsx` is now `app/seo.ts`.
 - Common post date selection is centralized in `lib/postDates.ts`.
@@ -58,7 +62,7 @@ This note records the scope and durable outcomes of the 2026-06 refactor. It is 
 - Theme-aware TradingView widgets use `next-themes`; icons are resolved from `lucide-react`'s generated icon map.
 - Production builds generate Contentlayer data before `next build` instead of loading the Contentlayer webpack plugin, which avoids upstream webpack cache warnings from Contentlayer's dynamic generated-module import.
 
-The same refactor also introduced sessionStorage pending motion, `useBlogExpansionState`, list-card body disclosure, `scroll: false`, and delayed position restoration to preserve the earlier expansion interaction. Those details are historical, not durable outcomes. ADR-0007 supersedes that route/list state machine; this note does not prescribe it as current behavior.
+The same refactor also introduced sessionStorage pending motion, `useBlogExpansionState`, list-card body disclosure, `scroll: false`, and delayed position restoration to preserve the earlier expansion interaction. Those details are historical, not durable outcomes. ADR-0007 superseded that route/list state machine, and its implementation files have been removed.
 
 ## Verification
 
@@ -78,5 +82,5 @@ The durable cleanup outcomes are:
 ## Remaining Watch Items
 
 - The lucide icon registry is generated from source and MDX usage so articles can still use arbitrary `:icon-*:` shortcodes without bundling the entire lucide icon map.
-- ADR-0007 accepts route-specific loading geometry as a source implementation requirement. List, article, term, and search routes must use geometry-specific loading UI, and committed content must not replay a loading or expansion animation.
-- ADR-0007 accepts safe article return as a source implementation requirement. Return behavior must depend on explicit same-tab, same-origin list provenance; direct entry, refresh, new-tab entry, and unknown history must use the localized-home fallback.
+- Article visibility in the static export must remain independent of route loading boundaries. The localized ancestor and article `loading.tsx` files were removed because their streaming handoff hides the final article when JavaScript is disabled; ordinary in-app article links instead use the presentation-only `ArticleRouteSkeleton` overlay.
+- Safe article return is implemented through an explicit same-tab, same-origin list marker. Reviews must keep direct entry, refresh, new-tab entry, expired markers, and unknown history on the localized-home fallback.

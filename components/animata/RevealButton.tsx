@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils'
 export default function RevealButton({
   className,
   visible,
-  y = 12,
+  y = 8,
   ...props
 }: HTMLMotionProps<'button'> & {
   visible: boolean

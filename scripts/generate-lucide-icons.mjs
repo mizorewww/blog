@@ -8,7 +8,7 @@ const lucideIcons = /** @type {Record<string, unknown>} */ (/** @type {unknown} 
 
 const projectRoot = process.cwd()
 const outputPath = path.join(projectRoot, 'lib', 'generated', 'lucide-icons.ts')
-const scanRoots = ['app', 'components', 'content', 'lib']
+const scanRoots = ['app', 'components', 'content', 'layouts', 'lib']
 const scanExtensions = new Set(['.js', '.jsx', '.ts', '.tsx', '.md', '.mdx'])
 const checkOnly = process.argv.includes('--check')
 const reservedIdentifiers = new Set([

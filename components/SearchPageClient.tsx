@@ -162,18 +162,19 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
             {labels.searchResultCount(state.results.length, state.query)}
           </p>
           <AnimatePresence mode="popLayout">
-            {state.results.map((result, i) => (
+            {state.results.map((result) => (
               <motion.div
                 key={result.url}
                 layout
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 12 }}
+                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -12 }}
+                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
                 whileHover={shouldReduceMotion ? undefined : { y: -2 }}
-                transition={{ ...itemTransition, delay: shouldReduceMotion ? 0 : i * 0.04 }}
+                transition={itemTransition}
               >
                 <Link
                   href={result.url}
+                  data-blog-post-link
                   className={`${cardClass} block px-5 py-4 transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700`}
                 >
                   <h2 className="mb-1.5 text-lg font-medium text-slate-900 dark:text-white/90">

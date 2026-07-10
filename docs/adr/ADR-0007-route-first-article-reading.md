@@ -7,17 +7,27 @@ last_verified: 2026-07-10
 verified_by: command
 related_code:
   - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/[...slug]/loading.tsx
-  - app/[locale]/loading.tsx
+  - app/[locale]/categories/loading.tsx
+  - app/[locale]/categories/[category]/loading.tsx
+  - app/[locale]/tags/loading.tsx
+  - app/[locale]/tags/[tag]/loading.tsx
+  - app/theme-providers.tsx
+  - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
-  - components/ExpandablePostCard.tsx
+  - components/PostCard.tsx
   - components/AppShell.tsx
-  - components/Link.tsx
-  - components/animata
+  - components/ArticleReturnLink.tsx
+  - components/BlogListNavigationRecorder.tsx
+  - components/ArticleReader.tsx
+  - components/ArticleTableOfContents.tsx
+  - components/animata/ArticleRouteSkeleton.tsx
+  - components/animata/BlogRouteSkeleton.tsx
+  - lib/articleFragment.ts
+  - lib/articleReturn.ts
+  - lib/blogRouteState.ts
   - lib/content/posts.ts
-  - lib/i18n.ts
   - lib/listPosts.ts
-  - tests/e2e
+  - tests/e2e/article-navigation.spec.ts
 update_when:
   - article or list route rendering changes
   - article return navigation changes
@@ -33,15 +43,15 @@ superseded_by:
 Status: accepted
 Date: 2026-07-10
 Owner: codex-agent
-Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/[...slug]/loading.tsx`, `app/[locale]/loading.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/ExpandablePostCard.tsx`, `components/AppShell.tsx`, `components/Link.tsx`, `components/animata`, `lib/content/posts.ts`, `lib/i18n.ts`, `lib/listPosts.ts`, `tests/e2e`
+Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/loading.tsx`, `app/[locale]/categories/[category]/loading.tsx`, `app/[locale]/tags/loading.tsx`, `app/[locale]/tags/[tag]/loading.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/BlogRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`
 Supersedes: ADR-0005
 Superseded by:
 
 ## Context
 
-The article route currently reuses the complete blog list, locates one card inside that list, and reveals the selected MDX body as a disclosure. Opening and closing therefore require route-motion context, card reflow, long-document height interpolation, delayed scroll restoration, and coordination with the generic page transition.
+The previous article route reused the complete blog list, located one card inside that list, and revealed the selected MDX body as a disclosure. Opening and closing therefore required route-motion context, card reflow, long-document height interpolation, delayed scroll restoration, and coordination with the generic page transition.
 
-That model has several structural failures. A direct article request can place unrelated cards before the requested article. The close control can be thousands of pixels below the article heading and can call browser Back without a valid in-site destination. A parent route commit can unmount the body before its exit transition finishes. Fixed animation and scroll timers disagree with both actual layout duration and reduced-motion settings. Animating a full article from `height: 0` to `height: auto` also makes layout work proportional to document size.
+That model had several structural failures. A direct article request could place unrelated cards before the requested article. The close control could be thousands of pixels below the article heading and could call browser Back without a valid in-site destination. A parent route commit could unmount the body before its exit transition finished. Fixed animation and scroll timers disagreed with both actual layout duration and reduced-motion settings. Animating a full article from `height: 0` to `height: auto` also made layout work proportional to document size.
 
 The stable content boundary from ADR-0003 remains valid: list routes must not receive compiled MDX runtime code, and the browser must not evaluate it. The missing decision is how list and article routes should own layout, navigation, loading, scroll, and motion.
 
@@ -53,11 +63,11 @@ Article reading is route-first:
 - A list route RSC renders only serialized card data. It does not render, import, or carry any article MDX body.
 - An article route RSC renders only the requested article, its table of contents, and adjacent-article navigation. It does not render the complete article list or represent the article as an expanded list card.
 - The requested article body is present in the server-rendered static HTML and visible by default. JavaScript, hydration, Motion, and route history are not prerequisites for reading it.
-- Article-specific client behavior is limited to small islands such as reading progress, an interactive table of contents, copy controls, widgets, and the return control. These islands do not own the article body or its initial visibility.
+- Article-specific client behavior is limited to small islands such as reading progress, an interactive table of contents, copy controls, widgets, and the return control. `ArticleReader` may wrap server-rendered children only to retain the article DOM ref used by `ReadingProgress` and to capture plain same-document fragment clicks. It delegates URL validation to `lib/articleFragment.ts`, preserves the existing Next.js history state with `replaceState()`, and scrolls the validated target without smooth behavior so a fragment does not insert a history entry. It does not import article data or MDX, transform its children, or control body visibility. These islands do not own the article body or its initial visibility.
 
-The article header provides an explicit return control. Its normal destination is the localized home route. It may use `history.back()` only when an explicit, current-tab navigation marker proves that the immediately preceding entry is a same-origin blog list route and that it opened the current article. The marker may be recorded by a plain `Link` interaction, but it must not prevent or replace the Link navigation. Direct requests, refreshes, external referrers, new tabs, expired or mismatched markers, and unknown history all use the localized home fallback. A return action must never leave the site because history provenance is assumed.
+The article header provides an explicit return control. Its normal destination is the localized home route. It may use `history.back()` only when an explicit, current-tab navigation marker proves that a same-origin, same-locale blog list opened the current article through a plain primary `Link` interaction. The marker stores only the source URL, exact target URL, and creation time; history length is not a history-index signal and is not stored. During article hydration, the return island accepts only a fresh marker created after the current document time origin for the exact article URL, immediately clears it, and retains the proven result only in that article-path-keyed component instance. Time spent reading does not expire an already proven instance. Direct requests, refreshes, external referrers, new tabs, expired or mismatched markers, article-to-article navigation, and unknown history all use the localized home fallback. Recording must not prevent or replace Link navigation, and a return action must never leave the site because history provenance is assumed.
 
-The browser and Next.js are the single owners of route scroll behavior. The application does not use `scroll: false`, saved `scrollY`, delayed scroll restoration, temporary scroll runway, smooth-scroll timers, or post-route correction for article open and return. A validated browser Back uses native history restoration. The localized-home fallback performs normal Link navigation.
+The browser and Next.js are the single owners of route scroll behavior. The application does not use `scroll: false`, saved `scrollY`, delayed scroll restoration, temporary scroll runway, smooth-scroll timers, or post-route correction for article open and return. A validated browser Back uses native history restoration. The localized-home fallback performs normal Link navigation. A plain same-document fragment anchor inside the article validates its same-origin pathname, search, decoded target ID, and target existence, then uses `history.replaceState()` with the existing Next.js history state before scrolling the target without smooth behavior. This updates the shareable hash without inserting an entry between the proven article and its list source. Modified clicks and new-tab targets retain native behavior.
 
 The article body is not a disclosure. It must not use height interpolation, opacity gating, `AnimatePresence` exit, or a client-mounted collapsed state. Motion is limited to optional, local opacity and transform effects on small interface elements or bounded article-header media. Those effects finish within 220 ms, move no more than 8 px, do not delay readable content, and do not cause layout movement. A single interaction has at most one primary visible animation.
 
@@ -68,7 +78,7 @@ Use two timing bands:
 
 The application-level Motion configuration uses `reducedMotion="user"`. Reduced-motion mode removes nonessential transforms, stagger, smooth scrolling, and animation-dependent waits. Content and focus behavior remain identical.
 
-Loading UI is route-specific and matches the destination geometry. List routes use list skeletons, article routes use a single-reader skeleton, and term or search routes use their own shape or no skeleton when the route is already static and immediate. A route must not briefly display a three-column article-card skeleton before resolving to a different layout.
+Loading UI is opt-in and must match the destination geometry. The localized ancestor and article route do not define `loading.tsx`: with this static export, a streaming loading boundary can leave the final article hidden when JavaScript is disabled, which violates the server-first reading contract. For an ordinary in-app article Link, `BlogListNavigationRecorder` asks `AppShell` to show an `ArticleRouteSkeleton` overlay until the pathname commits; the overlay is presentation-only and does not prevent or replace Link navigation. Modified clicks, direct requests, refreshes, and JavaScript-disabled loads do not depend on that overlay. Nested term routes may keep their own route loading boundary, while search uses its already-rendered shell and local result loading state. No route may briefly display a skeleton for a different destination geometry.
 
 ## Consequences
 
@@ -79,12 +89,12 @@ Benefits:
 - Opening an article no longer animates document height or coordinates multiple scroll owners.
 - Return behavior is deterministic for list-origin navigation and safe for direct entry.
 - Reduced-motion behavior no longer depends on animation timers.
-- Loading states preserve destination geometry and reduce layout shifts.
+- The optional article-link fallback preserves reader geometry without making static article visibility depend on a streaming boundary.
 
 Costs:
 
 - The previous illusion that a card expands in place is removed.
-- Article and list routes need distinct layouts and loading states.
+- Article and list routes need distinct layouts, and client article navigation needs a small pending-state overlay.
 - Native Back restoration can vary by browser, so browser tests must cover supported desktop and mobile viewports without adding corrective scroll logic.
 - A reliable same-tab source marker adds a small client boundary around the return action, even though article rendering remains server-first.
 

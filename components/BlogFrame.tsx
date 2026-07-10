@@ -11,7 +11,6 @@ export default function BlogFrame({
   tagCounts,
   locale,
   dateLocale,
-  expandedPath,
   children,
 }: {
   posts: BlogListPost[]
@@ -19,7 +18,6 @@ export default function BlogFrame({
   tagCounts: CountMap
   locale: Locale
   dateLocale: string
-  expandedPath?: string | null
   children: ReactNode
 }) {
   return (
@@ -31,12 +29,7 @@ export default function BlogFrame({
         tagCounts={tagCounts}
         locale={locale}
       />
-      <UtilitySidebar
-        posts={posts}
-        dateLocale={dateLocale}
-        locale={locale}
-        expandedPath={expandedPath}
-      />
+      <UtilitySidebar posts={posts} dateLocale={dateLocale} locale={locale} />
     </div>
   )
 }

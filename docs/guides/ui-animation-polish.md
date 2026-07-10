@@ -6,17 +6,25 @@ owner: codex-agent
 last_verified: 2026-07-10
 verified_by: command
 related_code:
+  - app/theme-providers.tsx
+  - app/[locale]/categories/loading.tsx
+  - app/[locale]/tags/loading.tsx
   - components/AppShell.tsx
-  - components/animata
-  - components/ExpandablePostCard.tsx
+  - components/PostCard.tsx
+  - components/ArticleReturnLink.tsx
+  - components/BlogListNavigationRecorder.tsx
+  - components/ArticleReader.tsx
   - components/ReadingProgress.tsx
-  - components/SidebarTOC.tsx
-  - components/TableOfContents.tsx
+  - components/ArticleTableOfContents.tsx
   - components/PostNavLinks.tsx
   - components/ThemeSwitch.tsx
-  - app/[locale]/loading.tsx
-  - app/[locale]/[...slug]/loading.tsx
+  - components/animata/ArticleRouteSkeleton.tsx
+  - components/animata/BlogRouteSkeleton.tsx
+  - components/animata/CollapsiblePanel.tsx
+  - components/animata/motion.ts
+  - lib/articleFragment.ts
   - app/[locale]/[...slug]/page.tsx
+  - layouts/PostLayout.tsx
   - css/tailwind.css
 update_when:
   - animation timing or easing changes
@@ -30,13 +38,7 @@ superseded_by:
 
 # UI 与动效规范
 
-本指南记录已经接受的 UI 动效目标，不是历史修复清单或当前实现清单。文章路由、返回与滚动所有权以 [ADR-0007](../adr/ADR-0007-route-first-article-reading.md) 为准。
-
-## 迁移状态
-
-截至 2026-07-10，route-first 文章阅读和本指南中的配套动效规范尚未在源码中完成迁移。当前文章路由仍保留列表内展开、长文布局动画、滚动协调和通用页面转场之间的旧组合。它们只是在迁移期间临时存在，不再是允许复用或扩展的 UI 模式。
-
-下文描述迁移后的目标行为与验收标准，不表示相关组件已经满足这些要求。检查当前动画时应直接核对组件、hook 和浏览器测试结果。
+本指南记录当前 UI 动效契约和后续变更的验收标准，不是历史修复清单。文章路由、返回与滚动所有权以 [ADR-0007](../adr/ADR-0007-route-first-article-reading.md) 为准。文章正文已经从列表卡片展开状态中移出，通用页面转场和长文展开/收起动画已经删除。
 
 ## 核心原则
 
@@ -61,6 +63,7 @@ superseded_by:
 - 文章页只显示当前文章、TOC 与相邻文章导航。
 - 正文及其祖先不使用 `height: 0 -> auto`、整篇 opacity gating 或 `AnimatePresence` exit。
 - 可选入场只作用于标题、封面或小型控件，使用 opacity/transform，并在 220 ms 内结束；正文阅读不等待该效果。
+- `ArticleReader` 保留文章 DOM ref，让 `ReadingProgress` 按文章自身区间计算进度；它还捕获经 `lib/articleFragment.ts` 校验的普通同文档 fragment，使用保留现有 history state 的 `replaceState()` 和即时滚动，避免新增 history entry。它接收服务端渲染的 children，不导入正文数据，也不控制正文显示或动画。
 - 返回控制位于文章顶部。无法证明上一条 history entry 是同源列表时，使用本地化首页链接。
 - 浏览器与 Next.js 负责滚动。动效层不保存 scrollY、不延迟恢复、不在路由提交后矫正位置。
 
@@ -72,14 +75,13 @@ hover 和 focus 只能改变阴影、边框、颜色、opacity 或小范围 tran
 
 ## 路由加载
 
-Loading UI 必须匹配目标路由：
+Loading UI 必须匹配目标路由，但当前实现并不为每个 route 提供 skeleton：
 
-- 列表：列表主栏与文章摘要卡片。
-- 文章：单篇标题、元信息、正文行与可选 TOC。
-- 分类/标签：term index 或筛选结果的实际结构。
-- 搜索：搜索输入与结果区域；静态外壳已经可用时不伪造整页 skeleton。
+- 本地化祖先和文章路由不设置 `loading.tsx`。Next.js 静态导出的 streaming loading 边界会在禁用 JavaScript 时让最终文章保持隐藏，因此静态文章 HTML 直接承担直达、刷新和无脚本阅读。
+- 列表、搜索结果和侧栏中的普通文章 Link 会触发 `AppShell` 的 `ArticleRouteSkeleton` 覆盖层；它只持续到 pathname 提交，不阻止 Link，也不参与正文显示。
+- 分类/标签嵌套路由保留列表几何的 `BlogRouteSkeleton`。搜索静态外壳没有 route skeleton，查询等待只在结果区域内显示。
 
-骨架只存在于 pending navigation。内容提交后不再播放 loading 入场，也不能先显示三栏卡片再突然替换为单篇文章或 term index。
+骨架只存在于 pending navigation。修改键、新标签页和直达请求不触发文章覆盖层；内容提交后不再播放 loading 入场，也不能先显示三栏卡片再突然替换为单篇文章或 term index。
 
 ## Reduced Motion
 

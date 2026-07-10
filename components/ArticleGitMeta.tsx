@@ -7,6 +7,7 @@ import { MenuList, MenuListItem } from '@/components/animata/MenuList'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
 import { mutedText, skyLink } from '@/components/ui/styles'
 import { formatDateTime, formatRelativeTime } from '@/lib/formatDate'
+import { useNow } from '@/lib/hooks/useNow'
 import { ui, type Locale } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
 import { getCommitHash, getPostGitCommits } from '@/lib/postGit'
@@ -15,15 +16,14 @@ export default function ArticleGitMeta({
   post,
   locale,
   dateLocale,
-  now,
   showCommits = false,
 }: {
   post: BlogListPost
   locale: Locale
   dateLocale: string
-  now: Date
   showCommits?: boolean
 }) {
+  const now = useNow()
   const [commitsOpen, setCommitsOpen] = useState(false)
   const commitsPanelId = useId()
   const updatedAt = post.gitUpdatedAt || post.lastmod || post.date

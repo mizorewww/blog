@@ -1,6 +1,5 @@
 import BlogWidgetCard from '@/components/BlogWidgetCard'
 import Link from '@/components/Link'
-import SidebarTOC from '@/components/SidebarTOC'
 import { formatDate } from '@/lib/formatDate'
 import { type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
@@ -9,26 +8,24 @@ export default function UtilitySidebar({
   posts,
   dateLocale,
   locale,
-  expandedPath,
 }: {
   posts: BlogListPost[]
   dateLocale: string
   locale: Locale
-  expandedPath?: string | null
 }) {
   const labels = ui[locale]
 
   return (
     <aside className="blog-sidebar-right space-y-5 bg-transparent lg:self-start">
-      {expandedPath ? (
-        <div className="hidden lg:block">
-          <SidebarTOC expandedPath={expandedPath} locale={locale} />
-        </div>
-      ) : null}
       <BlogWidgetCard title={labels.recentPosts}>
         <div className="dark:divide-border-muted-dark divide-y divide-slate-200">
           {posts.slice(0, 4).map((post) => (
-            <Link key={post.path} href={`/${post.path}/`} className="block py-4 first:pt-0">
+            <Link
+              key={post.path}
+              href={`/${post.path}/`}
+              data-blog-post-link
+              className="block py-4 first:pt-0"
+            >
               <time
                 dateTime={post.date}
                 suppressHydrationWarning
