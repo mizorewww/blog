@@ -58,7 +58,7 @@ superseded_by:
 - 一次交互最多有一个主要动画。辅助反馈不能与主要动画争夺注意力。
 - 布局先稳定，再添加反馈。图片、卡片、工具栏、TOC 和固定按钮使用明确尺寸、宽高比或响应式约束。
 - 可见动画优先使用 `transform` 和 `opacity`。不得用 `height`、`width`、`top` 或大范围 layout animation 驱动长文或整页移动。ADR-0008 的 fixed inert snapshot 是大范围 transform 的唯一例外。
-- 正文在静态 HTML 中默认可见，不做高度展开、透明度揭示或退出折叠。
+- 正文在静态 HTML 中默认挂载、参与静态布局，不做正文 DOM 的高度展开、透明度揭示、延迟挂载或退出折叠。仅已验证完整卡片打开的 fixed opaque underlay 可在不改变正文 DOM 的情况下短暂遮挡目标 pixels。
 
 ## 时间与位移
 
@@ -73,7 +73,7 @@ superseded_by:
 
 - 列表卡片使用普通 Next.js `Link`，不把点击改造成列表内展开命令。
 - 文章页只显示当前文章、TOC 与相邻文章导航。
-- 正文及其祖先不使用 `height: 0 -> auto`、整篇 opacity gating 或 `AnimatePresence` exit。
+- 正文及其祖先不使用 `height: 0 -> auto`、整篇 DOM opacity gating、delayed mounting 或 `AnimatePresence` exit；opening-only opaque underlay 是覆盖其 pixels 的独立 presentation layer，不属于正文 DOM 可见性控制。
 - 可选入场只作用于标题、封面或小型控件，使用 opacity/transform，并在 220 ms 内结束；正文阅读不等待该效果。
 - `ArticleReader` 保留文章 DOM ref，让 `ReadingProgress` 按文章自身区间计算进度；它还捕获经 `lib/articleFragment.ts` 校验的普通同文档 fragment，使用保留现有 history state 的 `replaceState()` 和即时滚动，避免新增 history entry。它接收服务端渲染的 children，不导入正文数据，也不控制正文显示或动画。
 - 返回控制位于文章顶部。无法证明上一条 history entry 是同源列表时，使用本地化首页链接。
@@ -86,12 +86,14 @@ superseded_by:
 - 完整 `PostCard` 的普通主键 Link 可以启动唯一主要动画。`PostCard`、`ArticleCardTransitionOverlay` 和 `PostLayout` 的共享头部使用同一展示合同；结构化 React snapshot 分别重绘 surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance，不能把 metadata 扁平化。snapshot 必须 fixed、`aria-hidden="true"`、`pointer-events: none`，不得 `cloneNode()` 或复制正文 DOM。
 - surface、cover、title、Git 信息、summary、date 与 tag 必须逐 child 投影到文章共享头部。overlay 最终帧与文章头部保持相同的顺序、字体、字重、行高、换行约束和 geometry，不用 opacity crossfade 交接两套标题或持久信息。Git 相对时间在捕获时冻结，过渡期间不随时钟或 hydration 改写。
 - read-more 是来源卡片专有的视觉提示。它在 inert snapshot 中保留 layout space 并平滑淡出，返回接近来源卡片时平滑恢复；文章页不渲染可聚焦的自链接。其他在首页卡片上出现的元素不得在 route handoff 时骤然消失。
+- 经过完整卡片校验的打开流程可在目标 pathname commit 后，于 card snapshot 背后增加 fixed/inert/opaque underlay，直到 route 与 card motion 同时 ready。它只阻止目标封面和目标页新增元素提前成为 topmost pixels；目标 DOM 保持挂载、语义、静态布局和正常 focus/scroll/history。直达、capture 失败、route failure/mismatch、退化与任何返回流程都不显示 underlay。
+- destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可在 validated opening 期间隐藏，并在 handoff 后以 `180 ms` opacity reveal 显示。正文及其所有祖先不属于该 marker 合同，必须在视觉层下保持静态可见。共享 surface、cover、title、Git 信息、summary、date 与 tag 在最终 motion frame 前始终由 snapshot 作为 topmost representation，禁止 opacity crossfade；未标记的目标内容不能意外继承过渡状态。
 - 搜索结果和侧栏链接没有完整卡片数据与 rectangle 时，只显示目标文章形状的 skeleton snapshot。不得把零散标题或缩略图伪装成完整 shared card。
 - Link 始终立即执行，observer 不 `preventDefault()`。route commit 不等 `380 ms`；返回控制也立即执行已验证 Back 或 fallback Link，不等 `340 ms`。真实正文不做 height/opacity gating。
 - Header 为 `z-index: 50`，snapshot overlay 为 `z-index: 40`。覆盖层不接收 focus/pointer，不锁 body scroll，也不改变页面 layout。
 - `320px` 与 `390px` 的目标面为 viewport 全宽、`top: 72px`、radius `0`。`1440px` 下宽 `780px`、水平居中、`top: 120px`、radius `8px`。
 - 返回时只有同标签页来源已验证、列表 route 已提交、且匹配的完整卡片 rectangle 可用，才从阅读面收回到卡片。找不到目标时直接移除 snapshot，不自动滚动列表。
-- capture 数据缺失、rectangle 无效、storage 异常、route mismatch、交互中断或 viewport resize 都必须立即移除 snapshot，以普通 Link/history 结果为准。
+- capture 数据缺失、rectangle 无效、storage 异常、route mismatch、交互中断或 viewport resize 都必须立即移除 snapshot、underlay 和 destination-only staging，以普通 Link/history 结果为准并立即暴露已挂载的目标 pixels。
 - `AnimatePresence` 只能保留退出中的 inert snapshot，不能保留旧 route tree、旧 PostCard 控件、文章正文或独立 scroll container。
 
 ## 小型交互
@@ -116,7 +118,7 @@ Loading UI 必须匹配目标路由，但当前实现并不为每个 route 提�
 - ADR-0008 的目标合同用完整 card snapshot 处理 `PostCard` 来源；搜索结果和侧栏中的普通文章 Link 才使用 `ArticleRouteSkeleton` 几何。它不阻止 Link，也不参与正文显示。
 - 分类/标签页面不依赖骨架显示标题、term chip 与文章卡片。搜索静态外壳没有 route skeleton，查询等待只在结果区域内显示。
 
-修改键、新标签页和直达请求不触发文章覆盖层。snapshot 可以跨 pathname commit 完成自身的有界 exit，但内容提交后真实文章立即可读；不能先显示三栏卡片、遮住正文等待动画结束，再突然替换为单篇文章或 term index。
+修改键、新标签页和直达请求不触发文章覆盖层。snapshot 可以跨 pathname commit 完成自身的有界 exit；真实文章 DOM 在提交后立即挂载、静态布局且不做 opacity gating 或 delayed mounting。只有已经验证的完整卡片打开可用 opaque underlay 遮挡目标 pixels 到 handoff，其他路径不得先显示三栏卡片或遮挡内容，再突然替换为单篇文章或 term index。
 
 ## Reduced Motion
 
@@ -124,6 +126,7 @@ Loading UI 必须匹配目标路由，但当前实现并不为每个 route 提�
 
 - 移除非必要 transform、stagger 和 spring overshoot。
 - App Store 卡片 snapshot 不执行大范围位移或缩放；最多保留极短且不阻塞的 opacity 提示。
+- 极短 snapshot 提示结束后立即显示目标 presentation；不等待 underlay，也不播放 `180 ms` destination-only reveal。
 - 不启用 smooth scroll。
 - 不保留为动画准备的 timeout 或延迟卸载。
 - opacity 反馈可以保留为极短、不阻塞的状态提示，但正文与焦点立即到达最终状态。
@@ -140,4 +143,4 @@ UI 或动效变更至少验证以下视口：
 
 每个视口覆盖浅色、深色、正常动态效果和 reduced motion。文章流程覆盖完整 PostCard、搜索与侧栏来源，列表进入、浏览器 Back、顶部返回、直达、刷新和新标签页，以及 resize、缺目标、route mismatch 与快速重复操作。term 流程覆盖 zh/en 的 index/detail 直达、无脚本可见性以及 Header -> index -> chip -> detail 导航。
 
-浏览器检查普通微动效的早期帧、220 ms 结束帧和 250 ms 稳定帧；文章打开记录起点、约 190 ms、380 ms 和 450 ms，返回记录起点、约 170 ms、340 ms 和 420 ms。验收条件是 route/Back 可先于动画结束提交，snapshot 始终 fixed/inert，Header 位于 overlay 上方；逐 child 检查 title、Git 信息、summary、date 与 tag 的 typography、顺序、换行和 rectangle 在交接帧一致，并确认 read-more 保留占位平滑退出。页面不得出现 opacity 标题交接、单帧消失、UI 重叠、长文布局补间、二次滚动、骨架错型或 hydration 后正文闪现；只检查最终截图或最终 URL 不足以通过。
+浏览器检查普通微动效的早期帧、220 ms 结束帧和 250 ms 稳定帧；文章打开记录起点、约 190 ms、380 ms handoff、`180 ms` destination-only reveal 和稳定帧，返回记录起点、约 170 ms、340 ms 和 420 ms。验收条件是 route/Back 可先于动画结束提交，snapshot 始终 fixed/inert，Header 位于 overlay 上方；逐 child 检查 title、Git 信息、summary、date 与 tag 的 typography、顺序、换行和 rectangle 在交接帧一致，并确认 read-more 保留占位平滑退出。中间帧必须检查实际 pixels，并在 cover、共享字段和 destination-only controls 的采样点确认 topmost painted layer；不能只读取被遮挡 DOM 的存在性、computed opacity 或最终 URL。页面不得出现目标封面抢跑、opacity 标题交接、目标页新增元素闪烁、单帧消失、UI 重叠、长文布局补间、二次滚动、骨架错型或 hydration 后正文闪现。

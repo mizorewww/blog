@@ -180,8 +180,8 @@ Core Web Vitals 边界：
 
 1. Next.js 和浏览器是路由滚动的唯一所有者。
 2. 文章打开和返回不使用 `scroll: false`、保存的 `scrollY`、延迟恢复、临时 runway 或提交后的二次滚动。文章内普通同文档 fragment 链接以保留现有 Next.js history state 的 `replaceState()` 更新当前文章 entry，并即时滚动已验证目标；不得新增位于文章和列表来源之间的 history entry。
-3. 正文在静态 HTML 中默认可见，不是列表内 disclosure。
-4. 正文及其祖先不执行 `height: 0 -> auto`、整篇 opacity gating 或依赖 `AnimatePresence` 的退出折叠。
+3. 正文在静态 HTML 中默认挂载、参与静态布局且不依赖客户端透明度或延迟挂载，不是列表内 disclosure。仅 ADR-0008 已验证打开流程的 fixed opaque underlay 可在不修改正文 DOM 的前提下短暂遮挡其 pixels。
+4. 正文及其祖先不执行 `height: 0 -> auto`、整篇 DOM opacity gating、delayed mounting 或依赖 `AnimatePresence` 的退出折叠。
 5. TOC、阅读进度、代码复制和 widget 保持小型 client islands；禁用 JavaScript不影响正文阅读。`ArticleReader` 的 children 由服务端渲染；该边界只持有文章 DOM ref 供 `ReadingProgress` 使用，并捕获经 `lib/articleFragment.ts` 验证的普通同文档 fragment，以保留现有 history state 的 `replaceState()` 和即时滚动避免新增 history entry。不得在该边界导入 `Blog`、MDX、正文状态或可见性逻辑。
 
 ## 动画与加载规范
@@ -196,13 +196,15 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 快照必须 `aria-hidden="true"`、`pointer-events: none`，只含最小展示数据和数值 rectangle，不用 `cloneNode()`、复制控件、文章 HTML 或 MDX。Header 保持 `z-index: 50`，覆盖层为 `z-index: 40`。
 - `PostCard`、`ArticleCardTransitionOverlay` 与 `PostLayout` 共享一套卡片头部展示合同。surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance 必须分别类型化并拥有各自的 layout marker；禁止把 metadata 合并为一个不可投影的字符串或节点。
 - title 与其余持久信息在 overlay 终点和文章头部必须保持相同的元素顺序、字体、字重、行高、换行约束和 geometry，逐 child 投影且不使用 opacity crossfade 交接。捕获时冻结 Git 相对时间文案。read-more 只在 inert snapshot 中保留占位并平滑淡出，返回时平滑恢复，不在文章页生成可聚焦自链接。
+- 完整卡片打开且目标 pathname 已提交后，允许 snapshot 背后出现 fixed/inert/opaque underlay，直到 route 与 card motion 同时 ready。目标 DOM 必须继续挂载、保持语义和静态布局，导航、history、focus 与 scroll 都不能等待视觉 handoff。underlay 不得用于直达、失败或退化路径，也不得用于任何返回路径。
+- destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可在 validated opening 期间为 `opacity: 0`，并在 handoff 后用 `180 ms` reveal。正文及其所有祖先不得使用该 marker 或继承 transition opacity，必须在视觉层下保持静态可见。共享 cover、title、Git 信息、summary、date 与 tag 不得 opacity crossfade；snapshot 必须保持为最终 motion frame 的 topmost shared representation。reduced motion 在极短 snapshot 提示后立即显示目标 presentation，不等待 underlay 或 reveal。
 - `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`1440px` 目标面宽 `780px`、居中、`top: 120px`、radius `8px`。
-- Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除快照。
+- Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除 snapshot、underlay 和 destination-only staging；这些歧义路径不得遮挡目标 pixels。
 - reduced motion 下禁止完整卡片的大范围 translate/scale，只允许极短 opacity 提示；正文、URL、focus 和 history 结果必须与正常模式一致。
 - Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先、文章路由或分类/标签的 index/detail 定义 `loading.tsx`，因为 Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时把最终内容留在隐藏的 `S:0` segment 后面。
 - 普通客户端文章 Link 的目标合同是由 `AppShell` 显示 ADR-0008 快照；完整卡片使用卡片 morph，搜索/侧栏才保留 `ArticleRouteSkeleton` 几何。修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
 - 分类和标签页面由预渲染 HTML 直接显示标题、term chip 与文章卡片；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
-- 快照可跨 route commit 完成有界视觉退出，但真实文章从提交时起直接可读；它不能在内容提交后伪装第二次加载或遮住正文等待 animation complete。
+- 快照可跨 route commit 完成有界视觉退出，但真实文章 DOM 从提交时起已挂载、静态布局且不做 opacity gating 或 delayed mounting。只有已验证的完整卡片打开可由 opaque underlay 遮挡目标 pixels，且只持续到 route 与 card motion 的 handoff signal 同时满足；不得把该 underlay 扩展成第二次加载或正文生命周期门禁。
 
 路由或动画变更的浏览器验收矩阵至少覆盖：
 
@@ -214,7 +216,7 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 完整 PostCard、搜索结果与侧栏三种来源；前者验证 card morph，后两者验证单篇 skeleton fallback。
 - 正常完成、快速重复点击、动画中 resize、目标卡片缺失和 route mismatch 等退化路径。
 
-E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms 结束帧和 450 ms 稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms handoff 帧、`180 ms` destination-only reveal 和稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。每个中间帧都要检查实际 pixels 以及 cover、共享字段和 destination-only controls 位置的 topmost painted layer，不能以被遮挡元素的 DOM presence 或 computed opacity 代替视觉断言。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
 
 ## 开发纪律
 

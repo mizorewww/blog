@@ -132,7 +132,9 @@ surface、cover、title、Git 信息、summary、published date 与 primary tag 
 
 转场不等待路由，路由也不等待转场。普通文章 Link 立即导航；返回控制立即执行已验证的 Back 或本地化 fallback Link。返回折叠只有在列表提交后能找到匹配的完整卡片和有效 rectangle 时才继续，否则立即移除覆盖层；它不能滚动列表来制造目标。缺数据、无效矩形、storage 失败、route mismatch、动画中断和 viewport resize 同样立即退化为无覆盖层的普通导航。
 
-覆盖层不拥有正文、焦点、history 或 scroll，不锁页面滚动，不设置 `history.scrollRestoration`，不合成 `popstate`，不保存或矫正 `scrollY`。`AnimatePresence` 只能短暂保留 inert 快照，不能保留旧路由、旧卡片树或文章正文。reduced motion 下移除大范围 translate/scale，只允许短促且不阻塞的 opacity 提示；URL、正文、焦点与历史结果不变。
+覆盖层不拥有正文、焦点、history 或 scroll，不锁页面滚动，不设置 `history.scrollRestoration`，不合成 `popstate`，不保存或矫正 `scrollY`。`AnimatePresence` 只能短暂保留 inert 快照，不能保留旧路由、旧卡片树或文章正文。
+
+只有经过完整 `PostCard` 校验的打开流程，才允许在目标 pathname 提交后于卡片快照背后加入 fixed、inert、opaque 的页面 underlay。它持续到 route 与 card motion 两个 ready signal 都满足，用于阻止目标封面和目标页新增控件提前成为 topmost pixels；目标 DOM 始终挂载并保持原有语义、静态布局、focus、history 与 scroll 行为。destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可以在打开期间 `opacity: 0`，并在 handoff 后用 `180 ms` 显示。正文及其所有祖先不属于该标记合同，始终在视觉层下保持静态可见；共享 cover、title 和卡片字段禁止 opacity crossfade。直达、失败、退化、返回均不使用 underlay。reduced motion 只保留极短 snapshot 提示，随后立即显示目标 presentation，不等待 underlay 或分阶段 reveal。
 
 ## 动画边界
 
@@ -145,7 +147,7 @@ Motion 和 `components/animata/` 只负责有界面的视觉反馈，不负责�
 - 一次交互最多有一个主要动画。已提交且没有状态变化的内容不重播入场。
 - 应用级 Motion 配置使用 `reducedMotion="user"`。减弱动态效果时取消非必要位移、stagger、smooth scroll 和等待 timer，不改变内容或焦点结果。
 
-ADR-0008 的单个卡片转场是 timing 与 displacement 的唯一例外：其 inert overlay 可使用 `380/340 ms` 和大于 `8px` 的 transform，但不能让正文、route commit 或 history traversal 等待。其他控件继续使用 fast/standard 两档。
+ADR-0008 的单个卡片转场是 timing 与 displacement 的唯一例外：其 inert overlay 可使用 `380/340 ms` 和大于 `8px` 的 transform，打开 handoff 后可对显式标记的 destination-only 文章头部元素使用 `180 ms` reveal，但不能让正文 DOM、route commit、focus、scroll 或 history traversal 等待。其他控件继续使用 fast/standard 两档。
 
 通用页面转场不得掩盖路由提交、延迟可读正文或与文章返回竞争。实验性 View Transition API 和新动画依赖不属于当前架构。
 
@@ -155,7 +157,7 @@ Loading UI 是可选的渐进增强，必须匹配目标页面几何，不能成
 
 本地化祖先、文章路由以及分类/标签的 index 和 detail 路由都不设置 `loading.tsx`。当前 Next.js 静态导出中的 streaming fallback 会把最终内容放在隐藏的 `S:0` segment，并依赖 JavaScript 把它替换到 `B:0` boundary；禁用 JavaScript 时客户端会停留在 loading shell。这与静态内容必须直接可见的契约冲突，因此这些路由的直达、刷新、新标签页和无脚本请求直接使用预渲染的最终 HTML。
 
-从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。ADR-0008 要求 `AppShell` 把完整 `PostCard` 来源显示为结构化卡片快照；只有搜索或侧栏等缺少完整卡片数据与几何的来源才使用单篇阅读 skeleton。覆盖层可跨 pathname commit 完成自身的有界退出，但不阻止 Link、不替代导航、也不控制正文可见性。修改键点击和新标签页不会触发该覆盖层。
+从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。ADR-0008 要求 `AppShell` 把完整 `PostCard` 来源显示为结构化卡片快照；只有搜索或侧栏等缺少完整卡片数据与几何的来源才使用单篇阅读 skeleton。覆盖层可跨 pathname commit 完成自身的有界退出；完整卡片打开时可在 commit 后短暂增加 opaque underlay，直到 route 与 motion 都 ready。两者都不阻止 Link、不替代导航、也不控制正文 DOM 可见性。修改键点击和新标签页不会触发该覆盖层。
 
 分类和标签的 index/detail 页面不依赖骨架显示标题、term chip 或文章卡片。搜索没有 route loading 骨架，输入后的等待状态只显示在已经渲染的结果区域。当前实现不声称每个路由都有 loading skeleton；任何新增边界都必须先验证目标几何、原始静态 HTML 和禁用 JavaScript 行为。
 
