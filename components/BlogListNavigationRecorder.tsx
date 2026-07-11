@@ -80,8 +80,12 @@ export default function BlogListNavigationRecorder({
       const cover = card.querySelector<HTMLElement>('[data-article-transition-cover]')
       const image = cover?.querySelector<HTMLImageElement>('img')
       const title = card.querySelector<HTMLElement>('[data-article-transition-title]')
+      const gitUpdated = card.querySelector<HTMLElement>('[data-article-transition-git-updated]')
+      const gitSource = card.querySelector<HTMLElement>('[data-article-transition-git-source]')
       const summary = card.querySelector<HTMLElement>('[data-article-transition-summary]')
-      const meta = card.querySelector<HTMLElement>('[data-article-transition-meta]')
+      const publishedDate = card.querySelector<HTMLElement>('[data-article-transition-date]')
+      const primaryTag = card.querySelector<HTMLElement>('[data-article-transition-primary-tag]')
+      const readMore = card.querySelector<HTMLElement>('[data-article-transition-read-more]')
       const toRect = (rect: DOMRect): ArticleTransitionRect => ({
         top: rect.top,
         left: rect.left,
@@ -95,8 +99,12 @@ export default function BlogListNavigationRecorder({
           targetPath: targetUrl.pathname,
           imageSrc: image?.currentSrc || image?.src,
           title: title?.textContent || undefined,
+          gitUpdated: gitUpdated?.textContent || '',
+          gitSource: gitSource?.textContent || '',
           summary: summary?.textContent || '',
-          meta: meta?.textContent || '',
+          publishedDate: publishedDate?.textContent || undefined,
+          primaryTag: primaryTag?.textContent || '',
+          readMore: readMore?.textContent || undefined,
           cardRect: toRect(card.getBoundingClientRect()),
           coverRect: cover ? toRect(cover.getBoundingClientRect()) : undefined,
           radius: Number.parseFloat(getComputedStyle(card).borderTopLeftRadius),

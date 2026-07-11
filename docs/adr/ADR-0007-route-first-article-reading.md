@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-07-10
+last_verified: 2026-07-11
 verified_by: command
 related_code:
   - app/[locale]/[...slug]/page.tsx
@@ -15,6 +15,9 @@ related_code:
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
   - components/PostCard.tsx
+  - components/ArticleCardPresentation.tsx
+  - components/ArticleGitMeta.tsx
+  - components/PostMeta.tsx
   - components/AppShell.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
@@ -43,7 +46,7 @@ superseded_by:
 Status: accepted
 Date: 2026-07-10
 Owner: codex-agent
-Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/page.tsx`, `app/[locale]/categories/[category]/page.tsx`, `app/[locale]/tags/page.tsx`, `app/[locale]/tags/[tag]/page.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/e2e/term-routes.spec.ts`
+Related code: `app/[locale]/[...slug]/page.tsx`, `app/[locale]/categories/page.tsx`, `app/[locale]/categories/[category]/page.tsx`, `app/[locale]/tags/page.tsx`, `app/[locale]/tags/[tag]/page.tsx`, `app/theme-providers.tsx`, `layouts/PostLayout.tsx`, `layouts/ListLayoutWithTags.tsx`, `components/PostCard.tsx`, `components/ArticleCardPresentation.tsx`, `components/ArticleGitMeta.tsx`, `components/PostMeta.tsx`, `components/AppShell.tsx`, `components/ArticleReturnLink.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReader.tsx`, `components/ArticleTableOfContents.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `lib/articleFragment.ts`, `lib/articleReturn.ts`, `lib/blogRouteState.ts`, `lib/content/posts.ts`, `lib/listPosts.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/e2e/term-routes.spec.ts`
 Supersedes: ADR-0005
 Amended by: ADR-0008 for the article transition overlay, duration, and displacement clauses only
 Superseded by:

@@ -6,14 +6,33 @@ const CARD_KEY = 'zh/xiaomi-book-pro-14'
 const BODY_TEXT = '入手这台 Xiaomi Book Pro 14 的理由其实挺简单'
 const RETURN_LABEL = '返回列表'
 const ARTICLE_RETURN_MARKER_KEY = 'mizore:article-return'
+const CARD_PRESENTATION_MARKERS = [
+  'title',
+  'git-updated',
+  'git-source',
+  'summary',
+  'date',
+  'primary-tag',
+  'read-more',
+] as const
 
 type Rect = { top: number; left: number; width: number; height: number }
+type PresentationItem = Rect & {
+  opacity: number
+  text: string
+  fontFamily: string
+  fontSize: string
+  fontWeight: string
+  lineHeight: string
+  letterSpacing: string
+}
 type TransitionFrame = Rect & {
   time: number
   phase: string
   transform: string
   overlayCount: number
   cover: Rect
+  items: Record<string, PresentationItem>
 }
 type TransitionProbe = {
   startedAt: number
@@ -82,6 +101,29 @@ function expectWithin(value: number, first: number, second: number, tolerance = 
   expect(value).toBeLessThanOrEqual(Math.max(first, second) + tolerance)
 }
 
+async function presentationItem(page: Page, marker: string): Promise<PresentationItem> {
+  return page
+    .locator(`[data-article-surface] [data-article-transition-${marker}]`)
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+
+      return {
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+        opacity: Number.parseFloat(style.opacity),
+        text: element.textContent?.trim() || '',
+        fontFamily: style.fontFamily,
+        fontSize: style.fontSize,
+        fontWeight: style.fontWeight,
+        lineHeight: style.lineHeight,
+        letterSpacing: style.letterSpacing,
+      }
+    })
+}
+
 async function installTransitionProbe(page: Page) {
   await page.evaluate(() => {
     const probe: TransitionProbe = {
@@ -133,6 +175,31 @@ async function installTransitionProbe(page: Page) {
       const surfaceRect = surface.getBoundingClientRect()
       const coverRect = cover.getBoundingClientRect()
       const overlayCount = document.querySelectorAll('[data-article-transition-overlay]').length
+      const items = Object.fromEntries(
+        Array.from(
+          root.querySelectorAll<HTMLElement>('[data-article-transition-overlay-item]')
+        ).map((element) => {
+          const rect = element.getBoundingClientRect()
+          const style = getComputedStyle(element)
+
+          return [
+            element.dataset.articleTransitionOverlayItem || '',
+            {
+              top: rect.top,
+              left: rect.left,
+              width: rect.width,
+              height: rect.height,
+              opacity: Number.parseFloat(style.opacity),
+              text: element.textContent?.trim() || '',
+              fontFamily: style.fontFamily,
+              fontSize: style.fontSize,
+              fontWeight: style.fontWeight,
+              lineHeight: style.lineHeight,
+              letterSpacing: style.letterSpacing,
+            },
+          ]
+        })
+      )
 
       probe.maxOverlayCount = Math.max(probe.maxOverlayCount, overlayCount)
       probe.frames.push({
@@ -144,6 +211,7 @@ async function installTransitionProbe(page: Page) {
         phase: root.dataset.articleTransitionPhase || '',
         transform: getComputedStyle(surface).transform,
         overlayCount,
+        items,
         cover: {
           top: coverRect.top,
           left: coverRect.left,
@@ -215,6 +283,14 @@ async function openCard(
 
   const source = await elementRect(root)
   const sourceCover = await elementRect(root.locator('[data-article-transition-cover]'))
+  const sourceItems = Object.fromEntries(
+    await Promise.all(
+      CARD_PRESENTATION_MARKERS.map(async (marker) => [
+        marker,
+        await elementRect(root.locator(`[data-article-transition-${marker}]`)),
+      ])
+    )
+  ) as Record<(typeof CARD_PRESENTATION_MARKERS)[number], Rect>
   const sourceScrollY = await page.evaluate(() => window.scrollY)
 
   await installTransitionProbe(page)
@@ -228,7 +304,7 @@ async function openCard(
   }))
   const probe = await waitForProbeRemoval(page)
 
-  return { source, sourceCover, sourceScrollY, body, probe }
+  return { source, sourceCover, sourceItems, sourceScrollY, body, probe }
 }
 
 async function expectRestoredScroll(page: Page, expected: number) {
@@ -254,6 +330,10 @@ for (const scenario of [
     expect(frames.length).toBeGreaterThan(3)
     expectRectNear(frames[0], result.source)
     expectRectNear(frames[0].cover, result.sourceCover)
+    for (const marker of CARD_PRESENTATION_MARKERS) {
+      expect(frames[0].items[marker], `missing initial overlay item: ${marker}`).toBeDefined()
+      expectRectNear(frames[0].items[marker], result.sourceItems[marker], 0.5)
+    }
     expectRectNear(frames.at(-1)!, target)
     expectRectNear(frames.at(-1)!.cover, {
       top: target.top,
@@ -278,7 +358,46 @@ for (const scenario of [
     expect(result.probe.overlayZ).toBe(40)
     expect(result.probe.headerZ).toBe(50)
     expect(result.probe.coverObjectFit).toBe('cover')
-    expect(result.probe.snapshotText).not.toContain('继续阅读')
+    expect(result.probe.snapshotText).toContain('继续阅读')
+    expect(result.probe.snapshotText).toContain('更新于')
+    expect(result.probe.snapshotText).toContain('查看源文')
+    expect(result.probe.snapshotText).toContain('Linux')
+
+    const finalFrame = frames.at(-1)!
+    for (const marker of ['title', 'git-updated', 'git-source', 'summary', 'date', 'primary-tag']) {
+      const overlayItem = finalFrame.items[marker]
+      const articleItem = await presentationItem(page, marker)
+
+      expect(overlayItem, `missing overlay presentation item: ${marker}`).toBeDefined()
+      expect(overlayItem.text).toBe(articleItem.text)
+      expect(overlayItem.opacity).toBe(1)
+      expect({
+        fontFamily: overlayItem.fontFamily,
+        fontSize: overlayItem.fontSize,
+        fontWeight: overlayItem.fontWeight,
+        lineHeight: overlayItem.lineHeight,
+        letterSpacing: overlayItem.letterSpacing,
+      }).toEqual({
+        fontFamily: articleItem.fontFamily,
+        fontSize: articleItem.fontSize,
+        fontWeight: articleItem.fontWeight,
+        lineHeight: articleItem.lineHeight,
+        letterSpacing: articleItem.letterSpacing,
+      })
+      expectRectNear(overlayItem, articleItem, 5)
+    }
+
+    expect(frames[0].items['read-more']).toBeDefined()
+    expect(frames[0].items['read-more'].opacity).toBeGreaterThan(0.7)
+    expect(finalFrame.items['read-more'].text).toBe('继续阅读')
+    expect(finalFrame.items['read-more'].opacity).toBeLessThan(0.2)
+    expect(
+      frames.some((frame) => {
+        const opacity = frame.items['read-more']?.opacity
+
+        return opacity > 0.1 && opacity < 0.9
+      })
+    ).toBe(true)
     expect(frames.some((frame) => frame.transform !== 'none')).toBe(true)
     expect(result.probe.animatedProperties).not.toEqual(
       expect.arrayContaining(['top', 'left', 'width', 'height'])
@@ -318,6 +437,15 @@ for (const scenario of [
     expectRectNear(frames.at(-1)!, opened.source)
     expectRectNear(frames.at(-1)!.cover, opened.sourceCover)
     expect(frames.some((frame) => frame.phase === 'returning')).toBe(true)
+    expect(frames[0].items['read-more'].opacity).toBeLessThan(0.2)
+    expect(frames.at(-1)!.items['read-more'].opacity).toBeGreaterThan(0.8)
+    expect(
+      frames.some((frame) => {
+        const opacity = frame.items['read-more']?.opacity
+
+        return opacity > 0.1 && opacity < 0.9
+      })
+    ).toBe(true)
     expect(probe.maxOverlayCount).toBe(1)
     expect(probe.removedAt).toBeLessThanOrEqual(500)
   })

@@ -11,7 +11,7 @@ const MAX_PATH_LENGTH = 512
 const MAX_IMAGE_SRC_LENGTH = 2_048
 const MAX_TITLE_LENGTH = 240
 const MAX_SUMMARY_LENGTH = 600
-const MAX_META_LENGTH = 600
+const MAX_PRESENTATION_ITEM_LENGTH = 600
 
 export type ArticleTransitionRect = {
   top: number
@@ -35,8 +35,12 @@ export type ArticleCardSnapshot = {
   targetPath: string
   imageSrc: string
   title: string
+  gitUpdated: string
+  gitSource: string
   summary: string
-  meta: string
+  publishedDate: string
+  primaryTag: string
+  readMore: string
   cardRect: ArticleTransitionRect
   coverRect: ArticleTransitionRect
   radius: number
@@ -208,8 +212,12 @@ export function createArticleCardSnapshot(
   const targetPath = localPath(input.targetPath)
   const imageSrc = imageSource(input.imageSrc)
   const title = boundedText(input.title, MAX_TITLE_LENGTH)
+  const gitUpdated = boundedText(input.gitUpdated, MAX_PRESENTATION_ITEM_LENGTH, true)
+  const gitSource = boundedText(input.gitSource, MAX_PRESENTATION_ITEM_LENGTH, true)
   const summary = boundedText(input.summary, MAX_SUMMARY_LENGTH, true)
-  const meta = boundedText(input.meta, MAX_META_LENGTH, true)
+  const publishedDate = boundedText(input.publishedDate, MAX_PRESENTATION_ITEM_LENGTH)
+  const primaryTag = boundedText(input.primaryTag, MAX_PRESENTATION_ITEM_LENGTH, true)
+  const readMore = boundedText(input.readMore, MAX_PRESENTATION_ITEM_LENGTH)
   const radius = input.radius
 
   if (
@@ -219,8 +227,12 @@ export function createArticleCardSnapshot(
     sourcePath === targetPath ||
     !imageSrc ||
     !title ||
+    gitUpdated === null ||
+    gitSource === null ||
     summary === null ||
-    meta === null ||
+    !publishedDate ||
+    primaryTag === null ||
+    !readMore ||
     !isArticleTransitionRect(input.cardRect) ||
     !isArticleTransitionRect(input.coverRect) ||
     !rectIntersectsViewport(input.cardRect, viewport) ||
@@ -239,8 +251,12 @@ export function createArticleCardSnapshot(
     targetPath,
     imageSrc,
     title,
+    gitUpdated,
+    gitSource,
     summary,
-    meta,
+    publishedDate,
+    primaryTag,
+    readMore,
     cardRect: { ...input.cardRect },
     coverRect: { ...input.coverRect },
     radius,

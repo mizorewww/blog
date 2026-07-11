@@ -3,6 +3,10 @@
 /* eslint-disable @next/next/no-img-element -- The inert transition snapshot reuses the already-loaded runtime currentSrc; it is not content or an LCP image. */
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type CSSProperties } from 'react'
+import { articleCardPresentationClasses } from '@/components/ArticleCardPresentation'
+import Icon from '@/components/Icon'
+import { MetaIcon, metaItemClass } from '@/components/PostMeta'
+import { skyLink } from '@/components/ui/styles'
 import {
   ARTICLE_TRANSITION_EASE,
   ARTICLE_TRANSITION_EXIT_DURATION_SECONDS,
@@ -85,6 +89,10 @@ function TransitionSurface({
     height: geometry.height,
     borderRadius: geometry.radius,
   }
+  const childLayoutTransition = {
+    layout: { duration: layoutDuration, ease: ARTICLE_TRANSITION_EASE },
+  }
+  const readMoreVisible = layoutMode === 'source' || layoutMode === 'return-target'
 
   return (
     <motion.div
@@ -141,42 +149,123 @@ function TransitionSurface({
       </motion.div>
 
       <motion.div
-        layout="position"
+        layout
         layoutDependency={layoutMode}
-        className="overflow-hidden px-5 py-5 sm:px-6 sm:py-6"
-        initial={state.phase === 'opening' && !state.reducedMotion ? { opacity: 1 } : false}
-        animate={{
-          opacity:
-            state.reducedMotion || state.phase === 'return-waiting'
-              ? 0
-              : state.phase === 'returning'
-                ? 1
-                : 0,
-        }}
-        transition={{
-          layout: { duration: layoutDuration, ease: ARTICLE_TRANSITION_EASE },
-          opacity:
-            state.phase === 'opening'
-              ? { duration: 0.1, delay: state.reducedMotion ? 0 : 0.26 }
-              : { duration: state.phase === 'returning' ? 0.12 : 0 },
-        }}
+        className={articleCardPresentationClasses.content}
+        transition={childLayoutTransition}
       >
-        <div
+        <motion.h1
+          layout
+          layoutDependency={layoutMode}
           data-article-transition-overlay-title
-          className="text-[1.55rem] leading-tight font-medium text-slate-900 sm:text-[1.75rem] dark:text-white/90"
+          data-article-transition-overlay-item="title"
+          className={articleCardPresentationClasses.title}
+          transition={childLayoutTransition}
         >
           {state.snapshot.title}
-        </div>
+        </motion.h1>
+
+        {(state.snapshot.gitUpdated || state.snapshot.gitSource) && (
+          <motion.div
+            layout
+            layoutDependency={layoutMode}
+            data-article-transition-overlay-item="git"
+            className={articleCardPresentationClasses.git}
+            transition={childLayoutTransition}
+          >
+            <div className={articleCardPresentationClasses.gitRow}>
+              {state.snapshot.gitUpdated && (
+                <motion.span
+                  layout
+                  layoutDependency={layoutMode}
+                  data-article-transition-overlay-item="git-updated"
+                  className={metaItemClass}
+                  transition={childLayoutTransition}
+                >
+                  <MetaIcon name="clock" />
+                  <span className="min-w-0">{state.snapshot.gitUpdated}</span>
+                </motion.span>
+              )}
+              {state.snapshot.gitSource && (
+                <motion.span
+                  layout
+                  layoutDependency={layoutMode}
+                  data-article-transition-overlay-item="git-source"
+                  className={`inline-flex items-center gap-1.5 ${skyLink}`}
+                  transition={childLayoutTransition}
+                >
+                  <MetaIcon name="code" />
+                  <span>{state.snapshot.gitSource}</span>
+                </motion.span>
+              )}
+            </div>
+          </motion.div>
+        )}
+
         {state.snapshot.summary && (
-          <p className="mt-3 max-h-24 overflow-hidden text-base leading-8 text-slate-600 dark:text-white/75">
+          <motion.p
+            layout
+            layoutDependency={layoutMode}
+            data-article-transition-overlay-item="summary"
+            className={articleCardPresentationClasses.summary}
+            transition={childLayoutTransition}
+          >
             {state.snapshot.summary}
-          </p>
+          </motion.p>
         )}
-        {state.snapshot.meta && (
-          <p className="mt-4 max-h-12 overflow-hidden text-sm text-slate-500 dark:text-white/60">
-            {state.snapshot.meta}
-          </p>
-        )}
+
+        <motion.div
+          layout
+          layoutDependency={layoutMode}
+          className={articleCardPresentationClasses.footer}
+          transition={childLayoutTransition}
+        >
+          <div className={articleCardPresentationClasses.footerMeta}>
+            <motion.span
+              layout
+              layoutDependency={layoutMode}
+              data-article-transition-overlay-item="date"
+              className={metaItemClass}
+              transition={childLayoutTransition}
+            >
+              <MetaIcon name="calendar" />
+              <span className="min-w-0">{state.snapshot.publishedDate}</span>
+            </motion.span>
+            {state.snapshot.primaryTag && (
+              <motion.span
+                layout
+                layoutDependency={layoutMode}
+                data-article-transition-overlay-item="primary-tag"
+                className={metaItemClass}
+                transition={childLayoutTransition}
+              >
+                <MetaIcon name="tag" />
+                <span className="min-w-0">{state.snapshot.primaryTag}</span>
+              </motion.span>
+            )}
+          </div>
+
+          <motion.div
+            layout
+            layoutDependency={layoutMode}
+            data-article-transition-overlay-item="read-more"
+            className={articleCardPresentationClasses.readMoreSlot}
+            initial={false}
+            animate={{ opacity: readMoreVisible ? 1 : 0 }}
+            transition={{
+              ...childLayoutTransition,
+              opacity: {
+                duration: state.reducedMotion ? 0 : layoutDuration * 0.72,
+                ease: ARTICLE_TRANSITION_EASE,
+              },
+            }}
+          >
+            <span className={articleCardPresentationClasses.readMore}>
+              <span>{state.snapshot.readMore}</span>
+              <Icon name="ArrowRight" className="h-4 w-4" inlineSpacing={false} decorative />
+            </span>
+          </motion.div>
+        </motion.div>
       </motion.div>
     </motion.div>
   )

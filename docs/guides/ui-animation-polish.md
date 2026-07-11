@@ -12,10 +12,13 @@ related_code:
   - app/[locale]/tags/page.tsx
   - app/[locale]/tags/[tag]/page.tsx
   - components/AppShell.tsx
+  - components/ArticleCardPresentation.tsx
+  - components/ArticleGitMeta.tsx
   - components/ArticleTransitionContext.tsx
   - components/Header.tsx
   - components/HeaderNavLinks.tsx
   - components/PostCard.tsx
+  - components/PostMeta.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReader.tsx

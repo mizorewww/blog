@@ -19,8 +19,12 @@ const snapshot: ArticleCardSnapshot = {
   targetPath: '/zh/xiaomi-book-pro-14',
   imageSrc: 'https://mizore.blog/static/images/xiaomi.webp',
   title: 'Xiaomi Book Pro 14',
+  gitUpdated: '更新于 2026年5月10日 (2个月前)',
+  gitSource: '查看源文',
   summary: 'Linux notes',
-  meta: '2026-05-10 Linux',
+  publishedDate: '2026年5月10日',
+  primaryTag: 'Linux',
+  readMore: '继续阅读',
   cardRect,
   coverRect,
   radius: 8,
@@ -83,6 +87,8 @@ describe('article transition snapshots', () => {
     ).toBeNull()
     expect(createArticleCardSnapshot({ ...snapshot, title: '' }, viewport)).toBeNull()
     expect(createArticleCardSnapshot({ ...snapshot, title: 'x'.repeat(241) }, viewport)).toBeNull()
+    expect(createArticleCardSnapshot({ ...snapshot, publishedDate: '' }, viewport)).toBeNull()
+    expect(createArticleCardSnapshot({ ...snapshot, readMore: '' }, viewport)).toBeNull()
     expect(
       createArticleCardSnapshot({ ...snapshot, imageSrc: 'javascript:bad' }, viewport)
     ).toBeNull()

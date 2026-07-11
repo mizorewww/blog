@@ -1,5 +1,6 @@
 import type { Authors, Blog } from 'contentlayer/generated'
 import type { CoreContent } from '@/lib/contentlayer'
+import ArticleCardPresentation from '@/components/ArticleCardPresentation'
 import ArticleGitMeta from '@/components/ArticleGitMeta'
 import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import ArticleReader from '@/components/ArticleReader'
@@ -8,10 +9,8 @@ import ArticleTableOfContents from '@/components/ArticleTableOfContents'
 import Icon from '@/components/Icon'
 import Link from '@/components/Link'
 import MDXServerRenderer from '@/components/MDXServerRenderer'
-import { MetaItem } from '@/components/PostMeta'
 import PostNavLinks from '@/components/PostNavLinks'
 import ResponsiveImage from '@/components/ResponsiveImage'
-import { mutedText } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from '@/lib/formatDate'
 import { localizePath, localeConfig, type Locale, ui } from '@/lib/i18n'
@@ -70,42 +69,44 @@ export default function PostLayout({
               </ArticleReturnLink>
             </div>
 
-            <div className="px-5 pt-6 pb-8 sm:px-8 sm:pt-8 lg:px-10 xl:pb-0">
-              <h1 className="text-3xl leading-tight font-semibold text-slate-950 sm:text-4xl dark:text-white/95">
-                {post.title}
-              </h1>
-              {post.summary && (
-                <p className="mt-4 text-lg leading-8 text-slate-600 dark:text-white/70">
-                  {post.summary}
-                </p>
-              )}
-              <div
-                className={`mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm ${mutedText}`}
-              >
-                {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}
-                <MetaItem icon="calendar">
-                  <span>{labels.publishedOn} </span>
-                  <time dateTime={post.date}>{formatDate(post.date, dateLocale)}</time>
-                </MetaItem>
-                {post.tags.slice(0, 3).map((tag) => (
-                  <Link
-                    key={tag}
-                    href={localizePath(`/tags/${slug(tag)}`, locale)}
-                    className="hover:text-sky-700 dark:hover:text-sky-300"
-                  >
-                    #{tag}
-                  </Link>
-                ))}
-              </div>
-              <div className="mt-5">
+            <ArticleCardPresentation
+              headingLevel="h1"
+              title={post.title}
+              gitMeta={<ArticleGitMeta post={postMeta} locale={locale} dateLocale={dateLocale} />}
+              summary={post.summary}
+              publishedAt={post.date}
+              publishedText={formatDate(post.date, dateLocale)}
+              primaryTag={post.tags[0]}
+              primaryTagHref={
+                post.tags[0] ? localizePath(`/tags/${slug(post.tags[0])}`, locale) : undefined
+              }
+            />
+
+            {(authorNames.length > 0 || post.tags.length > 1 || post.gitCommits.length > 0) && (
+              <div className="px-5 pb-8 text-sm text-slate-500 sm:px-6 dark:text-white/60">
+                {(authorNames.length > 0 || post.tags.length > 1) && (
+                  <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
+                    {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}
+                    {post.tags.slice(1, 3).map((tag) => (
+                      <Link
+                        key={tag}
+                        href={localizePath(`/tags/${slug(tag)}`, locale)}
+                        className="hover:text-sky-700 dark:hover:text-sky-300"
+                      >
+                        #{tag}
+                      </Link>
+                    ))}
+                  </div>
+                )}
                 <ArticleGitMeta
                   post={postMeta}
                   locale={locale}
                   dateLocale={dateLocale}
                   showCommits
+                  showOverview={false}
                 />
               </div>
-            </div>
+            )}
           </header>
 
           <ArticleTableOfContents headings={toc} locale={locale} variant="mobile" />

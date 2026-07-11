@@ -1,7 +1,8 @@
 import Icon from '@/components/Icon'
-import type { ReactNode } from 'react'
+import type { ComponentPropsWithoutRef, ReactNode } from 'react'
 
-const iconClass = 'h-4 w-4 shrink-0 opacity-70'
+export const metaIconClass = 'h-4 w-4 shrink-0 opacity-70'
+export const metaItemClass = 'inline-flex min-w-0 items-center gap-1.5'
 
 export type PostMetaIconName =
   | 'calendar'
@@ -23,12 +24,19 @@ const metaIconNames: Record<PostMetaIconName, string> = {
 }
 
 export function MetaIcon({ name }: { name: PostMetaIconName }) {
-  return <Icon name={metaIconNames[name]} className={iconClass} inlineSpacing={false} />
+  return <Icon name={metaIconNames[name]} className={metaIconClass} inlineSpacing={false} />
 }
 
-export function MetaItem({ icon, children }: { icon: PostMetaIconName; children: ReactNode }) {
+export function MetaItem({
+  icon,
+  children,
+  ...props
+}: {
+  icon: PostMetaIconName
+  children: ReactNode
+} & ComponentPropsWithoutRef<'span'>) {
   return (
-    <span className="inline-flex min-w-0 items-center gap-1.5">
+    <span className={metaItemClass} {...props}>
       <MetaIcon name={icon} />
       <span className="min-w-0">{children}</span>
     </span>

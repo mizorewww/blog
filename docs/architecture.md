@@ -16,6 +16,9 @@ related_code:
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
   - components/PostCard.tsx
+  - components/ArticleCardPresentation.tsx
+  - components/ArticleGitMeta.tsx
+  - components/PostMeta.tsx
   - components/MDXServerRenderer.tsx
   - components/AppShell.tsx
   - components/ArticleTransitionContext.tsx

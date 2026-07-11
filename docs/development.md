@@ -18,7 +18,10 @@ related_code:
   - layouts/ListLayoutWithTags.tsx
   - components/AppShell.tsx
   - components/ArticleTransitionContext.tsx
+  - components/ArticleCardPresentation.tsx
+  - components/ArticleGitMeta.tsx
   - components/PostCard.tsx
+  - components/PostMeta.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReader.tsx

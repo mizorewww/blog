@@ -1,11 +1,12 @@
 'use client'
 
 import { useId, useState } from 'react'
+import { articleCardPresentationClasses } from '@/components/ArticleCardPresentation'
 import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import Link from '@/components/Link'
 import { MenuList, MenuListItem } from '@/components/animata/MenuList'
 import { MetaIcon, MetaItem } from '@/components/PostMeta'
-import { mutedText, skyLink } from '@/components/ui/styles'
+import { skyLink } from '@/components/ui/styles'
 import { formatDateTime, formatRelativeTime } from '@/lib/formatDate'
 import { useNow } from '@/lib/hooks/useNow'
 import { ui, type Locale } from '@/lib/i18n'
@@ -17,11 +18,13 @@ export default function ArticleGitMeta({
   locale,
   dateLocale,
   showCommits = false,
+  showOverview = true,
 }: {
   post: BlogListPost
   locale: Locale
   dateLocale: string
   showCommits?: boolean
+  showOverview?: boolean
 }) {
   const now = useNow()
   const [commitsOpen, setCommitsOpen] = useState(false)
@@ -35,35 +38,44 @@ export default function ArticleGitMeta({
   const hiddenCommitCount = Math.max(0, commitCount - commits.length)
   const labels = ui[locale]
 
-  if (!updatedAt && commits.length === 0 && !post.githubUrl) {
+  const hasOverview = Boolean(updatedAt || post.githubUrl)
+  const hasCommits = showCommits && commits.length > 0
+
+  if ((!showOverview || !hasOverview) && !hasCommits) {
     return null
   }
 
   return (
-    <div className={`mb-5 space-y-3 text-sm leading-6 ${mutedText}`}>
-      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
-        {updatedAt && (
-          <MetaItem icon="clock">
-            {labels.gitUpdated}{' '}
-            <time dateTime={updatedAt} suppressHydrationWarning>
-              {formatDateTime(updatedAt, dateLocale)}
-            </time>
-            {relativeUpdatedAt && (
-              <span suppressHydrationWarning className="whitespace-nowrap">
-                {' '}
-                ({relativeUpdatedAt})
-              </span>
-            )}
-          </MetaItem>
-        )}
-        {post.githubUrl && (
-          <Link href={post.githubUrl} className={`inline-flex items-center gap-1.5 ${skyLink}`}>
-            <MetaIcon name="code" />
-            <span>{labels.gitSource}</span>
-          </Link>
-        )}
-      </div>
-      {showCommits && commits.length > 0 && (
+    <div className={articleCardPresentationClasses.git}>
+      {showOverview && hasOverview && (
+        <div className={articleCardPresentationClasses.gitRow}>
+          {updatedAt && (
+            <MetaItem icon="clock" data-article-transition-git-updated>
+              {labels.gitUpdated}{' '}
+              <time dateTime={updatedAt} suppressHydrationWarning>
+                {formatDateTime(updatedAt, dateLocale)}
+              </time>
+              {relativeUpdatedAt && (
+                <span suppressHydrationWarning className="whitespace-nowrap">
+                  {' '}
+                  ({relativeUpdatedAt})
+                </span>
+              )}
+            </MetaItem>
+          )}
+          {post.githubUrl && (
+            <Link
+              href={post.githubUrl}
+              data-article-transition-git-source
+              className={`inline-flex items-center gap-1.5 ${skyLink}`}
+            >
+              <MetaIcon name="code" />
+              <span>{labels.gitSource}</span>
+            </Link>
+          )}
+        </div>
+      )}
+      {hasCommits && (
         <div className="space-y-2">
           <button
             type="button"
