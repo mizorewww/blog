@@ -14,6 +14,7 @@ import ArticleRouteSkeleton from './animata/ArticleRouteSkeleton'
 import {
   articleTransitionReducer,
   createArticleTransitionTarget,
+  deriveArticleTransitionDestinationStage,
   idleArticleTransitionState,
   rectIntersectsViewport,
   type ArticleCardSnapshot,
@@ -97,6 +98,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const shouldReduceMotion = useReducedMotion()
   const { resolvedTheme } = useTheme()
   transitionStateRef.current = transitionState
+  const destinationStage = deriveArticleTransitionDestinationStage(transitionState, pathname)
 
   const handleArticleNavigation = useCallback(
     (intent: ArticleNavigationIntent) => {
@@ -333,6 +335,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <Header hideOnMobile={isReadingPost && hideHeaderOnMobile} />
         <ArticleCardTransitionOverlay
           state={transitionState}
+          concealDestination={destinationStage === 'opening'}
           onOpenMotionComplete={() => dispatchTransition({ type: 'open-motion-completed' })}
           onReturnMotionComplete={() => dispatchTransition({ type: 'return-motion-completed' })}
         />
@@ -344,7 +347,12 @@ export default function AppShell({ children }: { children: ReactNode }) {
             <ArticleRouteSkeleton />
           </div>
         )}
-        <main id="main-content" tabIndex={-1} className="flex-1 pt-[72px] sm:pt-[96px]">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="flex-1 pt-[72px] sm:pt-[96px]"
+          data-article-transition-destination={destinationStage ?? undefined}
+        >
           {children}
         </main>
         <Footer />

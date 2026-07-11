@@ -26,6 +26,24 @@ type PresentationItem = Rect & {
   lineHeight: string
   letterSpacing: string
 }
+type PointOwnership = {
+  targetRect: Rect | null
+  point: { x: number; y: number } | null
+  pointInViewport: boolean
+  topmostLayer: 'overlay-surface' | 'underlay' | 'overlay' | 'header' | 'document' | 'none'
+  topmostElement: string
+  ownsPoint: boolean
+}
+type LanguageIndicatorFrame = {
+  present: boolean
+  opacity: number
+  backgroundColor: string
+  bounded: boolean
+  visibleAtCenter: boolean
+  animationCount: number
+  width: number
+  height: number
+}
 type TransitionFrame = Rect & {
   time: number
   phase: string
@@ -33,6 +51,16 @@ type TransitionFrame = Rect & {
   overlayCount: number
   cover: Rect
   items: Record<string, PresentationItem>
+  destinationStage: string
+  underlayPresent: boolean
+  underlayOpaque: boolean
+  destinationOnlyOpacities: number[]
+  sharedDestinationOpacities: number[]
+  overlayOwnsCoverPoint: boolean
+  overlayOwnsReturnControlPoint: boolean
+  coverPointOwnership: PointOwnership
+  returnControlPointOwnership: PointOwnership
+  languageIndicator: LanguageIndicatorFrame
 }
 type TransitionProbe = {
   startedAt: number
@@ -174,6 +202,11 @@ async function installTransitionProbe(page: Page) {
 
       const surfaceRect = surface.getBoundingClientRect()
       const coverRect = cover.getBoundingClientRect()
+      const destinationRoot = document.querySelector<HTMLElement>(
+        '[data-article-transition-destination]'
+      )
+      const underlay = root.querySelector<HTMLElement>('[data-article-transition-underlay]')
+      const underlayStyle = underlay ? getComputedStyle(underlay) : null
       const overlayCount = document.querySelectorAll('[data-article-transition-overlay]').length
       const items = Object.fromEntries(
         Array.from(
@@ -200,6 +233,106 @@ async function installTransitionProbe(page: Page) {
           ]
         })
       )
+      const destinationOnlyOpacities = Array.from(
+        document.querySelectorAll<HTMLElement>('main [data-article-transition-destination-only]')
+      ).map((element) => Number.parseFloat(getComputedStyle(element).opacity))
+      const sharedDestinationOpacities = [
+        'title',
+        'git-updated',
+        'git-source',
+        'summary',
+        'date',
+        'primary-tag',
+      ].flatMap((marker) =>
+        Array.from(
+          document.querySelectorAll<HTMLElement>(
+            `main [data-article-surface] [data-article-transition-${marker}]`
+          )
+        ).map((element) => Number.parseFloat(getComputedStyle(element).opacity))
+      )
+      const realCover = document.querySelector<HTMLElement>('[data-article-cover]')
+      const returnControl = document.querySelector<HTMLElement>(
+        '[data-article-transition-destination-only]'
+      )
+      const languageIndicator = document.querySelector<HTMLElement>(
+        '[data-animata-language-switcher-active]'
+      )
+      const languageIndicatorOwner = languageIndicator?.parentElement
+      const languageIndicatorRect = languageIndicator?.getBoundingClientRect()
+      const languageIndicatorOwnerRect = languageIndicatorOwner?.getBoundingClientRect()
+      const languageIndicatorStyle = languageIndicator ? getComputedStyle(languageIndicator) : null
+      const languageIndicatorCenter = languageIndicatorRect
+        ? {
+            x: languageIndicatorRect.left + languageIndicatorRect.width / 2,
+            y: languageIndicatorRect.top + languageIndicatorRect.height / 2,
+          }
+        : null
+      const languageIndicatorTopmost = languageIndicatorCenter
+        ? document.elementFromPoint(languageIndicatorCenter.x, languageIndicatorCenter.y)
+        : null
+      const overlayPointOwnership = (element: HTMLElement | null): PointOwnership => {
+        if (!element) {
+          return {
+            targetRect: null,
+            point: null,
+            pointInViewport: false,
+            topmostLayer: 'none',
+            topmostElement: 'missing-target',
+            ownsPoint: false,
+          }
+        }
+
+        const rect = element.getBoundingClientRect()
+        const point = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        }
+        const pointerEvents = root.style.pointerEvents
+        root.style.pointerEvents = 'auto'
+        const topmost = document.elementFromPoint(point.x, point.y)
+        const topmostOverlay = topmost?.closest<HTMLElement>('[data-article-transition-overlay]')
+        const topmostLayer: PointOwnership['topmostLayer'] = topmostOverlay
+          ? topmost?.closest('[data-article-transition-overlay-surface]')
+            ? 'overlay-surface'
+            : topmost?.closest('[data-article-transition-underlay]')
+              ? 'underlay'
+              : 'overlay'
+          : topmost?.closest('header')
+            ? 'header'
+            : topmost
+              ? 'document'
+              : 'none'
+        root.style.pointerEvents = pointerEvents
+
+        return {
+          targetRect: {
+            top: rect.top,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          },
+          point,
+          pointInViewport:
+            point.x >= 0 &&
+            point.x < window.innerWidth &&
+            point.y >= 0 &&
+            point.y < window.innerHeight,
+          topmostLayer,
+          topmostElement:
+            topmost instanceof HTMLElement
+              ? [
+                  topmost.tagName.toLowerCase(),
+                  topmost.id ? `#${topmost.id}` : '',
+                  typeof topmost.className === 'string' ? topmost.className : '',
+                ]
+                  .filter(Boolean)
+                  .join(':')
+              : 'none',
+          ownsPoint: topmostOverlay !== null && topmostOverlay !== undefined,
+        }
+      }
+      const coverPointOwnership = overlayPointOwnership(realCover)
+      const returnControlPointOwnership = overlayPointOwnership(returnControl)
 
       probe.maxOverlayCount = Math.max(probe.maxOverlayCount, overlayCount)
       probe.frames.push({
@@ -212,6 +345,37 @@ async function installTransitionProbe(page: Page) {
         transform: getComputedStyle(surface).transform,
         overlayCount,
         items,
+        destinationStage: destinationRoot?.dataset.articleTransitionDestination || '',
+        underlayPresent: underlay !== null,
+        underlayOpaque:
+          underlayStyle !== null &&
+          underlayStyle.opacity === '1' &&
+          underlayStyle.backgroundColor !== 'rgba(0, 0, 0, 0)',
+        destinationOnlyOpacities,
+        sharedDestinationOpacities,
+        overlayOwnsCoverPoint: coverPointOwnership.ownsPoint,
+        overlayOwnsReturnControlPoint: returnControlPointOwnership.ownsPoint,
+        coverPointOwnership,
+        returnControlPointOwnership,
+        languageIndicator: {
+          present: languageIndicator !== null,
+          opacity: languageIndicatorStyle ? Number.parseFloat(languageIndicatorStyle.opacity) : 0,
+          backgroundColor: languageIndicatorStyle?.backgroundColor || '',
+          bounded:
+            languageIndicatorRect !== undefined &&
+            languageIndicatorOwnerRect !== undefined &&
+            languageIndicatorRect.left >= languageIndicatorOwnerRect.left - 0.5 &&
+            languageIndicatorRect.top >= languageIndicatorOwnerRect.top - 0.5 &&
+            languageIndicatorRect.right <= languageIndicatorOwnerRect.right + 0.5 &&
+            languageIndicatorRect.bottom <= languageIndicatorOwnerRect.bottom + 0.5,
+          visibleAtCenter:
+            languageIndicatorOwner != null &&
+            languageIndicatorTopmost !== null &&
+            languageIndicatorOwner.contains(languageIndicatorTopmost),
+          animationCount: languageIndicator?.getAnimations().length || 0,
+          width: languageIndicatorRect?.width || 0,
+          height: languageIndicatorRect?.height || 0,
+        },
         cover: {
           top: coverRect.top,
           left: coverRect.left,
@@ -316,13 +480,18 @@ async function expectRestoredScroll(page: Page, expected: number) {
 }
 
 for (const scenario of [
-  { viewport: { width: 320, height: 720 }, entry: 'cover' as const },
-  { viewport: { width: 390, height: 844 }, entry: 'title' as const },
-  { viewport: { width: 1440, height: 900 }, entry: 'read-more' as const },
+  { viewport: { width: 320, height: 720 }, entry: 'cover' as const, theme: 'light' as const },
+  { viewport: { width: 390, height: 844 }, entry: 'title' as const, theme: 'dark' as const },
+  {
+    viewport: { width: 1440, height: 900 },
+    entry: 'read-more' as const,
+    theme: 'light' as const,
+  },
 ]) {
-  test(`${scenario.entry} expands one card snapshot at ${scenario.viewport.width}x${scenario.viewport.height}`, async ({
+  test(`${scenario.entry} expands one card snapshot at ${scenario.viewport.width}x${scenario.viewport.height} in ${scenario.theme} mode`, async ({
     page,
   }) => {
+    await page.addInitScript((theme) => localStorage.setItem('theme', theme), scenario.theme)
     const result = await openCard(page, scenario.viewport, scenario.entry)
     const target = destination(scenario.viewport.width, scenario.viewport.height)
     const frames = result.probe.frames.filter((frame) => frame.phase === 'opening')
@@ -362,6 +531,34 @@ for (const scenario of [
     expect(result.probe.snapshotText).toContain('更新于')
     expect(result.probe.snapshotText).toContain('查看源文')
     expect(result.probe.snapshotText).toContain('Linux')
+    for (const frame of frames) {
+      expect(frame.languageIndicator.present).toBe(true)
+      expect(frame.languageIndicator.opacity).toBe(1)
+      expect(frame.languageIndicator.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+      expect(frame.languageIndicator.bounded).toBe(true)
+      expect(frame.languageIndicator.visibleAtCenter).toBe(true)
+      expect(frame.languageIndicator.animationCount).toBe(0)
+      expect(frame.languageIndicator.width).toBeGreaterThan(0)
+      expect(frame.languageIndicator.height).toBeGreaterThan(0)
+    }
+
+    const destinationOpeningFrames = frames.filter((frame) => frame.destinationStage === 'opening')
+    expect(destinationOpeningFrames.length).toBeGreaterThan(0)
+    for (const frame of destinationOpeningFrames) {
+      expect(frame.underlayPresent).toBe(true)
+      expect(frame.underlayOpaque).toBe(true)
+      expect(frame.destinationOnlyOpacities.length).toBeGreaterThan(0)
+      expect(frame.destinationOnlyOpacities.every((opacity) => opacity === 0)).toBe(true)
+      expect(frame.sharedDestinationOpacities.length).toBeGreaterThan(0)
+      expect(frame.sharedDestinationOpacities.every((opacity) => opacity === 1)).toBe(true)
+      expect(frame.coverPointOwnership.pointInViewport).toBe(true)
+      expect(frame.returnControlPointOwnership.pointInViewport).toBe(true)
+      expect(frame.overlayOwnsCoverPoint, JSON.stringify(frame.coverPointOwnership)).toBe(true)
+      expect(
+        frame.overlayOwnsReturnControlPoint,
+        JSON.stringify(frame.returnControlPointOwnership)
+      ).toBe(true)
+    }
 
     const finalFrame = frames.at(-1)!
     for (const marker of ['title', 'git-updated', 'git-source', 'summary', 'date', 'primary-tag']) {
@@ -406,11 +603,106 @@ for (const scenario of [
     expect(result.body.opacity).toBe(1)
     expect(await page.locator('[data-article-transition-fallback]').count()).toBe(0)
     expect(await page.locator('[data-article-transition-overlay]').count()).toBe(0)
+    await expect
+      .poll(async () => {
+        const opacities = await page
+          .locator('main [data-article-transition-destination-only]')
+          .evaluateAll((elements) =>
+            elements.map((element) => Number.parseFloat(getComputedStyle(element).opacity))
+          )
+
+        return opacities.length > 0 && opacities.every((opacity) => opacity === 1)
+      })
+      .toBe(true)
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(
       scenario.viewport.width
     )
   })
 }
+
+test('direct article entry has no handoff presentation layer', async ({ page }) => {
+  await page.goto(ARTICLE_PATH)
+
+  await expect(page.locator('[data-article-transition-overlay]')).toHaveCount(0)
+  await expect(page.locator('[data-article-transition-underlay]')).toHaveCount(0)
+  await expect(page.locator('main[data-article-transition-destination]')).toHaveCount(0)
+  await expect(page.locator('[data-article-body]')).toContainText(BODY_TEXT)
+  expect(
+    await page
+      .locator('main [data-article-transition-destination-only]')
+      .evaluateAll((elements) =>
+        elements.map((element) => Number.parseFloat(getComputedStyle(element).opacity))
+      )
+  ).toEqual(expect.arrayContaining([1]))
+})
+
+test('a slow target commit preserves the concealed opening barrier before reveal', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+
+  let releaseRequest!: () => void
+  let delayedRequests = 0
+  const released = new Promise<void>((resolve) => {
+    releaseRequest = resolve
+  })
+  await page.route(`**${ARTICLE_PATH}index.txt*`, async (route) => {
+    delayedRequests += 1
+    await released
+    await route.continue()
+  })
+
+  await page.goto(SOURCE_PATH)
+  const link = entryLink(page, 'title')
+  await link.scrollIntoViewIfNeeded()
+  await installTransitionProbe(page)
+  const click = link.click()
+
+  try {
+    await expect.poll(() => delayedRequests).toBeGreaterThan(0)
+    await page.waitForTimeout(450)
+
+    const precommit = await readProbe(page)
+
+    if (!precommit) {
+      throw new Error('Missing slow-route transition probe')
+    }
+
+    expect(precommit.frames.length).toBeGreaterThan(3)
+    expect(precommit.frames.every((frame) => frame.destinationStage === '')).toBe(true)
+    expect(precommit.frames.every((frame) => !frame.underlayPresent)).toBe(true)
+  } finally {
+    releaseRequest()
+    await click
+  }
+
+  await expect(page).toHaveURL(ARTICLE_PATH)
+  const probe = await waitForProbeRemoval(page)
+  const firstTargetFrames = probe.frames.filter(
+    (frame) => frame.destinationStage === 'opening' && frame.destinationOnlyOpacities.length > 0
+  )
+
+  expect(firstTargetFrames.length).toBeGreaterThan(0)
+  expect(firstTargetFrames.every((frame) => frame.underlayPresent && frame.underlayOpaque)).toBe(
+    true
+  )
+  expect(
+    firstTargetFrames.every((frame) =>
+      frame.destinationOnlyOpacities.every((opacity) => opacity === 0)
+    )
+  ).toBe(true)
+  await expect
+    .poll(async () => {
+      const opacities = await page
+        .locator('main [data-article-transition-destination-only]')
+        .evaluateAll((elements) =>
+          elements.map((element) => Number.parseFloat(getComputedStyle(element).opacity))
+        )
+
+      return opacities.length > 0 && opacities.every((opacity) => opacity === 1)
+    })
+    .toBe(true)
+})
 
 for (const scenario of [
   { mode: 'return link' as const, viewport: { width: 390, height: 844 } },
@@ -448,6 +740,7 @@ for (const scenario of [
     ).toBe(true)
     expect(probe.maxOverlayCount).toBe(1)
     expect(probe.removedAt).toBeLessThanOrEqual(500)
+    expect(probe.frames.every((frame) => !frame.underlayPresent)).toBe(true)
   })
 }
 
@@ -461,6 +754,9 @@ test('reduced motion uses only a bounded destination opacity hint', async ({ pag
   for (const frame of result.probe.frames) {
     expectRectNear(frame, target, 0.5)
     expect(frame.transform).toBe('none')
+    expect(frame.underlayPresent).toBe(false)
+    expect(frame.destinationStage).toBe('')
+    expect(frame.destinationOnlyOpacities.every((opacity) => opacity === 1)).toBe(true)
   }
   expect(result.probe.animatedProperties).not.toEqual(
     expect.arrayContaining(['transform', 'translate', 'scale', 'top', 'left', 'width', 'height'])
@@ -493,6 +789,7 @@ test('a compact search result keeps the destination skeleton fallback', async ({
     await expect(page.locator('[data-article-transition-fallback]')).toBeVisible()
     await expect(page.locator('[data-article-route-skeleton]')).toBeVisible()
     await expect(page.locator('[data-article-transition-overlay]')).toHaveCount(0)
+    await expect(page.locator('[data-article-transition-underlay]')).toHaveCount(0)
   } finally {
     releaseRequest()
     await click
@@ -558,6 +855,7 @@ for (const failure of ['invalid full-card geometry', 'session storage failure'] 
       await expect.poll(() => delayedRequests).toBeGreaterThan(0)
       await expect(page.locator('[data-article-transition-overlay]')).toHaveCount(0)
       await expect(page.locator('[data-article-transition-fallback]')).toHaveCount(0)
+      await expect(page.locator('[data-article-transition-underlay]')).toHaveCount(0)
     } finally {
       releaseRequest()
       await click
@@ -591,6 +889,7 @@ test('viewport resize cancels a pending card snapshot without delaying navigatio
     await expect(page.locator('[data-article-transition-overlay]')).toHaveCount(1)
     await page.setViewportSize({ width: 391, height: 844 })
     await expect(page.locator('[data-article-transition-overlay]')).toHaveCount(0)
+    await expect(page.locator('[data-article-transition-underlay]')).toHaveCount(0)
   } finally {
     releaseRequest()
     await click

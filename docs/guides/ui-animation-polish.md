@@ -17,6 +17,7 @@ related_code:
   - components/ArticleTransitionContext.tsx
   - components/Header.tsx
   - components/HeaderNavLinks.tsx
+  - components/LanguageSwitcher.tsx
   - components/PostCard.tsx
   - components/PostMeta.tsx
   - components/ArticleReturnLink.tsx

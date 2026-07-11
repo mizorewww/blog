@@ -20,6 +20,7 @@ related_code:
   - components/ArticleTransitionContext.tsx
   - components/ArticleCardPresentation.tsx
   - components/ArticleGitMeta.tsx
+  - components/LanguageSwitcher.tsx
   - components/PostCard.tsx
   - components/PostMeta.tsx
   - components/ArticleReturnLink.tsx
@@ -28,6 +29,7 @@ related_code:
   - components/ReadingProgress.tsx
   - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
+  - css/tailwind.css
   - lib/articleFragment.ts
   - lib/articleReturn.ts
   - lib/articleTransition.ts

@@ -83,7 +83,10 @@ export default function PostLayout({
             />
 
             {(authorNames.length > 0 || post.tags.length > 1 || post.gitCommits.length > 0) && (
-              <div className="px-5 pb-8 text-sm text-slate-500 sm:px-6 dark:text-white/60">
+              <div
+                data-article-transition-destination-only
+                className="px-5 pb-8 text-sm text-slate-500 sm:px-6 dark:text-white/60"
+              >
                 {(authorNames.length > 0 || post.tags.length > 1) && (
                   <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
                     {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}

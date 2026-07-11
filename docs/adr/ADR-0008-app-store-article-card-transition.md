@@ -11,6 +11,7 @@ related_code:
   - components/ArticleCardPresentation.tsx
   - components/ArticleGitMeta.tsx
   - components/ArticleTransitionContext.tsx
+  - components/LanguageSwitcher.tsx
   - components/PostCard.tsx
   - components/PostMeta.tsx
   - components/BlogListNavigationRecorder.tsx
@@ -18,6 +19,7 @@ related_code:
   - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
   - components/animata/motion.ts
+  - css/tailwind.css
   - layouts/PostLayout.tsx
   - lib/articleReturn.ts
   - lib/articleTransition.ts
@@ -41,7 +43,7 @@ Status: accepted
 Date: 2026-07-10
 Amended: 2026-07-11
 Owner: codex-agent
-Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/ArticleCardPresentation.tsx`, `components/ArticleGitMeta.tsx`, `components/ArticleTransitionContext.tsx`, `components/PostCard.tsx`, `components/PostMeta.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleCardTransitionOverlay.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/articleTransition.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-card-transition.spec.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/unit/articleTransition.test.ts`
+Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/ArticleCardPresentation.tsx`, `components/ArticleGitMeta.tsx`, `components/ArticleTransitionContext.tsx`, `components/LanguageSwitcher.tsx`, `components/PostCard.tsx`, `components/PostMeta.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleCardTransitionOverlay.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `css/tailwind.css`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/articleTransition.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-card-transition.spec.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/unit/articleTransition.test.ts`
 Amends: the article-overlay, maximum-displacement, 220 ms transition, and validated opening-handoff pixel visibility and presentation-staging constraints in ADR-0007 only; it does not amend static destination DOM ownership
 Supersedes:
 Superseded by:

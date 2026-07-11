@@ -257,6 +257,22 @@
     border-radius: 0;
   }
 
+  main[data-article-transition-destination='opening'] [data-article-transition-destination-only] {
+    opacity: 0;
+  }
+
+  main[data-article-transition-destination='revealed'] [data-article-transition-destination-only] {
+    opacity: 1;
+    transition: opacity 180ms ease-out;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    main[data-article-transition-destination] [data-article-transition-destination-only] {
+      opacity: 1;
+      transition: none;
+    }
+  }
+
   @media (min-width: 640px) {
     .article-shell {
       max-width: min(calc(100% - 30px), 1120px);

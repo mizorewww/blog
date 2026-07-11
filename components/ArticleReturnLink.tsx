@@ -45,7 +45,13 @@ export default function ArticleReturnLink({
   }
 
   return (
-    <Link href={href} aria-label={ariaLabel} onClick={onClick} className={className}>
+    <Link
+      href={href}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className={className}
+      data-article-transition-destination-only
+    >
       {children}
     </Link>
   )

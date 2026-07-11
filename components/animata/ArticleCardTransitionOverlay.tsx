@@ -99,7 +99,7 @@ function TransitionSurface({
       layout
       layoutDependency={layoutMode}
       data-article-transition-overlay-surface
-      className="dark:bg-surface-card-dark absolute overflow-hidden bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 dark:shadow-black/30 dark:ring-white/10"
+      className="dark:bg-surface-card-dark absolute z-10 overflow-hidden bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 dark:shadow-black/30 dark:ring-white/10"
       style={containStyle}
       initial={state.reducedMotion && state.phase === 'opening' ? { opacity: 0.72 } : false}
       animate={reducedOpacity === undefined ? { opacity: 1 } : { opacity: reducedOpacity }}
@@ -273,10 +273,12 @@ function TransitionSurface({
 
 export default function ArticleCardTransitionOverlay({
   state,
+  concealDestination,
   onOpenMotionComplete,
   onReturnMotionComplete,
 }: {
   state: ArticleTransitionState
+  concealDestination: boolean
   onOpenMotionComplete: () => void
   onReturnMotionComplete: () => void
 }) {
@@ -297,6 +299,12 @@ export default function ArticleCardTransitionOverlay({
           exit={{ opacity: 0 }}
           transition={{ duration: ARTICLE_TRANSITION_EXIT_DURATION_SECONDS }}
         >
+          {concealDestination && (
+            <div
+              data-article-transition-underlay
+              className="dark:bg-surface-page-dark bg-surface-page absolute inset-0 z-0"
+            />
+          )}
           <TransitionSurface
             key={visible.snapshot.key}
             state={visible}

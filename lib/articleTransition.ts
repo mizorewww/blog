@@ -87,6 +87,8 @@ export type ArticleTransitionState =
       reducedMotion: boolean
     }
 
+export type ArticleTransitionDestinationStage = 'opening' | 'revealed'
+
 export type ArticleTransitionAction =
   | {
       type: 'open-started'
@@ -103,6 +105,25 @@ export type ArticleTransitionAction =
   | { type: 'viewport-changed' }
 
 export const idleArticleTransitionState: ArticleTransitionState = { phase: 'idle' }
+
+export function deriveArticleTransitionDestinationStage(
+  state: ArticleTransitionState,
+  pathname: string
+): ArticleTransitionDestinationStage | null {
+  if (state.phase !== 'opening' && state.phase !== 'retained') {
+    return null
+  }
+
+  if (state.reducedMotion || normalizePathname(pathname) !== state.snapshot.targetPath) {
+    return null
+  }
+
+  if (state.phase === 'opening') {
+    return 'opening'
+  }
+
+  return state.phase === 'retained' ? 'revealed' : null
+}
 
 function finite(value: number) {
   return Number.isFinite(value)

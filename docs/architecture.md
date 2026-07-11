@@ -22,12 +22,14 @@ related_code:
   - components/MDXServerRenderer.tsx
   - components/AppShell.tsx
   - components/ArticleTransitionContext.tsx
+  - components/LanguageSwitcher.tsx
   - components/ArticleReturnLink.tsx
   - components/BlogListNavigationRecorder.tsx
   - components/ArticleReader.tsx
   - components/ArticleTableOfContents.tsx
   - components/animata/ArticleCardTransitionOverlay.tsx
   - components/animata/ArticleRouteSkeleton.tsx
+  - css/tailwind.css
   - lib/articleFragment.ts
   - lib/articleReturn.ts
   - lib/articleTransition.ts

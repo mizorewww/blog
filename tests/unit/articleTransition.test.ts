@@ -3,6 +3,7 @@ import {
   articleTransitionReducer,
   createArticleCardSnapshot,
   createArticleTransitionTarget,
+  deriveArticleTransitionDestinationStage,
   getArticleTransitionDestination,
   idleArticleTransitionState,
   type ArticleCardSnapshot,
@@ -201,5 +202,56 @@ describe('article transition state reducer', () => {
     })
 
     expect(articleTransitionReducer(opening, action)).toEqual(idleArticleTransitionState)
+  })
+})
+
+describe('article transition destination presentation', () => {
+  const opening = articleTransitionReducer(idleArticleTransitionState, {
+    type: 'open-started',
+    snapshot,
+    viewport,
+    reducedMotion: false,
+  })
+
+  it('conceals the committed destination synchronously until opening motion completes', () => {
+    expect(deriveArticleTransitionDestinationStage(opening, snapshot.sourcePath)).toBeNull()
+    expect(deriveArticleTransitionDestinationStage(opening, snapshot.targetPath)).toBe('opening')
+
+    const motionCompleted = articleTransitionReducer(opening, {
+      type: 'open-motion-completed',
+    })
+    expect(deriveArticleTransitionDestinationStage(motionCompleted, snapshot.targetPath)).toBe(
+      'opening'
+    )
+
+    const retained = articleTransitionReducer(motionCompleted, {
+      type: 'route-committed',
+      pathname: snapshot.targetPath,
+    })
+    expect(deriveArticleTransitionDestinationStage(retained, snapshot.targetPath)).toBe('revealed')
+  })
+
+  it('does not stage ambiguous, returning, or reduced-motion destinations', () => {
+    const reducedOpening = articleTransitionReducer(idleArticleTransitionState, {
+      type: 'open-started',
+      snapshot,
+      viewport,
+      reducedMotion: true,
+    })
+    const routeCommitted = articleTransitionReducer(opening, {
+      type: 'route-committed',
+      pathname: snapshot.targetPath,
+    })
+    const retained = articleTransitionReducer(routeCommitted, {
+      type: 'open-motion-completed',
+    })
+    const returning = articleTransitionReducer(retained, { type: 'return-requested' })
+
+    expect(
+      deriveArticleTransitionDestinationStage(idleArticleTransitionState, snapshot.targetPath)
+    ).toBeNull()
+    expect(deriveArticleTransitionDestinationStage(opening, '/zh/search')).toBeNull()
+    expect(deriveArticleTransitionDestinationStage(reducedOpening, snapshot.targetPath)).toBeNull()
+    expect(deriveArticleTransitionDestinationStage(returning, snapshot.targetPath)).toBeNull()
   })
 })
