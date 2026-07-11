@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: guide
 owner: codex-agent
-last_verified: 2026-07-10
+last_verified: 2026-07-11
 verified_by: command
 related_code:
   - app/theme-providers.tsx
@@ -80,7 +80,9 @@ superseded_by:
 
 以下为规范性目标合同；实现状态以源代码和浏览器测试为准。
 
-- 完整 `PostCard` 的普通主键 Link 可以启动唯一主要动画。用结构化 React snapshot 重绘封面、标题、摘要、元信息、surface 和 radius；snapshot 必须 fixed、`aria-hidden="true"`、`pointer-events: none`，不得 `cloneNode()` 或复制正文 DOM。
+- 完整 `PostCard` 的普通主键 Link 可以启动唯一主要动画。`PostCard`、`ArticleCardTransitionOverlay` 和 `PostLayout` 的共享头部使用同一展示合同；结构化 React snapshot 分别重绘 surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance，不能把 metadata 扁平化。snapshot 必须 fixed、`aria-hidden="true"`、`pointer-events: none`，不得 `cloneNode()` 或复制正文 DOM。
+- surface、cover、title、Git 信息、summary、date 与 tag 必须逐 child 投影到文章共享头部。overlay 最终帧与文章头部保持相同的顺序、字体、字重、行高、换行约束和 geometry，不用 opacity crossfade 交接两套标题或持久信息。Git 相对时间在捕获时冻结，过渡期间不随时钟或 hydration 改写。
+- read-more 是来源卡片专有的视觉提示。它在 inert snapshot 中保留 layout space 并平滑淡出，返回接近来源卡片时平滑恢复；文章页不渲染可聚焦的自链接。其他在首页卡片上出现的元素不得在 route handoff 时骤然消失。
 - 搜索结果和侧栏链接没有完整卡片数据与 rectangle 时，只显示目标文章形状的 skeleton snapshot。不得把零散标题或缩略图伪装成完整 shared card。
 - Link 始终立即执行，observer 不 `preventDefault()`。route commit 不等 `380 ms`；返回控制也立即执行已验证 Back 或 fallback Link，不等 `340 ms`。真实正文不做 height/opacity gating。
 - Header 为 `z-index: 50`，snapshot overlay 为 `z-index: 40`。覆盖层不接收 focus/pointer，不锁 body scroll，也不改变页面 layout。
@@ -135,4 +137,4 @@ UI 或动效变更至少验证以下视口：
 
 每个视口覆盖浅色、深色、正常动态效果和 reduced motion。文章流程覆盖完整 PostCard、搜索与侧栏来源，列表进入、浏览器 Back、顶部返回、直达、刷新和新标签页，以及 resize、缺目标、route mismatch 与快速重复操作。term 流程覆盖 zh/en 的 index/detail 直达、无脚本可见性以及 Header -> index -> chip -> detail 导航。
 
-浏览器检查普通微动效的早期帧、220 ms 结束帧和 250 ms 稳定帧；文章打开记录起点、约 190 ms、380 ms 和 450 ms，返回记录起点、约 170 ms、340 ms 和 420 ms。验收条件是 route/Back 可先于动画结束提交，snapshot 始终 fixed/inert，Header 位于 overlay 上方，并且没有 UI 重叠、长文布局补间、二次滚动、骨架错型或 hydration 后正文闪现；只检查最终截图或最终 URL 不足以通过。
+浏览器检查普通微动效的早期帧、220 ms 结束帧和 250 ms 稳定帧；文章打开记录起点、约 190 ms、380 ms 和 450 ms，返回记录起点、约 170 ms、340 ms 和 420 ms。验收条件是 route/Back 可先于动画结束提交，snapshot 始终 fixed/inert，Header 位于 overlay 上方；逐 child 检查 title、Git 信息、summary、date 与 tag 的 typography、顺序、换行和 rectangle 在交接帧一致，并确认 read-more 保留占位平滑退出。页面不得出现 opacity 标题交接、单帧消失、UI 重叠、长文布局补间、二次滚动、骨架错型或 hydration 后正文闪现；只检查最终截图或最终 URL 不足以通过。

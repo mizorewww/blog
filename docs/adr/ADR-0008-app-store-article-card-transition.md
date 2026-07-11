@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-07-10
+last_verified: 2026-07-11
 verified_by: source citation
 related_code:
   - app/theme-providers.tsx
@@ -36,6 +36,7 @@ superseded_by:
 
 Status: accepted
 Date: 2026-07-10
+Amended: 2026-07-11
 Owner: codex-agent
 Related code: `app/theme-providers.tsx`, `components/AppShell.tsx`, `components/ArticleTransitionContext.tsx`, `components/PostCard.tsx`, `components/BlogListNavigationRecorder.tsx`, `components/ArticleReturnLink.tsx`, `components/animata/ArticleCardTransitionOverlay.tsx`, `components/animata/ArticleRouteSkeleton.tsx`, `components/animata/motion.ts`, `layouts/PostLayout.tsx`, `lib/articleReturn.ts`, `lib/articleTransition.ts`, `lib/blogRouteState.ts`, `tests/e2e/article-card-transition.spec.ts`, `tests/e2e/article-navigation.spec.ts`, `tests/unit/articleTransition.test.ts`
 Amends: the article-overlay, maximum-displacement, and 220 ms transition constraints in ADR-0007 only
@@ -48,11 +49,13 @@ ADR-0007 separated article content from the list and made each article URL an in
 
 This is a continuity problem, not a request to restore inline article disclosure. The article body must remain owned by the destination route and directly visible in static HTML. A transition layer therefore cannot clone the live card DOM, host MDX, become an interactive modal, intercept navigation, delay history traversal, or take ownership of scroll restoration.
 
-The decision is based on the following primary documentation, accessed 2026-07-10:
+The decision is based on the following primary documentation, accessed 2026-07-11:
 
 - Next.js [`Link`](https://nextjs.org/docs/app/api-reference/components/link) documents native anchor attributes, client navigation, prefetching, and default history/scroll behavior. [Static exports](https://nextjs.org/docs/app/guides/static-exports) defines the deployment boundary that requires final article HTML to stand alone. Next.js marks [`experimental.viewTransition`](https://nextjs.org/docs/app/api-reference/config/next-config-js/viewTransition) experimental and not recommended for production.
 - Motion documents transform-based [`layout` and `layoutId` animations](https://motion.dev/docs/react-layout-animations), its official [iOS App Store card example](https://motion.dev/examples/react-app-store), and [`AnimatePresence`](https://motion.dev/docs/react-animate-presence) for retaining a visual element through exit. Its [accessibility guide](https://motion.dev/docs/react-accessibility) specifies `MotionConfig reducedMotion="user"` and replacing large transform motion for reduced-motion users. Its [installation guide](https://motion.dev/docs/react-installation) confirms App Router support and the existing `motion/react` client boundary.
 - MDN documents that [`popstate`](https://developer.mozilla.org/en-US/docs/Web/API/Window/popstate_event) follows history traversal, that [`history.scrollRestoration`](https://developer.mozilla.org/en-US/docs/Web/API/History/scrollRestoration) controls browser restoration mode, and that [`prefers-reduced-motion`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@media/prefers-reduced-motion) expresses the user's request to minimize nonessential motion.
+
+The initial structured snapshot treated card metadata as one flattened visual block and allowed the overlay title to fade before the destination title took over. Because `PostCard`, the snapshot, and `PostLayout` could render that title with different font metrics, the handoff exposed a perceptible flash. The continuity contract therefore needs to cover every element visible on the source card, not only the card surface and cover.
 
 ## Decision
 
@@ -62,7 +65,10 @@ The transition layer follows these ownership rules:
 
 - Every article target remains an ordinary Next.js `Link`. The observer may capture a plain primary navigation and render transition state, but it must not call `preventDefault()`, replace the link action, set `scroll: false`, or defer navigation until animation completion. Modified clicks, new tabs, downloads, external targets, and failed capture keep native behavior and do not start the large transition.
 - The visual is a fixed, structured React snapshot with `aria-hidden="true"` and `pointer-events: none`. It is reconstructed from the minimum serialized card fields and measured rectangles; it never uses `cloneNode()`, cloned interactive descendants, copied article HTML, or client MDX evaluation. It cannot receive focus or obscure the semantic destination from assistive technology.
-- A full `PostCard` source supplies cover, title, summary, metadata, surface, radius, and measured viewport rectangle so the complete card morphs. An article link from search results or a sidebar, where full card data and geometry are unavailable, uses the single-article skeleton snapshot rather than inventing a partial card. Missing data, an invalid rectangle, storage failure, route mismatch, interruption, or a viewport resize immediately removes the snapshot and leaves ordinary routing visible.
+- `PostCard`, `ArticleCardTransitionOverlay`, and the shared header region in `PostLayout` must consume one presentation contract. The elements visible on a full source card are typed separately as surface, cover, title, Git-relative update text, source affordance, summary, published date, primary tag, and read-more affordance. Metadata must not be flattened into one opaque string or DOM fragment because each child needs an explicit identity, order, and layout target.
+- Surface, cover, title, Git information, summary, published date, and primary tag persist into the article header. Their typography, line height, order, wrapping constraints, and destination geometry must be identical between the overlay's final frame and `PostLayout`; each child receives its own layout projection. Persistent elements must not use an opacity crossfade to conceal mismatched rendering. The Git-relative update text is frozen when the source snapshot is captured so a clock tick or hydration cannot change the string during the transition.
+- The read-more affordance remains source-only and inert inside the overlay. It preserves its layout space while it smoothly fades during expansion, and it is restored as the collapse approaches the source card; it must not become a focusable or self-referential article-page control. No other source-card element may disappear abruptly at route handoff.
+- A full `PostCard` source supplies the typed presentation fields and measured viewport rectangle so the complete card morphs. An article link from search results or a sidebar, where full card data and geometry are unavailable, uses the single-article skeleton snapshot rather than inventing a partial card. Missing data, an invalid rectangle, storage failure, route mismatch, interruption, or a viewport resize immediately removes the snapshot and leaves ordinary routing visible.
 - The overlay is fixed to the viewport at `z-index: 40`; the Header remains above it at `z-index: 50`. It does not change document layout or lock scrolling. At `320px` and `390px`, the destination surface spans the viewport width, begins at `top: 72px`, and has `border-radius: 0`. At `1440px`, it is `780px` wide, centered horizontally, begins at `top: 120px`, and has an `8px` radius. Intermediate widths interpolate through responsive CSS constraints without covering the Header.
 - A normal open transition lasts `380 ms`; a proven return transition lasts `340 ms`. Both use easing `[0.32, 0.72, 0, 1]`. The opening snapshot expands from the measured source card to the destination reading-surface geometry while the route commits independently. The snapshot may remain just long enough to finish its own bounded exit, but the real article is not withheld, opacity-gated, or height-animated beneath it.
 - A return action starts history or fallback Link navigation immediately. It does not wait for the `340 ms` animation. A collapse snapshot is allowed only when the current article has a proven same-tab list source and the restored destination exposes the matching full card target. After the list route commits, it resolves the target's current rectangle and settles there. If the target is absent, virtualized away, changed, or invalid, the overlay disappears immediately; the application does not scroll to manufacture a target.

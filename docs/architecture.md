@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: source-of-truth
 owner: docs-maintainer
-last_verified: 2026-07-10
+last_verified: 2026-07-11
 verified_by: command
 related_code:
   - app/[locale]/page.tsx
@@ -121,7 +121,9 @@ TOC、阅读进度、代码复制、主题、第三方 widget 和经过验证的
 
 本节是 ADR-0008 的规范性合同；是否已经落地必须以对应源代码与浏览器测试为准，不能从文档状态推断。
 
-从完整 `PostCard` 打开文章时，App Shell 必须使用一个 fixed、结构化、`aria-hidden="true"`、`pointer-events: none` 的 React 快照，把封面、标题、摘要、元信息和卡片表面从实测起始 rectangle 变换到文章阅读面。快照只消费最小序列化卡片字段，不使用 `cloneNode()`、复制交互控件、文章 HTML 或 MDX。搜索结果和侧栏文章链接缺少完整卡片合同时，改用单篇文章 skeleton 快照，不拼接不完整的共享元素。
+从完整 `PostCard` 打开文章时，App Shell 必须使用一个 fixed、结构化、`aria-hidden="true"`、`pointer-events: none` 的 React 快照，把卡片表面以及卡片上所有可见元素从实测起始 rectangle 变换到文章阅读面。`PostCard`、`ArticleCardTransitionOverlay` 与 `PostLayout` 的共享头部消费同一展示合同；快照把 surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance 分别建模，不能把 metadata 压成一个字符串或 DOM 片段。快照只消费最小序列化卡片字段，不使用 `cloneNode()`、复制交互控件、文章 HTML 或 MDX。搜索结果和侧栏文章链接缺少完整卡片合同时，改用单篇文章 skeleton 快照，不拼接不完整的共享元素。
+
+surface、cover、title、Git 信息、summary、published date 与 primary tag 是持久元素。它们在快照终点与文章共享头部中必须保持相同的元素顺序、字体、字重、行高、换行约束和目标 geometry，并按 child 分别执行 layout projection；不得用 opacity crossfade 遮掩两套标题或元信息渲染。Git 相对时间在捕获时冻结，避免过渡中因时钟或 hydration 改变文案。read-more 只属于来源卡片，在 inert 快照中保留 layout space 后平滑淡出，返回接近来源卡片时再恢复；它不会成为文章页上的可聚焦自链接。该合同是规范性目标，不能仅凭本段文档推断实现已完成。
 
 转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`1440px` 下目标面宽 `780px`、水平居中、`top: 120px`、radius 为 `8px`。打开使用 `380 ms`，经验证的返回使用 `340 ms`，二者 easing 均为 `[0.32, 0.72, 0, 1]`。
 

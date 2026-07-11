@@ -3,7 +3,7 @@ status: active
 audience: both
 authority: source-of-truth
 owner: docs-maintainer
-last_verified: 2026-07-10
+last_verified: 2026-07-11
 verified_by: command
 related_code:
   - package.json
@@ -191,6 +191,8 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
 - App Store 文章卡片转场是唯一 timing/displacement 例外：打开 `380 ms`，经验证的返回 `340 ms`，easing 为 `[0.32, 0.72, 0, 1]`。完整 `PostCard` 必须以 fixed 结构化快照 morph；搜索与侧栏来源只使用单篇 skeleton。
 - 快照必须 `aria-hidden="true"`、`pointer-events: none`，只含最小展示数据和数值 rectangle，不用 `cloneNode()`、复制控件、文章 HTML 或 MDX。Header 保持 `z-index: 50`，覆盖层为 `z-index: 40`。
+- `PostCard`、`ArticleCardTransitionOverlay` 与 `PostLayout` 共享一套卡片头部展示合同。surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance 必须分别类型化并拥有各自的 layout marker；禁止把 metadata 合并为一个不可投影的字符串或节点。
+- title 与其余持久信息在 overlay 终点和文章头部必须保持相同的元素顺序、字体、字重、行高、换行约束和 geometry，逐 child 投影且不使用 opacity crossfade 交接。捕获时冻结 Git 相对时间文案。read-more 只在 inert snapshot 中保留占位并平滑淡出，返回时平滑恢复，不在文章页生成可聚焦自链接。
 - `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`1440px` 目标面宽 `780px`、居中、`top: 120px`、radius `8px`。
 - Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除快照。
 - reduced motion 下禁止完整卡片的大范围 translate/scale，只允许极短 opacity 提示；正文、URL、focus 和 history 结果必须与正常模式一致。
@@ -209,7 +211,7 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 完整 PostCard、搜索结果与侧栏三种来源；前者验证 card morph，后两者验证单篇 skeleton fallback。
 - 正常完成、快速重复点击、动画中 resize、目标卡片缺失和 route mismatch 等退化路径。
 
-E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms 结束帧和 450 ms 稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms 结束帧和 450 ms 稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
 
 ## 开发纪律
 
