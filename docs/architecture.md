@@ -3,9 +3,14 @@ status: active
 audience: both
 authority: source-of-truth
 owner: docs-maintainer
-last_verified: 2026-07-11
+last_verified: 2026-07-21
 verified_by: command
 related_code:
+  - app/layout.tsx
+  - app/localized-html.tsx
+  - app/[locale]/layout.tsx
+  - app/not-found.tsx
+  - app/[locale]/not-found.tsx
   - app/[locale]/page.tsx
   - app/[locale]/[...slug]/page.tsx
   - app/[locale]/categories/page.tsx
@@ -21,6 +26,7 @@ related_code:
   - components/PostMeta.tsx
   - components/MDXServerRenderer.tsx
   - components/AppShell.tsx
+  - components/NotFoundPage.tsx
   - components/ArticleTransitionContext.tsx
   - components/LanguageSwitcher.tsx
   - components/ArticleReturnLink.tsx
@@ -39,7 +45,13 @@ related_code:
   - lib/listPosts.ts
   - lib/toc.ts
   - next.config.js
+  - public/_redirects
   - public/_headers
+  - scripts/lib/localized-html.mjs
+  - scripts/lib/redirects.mjs
+  - scripts/postbuild.mjs
+  - scripts/preview-static/caddy.mjs
+  - tests/e2e/dev-preview-parity.spec.ts
   - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/term-routes.spec.ts
   - tests/unit/articleTransition.test.ts
@@ -47,6 +59,7 @@ update_when:
   - architecture or build model changes
   - list or article RSC boundaries change
   - routing, return, or scroll behavior changes
+  - root layout, locale language, redirects, or not-found behavior changes
   - animation or loading ownership changes
 supersedes:
 superseded_by:
@@ -54,7 +67,7 @@ superseded_by:
 
 # 软件架构
 
-本项目是纯静态双语博客。生产环境不运行 Node.js 服务，文章、列表和索引页面均在构建阶段预渲染。文章阅读采用路由优先架构：文章 URL 是独立阅读页面，不是列表卡片的展开状态。文章与历史所有权以 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 为准，卡片到独立文章页的视觉连续性以 [ADR-0008](./adr/ADR-0008-app-store-article-card-transition.md) 为准，MDX 安全边界以 [ADR-0003](./adr/ADR-0003-remove-client-mdx-eval.md) 为准。
+本项目是纯静态双语博客。生产环境不运行 Node.js 服务，文章、列表和索引页面均在构建阶段预渲染。文章阅读采用路由优先架构：文章 URL 是独立阅读页面，不是列表卡片的展开状态。文章与历史所有权以 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 为准，卡片到独立文章页的视觉连续性以 [ADR-0008](./adr/ADR-0008-app-store-article-card-transition.md) 为准，稳定根布局与本地服务器一致性以 [ADR-0009](./adr/ADR-0009-stable-root-layout-and-local-server-parity.md) 为准，MDX 安全边界以 [ADR-0003](./adr/ADR-0003-remove-client-mdx-eval.md) 为准。
 
 ## 构建模型
 
@@ -64,10 +77,12 @@ MDX files
   -> typed content data + generated MDX modules
   -> Next.js static routes
   -> out/
+  -> localized HTML language normalization
+  -> Pagefind index
   -> Cloudflare Pages
 ```
 
-构建入口是 `yarn build`。构建完成后，`out/` 是唯一部署产物。
+构建入口是 `yarn build`。`next build` 只在非开发阶段启用 `output: 'export'`；随后构建后处理先校正每个本地化 HTML 的 `<html lang>`，再让 Pagefind 扫描最终文档。构建完成后，`out/` 是唯一部署产物。
 
 ## 目录职责
 
@@ -101,6 +116,14 @@ docs/         架构决策与维护文档
 ## 路由与渲染所有权
 
 列表路由和文章路由拥有不同的 RSC 数据与页面几何。
+
+### 文档根与 404
+
+`app/layout.tsx` 是唯一文档根，由服务端拥有 `<html>`、`<head>`、`<body>`、全局样式、providers、分析脚本和 `AppShell`。`app/[locale]/layout.tsx` 只负责 locale 静态参数与 metadata，不生成第二套文档标签。这个边界确保正常路由与根级未知路由在 `next dev` 中都有稳定的 root layout。
+
+根布局的静态初值使用默认语言；`app/localized-html.tsx` 按 pathname 在初始浏览器文档及客户端导航时设置实际 `lang`。生产构建还会在 Pagefind 运行前递归校正 `out/{locale}/` 中的 HTML，因此静态文件和搜索索引分别得到 `zh-CN` 或 `en-US`，不依赖 hydration 才正确。
+
+`app/not-found.tsx` 和 `app/[locale]/not-found.tsx` 都使用 `components/NotFoundPage.tsx`。共享页面按 pathname 选择本地化文案，并统一 title、正文和返回链接。Next.js 15.5 开发服务器的原始 404 streaming shell 可以与 Caddy 返回的静态 `404/index.html` 不同；支持的一致性边界是浏览器完成框架渲染后可观察的 status、title、`html lang`、文案和链接，不要求响应字节相同。
 
 ### 列表路由
 
@@ -173,7 +196,7 @@ Cloudflare Pages CSP 不为文章渲染开放 eval。`public/_headers`、生成�
 
 ## 路由结构
 
-默认语言是 `zh`。应用只保留显式语言路径；Cloudflare Pages redirects 把无语言前缀的历史 URL 永久跳到 `/zh/...`。
+默认语言是 `zh`。应用只保留显式语言路径；`public/_redirects` 是无语言前缀历史 URL 的权威规则，并把它们永久跳到 `/zh/...`。开发服务器通过 `next.config.js` 读取同一文件；生产导出把它复制到 `out/`，静态 preview 再由共享 parser 转换为 Caddy directives。Caddy 关闭自己的 canonical URI redirect，避免覆盖仓库定义的 trailing-slash 与 wildcard 行为。
 
 ```text
 /{locale}
@@ -189,4 +212,4 @@ Cloudflare Pages CSP 不为文章渲染开放 eval。`public/_headers`、生成�
 
 ## 运行时边界
 
-生产站点只依赖浏览器和 Cloudflare Pages 静态托管。运行时不存在文件系统读取、服务端 API、数据库或 Node.js server。搜索使用构建期 Pagefind 索引和按需加载的浏览器 runtime，不改变文章与列表的 RSC 数据边界。
+生产站点只依赖浏览器和 Cloudflare Pages 静态托管。运行时不存在文件系统读取、服务端 API、数据库或 Node.js server。搜索使用 HTML 语言校正后生成的 Pagefind 索引和按需加载的浏览器 runtime，不改变文章与列表的 RSC 数据边界。`yarn dev` 是非导出的 Next.js 开发运行时，`yarn preview` 是 Caddy 对 `out/` 的静态服务；两者的浏览器可观察路由合同由 `yarn test:e2e:parity` 验证。

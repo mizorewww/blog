@@ -516,7 +516,7 @@ test('a modified article click opens an independent tab without a return marker'
   await link.scrollIntoViewIfNeeded()
 
   const popupPromise = page.context().waitForEvent('page')
-  await link.click({ modifiers: ['Control'] })
+  await link.click({ modifiers: ['ControlOrMeta'] })
   const popup = await popupPromise
 
   await expect(page).toHaveURL(SOURCE_PATH)

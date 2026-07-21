@@ -11,6 +11,7 @@ import {
   writeFile,
 } from 'node:fs/promises'
 import path from 'node:path'
+import { parseRedirects, toCaddyRedirectDirectives } from '../lib/redirects.mjs'
 import { run } from './process.mjs'
 
 const caddyVersion = '2.11.4'
@@ -276,56 +277,13 @@ function quoteCaddyfileValue(value) {
 }
 
 /**
- * @param {string} value - value to escape
- * @returns {string}
- */
-function escapeCaddyRegexp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-/**
- * @param {string} source - redirect source pattern
- * @param {string} name - matcher name
- * @returns {{ directive: string, matcher: string }}
- */
-function createRedirectMatcher(source, name) {
-  if (!source.includes('*')) {
-    return {
-      directive: '',
-      matcher: source,
-    }
-  }
-
-  return {
-    directive: `\t@${name} path_regexp ${name} ^${source.split('*').map(escapeCaddyRegexp).join('(.*)')}$`,
-    matcher: `@${name}`,
-  }
-}
-
-/**
  * @param {string} outDir - output directory containing _redirects
  * @returns {Promise<string[]>}
  */
 async function readRedirectDirectives(outDir) {
   const redirects = await readFile(path.join(outDir, '_redirects'), 'utf8').catch(() => '')
 
-  return redirects
-    .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line && !line.startsWith('#'))
-    .flatMap((line, index) => {
-      const [source, destination, status = '302'] = line.split(/\s+/)
-
-      if (!source || !destination) {
-        return []
-      }
-
-      const name = `redirect_${index}`
-      const { directive, matcher } = createRedirectMatcher(source, name)
-      const target = destination.replaceAll(':splat', `{re.${name}.1}`)
-
-      return [directive, `\tredir ${matcher} ${target} ${status}`].filter(Boolean)
-    })
+  return toCaddyRedirectDirectives(parseRedirects(redirects))
 }
 
 /**
@@ -355,7 +313,9 @@ export async function writeCaddyfile({ port, projectRoot, toolsDir }) {
 \troot * ${quoteCaddyfileValue(outDir)}
 \tencode zstd gzip
 ${redirectsBlock}
-\tfile_server
+\tfile_server {
+\t\tdisable_canonical_uris
+\t}
 
 \thandle_errors {
 \t\trewrite * /404/index.html

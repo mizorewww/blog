@@ -1,5 +1,6 @@
 import rss from './rss.mjs'
 import { execSync } from 'node:child_process'
+import { normalizeExportedHtmlLanguages } from './lib/localized-html.mjs'
 
 async function searchIndex() {
   try {
@@ -14,6 +15,7 @@ async function searchIndex() {
 
 async function postbuild() {
   await rss()
+  await normalizeExportedHtmlLanguages('out')
   await searchIndex()
 }
 

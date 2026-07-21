@@ -936,7 +936,7 @@ test('modified click opens an independent tab without any transition UI', async 
   await link.scrollIntoViewIfNeeded()
   const popupPromise = page.context().waitForEvent('page')
 
-  await link.click({ modifiers: ['Control'] })
+  await link.click({ modifiers: ['ControlOrMeta'] })
   const popup = await popupPromise
 
   await expect(page).toHaveURL(SOURCE_PATH)

@@ -12,6 +12,7 @@
     "test": "yarn test:unit && yarn test:e2e",
     "test:unit": "vitest run",
     "test:e2e": "playwright test",
+    "test:e2e:parity": "yarn build && cross-env PLAYWRIGHT_DEV_PREVIEW_PARITY=1 playwright test tests/e2e/dev-preview-parity.spec.ts --project=chromium",
     "lint": "yarn lint:check",
     "lint:check": "eslint app components contentlayer data lib layouts scripts tests contentlayer.config.ts eslint.config.mjs next.config.js playwright.config.ts postcss.config.js prettier.config.js vitest.config.ts --max-warnings=0",
     "lint:fix": "yarn lint:check --fix",

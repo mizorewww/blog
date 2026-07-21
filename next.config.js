@@ -1,5 +1,7 @@
+import { readFile } from 'node:fs/promises'
 import { PHASE_DEVELOPMENT_SERVER } from 'next/constants.js'
 import { getGitOutput } from './scripts/lib/git-exec.mjs'
+import { parseRedirects, toNextRedirects } from './scripts/lib/redirects.mjs'
 
 const gitFullCommitHash = process.env.VERCEL_GIT_COMMIT_SHA || getGitOutput(['rev-parse', 'HEAD'])
 const gitShortCommitHash = gitFullCommitHash
@@ -13,7 +15,6 @@ const gitShortCommitHash = gitFullCommitHash
 export default async function nextConfig(phase) {
   /** @type {import('next').NextConfig} */
   const config = {
-    output: 'export',
     reactStrictMode: true,
     trailingSlash: true,
     pageExtensions: ['ts', 'tsx', 'js', 'jsx', 'md', 'mdx'],
@@ -27,9 +28,16 @@ export default async function nextConfig(phase) {
   }
 
   if (phase === PHASE_DEVELOPMENT_SERVER) {
+    config.skipTrailingSlashRedirect = true
+    config.redirects = async () => {
+      const redirects = await readFile(new URL('./public/_redirects', import.meta.url), 'utf8')
+      return toNextRedirects(parseRedirects(redirects))
+    }
+
     const { withContentlayer } = await import('next-contentlayer2')
     return withContentlayer(config)
   }
 
+  config.output = 'export'
   return config
 }

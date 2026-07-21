@@ -3,13 +3,15 @@ status: active
 audience: agent
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-06-23
+last_verified: 2026-07-21
 verified_by: command
 related_code:
   - package.json
   - tsconfig.scripts.json
   - scripts/check-doc-metadata.mjs
   - scripts/agent-watchdog.mjs
+  - tests/e2e/dev-preview-parity.spec.ts
+  - playwright.config.ts
   - eslint.config.mjs
   - knip.json
 update_when:
@@ -17,6 +19,7 @@ update_when:
   - TypeScript project config changes
   - lint rules change
   - documentation metadata policy changes
+  - development or preview routing contract changes
 supersedes:
 superseded_by:
 ---
@@ -42,6 +45,7 @@ yarn lint:check
 yarn format:check
 yarn test:unit
 yarn test:e2e
+yarn test:e2e:parity
 yarn typecheck
 yarn typecheck:scripts
 yarn docs:check
@@ -142,6 +146,18 @@ preview behavior, or browser-visible navigation:
 ```bash
 yarn test:e2e
 ```
+
+When a diff touches root layout ownership, not-found behavior, redirect parsing, trailing-slash
+handling, localized document language, or development/static-preview configuration, also run:
+
+```bash
+yarn test:e2e:parity
+```
+
+This gate builds the static export, starts the Next.js development server and Caddy preview together,
+and compares redirects plus representative localized pages and custom 404s. Next.js 15.5 development
+may use a different raw streaming 404 shell from the exported static document; the required parity is
+the browser-observable HTTP status, title, document language, localized content, and link target.
 
 ### 6. Documentation Metadata
 

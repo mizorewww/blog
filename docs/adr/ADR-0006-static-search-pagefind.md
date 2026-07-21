@@ -3,12 +3,15 @@ status: active
 audience: both
 authority: source-of-truth
 owner: codex-agent
-last_verified: 2026-07-04
-verified_by: source citation
+last_verified: 2026-07-21
+verified_by: command
 related_code:
   - app/[locale]/search/page.tsx
   - components/SearchPageClient.tsx
   - components/Header.tsx
+  - app/layout.tsx
+  - app/localized-html.tsx
+  - scripts/lib/localized-html.mjs
   - scripts/postbuild.mjs
   - scripts/asset-budget.mjs
   - scripts/quality-html.sh
@@ -27,7 +30,7 @@ superseded_by:
 Status: accepted
 Date: 2026-07-04
 Owner: codex-agent
-Related code: `app/[locale]/search/page.tsx`, `components/SearchPageClient.tsx`, `components/Header.tsx`, `scripts/postbuild.mjs`, `scripts/asset-budget.mjs`, `scripts/quality-html.sh`, `knip.json`, `package.json`
+Related code: `app/[locale]/search/page.tsx`, `components/SearchPageClient.tsx`, `components/Header.tsx`, `app/layout.tsx`, `app/localized-html.tsx`, `scripts/lib/localized-html.mjs`, `scripts/postbuild.mjs`, `scripts/asset-budget.mjs`, `scripts/quality-html.sh`, `knip.json`, `package.json`
 Supersedes:
 Superseded by:
 
@@ -45,8 +48,8 @@ Pagefind is a build-time indexer that scans the `out/` static HTML directory aft
 
 Key characteristics:
 
-- **Post-build indexing**: `pagefind --site out` runs in `scripts/postbuild.mjs` after the static export finishes. The index lives in `out/pagefind/` (gitignored, regenerated each build).
-- **Zero-config multilingual**: Pagefind reads `<html lang>` (already set to `zh-CN`/`en-US` in `app/[locale]/layout.tsx`) and creates per-language indexes automatically. CJK tokenization is built into the extended binary; English stemming is automatic.
+- **Post-build indexing**: after static export, `scripts/postbuild.mjs` normalizes each localized document's `<html lang>` and then runs `pagefind --site out`. The index lives in `out/pagefind/` (gitignored, regenerated each build).
+- **Zero-config multilingual**: Pagefind reads the normalized `zh-CN`/`en-US` `<html lang>` values and creates per-language indexes automatically. The top-level server root starts from the default language, `app/localized-html.tsx` keeps browser navigation path-aware, and `scripts/lib/localized-html.mjs` guarantees exported documents are correct before indexing. CJK tokenization is built into the extended binary; English stemming is automatic.
 - **Pre-built WAI-ARIA UI**: The Pagefind Component UI (`pagefind-component-ui.js` + `.css`) provides accessible `<pagefind-searchbox>` web components with automatic UI text translation matching the site language.
 - **Dedicated search page**: A `/[locale]/search/` route renders the search box. The Header has a search icon linking to this page. The Pagefind assets load only on the search page (not on every page), keeping non-search pages lightweight.
 - **Dynamic asset loading**: `components/SearchPageClient.tsx` injects the Pagefind CSS/JS via `useEffect` DOM manipulation, avoiding Next.js bundler conflicts with build-generated assets and TypeScript custom-element declaration issues.

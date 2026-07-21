@@ -3,10 +3,14 @@ status: active
 audience: both
 authority: source-of-truth
 owner: docs-maintainer
-last_verified: 2026-07-11
+last_verified: 2026-07-21
 verified_by: command
 related_code:
   - package.json
+  - app/layout.tsx
+  - app/localized-html.tsx
+  - app/not-found.tsx
+  - app/[locale]/not-found.tsx
   - app/[locale]/page.tsx
   - app/[locale]/[...slug]/page.tsx
   - app/[locale]/categories/page.tsx
@@ -17,6 +21,7 @@ related_code:
   - layouts/PostLayout.tsx
   - layouts/ListLayoutWithTags.tsx
   - components/AppShell.tsx
+  - components/NotFoundPage.tsx
   - components/ArticleTransitionContext.tsx
   - components/ArticleCardPresentation.tsx
   - components/ArticleGitMeta.tsx
@@ -36,9 +41,11 @@ related_code:
   - lib/blogRouteState.ts
   - lib/listPosts.ts
   - scripts
+  - public/_redirects
   - tests/e2e
   - tests/e2e/article-card-transition.spec.ts
   - tests/e2e/term-routes.spec.ts
+  - tests/e2e/dev-preview-parity.spec.ts
   - tests/unit/articleTransition.test.ts
   - playwright.config.ts
   - tsconfig.scripts.json
@@ -48,6 +55,7 @@ update_when:
   - development commands or package manager change
   - quality gates change
   - list or article route behavior changes
+  - development or preview routing behavior changes
   - animation, reduced-motion, or loading policy changes
 supersedes:
 superseded_by:
@@ -71,6 +79,8 @@ yarn dev
 
 默认地址是 `http://localhost:3000/`。
 
+开发阶段不会启用 `output: 'export'`。Next.js 使用稳定的顶层 `app/layout.tsx` 处理正常页面和未知路由，并从权威的 `public/_redirects` 载入与静态 preview 相同的永久重定向规则。根布局以服务端组件拥有完整文档；路径语言由 `app/localized-html.tsx` 在初始浏览器文档和客户端导航时同步。
+
 ## 静态预览
 
 需要验证真实静态导出、App Router 预取、history 恢复或构建后搜索时，使用：
@@ -79,7 +89,7 @@ yarn dev
 yarn preview
 ```
 
-该命令先执行 `yarn build`，再用仓库固定版本的 Caddy 服务 `out/`。首次运行会下载 Caddy 到 `.tools/caddy/` 并在解压前校验 checksum；该目录只保存本机工具和运行状态，不提交。
+该命令先执行 `yarn build`，再用仓库固定版本的 Caddy 服务 `out/`。Caddy 从构建产物中的 `_redirects` 读取同一组权威规则，并关闭自身的 canonical URI redirect，保持 wildcard、Unicode 与 trailing-slash 行为和开发服务器一致。首次运行会下载 Caddy 到 `.tools/caddy/` 并在解压前校验 checksum；该目录只保存本机工具和运行状态，不提交。
 
 默认端口是 `3001`。终端会显示 Local 和 Network 地址。可选参数：
 
@@ -98,6 +108,7 @@ yarn format:check
 yarn lint:check
 yarn test:unit
 yarn test:e2e
+yarn test:e2e:parity
 yarn typecheck
 yarn typecheck:scripts
 yarn docs:check
@@ -115,7 +126,9 @@ yarn check
 
 `yarn check` 包含图标、图片、格式、ESLint、单元测试、应用与脚本 TypeScript、文档 metadata 和 dead-code/dependency 检查。路由、浏览器交互、滚动或静态预览行为变化时还要执行 `yarn test:e2e`；渲染、路由输出、图片、bundle 或第三方客户端依赖变化时还要执行 `yarn perf:check`。
 
-`test:e2e` 通过 Playwright 使用生产静态导出路径。首次缺少 Chromium 时运行：
+`test:e2e` 通过 Playwright 使用生产静态导出路径。`test:e2e:parity` 会先构建 `out/`，再同时启动 Next.js development server 与 Caddy preview，比较 redirect status/`Location`、Unicode 与 trailing slash、本地化页面以及自定义 404。Next.js 15.5 的开发 404 原始 streaming shell 不要求与静态 HTML 字节一致；门禁比较浏览器完成框架渲染后的 status、title、`html lang`、文案和返回链接。
+
+首次缺少 Chromium 时运行：
 
 ```bash
 yarn playwright install chromium
@@ -131,7 +144,7 @@ yarn playwright install chromium
 yarn build
 ```
 
-构建依次生成图标注册表、清理旧产物、生成 Contentlayer 数据、执行 `next build`，再生成 RSS 与 Pagefind 索引。不要手工修改 `out/`，也不要提交一次性 `.gz`、`.br` 或临时转码文件。
+构建依次生成图标注册表、清理旧产物、生成 Contentlayer 数据、执行启用了 `output: 'export'` 的 `next build`，再生成 RSS、把 `out/{locale}/` 下所有 HTML 的 `lang` 校正为路径对应语言，最后生成 Pagefind 索引。语言校正必须发生在 Pagefind 之前，确保中英文进入各自索引。不要手工修改 `out/`，也不要提交一次性 `.gz`、`.br` 或临时转码文件。
 
 验证列表页没有携带编译后 MDX 正文：
 
