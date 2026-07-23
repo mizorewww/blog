@@ -1,128 +1,72 @@
----
-status: active
-audience: agent
-authority: source-of-truth
-owner: codex-agent
-last_verified: 2026-06-23
-verified_by: command
-related_code:
-  - .agents/skills/codex-agent-workflow/SKILL.md
-  - .codex/agents
-  - scripts/agent-watchdog.mjs
-update_when:
-  - agent workflow changes
-  - quality gate changes
-  - commit policy changes
-supersedes:
-superseded_by:
----
-
 # AGENTS.md
 
-## Required Skill
+本仓库使用三个 agent 角色完成开发任务。确定性门禁的权威高于 LLM 判断。
 
-For implementation, refactor, repair, review, or quality-gate tasks, use `.agents/skills/codex-agent-workflow/SKILL.md`.
+角色定义在 `.codex/agents/`，编排细节见 `.agents/skills/codex-agent-workflow/SKILL.md`。
 
-The workflow is subagent-first. When subagent tooling is available, spawn the relevant role agents from `.codex/agents` instead of self-reviewing the diff in the same agent context.
+## 三个角色
 
-Required role sequence:
+1. **planner** — 调研与规划。查官方文档和候选库（新库必须超过 1,000 GitHub stars，除非任务明确豁免），定义写集，决定是否需要更新文档或在 `docs/decisions.md` 记录决策。
+2. **implementer** — 实现、文档与修复。写最小的源码/测试改动，按需更新文档，修复 reviewer 返回的具体 blocker。
+3. **reviewer** — 门禁、评审与终检。跑确定性门禁，做二元评审（`FEASIBLE` / `NOT_FEASIBLE`），检查废弃 API 和过期文档，给出最终就绪结论。
 
-1. `docs_researcher`: research technical docs and library candidates.
-2. `planner`: define scope, write set, library choice, validation, and ADR/docs needs.
-3. `implementation_agent`: implement the smallest source/test change.
-4. `docs_writer`: update docs or ADRs only when required.
-5. `gate_runner`: run deterministic gates.
-6. `binary_reviewer`: return `FEASIBLE` or `NOT_FEASIBLE`.
-7. `deprecation_auditor`: check stale docs, supersession, and deprecated APIs.
-8. `refactor_surgeon`: repair exactly one concrete blocker when gates, review, or audit fail.
-9. `final_checker`: confirm readiness for commit or completion.
+流程：`planner → implementer → reviewer`。reviewer 返回 blocker 时由 implementer 修复后重新评审，最多 2 轮；仍不通过则停止并报告 blocker。
 
-If subagent tooling is unavailable, state the tool limitation and run the same role sequence locally.
+有 subagent 工具时必须用 subagent 执行各角色；没有时说明工具限制并在本地按同样顺序执行。
 
-## Subagent Liveness Rule
+## 核心规则
 
-For sequential work, the orchestrating agent must wait for each required role to return its configured terminal output.
+- 小 diff，遵循仓库现有约定，不做无关重写。
+- 文档、TODO、计划文件不能代替实现。
+- 实现任务的完成标准：行为已落地、相关检查通过、`git diff` 范围符合预期、reviewer 通过。
+- 实现任务只有文档变化不算完成。
 
-Do not decide that a subagent is dead, stuck, or successful by guesswork.
+## 确定性门禁
 
-Use a maximum timeout of 1,800 seconds per role. When a role runs through a shell command, use:
+按 diff 范围运行存在的命令；命令不存在时报告 `NOT_AVAILABLE`，不得当作通过。
 
 ```bash
-yarn agent:watchdog --label <role> --timeout-seconds 1800 -- <command>
+git status --short && git diff --name-only && git diff --stat && git diff --check
+yarn format:check
+yarn lint:check
+yarn test:unit
+yarn typecheck
+yarn typecheck:scripts
+yarn deadcode:check
 ```
 
-If subagent tooling supports status prompts, send one status or wakeup request before recording a timeout.
+条件门禁：
 
-If no terminal output arrives after 1,800 seconds, record `SUBAGENT_TIMEOUT` with the role name, elapsed time, and last observed output, then follow the repair/blocker path.
+- 改动涉及路由、浏览器交互、滚动或静态预览行为：`yarn test:e2e`
+- 改动涉及渲染、bundle、图片、解析/序列化、缓存、启动路径、路由输出或第三方客户端依赖：`yarn perf:check`
 
-## Core Workflow
+新 diff 中扫描 `TODO` / `FIXME` / `HACK` / `DEFERRED` / `FOLLOW-UP` / `TEMP` / `WORKAROUND` / `placeholder` / `stub` / `future work` / `not implemented`；未经任务明确批准不得新增。
 
-Prefer small, reviewable diffs.
+## 二元评审标准
 
-Follow existing repository conventions.
+出现以下任一情况即 `NOT_FEASIBLE`：
 
-Preserve external behavior unless the task explicitly asks for behavior changes.
+- 请求的行为未实现，或实现被文档/TODO/计划文字代替
+- 源码任务的 diff 只有文档
+- 确定性门禁失败，或相关验证未运行
+- 测试被改成迁就错误行为，或只覆盖 happy path
+- 错误被吞掉或用 silent fallback 隐藏
+- 用 sleep/timeout/retry/polling 掩盖生命周期或竞态 bug
+- 死代码只是断开而非删除，或新旧实现并存
+- 公共 API、数据形状、持久化格式或错误语义改变但未声明
+- 新库缺少 1,000+ stars 证据或明确豁免
+- 无法判断行为是否改变
 
-Do not perform unrelated rewrites.
+评审输出必须给出具体证据：文件、行号或符号、原因、所需修复。
 
-Do not use documentation, TODO comments, deferred notes, or planning files as a substitute for implementation.
+## Git 规则
 
-If the task is an implementation or refactor task, completion requires relevant source/test changes and passing quality gates.
+- 任务允许提交时，每个完成的小点创建一个原子提交。
+- 提交前必须通过确定性门禁且 reviewer 通过。
+- 不混入无关改动，不在门禁失败时提交，不运行破坏性 git 命令。
 
-Before planning implementation, investigate related technical documentation and check whether a mature library already solves the requirement. New libraries must have more than 1,000 GitHub stars unless the task explicitly approves an exception.
+## 文档规则
 
-## Completion Rule
+以下情况记录到 `docs/decisions.md`：架构边界、公共 API、数据形状、依赖采用或替换、部署/安全/性能策略、agent 流程变化。行为变化时同步更新 `docs/` 下对应文档。
 
-A task is complete only if all of the following are true:
-
-1. The requested behavior is implemented in source code or tests.
-2. Relevant deterministic checks have been run.
-3. `git diff --name-only` matches the expected scope.
-4. There are no new TODO / FIXME / HACK / DEFERRED / FOLLOW-UP comments unless explicitly requested by the task.
-5. There are no new docs-only completion artifacts unless the task was explicitly documentation-only.
-6. The binary reviewer returns `FEASIBLE`.
-7. The final checker returns `READY_FOR_AGENT_COMMIT` or `READY_FOR_AGENT_DONE`.
-8. Required ADR and documentation metadata checks pass.
-
-## Forbidden Completion Patterns
-
-Do not claim completion if:
-
-- the implementation was moved to a document
-- the fix was written as future work
-- the code contains new TODO / FIXME / HACK / DEFERRED comments
-- only docs, plans, notes, or checklists changed for an implementation task
-- tests were weakened to match current behavior
-- errors were hidden instead of fixed
-- dead code was merely disconnected instead of removed
-- old code was left around after replacement
-- validation commands were not run or their failure was ignored
-- documentation was used as a completion artifact for source work
-- an ADR was required but not written
-
-## Git Rule
-
-Use atomic git commits for each small completed point when the task allows commits.
-
-Before every commit, the implementing agent must run deterministic gates and receive a `FEASIBLE` binary review.
-
-If the task allows commits and final checker returns `READY_FOR_AGENT_COMMIT`, the agent must create the atomic commit before reporting completion.
-
-Do not combine unrelated changes into one commit.
-
-Do not commit with failing gates.
-
-Do not run destructive git commands.
-
-## Review Rule
-
-For review, follow `AI_CODE_QUALITY.md`.
-
-The reviewer must return only one of:
-
-- `FEASIBLE`
-- `NOT_FEASIBLE`
-
-No severity classes. No deferred categories. No acceptable-later bucket.
-
-If there is a blocker, the verdict is `NOT_FEASIBLE`.
+文档更新只在任务要求或源码行为变化时进行，且永远不是源码工作的完成证据。
