@@ -20,7 +20,6 @@
     "format:write": "prettier --write package.json eslint.config.mjs tsconfig.json tsconfig.scripts.json next.config.js playwright.config.ts postcss.config.js prettier.config.js vitest.config.ts \"*.md\" \"docs/**/*.md\" \".agents/**/*.md\" \"{app,components,contentlayer,data,lib,layouts,scripts,tests}/**/*.{js,mjs,ts,tsx,json,css,md,mdx}\"",
     "typecheck": "yarn content:generate && tsc --noEmit --pretty false",
     "typecheck:scripts": "tsc --noEmit --pretty false -p tsconfig.scripts.json",
-    "docs:check": "node ./scripts/check-doc-metadata.mjs",
     "deadcode:check": "knip --include files,dependencies,devDependencies,unlisted,binaries,unresolved --no-progress --no-config-hints",
     "agent:watchdog": "node ./scripts/agent-watchdog.mjs",
     "quality:html": "scripts/quality-html.sh out",
@@ -30,7 +29,7 @@
     "images:check": "node ./scripts/optimize-images.mjs --check",
     "icons:generate": "node ./scripts/generate-lucide-icons.mjs",
     "icons:check": "node ./scripts/generate-lucide-icons.mjs --check",
-    "check": "yarn icons:check && yarn images:check && yarn format:check && yarn lint:check && yarn test:unit && yarn typecheck && yarn typecheck:scripts && yarn docs:check && yarn deadcode:check",
+    "check": "yarn icons:check && yarn images:check && yarn format:check && yarn lint:check && yarn test:unit && yarn typecheck && yarn typecheck:scripts && yarn deadcode:check",
     "perf:check": "yarn build && yarn quality:html && yarn size:budget",
     "verify": "yarn check && yarn test:e2e && yarn perf:check",
     "prepare": "husky"

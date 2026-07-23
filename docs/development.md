@@ -1,66 +1,3 @@
----
-status: active
-audience: both
-authority: source-of-truth
-owner: docs-maintainer
-last_verified: 2026-07-21
-verified_by: command
-related_code:
-  - package.json
-  - app/layout.tsx
-  - app/localized-html.tsx
-  - app/not-found.tsx
-  - app/[locale]/not-found.tsx
-  - app/[locale]/page.tsx
-  - app/[locale]/[...slug]/page.tsx
-  - app/[locale]/categories/page.tsx
-  - app/[locale]/categories/[category]/page.tsx
-  - app/[locale]/tags/page.tsx
-  - app/[locale]/tags/[tag]/page.tsx
-  - app/theme-providers.tsx
-  - layouts/PostLayout.tsx
-  - layouts/ListLayoutWithTags.tsx
-  - components/AppShell.tsx
-  - components/NotFoundPage.tsx
-  - components/ArticleTransitionContext.tsx
-  - components/ArticleCardPresentation.tsx
-  - components/ArticleGitMeta.tsx
-  - components/LanguageSwitcher.tsx
-  - components/PostCard.tsx
-  - components/PostMeta.tsx
-  - components/ArticleReturnLink.tsx
-  - components/BlogListNavigationRecorder.tsx
-  - components/ArticleReader.tsx
-  - components/ReadingProgress.tsx
-  - components/animata/ArticleCardTransitionOverlay.tsx
-  - components/animata/ArticleRouteSkeleton.tsx
-  - css/tailwind.css
-  - lib/articleFragment.ts
-  - lib/articleReturn.ts
-  - lib/articleTransition.ts
-  - lib/blogRouteState.ts
-  - lib/listPosts.ts
-  - scripts
-  - public/_redirects
-  - tests/e2e
-  - tests/e2e/article-card-transition.spec.ts
-  - tests/e2e/term-routes.spec.ts
-  - tests/e2e/dev-preview-parity.spec.ts
-  - tests/unit/articleTransition.test.ts
-  - playwright.config.ts
-  - tsconfig.scripts.json
-  - eslint.config.mjs
-  - knip.json
-update_when:
-  - development commands or package manager change
-  - quality gates change
-  - list or article route behavior changes
-  - development or preview routing behavior changes
-  - animation, reduced-motion, or loading policy changes
-supersedes:
-superseded_by:
----
-
 # 本地开发
 
 ## 环境
@@ -111,7 +48,6 @@ yarn test:e2e
 yarn test:e2e:parity
 yarn typecheck
 yarn typecheck:scripts
-yarn docs:check
 yarn deadcode:check
 yarn perf:check
 ```
@@ -124,7 +60,7 @@ yarn perf:check
 yarn check
 ```
 
-`yarn check` 包含图标、图片、格式、ESLint、单元测试、应用与脚本 TypeScript、文档 metadata 和 dead-code/dependency 检查。路由、浏览器交互、滚动或静态预览行为变化时还要执行 `yarn test:e2e`；渲染、路由输出、图片、bundle 或第三方客户端依赖变化时还要执行 `yarn perf:check`。
+`yarn check` 包含图标、图片、格式、ESLint、单元测试、应用与脚本 TypeScript 和 dead-code/dependency 检查。路由、浏览器交互、滚动或静态预览行为变化时还要执行 `yarn test:e2e`；渲染、路由输出、图片、bundle 或第三方客户端依赖变化时还要执行 `yarn perf:check`。
 
 `test:e2e` 通过 Playwright 使用生产静态导出路径。`test:e2e:parity` 会先构建 `out/`，再同时启动 Next.js development server 与 Caddy preview，比较 redirect status/`Location`、Unicode 与 trailing slash、本地化页面以及自定义 404。Next.js 15.5 的开发 404 原始 streaming shell 不要求与静态 HTML 字节一致；门禁比较浏览器完成框架渲染后的 status、title、`html lang`、文案和返回链接。
 
@@ -181,7 +117,7 @@ Core Web Vitals 边界：
 
 ## 文章路由规范
 
-文章阅读与历史所有权由 [ADR-0007](./adr/ADR-0007-route-first-article-reading.md) 定义，App Store 风格卡片转场由 [ADR-0008](./adr/ADR-0008-app-store-article-card-transition.md) 定义。独立 `PostLayout`、普通文章 Link、来源记录器和安全返回控制仍是正确性的基础；视觉快照只是渐进增强。
+文章阅读与历史所有权由 [ADR-0007](./decisions.md#adr-0007-路由优先的文章阅读) 定义，App Store 风格卡片转场由 [ADR-0008](./decisions.md#adr-0008-app-store-风格文章卡片转场) 定义。独立 `PostLayout`、普通文章 Link、来源记录器和安全返回控制仍是正确性的基础；视觉快照只是渐进增强。
 
 列表与导航：
 
@@ -232,6 +168,13 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 正常完成、快速重复点击、动画中 resize、目标卡片缺失和 route mismatch 等退化路径。
 
 E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms handoff 帧、`180 ms` destination-only reveal 和稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。每个中间帧都要检查实际 pixels 以及 cover、共享字段和 destination-only controls 位置的 topmost painted layer，不能以被遮挡元素的 DOM presence 或 computed opacity 代替视觉断言。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+
+## 小型交互与移动 Header
+
+- 短 TOC、提交记录和菜单可以使用 disclosure 动效，但需要稳定的触发按钮、`aria-expanded`、可识别的内容关系和 reduced-motion 等价行为。ThemeSwitch、复制反馈、active indicator 与 BackToTop 使用 fast 档，不与路由主动画同时 stagger。
+- hover 和 focus 只能改变阴影、边框、颜色、opacity 或小范围 transform，不得改变控件占位尺寸。图标按钮使用稳定的点击区域和 accessible name；文本必须在 320 px 宽度下不与相邻控件重叠。
+- `<640px` 使用 `Menu`/`X` 图标按钮控制移动导航 disclosure：触发器固定 `44x44px`，提供随状态变化的 accessible name、`aria-expanded` 和 `aria-controls`；`Escape` 关闭并把焦点还给触发器；pathname 变化、进入 `>=640px` 或点击 Header 外部都会关闭。面板打开时文章滚动隐藏逻辑不得隐藏 Header。移动面板直接挂载，不播放入场/退出动画，使用普通 `<nav>` 语义，不用 `role="menu"`、focus trap 或 scroll lock。
+- `>=640px` 保留桌面导航布局和 Motion active underline，不渲染移动 disclosure。
 
 ## 开发纪律
 

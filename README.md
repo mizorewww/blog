@@ -35,6 +35,7 @@ Node.js 版本以 `.node-version` 为准，包管理器版本以 `packageManager
 ## 文档
 
 - [软件架构](docs/architecture.md)
+- [架构决策记录](docs/decisions.md)
 - [本地开发](docs/development.md)
 - [部署](docs/deployment.md)
 - [内容与 MDX](docs/content.md)

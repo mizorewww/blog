@@ -1,23 +1,3 @@
----
-status: active
-audience: both
-authority: source-of-truth
-owner: docs-maintainer
-last_verified: 2026-06-23
-verified_by: command
-related_code:
-  - content
-  - contentlayer
-  - contentlayer.config.ts
-  - components/MDXComponents.tsx
-update_when:
-  - content schema changes
-  - MDX rendering changes
-  - Contentlayer behavior changes
-supersedes:
-superseded_by:
----
-
 # 内容与 MDX
 
 文章使用 MDX 编写，构建时由 Contentlayer 转换为类型化数据。
