@@ -1,5 +1,6 @@
 import type { MDXComponents } from 'mdx/types'
 import CodeBlock from './CodeBlock'
+import ECharts from './ECharts'
 import Icon from './Icon'
 import Image from './Image'
 import MDXImage from './MDXImage'
@@ -10,6 +11,7 @@ import { TradingViewAdvancedChart, TradingViewMiniChart } from './TradingViewWid
 export const components: MDXComponents = {
   Icon,
   Image,
+  ECharts,
   TradingViewAdvancedChart,
   TradingViewMiniChart,
   a: CustomLink,

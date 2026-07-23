@@ -5,6 +5,7 @@ import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypePresetMinify from 'rehype-preset-minify'
 import rehypePrettyCode from 'rehype-pretty-code'
 import { Authors, Blog } from './documentTypes'
+import { remarkEChartsBlocks } from './remark/echartsBlocks'
 import { remarkGitHubEmbeds } from './remark/githubEmbeds'
 import { remarkIconShortcodes } from './remark/iconShortcodes'
 import { remarkTradingViewWidgets } from './remark/tradingViewWidgets'
@@ -18,7 +19,13 @@ export default makeSource({
   documentTypes: [Blog, Authors],
   mdx: {
     cwd: process.cwd(),
-    remarkPlugins: [remarkGfm, remarkTradingViewWidgets, remarkIconShortcodes, remarkGitHubEmbeds],
+    remarkPlugins: [
+      remarkGfm,
+      remarkTradingViewWidgets,
+      remarkEChartsBlocks,
+      remarkIconShortcodes,
+      remarkGitHubEmbeds,
+    ],
     rehypePlugins: [
       rehypeSlug,
       [

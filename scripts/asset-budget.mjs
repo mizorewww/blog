@@ -9,6 +9,10 @@ const budgets = {
   cssMaxBytes: 150 * 1024,
 }
 
+// Async-only named chunks (loaded on demand, never in the initial page bundle)
+// get their own budgets instead of the initial-load JS cap.
+const asyncChunkBudgets = [{ name: 'echarts', maxBytes: 900 * 1024 }]
+
 const imageExtensions = new Set(['.jpg', '.jpeg', '.png', '.webp', '.avif'])
 
 const files = (await collectFiles(targetDir)).filter(
@@ -33,6 +37,18 @@ if (imagesTotal > budgets.imagesTotalBytes) {
 }
 
 for (const file of files.filter((candidate) => candidate.ext === '.js')) {
+  const fileName = path.basename(file.path)
+  const asyncChunk = asyncChunkBudgets.find((chunk) => fileName.startsWith(`${chunk.name}.`))
+
+  if (asyncChunk) {
+    if (file.size > asyncChunk.maxBytes) {
+      failures.push(
+        `${file.path} is ${formatBytes(file.size)}; async chunk budget is ${formatBytes(asyncChunk.maxBytes)}`
+      )
+    }
+    continue
+  }
+
   if (file.size > budgets.jsMaxBytes) {
     failures.push(
       `${file.path} is ${formatBytes(file.size)}; JS asset budget is ${formatBytes(budgets.jsMaxBytes)}`

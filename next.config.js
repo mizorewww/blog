@@ -25,6 +25,29 @@ export default async function nextConfig(phase) {
     images: {
       unoptimized: true,
     },
+    webpack: (webpackConfig, { isServer }) => {
+      // In dev the client compiler sets splitChunks to false — only the
+      // production client build has cache groups to extend.
+      const splitChunks = webpackConfig.optimization.splitChunks
+
+      if (!isServer && splitChunks && typeof splitChunks === 'object' && splitChunks.cacheGroups) {
+        // Keep echarts/zrender in a single named chunk so the async-only chart
+        // bundle is easy to identify in size reports and budgets. Note: do not
+        // re-introduce a webpackChunkName: "echarts" magic comment on the
+        // dynamic import — the name collision silently disables this split.
+        splitChunks.cacheGroups.echarts = {
+          test: /[\\/]node_modules[\\/](echarts|zrender)[\\/]/,
+          name: 'echarts',
+          chunks: 'all',
+          // Must outrank Next's built-in `lib` cache group (priority 30).
+          priority: 50,
+          enforce: true,
+          reuseExistingChunk: true,
+        }
+      }
+
+      return webpackConfig
+    },
   }
 
   if (phase === PHASE_DEVELOPMENT_SERVER) {

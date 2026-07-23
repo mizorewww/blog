@@ -107,6 +107,7 @@ content/blog/en/example.mdx
 - 自动 TOC 数据抽取
 - 普通 Markdown 图片
 - 表格横向滚动包装
+- ECharts 图表
 
 文章内可用组件来自：
 
@@ -122,6 +123,9 @@ components/MDXComponents.tsx
 - `pre`
 - `table`
 - `Icon`
+- `ECharts`
+- `TradingViewMiniChart`
+- `TradingViewAdvancedChart`
 
 ## 图标
 
@@ -153,7 +157,57 @@ echo "hello"
 ```
 ````
 
-代码块渲染后带复制按钮。
+代码块渲染后右上角常显复制按钮和语言 logo（来自 simple-icons，无徽章边框；没有品牌图标的语言回退为简短文字标注），不渲染标题栏。写了 `title="文件名"` 或 `sourceUrl="..."` 的代码块，会在代码上方多一行小字路径，GitHub 源码链接收进右上角图标。
+
+## ECharts 图表
+
+文章里可以直接渲染 [Apache ECharts](https://echarts.apache.org/) 图表，支持明暗主题跟随和自适应宽度。图表库按需懒加载，不进入首屏包。
+
+推荐写法是使用 ` ```echarts ` 代码块，内容为图表的 option JSON；代码块 meta 支持 `title`（标题栏文字）和 `height`(像素高度，默认 360):
+
+````mdx
+```echarts title="每周访问量" height=320
+{
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "name": "访问量",
+      "type": "line",
+      "smooth": true,
+      "areaStyle": {},
+      "data": [120, 200, 150, 80, 70, 110, 130]
+    }
+  ]
+}
+```
+````
+
+注意事项：
+
+- 代码块内容必须是合法的 JSON 对象（双引号、无注释、无尾随逗号),option 字段完整参考 [ECharts 配置项文档](https://echarts.apache.org/option.html)。
+- JSON 不合法时不会构建失败，而是回退渲染为普通的 `echarts` 代码块，方便排查。
+- `backgroundColor` 默认注入为 `transparent`,可以在 option 里覆盖。
+
+需要写函数等 JSON 表达不了的配置时，可以改用 MDX 组件直接传 JS 对象：
+
+```mdx
+<ECharts
+  title="柱状图"
+  height={300}
+  option={{
+    xAxis: { type: 'category', data: ['Q1', 'Q2', 'Q3', 'Q4'] },
+    yAxis: { type: 'value' },
+    series: [{ type: 'bar', data: [23, 45, 31, 58] }],
+  }}
+/>
+```
+
+可运行的示例见文章 `content/blog/zh/blog-git-metadata-and-icons.md` 的「代码块直接渲染 ECharts」一节。
 
 ## 图片
 

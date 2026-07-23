@@ -1,9 +1,9 @@
 ---
-title: 博客新功能：代码图标、源码引用、行情图表 !
+title: 博客新功能：语言图标、源码引用、行情与图表 !
 date: 2026-06-22
-summary: 展示这次给博客新增的代码块语言图标、inline code 主题、GitHub 源码和 diff 引用，以及 TradingView 行情图表短语法。
+summary: 展示这次给博客新增的代码块语言图标、inline code 主题、GitHub 源码和 diff 引用、TradingView 行情图表短语法，以及 Apache ECharts 图表。
 categories: ['折腾']
-tags: ['Blog', 'Next.js', 'MDX']
+tags: ['Blog', 'Next.js', 'MDX', 'ECharts']
 language: zh
 authors: ['default']
 ---
@@ -14,7 +14,7 @@ authors: ['default']
 
 ### 代码块有语言图标
 
-普通代码块现在也会有标题栏。左侧是语言图标，右侧仍然保留复制按钮；如果代码来自 GitHub，标题栏还会出现 GitHub 跳转入口。
+代码块右上角一直浮着语言 logo 和复制按钮，没有标题栏、没有徽章边框，不占额外空间。写了 `title` 或者代码来自 GitHub 时，代码上方只会多一行小字路径，GitHub 跳转入口收进右上角的一个小图标里。
 
 ```ts
 const feature = '语言图标'
@@ -77,6 +77,78 @@ $BINANCE:BTCUSDT.P
 
 ::tv AAPL interval=60 height=460
 
+### 代码块直接渲染 ECharts
+
+写文章时用 ` ```echarts ` 代码块，内容是图表的 option JSON,meta 支持 `title` 和 `height`:
+
+````md
+```echarts title="每周访问量" height=320
+{
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "name": "访问量",
+      "type": "line",
+      "smooth": true,
+      "areaStyle": {},
+      "data": [120, 200, 150, 80, 70, 110, 130]
+    }
+  ]
+}
+```
+````
+
+渲染效果：
+
+```echarts title="每周访问量" height=320
+{
+  "tooltip": { "trigger": "axis" },
+  "xAxis": {
+    "type": "category",
+    "data": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"]
+  },
+  "yAxis": { "type": "value" },
+  "series": [
+    {
+      "name": "访问量",
+      "type": "line",
+      "smooth": true,
+      "areaStyle": {},
+      "data": [120, 200, 150, 80, 70, 110, 130]
+    }
+  ]
+}
+```
+
+```echarts title="文章分类占比" height=360
+{
+  "tooltip": { "trigger": "item" },
+  "legend": { "bottom": 0 },
+  "series": [
+    {
+      "name": "分类",
+      "type": "pie",
+      "radius": ["40%", "70%"],
+      "itemStyle": { "borderRadius": 6, "borderWidth": 2 },
+      "label": { "show": false },
+      "data": [
+        { "value": 40, "name": "折腾" },
+        { "value": 32, "name": "开发" },
+        { "value": 18, "name": "笔记" },
+        { "value": 10, "name": "其他" }
+      ]
+    }
+  ]
+}
+```
+
+JSON 不合法时会回退成普通代码块，不会把构建搞挂。需要函数等 JSON 表达不了的配置时，也可以直接用 `<ECharts>` 组件传 JS 对象。图表跟随站点明暗主题，echarts 库按需懒加载，不进首屏包。
+
 ## 代码逻辑
 
 ### 短语法先在 remark 阶段变成组件
@@ -117,7 +189,7 @@ TradingView 官方 widget 需要插入外部 script，所以组件保持为 clie
 
 ::github-code repo="mizorewww/blog" ref="c067042276d4b4b384c66c0c61fcd4f6716eb599" path="contentlayer.config.ts" lines="787-799" lang="ts" title="contentlayer.config.ts"
 
-视觉上用小尺寸 badge 表达语言，不去额外引入一整套语言 logo。这样代码块有识别度，也不会把首屏 JavaScript 变重。
+视觉上 logo 直接来自 simple-icons 的品牌图标，按需 tree-shake，不会把首屏 JavaScript 变重；没有品牌图标的语言才回退到简短的文字标注。
 
 ::github-code repo="mizorewww/blog" ref="c067042276d4b4b384c66c0c61fcd4f6716eb599" path="css/prism.css" lines="11-17" lang="css" title="css/prism.css"
 
@@ -141,6 +213,6 @@ diff 的路径也一样，只是数据源换成 patch，语言固定成 `diff`�
 
 ## 现在写博客的心智模型
 
-普通文章只管写 Markdown。需要图标时写 `:icon-code:`，需要行情时写 `$AAPL` 或 `::tv AAPL`，需要引用源码时写 `::github-code`，需要引用改动时写 `::github-diff`。
+普通文章只管写 Markdown。需要图标时写 `:icon-code:`，需要行情时写 `$AAPL` 或 `::tv AAPL`，需要数据图表时写 ` ```echarts ` 代码块，需要引用源码时写 `::github-code`，需要引用改动时写 `::github-diff`。
 
 构建阶段会把这些短语法转换成稳定的 MDX 组件或 Shiki 代码块；运行时只负责交互和外部 widget 加载。这样写作语法短，页面输出也可控。

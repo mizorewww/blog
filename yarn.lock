@@ -3811,6 +3811,16 @@ __metadata:
   languageName: node
   linkType: hard
 
+"echarts@npm:^6.1.0":
+  version: 6.1.0
+  resolution: "echarts@npm:6.1.0"
+  dependencies:
+    tslib: 2.3.0
+    zrender: 6.1.0
+  checksum: c9a3bd18c822bf5d0c0e4cc69382eb449c64dc1d6c52522b06869b240d97182d811017fca7b178929071d57a42ea76d1951f449eed161976d9407abb52504232
+  languageName: node
+  linkType: hard
+
 "emoji-regex@npm:^10.3.0":
   version: 10.6.0
   resolution: "emoji-regex@npm:10.6.0"
@@ -7145,6 +7155,7 @@ __metadata:
     clsx: ^2.1.1
     contentlayer2: 0.5.8
     cross-env: ^10.1.0
+    echarts: ^6.1.0
     eslint: ^9.18.0
     eslint-config-next: 15.5.12
     eslint-config-prettier: ^10.1.8
@@ -7173,6 +7184,7 @@ __metadata:
     remark-gfm: ^4.0.1
     sharp: ^0.34.5
     shiki: ^4.0.2
+    simple-icons: ^16.27.0
     sonner: ^2.0.7
     tailwind-merge: ^3.6.0
     tailwindcss: 4.3.1
@@ -9167,6 +9179,13 @@ __metadata:
   languageName: node
   linkType: hard
 
+"simple-icons@npm:^16.27.0":
+  version: 16.27.0
+  resolution: "simple-icons@npm:16.27.0"
+  checksum: 837611aa93595884c7fe189103fb747e7ad351737a380dd9c272f4c9ded034d61748248a5ba5cd4fc2c3651e02d2f99c9b77a33371fba0b803f1aadba2de5c1d
+  languageName: node
+  linkType: hard
+
 "slice-ansi@npm:^7.1.0":
   version: 7.1.2
   resolution: "slice-ansi@npm:7.1.2"
@@ -9680,6 +9699,13 @@ __metadata:
     minimist: ^1.2.6
     strip-bom: ^3.0.0
   checksum: 59f35407a390d9482b320451f52a411a256a130ff0e7543d18c6f20afab29ac19fbe55c360a93d6476213cc335a4d76ce90f67df54c4e9037f7d240920832201
+  languageName: node
+  linkType: hard
+
+"tslib@npm:2.3.0":
+  version: 2.3.0
+  resolution: "tslib@npm:2.3.0"
+  checksum: 8869694c26e4a7b56d449662fd54a4f9ba872c889d991202c74462bd99f10e61d5bd63199566c4284c0f742277736292a969642cc7b590f98727a7cae9529122
   languageName: node
   linkType: hard
 
@@ -10375,6 +10401,15 @@ __metadata:
   version: 4.4.3
   resolution: "zod@npm:4.4.3"
   checksum: bf236fdee7a5a5ec645eef5bfea3aad34e7df912931c2a23bc17e5b59882482751da42392916529da52ff9bc70f584797a5d496f1fb81f2d1a4c90fdd3922d2a
+  languageName: node
+  linkType: hard
+
+"zrender@npm:6.1.0":
+  version: 6.1.0
+  resolution: "zrender@npm:6.1.0"
+  dependencies:
+    tslib: 2.3.0
+  checksum: e02956ab1e4b66d64952f9c6f23f917ad8856eff292714f6b943759526c290356d285556e177977136b8f1097d01600aab6727fa6c0ad61f7093d0fb28eb3920
   languageName: node
   linkType: hard
 

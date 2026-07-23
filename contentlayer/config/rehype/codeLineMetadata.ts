@@ -1,10 +1,10 @@
-import { createGitHubIconNode } from '../svgs'
 import type { HastNode } from '../types'
 
 const languageNames: Record<string, string> = {
   bash: 'Bash',
   css: 'CSS',
   diff: 'Diff',
+  echarts: 'ECharts',
   html: 'HTML',
   js: 'JavaScript',
   json: 'JSON',
@@ -58,8 +58,8 @@ function getDiffLineKind(value: string) {
   if (
     value.startsWith('diff --git') ||
     value.startsWith('index ') ||
-    value.startsWith('new file') ||
-    value.startsWith('deleted file') ||
+    value.startsWith('new file ') ||
+    value.startsWith('deleted file ') ||
     value.startsWith('---') ||
     value.startsWith('+++')
   ) {
@@ -67,10 +67,6 @@ function getDiffLineKind(value: string) {
   }
 
   return ''
-}
-
-function findChildElement(node: HastNode, tagName: string): HastNode | undefined {
-  return node.children?.find((child) => child.tagName === tagName)
 }
 
 function findDescendantElement(node: HastNode, tagName: string): HastNode | undefined {
@@ -102,113 +98,53 @@ function getCodeLanguage(code?: HastNode) {
   return typeof value === 'string' ? normalizeCodeLanguage(value) : 'plaintext'
 }
 
-function getLanguageName(language: string) {
-  return languageNames[language] || language.toUpperCase()
-}
-
 function getLanguageIconLabel(language: string) {
-  return languageIconLabels[language] || getLanguageName(language).slice(0, 3).toUpperCase()
+  const name = languageNames[language] || language.toUpperCase()
+  return languageIconLabels[language] || name.slice(0, 3).toUpperCase()
 }
 
-function createCodeLanguageIconNode(language: string): HastNode {
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: {
-      'aria-hidden': 'true',
-      className: ['code-language-icon'],
-      'data-code-language': language,
-    },
-    children: [{ type: 'text', value: getLanguageIconLabel(language) }],
-  }
-}
-
-function createCodeTitleNode(titleText: string, language: string): HastNode {
-  return {
-    type: 'element',
-    tagName: 'span',
-    properties: { className: ['code-title-main'] },
-    children: [
-      createCodeLanguageIconNode(language),
-      {
-        type: 'element',
-        tagName: 'span',
-        properties: { className: ['code-title-text'] },
-        children: [{ type: 'text', value: titleText || getLanguageName(language) }],
-      },
-    ],
-  }
-}
-
-function createCodeSourceLinkNode(sourceUrl: string, language: string): HastNode {
-  return {
-    type: 'element',
-    tagName: 'a',
-    properties: {
-      className: ['code-source-link'],
-      href: sourceUrl,
-      rel: 'noopener noreferrer',
-      target: '_blank',
-    },
-    children: [
-      createGitHubIconNode(),
-      {
-        type: 'element',
-        tagName: 'span',
-        properties: { className: ['code-source-link-text'] },
-        children: [
-          {
-            type: 'text',
-            value: language === 'diff' ? '在 GitHub 查看 diff' : '在 GitHub 查看代码',
-          },
-        ],
-      },
-    ],
-  }
-}
-
-function ensureCodeTitle(node: HastNode): HastNode {
-  const existingTitle = findChildElement(node, 'figcaption')
-
-  if (existingTitle) {
-    return existingTitle
-  }
-
-  const title: HastNode = {
-    type: 'element',
-    tagName: 'figcaption',
-    properties: { 'data-rehype-pretty-code-title': '' },
-    children: [],
-  }
-
-  node.children = Array.isArray(node.children) ? [title, ...node.children] : [title]
-
-  return title
-}
-
-function enhanceCodeTitle(node: HastNode) {
+/*
+ * Code blocks render without any title bar chrome. Whatever a fence carries
+ * (title, GitHub source url, language) is flattened onto the <pre> as data
+ * attributes; CodeBlock decides how to present them:
+ * - untitled blocks: bare language logo + copy button floating top-right
+ * - titled/sourced blocks: one quiet text row above the code
+ */
+function flattenCodeChrome(node: HastNode) {
   if (
     node.tagName !== 'figure' ||
-    node.properties?.['data-rehype-pretty-code-figure'] === undefined
+    node.properties?.['data-rehype-pretty-code-figure'] === undefined ||
+    !Array.isArray(node.children)
   ) {
     return
   }
 
-  const title = ensureCodeTitle(node)
   const code = findDescendantElement(node, 'code')
+  const pre = findDescendantElement(node, 'pre')
   const sourceUrl = typeof code?.data?.githubSourceUrl === 'string' ? code.data.githubSourceUrl : ''
   const language = getCodeLanguage(code)
-  const titleText = getNodeText(title) || getLanguageName(language)
 
-  title.children = [createCodeTitleNode(titleText, language)]
+  const titleIndex = node.children.findIndex((child) => child.tagName === 'figcaption')
+  let titleText = ''
 
-  if (sourceUrl) {
-    title.children.push(createCodeSourceLinkNode(sourceUrl, language))
+  if (titleIndex >= 0) {
+    titleText = getNodeText(node.children[titleIndex]).trim()
+    node.children.splice(titleIndex, 1)
+  }
+
+  if (pre) {
+    pre.properties = {
+      ...pre.properties,
+      'data-code-language': language,
+      'data-language-label': getLanguageIconLabel(language),
+      ...(titleText ? { 'data-code-title': titleText } : {}),
+      ...(sourceUrl ? { 'data-source-url': sourceUrl } : {}),
+    }
   }
 }
 
 function annotateCodeLines(node: HastNode, language = '') {
-  enhanceCodeTitle(node)
+  flattenCodeChrome(node)
 
   const properties = node.properties || {}
   const nextLanguage =

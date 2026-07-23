@@ -1,65 +1,40 @@
 /* Code block styles for MDX output highlighted by rehype-pretty-code + Shiki. */
 
 figure[data-rehype-pretty-code-figure] {
-  @apply dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-slate-100/70 shadow-sm;
+  @apply dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[10px] border border-slate-200/90 bg-slate-100/70;
+  box-shadow:
+    0 1px 2px rgb(15 23 42 / 0.05),
+    0 8px 24px -12px rgb(15 23 42 / 0.12);
 }
 
-figure[data-rehype-pretty-code-figure] [data-rehype-pretty-code-title] {
-  @apply dark:border-border-subtle-dark flex items-center justify-between gap-3 border-b border-slate-200 bg-white/70 px-4 py-2 text-xs text-slate-600 dark:bg-white/[0.035] dark:text-white/65;
+.dark figure[data-rehype-pretty-code-figure] {
+  box-shadow:
+    0 1px 0 rgb(255 255 255 / 0.04) inset,
+    0 12px 32px -16px rgb(0 0 0 / 0.55);
 }
 
-figure[data-rehype-pretty-code-figure] .code-title-main {
-  @apply inline-flex min-w-0 items-center gap-2;
+/* Bare language logo / text fallback — no badge chrome. */
+figure[data-rehype-pretty-code-figure] .code-language-mark {
+  @apply inline-flex shrink-0 items-center text-slate-400 dark:text-white/45;
 }
 
-figure[data-rehype-pretty-code-figure] .code-language-icon {
-  @apply inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-[5px] border border-slate-300 bg-slate-100 px-1 font-sans text-[0.62rem] leading-none font-semibold text-slate-600 dark:border-white/15 dark:bg-white/10 dark:text-white/70;
+figure[data-rehype-pretty-code-figure] .code-language-mark svg {
+  @apply h-3.5 w-3.5;
 }
 
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='ts'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='tsx'] {
-  @apply border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-400/25 dark:bg-sky-400/10 dark:text-sky-200;
+figure[data-rehype-pretty-code-figure] .code-language-label {
+  @apply shrink-0 font-sans text-[0.62rem] font-semibold tracking-wide text-slate-400 dark:text-white/45;
 }
 
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='js'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='jsx'] {
-  @apply border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-300/25 dark:bg-amber-300/10 dark:text-amber-200;
+/* Keep the first line clear of the always-visible floating logo + copy button. */
+figure[data-rehype-pretty-code-figure] .code-block-floating code > [data-code-line]:first-of-type {
+  padding-right: 7rem;
 }
 
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='css'] {
-  @apply border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-300/25 dark:bg-indigo-300/10 dark:text-indigo-200;
-}
-
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='md'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='mdx'] {
-  @apply border-violet-200 bg-violet-50 text-violet-700 dark:border-violet-300/25 dark:bg-violet-300/10 dark:text-violet-200;
-}
-
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='diff'] {
-  @apply border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-300/25 dark:bg-emerald-300/10 dark:text-emerald-200;
-}
-
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='bash'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='sh'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='shell'],
-figure[data-rehype-pretty-code-figure] .code-language-icon[data-code-language='zsh'] {
-  @apply border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-300/25 dark:bg-teal-300/10 dark:text-teal-200;
-}
-
-figure[data-rehype-pretty-code-figure] .code-title-text {
-  @apply min-w-0 truncate font-mono;
-}
-
-figure[data-rehype-pretty-code-figure] .code-source-link {
-  @apply inline-flex shrink-0 items-center gap-1.5 rounded-[6px] px-2 py-1 font-sans text-xs text-slate-500 hover:bg-slate-200/70 hover:text-slate-900 dark:text-white/55 dark:hover:bg-white/10 dark:hover:text-white/90;
-}
-
-figure[data-rehype-pretty-code-figure] .code-source-link-icon {
-  @apply h-3.5 w-3.5 shrink-0;
-}
-
-figure[data-rehype-pretty-code-figure] .code-source-link-text {
-  @apply hidden sm:inline;
+/* Titled/sourced blocks: quiet text row above the code, so the code itself
+   can start closer to it than a standalone block's first line. */
+figure[data-rehype-pretty-code-figure] .code-header + pre {
+  padding-top: 0.25rem;
 }
 
 figure[data-rehype-pretty-code-figure] pre {
@@ -67,6 +42,25 @@ figure[data-rehype-pretty-code-figure] pre {
   background: var(--shiki-light-bg);
   color: var(--shiki-light);
   scrollbar-color: color-mix(in oklab, var(--shiki-light) 28%, transparent) transparent;
+  scrollbar-width: thin;
+}
+
+figure[data-rehype-pretty-code-figure] pre::-webkit-scrollbar {
+  height: 8px;
+}
+
+figure[data-rehype-pretty-code-figure] pre::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--shiki-light) 24%, transparent);
+}
+
+figure[data-rehype-pretty-code-figure] pre::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+figure[data-rehype-pretty-code-figure] pre ::selection,
+figure[data-rehype-pretty-code-figure] pre::selection {
+  background: color-mix(in oklab, var(--color-sky-500) 30%, transparent);
 }
 
 figure[data-rehype-pretty-code-figure] code {
@@ -89,6 +83,10 @@ code[data-theme] span {
   scrollbar-color: color-mix(in oklab, var(--shiki-dark) 28%, transparent) transparent;
 }
 
+.dark figure[data-rehype-pretty-code-figure] pre::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--shiki-dark) 24%, transparent);
+}
+
 .dark code[data-theme],
 .dark code[data-theme] span {
   color: var(--shiki-dark);
@@ -99,13 +97,13 @@ code[data-theme] span {
 }
 
 code[data-line-numbers] > [data-code-line]::before {
-  @apply mr-4 inline-block w-6 shrink-0 text-right text-slate-400 select-none dark:text-white/35;
+  @apply mr-4 inline-block w-6 shrink-0 text-right text-slate-400/90 tabular-nums select-none dark:text-white/30;
   counter-increment: line;
   content: counter(line);
 }
 
 [data-code-line] {
-  @apply block min-h-6 min-w-max border-l-4 border-transparent px-4;
+  @apply block min-h-6 min-w-max border-l-2 border-transparent px-4;
   width: 100%;
 }
 
@@ -119,7 +117,7 @@ code[data-theme] [data-code-line] span {
 }
 
 [data-highlighted-chars] {
-  @apply rounded-[4px] bg-sky-200/70 px-1 py-0.5 dark:bg-sky-400/20;
+  @apply rounded-[4px] bg-sky-200/70 px-1 py-0.5 ring-1 ring-sky-300/60 dark:bg-sky-400/20 dark:ring-sky-300/25;
 }
 
 code[data-theme] [data-diff-line='add'] {
