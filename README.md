@@ -22,10 +22,11 @@ yarn dev
 常用命令：
 
 ```bash
-yarn dev      # 本地开发服务器
-yarn lint     # ESLint 检查
-yarn build    # 生成静态站点到 out/
-yarn preview  # 构建静态站点并用本地 Caddy 预览
+yarn dev          # 本地开发服务器
+yarn lint         # ESLint 检查
+yarn build        # 生成静态站点到 out/
+yarn preview      # 构建静态站点并用本地 Caddy 预览
+yarn write-blog   # 使用 CLI 创建新博客文章
 ```
 
 `yarn preview` 第一次运行会自动下载固定版本的 Caddy 到 `.tools/caddy/`，随后终端会持续显示可点击的 Local/Network 预览地址。

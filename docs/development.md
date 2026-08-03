@@ -184,6 +184,24 @@ E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中�
 - 替换旧动效或状态机时，在同一实现批次删除被替换代码，避免双重所有者。
 - 性能与行为优化必须能由构建、测试或质量门禁稳定复现。
 
+## 撰写博客
+
+新增文章可使用 CLI 工具：
+
+```bash
+yarn write-blog create --title "文章标题" --locale zh --slug my-post --draft
+```
+
+参数说明：
+
+- `--title`：文章标题（必填）。
+- `--locale`：`zh` 或 `en`（必填）。
+- `--slug`：URL slug；中文标题必须显式提供，脚本不会自动生成拼音 slug。
+- `--date`：发布日期，默认当天（`YYYY-MM-DD`）。
+- `--summary`、`--categories`、`--tags`、`--translationKey`、`--authors`、`--image`、`--draft`：可选 frontmatter 字段。
+
+工具会创建 `content/blog/{locale}/{slug}.md` 并自动运行 `yarn content:generate` 验证 frontmatter 和 MDX。完整 agent 写作流程（选题、生成 frontmatter、撰写正文、humanizer-zh 润色、构建验证、提交）见 `.agents/instructions/write-blog.md`。
+
 ## 站点配置
 
 站点标题、作者、社交链接、站点 URL、默认主题和 Umami 配置位于 `data/siteMetadata.ts`。导航位于 `data/headerNavLinks.ts`。

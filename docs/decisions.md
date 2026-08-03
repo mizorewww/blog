@@ -107,3 +107,22 @@
 - `public/_redirects` 是历史 URL 重定向的唯一权威来源，开发服务器和 Caddy preview 用同一 parser 读取；新增 `yarn test:e2e:parity` 作为双服务器一致性门禁。
 
 **后果**：开发与 preview 的路由行为可对齐验证；导出文档和搜索索引的语言正确。
+
+## ADR-0010 Coding Agent 撰写博客流程
+
+日期：2026-08-03
+
+**背景**：博客内容由 MDX/MD 文件驱动，frontmatter 字段、slug 规则、多语言关联和构建验证已有明确约定，但 agent 缺少标准化的写作入口；同时希望引入中文文本润色能力，提升文章自然度。
+
+**决策**：
+
+- 新增 `yarn write-blog` CLI（`scripts/write-blog.mjs`），提供 `create` 子命令统一生成博客文件：
+  - 校验 `--locale`（zh/en）、必填 `--title`、可选 `--slug`（中文标题必须显式提供）。
+  - 生成 `date` 默认为当天，支持 `summary`、`categories`、`tags`、`translationKey`、`authors`、`image`、`draft`。
+  - 输出符合 `docs/content.md` 规范的 YAML frontmatter。
+  - 创建 `content/blog/{locale}/{slug}.md` 后自动运行 `yarn content:generate` 验证。
+- 新增 agent 指令 `.agents/instructions/write-blog.md`，定义从选题、生成 frontmatter、撰写正文、humanizer-zh 润色、构建验证到提交的完整博客撰写流程。
+- 以 vendored 形式引入 `humanizer-zh`（`.agents/skills/humanizer-zh/`），作为 Claude Code Skill 供 agent 在润色中文文本时引用；它不是 npm 包，不加入 `package.json` dependencies。
+- 简化 `package.json` 开发脚本：新增 `format` 别名，将 `check` 调整为失败更快的顺序，同时保留 AGENTS.md 要求的所有确定性门禁命令。
+
+**后果**：agent 撰写博客有统一入口和校验流程；`humanizer-zh` 的规则可被 agent 主动应用，但因其为 prompt-based skill，润色质量仍依赖 agent 正确读取并执行；vendored skill 需要手动更新。中文标题不会自动生成拼音 slug，必须显式传入 `--slug`。
