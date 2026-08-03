@@ -123,16 +123,16 @@ send(text[optional], reply_to[optional], sticker_id[optional])
 
 建模其实不复杂。单次调用的输入成本可以写成:
 
-```text
+$$
 C_call = T × [(1−h) × P_in + h × P_cache] = T × P_in × [(1−h) + h × r]
-```
+$$
 
 `T` 是输入 token 数,`h` 是缓存命中率,`r = P_cache / P_in` 是缓存命中价与原价的比值。总成本再乘调用次数 `N`,改造前后的差异就收进三个相互独立的因子:
 
-```text
+$$
 C_before / C_after = (N_old/N_new) × (T_old/T_new) × f(h_old) / f(h_new)
 其中 f(h) = (1−h) + h × r
-```
+$$
 
 三个因子的取值都有依据:
 
