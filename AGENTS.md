@@ -70,3 +70,7 @@ yarn deadcode:check
 以下情况记录到 `docs/decisions.md`：架构边界、公共 API、数据形状、依赖采用或替换、部署/安全/性能策略、agent 流程变化。行为变化时同步更新 `docs/` 下对应文档。
 
 文档更新只在任务要求或源码行为变化时进行，且永远不是源码工作的完成证据。
+
+## 博客写作任务
+
+涉及新增或修改博客文章的 agent 任务，必须遵循 `.agents/instructions/write-blog.md` 定义的流程。中文文章在最终定稿前，agent 必须阅读并应用 `.agents/skills/humanizer-zh/SKILL.md` 的规则对正文进行去 AI 痕迹润色，保持核心信息与技术准确性不变。
