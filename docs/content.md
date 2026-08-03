@@ -108,6 +108,7 @@ content/blog/en/example.mdx
 - 普通 Markdown 图片
 - 表格横向滚动包装
 - ECharts 图表
+- 数学公式
 
 文章内可用组件来自：
 
@@ -209,6 +210,30 @@ echo "hello"
 
 可运行的示例见文章 `content/blog/zh/blog-git-metadata-and-icons.md` 的「代码块直接渲染 ECharts」一节。
 
+## 数学公式
+
+公式用 LaTeX 语法书写，构建时由 remark-math 解析、MathJax 渲染成内联 SVG，不加载任何客户端脚本或字体。
+
+行间公式把 `$$...$$` 单独成段：
+
+```mdx
+$$
+C_{\mathrm{call}} = T \times P_{\mathrm{in}}
+$$
+```
+
+行内公式把 `$$...$$` 写在同一行内：
+
+```mdx
+其中 $$f(h) = (1-h) + h \times r$$ 是缓存因子。
+```
+
+单个 `$` 保持字面值，不会被当作公式定界符，所以 `$AAPL` ticker shortcode 和 `$0.5` 这类货币文本不受影响。
+
+注意事项：
+
+- LaTeX 语法错误不会导致构建失败，公式位置会渲染出带错误说明的标记，写完应目视检查页面。
+
 ## 图片
 
 Markdown 图片：
@@ -245,7 +270,6 @@ scripts/rss.mjs
 
 这些能力不属于当前 MDX 管线：
 
-- 数学公式
 - citation/bibliography
 - GitHub blockquote alert
 - 内置搜索索引

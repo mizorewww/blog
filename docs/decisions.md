@@ -126,3 +126,20 @@
 - 简化 `package.json` 开发脚本：新增 `format` 别名，将 `check` 调整为失败更快的顺序，同时保留 AGENTS.md 要求的所有确定性门禁命令。
 
 **后果**：agent 撰写博客有统一入口和校验流程；`humanizer-zh` 的规则可被 agent 主动应用，但因其为 prompt-based skill，润色质量仍依赖 agent 正确读取并执行；vendored skill 需要手动更新。中文标题不会自动生成拼音 slug，必须显式传入 `--slug`。
+
+## ADR-0011 采用 remark-math + rehype-mathjax 构建期公式渲染
+
+日期：2026-08-03
+
+**背景**：文章需要排版数学公式（如成本建模），站点是纯静态导出，公式渲染必须零客户端 JS、零额外 CSS/字体资产。候选方案是 KaTeX（rehype-katex）与 MathJax（rehype-mathjax）。
+
+**决策**：
+
+- 采用 remark-math 解析 `$$` 公式语法，rehype-mathjax（`rehype-mathjax/svg` 子路径）在构建期把公式渲染成内联 SVG。渲染引擎是 mathjax-full（MathJax v3，Apache-2.0，10,889 stars，2026-08-03 查询）。
+- 用户明确否决 KaTeX，选择 MathJax。
+- remark-math / rehype-mathjax 来自 remarkjs/remark-math monorepo（MIT，514 stars），低于 1,000 stars 门槛；豁免理由：unified collective 官方数学插件，生态内无替代品，渲染引擎本身达标。用户已知悉并接受。
+- remark-math 配置 `singleDollarTextMath: false`：仓库有 `$AAPL` ticker shortcode（remarkTradingViewWidgets）和 `$0.0028` 这类货币文本，不禁用单 `$` 会被误解析为行内公式；行内公式改用同一行内的 `$$...$$` 书写。
+- 选 SVG 输出而非 CHTML：零 CSS、零字体文件、零资产预算影响，SVG 用 `currentColor` 跟随明暗主题。
+- 插件顺序：rehype-mathjax 必须排在 rehype-pretty-code 之前（math 插件整体替换 `language-math` 节点，pretty-code 会把渲染产物当代码破坏）。
+
+**后果**：公式在构建期渲染为内联 SVG，无运行时成本；单 `$` 保持字面值，ticker 与货币文本不受影响；LaTeX 语法错误不会中断构建，公式位置渲染出带错误说明的标记（`merror`），需要作者目视检查。用法见 [content.md](./content.md#数学公式)。

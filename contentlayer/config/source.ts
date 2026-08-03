@@ -1,5 +1,7 @@
 import { makeSource } from 'contentlayer2/source-files'
 import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeMathjaxSvg from 'rehype-mathjax/svg'
 import rehypeSlug from 'rehype-slug'
 import rehypeAutolinkHeadings from 'rehype-autolink-headings'
 import rehypePresetMinify from 'rehype-preset-minify'
@@ -21,6 +23,7 @@ export default makeSource({
     cwd: process.cwd(),
     remarkPlugins: [
       remarkGfm,
+      [remarkMath, { singleDollarTextMath: false }],
       remarkTradingViewWidgets,
       remarkEChartsBlocks,
       remarkIconShortcodes,
@@ -38,6 +41,7 @@ export default makeSource({
           content: autolinkIcon,
         },
       ],
+      rehypeMathjaxSvg,
       rehypeCodeSourceMetadata,
       [rehypePrettyCode, rehypePrettyCodeOptions],
       rehypeCodeLineMetadata,
