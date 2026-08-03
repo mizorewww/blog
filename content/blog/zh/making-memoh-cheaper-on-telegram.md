@@ -124,17 +124,16 @@ send(text[optional], reply_to[optional], sticker_id[optional])
 建模其实不复杂。单次调用的输入成本可以写成:
 
 $$
-C_call = T × [(1−h) × P_in + h × P_cache] = T × P_in × [(1−h) + h × r]
+C_{\mathrm{call}} = T \times \left[(1-h) \times P_{\mathrm{in}} + h \times P_{\mathrm{cache}}\right] = T \times P_{\mathrm{in}} \times \left[(1-h) + h \times r\right]
 $$
 
 `T` 是输入 token 数,`h` 是缓存命中率,`r = P_cache / P_in` 是缓存命中价与原价的比值。总成本再乘调用次数 `N`,改造前后的差异就收进三个相互独立的因子:
 
 $$
-C_before / C_after = (N_old/N_new) × (T_old/T_new) × f(h_old) / f(h_new)
-其中 f(h) = (1−h) + h × r
+\frac{C_{\mathrm{before}}}{C_{\mathrm{after}}} = \frac{N_{\mathrm{old}}}{N_{\mathrm{new}}} \times \frac{T_{\mathrm{old}}}{T_{\mathrm{new}}} \times \frac{f(h_{\mathrm{old}})}{f(h_{\mathrm{new}})}
 $$
 
-三个因子的取值都有依据:
+其中 $$f(h) = (1-h) + h \times r$$。三个因子的取值都有依据:
 
 - **N_old / N_new = 2~3**:纯发消息 2 次调用变 1 次,带回复/表情 3 次变 1 次。这是机制决定的,不含任何估算;
 - **T_old / T_new ≈ 70K / 52K ≈ 1.35**:请求里砍掉的工具 schema(49.5 KB)、动态贴纸目录(18.3 KB)和重复元数据,合计约 2 万 token;
