@@ -2,6 +2,7 @@
 export type ImageEntry = { widths: number[]; width: number; height: number }
 export const imageManifest: Record<string, ImageEntry> = {
   "/static/images/avatar.png": { widths: [], width: 192, height: 192 },
+  "/static/images/memoh-blog-260803.png": { widths: [400, 640, 768, 1024], width: 1256, height: 874 },
   "/static/images/obsdian-kde-settings.png": { widths: [400, 640, 768, 1024, 1280], width: 1858, height: 1355 },
   "/static/images/obsidian.png": { widths: [400, 640, 768], width: 1000, height: 400 },
   "/static/images/twitter-card.png": { widths: [400, 640, 768, 1024, 1280], width: 1280, height: 640 },
