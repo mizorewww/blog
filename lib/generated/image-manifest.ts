@@ -6,5 +6,5 @@ export const imageManifest: Record<string, ImageEntry> = {
   "/static/images/obsdian-kde-settings.png": { widths: [400, 640, 768, 1024, 1280], width: 1858, height: 1355 },
   "/static/images/obsidian.png": { widths: [400, 640, 768], width: 1000, height: 400 },
   "/static/images/twitter-card.png": { widths: [400, 640, 768, 1024, 1280], width: 1280, height: 640 },
-  "/static/images/xiaomi-book-pro-14.jpg": { widths: [400, 640, 768, 1024, 1280], width: 2000, height: 1500 },
+  "/static/images/xiaomi-book-pro-14.jpg": { widths: [400, 640, 768, 1024, 1280], width: 1600, height: 1200 },
 }
