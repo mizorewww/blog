@@ -86,7 +86,7 @@ export default function ECharts({ height = 360, option, title }: EChartsProps) {
   }, [mounted, theme, chartOption])
 
   return (
-    <figure className="not-prose dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[10px] border border-slate-200/90 bg-white shadow-sm dark:shadow-none">
+    <figure className="article-data-block not-prose dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[10px] border border-slate-200/90 bg-white shadow-sm dark:shadow-none">
       <figcaption className="flex items-center gap-1.5 px-4 pt-2">
         <span
           aria-hidden="true"

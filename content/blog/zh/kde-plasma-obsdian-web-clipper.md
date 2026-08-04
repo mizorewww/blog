@@ -36,4 +36,4 @@ Obsidian 已打开时添加内容为空；
 
 在 KDE 里给 Obsidian 添加窗口规则：打开KDE设置`系统设置 → 窗口管理 → 窗口规则`,按我下面的方法设置即可
 
-![](/static/images/obsdian-kde-settings.png)
+![KDE 系统设置中 Obsidian 的窗口规则配置界面](/static/images/obsdian-kde-settings.png)

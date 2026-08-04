@@ -110,6 +110,16 @@ content/blog/en/example.mdx
 - ECharts 图表
 - 数学公式
 
+## 正文排版合同
+
+文章正文由 `article-prose` 作用域统一承载。文章页所有正文相关外边缘都必须走同一条阅读 rail：标题、段落、列表、引用、details、脚注、图片 figure、代码块、表格、行间 MathJax、license notice、文章详情和上下篇导航都应与 `article-content-rail` 对齐。普通段落、标题、列表、引用、脚注、details、kbd、abbr、mark、sub/sup 等 inline 和 block family 必须保持页面级无横向滚动；真正二维的代码块、表格和行间 MathJax 只能在自身容器内横向滚动，并需要保留可见横向滚动边缘提示。
+
+`1440px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心；右侧 TOC 是辅助导航，保持窄列、低权重和固定 surface 间距，不参与正文居中。`1280px` 及以下继续使用单列阅读布局。
+
+正文阅读宽度按语言调节：英文文章使用较窄的长文 measure，中文文章略宽，避免英文桌面行长过长或中文桌面断行过碎。普通正文在移动端不低于 16px，并用紧凑但可读的行高；标题层级按 h2-h6 递减，不用孤立装饰替代结构。
+
+inline code 使用正文专用语义 token。暗色模式下 inline code 必须是暗色 surface，不得沿用浅色 gradient 或浅色文字；链接里的 code 继承同一 surface/border，仅改变链接前景色。Shiki fenced code 仍由代码块组件和高亮主题控制，不套用 inline code 的 border、padding 或背景规则。
+
 文章内可用组件来自：
 
 ```text
@@ -158,7 +168,7 @@ echo "hello"
 ```
 ````
 
-代码块渲染后右上角常显复制按钮和语言 logo（来自 simple-icons，无徽章边框；没有品牌图标的语言回退为简短文字标注），不渲染标题栏。写了 `title="文件名"` 或 `sourceUrl="..."` 的代码块，会在代码上方多一行小字路径，GitHub 源码链接收进右上角图标。
+代码块渲染后会在代码上方显示一行安静的工具区：左侧是语言 logo 或文字标注，右侧是 GitHub 源码链接和复制按钮。代码内容保留内部横向滚动，320px 宽度下控件不得覆盖第一行代码。复制失败时页面会提示手动选择代码。
 
 ## ECharts 图表
 
@@ -233,16 +243,17 @@ $$
 注意事项：
 
 - LaTeX 语法错误不会导致构建失败，公式位置会渲染出带错误说明的标记，写完应目视检查页面。
+- 行间公式在窄屏下可以在公式自身区域横向滚动；页面根部不应因此出现横向滚动。行内公式仍按正文流排版。
 
 ## 图片
 
 Markdown 图片：
 
 ```mdx
-![](/static/images/example.jpg)
+![图片说明](/static/images/example.jpg)
 ```
 
-Markdown 图片会渲染为带 `loading="lazy"` 和 `decoding="async"` 的原生 `img`。
+Markdown 图片会渲染为带 `loading="lazy"` 和 `decoding="async"` 的原生 `img`，并继承文章正文的圆角和细 outline。内容图片必须写有意义的 alt；只有纯装饰图片才使用空 alt。Markdown 图片 title 会显示为 caption。
 
 需要更精细控制时，可以使用 MDX 组件：
 

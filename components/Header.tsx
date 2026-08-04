@@ -21,7 +21,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
   const shouldHide = hideOnMobile && isMobile && !mobileNavigationOpen
 
   useEffect(() => {
-    const media = window.matchMedia('(max-width: 639px)')
+    const media = window.matchMedia('(max-width: 1023px)')
     const sync = () => {
       setIsMobile(media.matches)
 
@@ -71,30 +71,30 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
   return (
     <SlideHeader
       hidden={shouldHide}
-      className={`dark:bg-surface-card-dark/95 fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur sm:translate-y-0 sm:opacity-100 dark:shadow-none ${
-        shouldHide ? 'pointer-events-none sm:pointer-events-auto' : ''
+      className={`dark:bg-surface-card-dark/95 fixed inset-x-0 top-0 z-50 w-full bg-white/90 shadow-sm shadow-slate-200/70 backdrop-blur lg:translate-y-0 lg:opacity-100 dark:shadow-none ${
+        shouldHide ? 'pointer-events-none lg:pointer-events-auto' : ''
       }`}
     >
       <div
         ref={headerShellRef}
-        className="header-shell relative mx-auto flex w-full items-center justify-between gap-x-3 px-3 py-2.5 sm:flex-nowrap sm:gap-x-7 sm:px-6 sm:py-4 lg:px-0"
+        className="header-shell relative mx-auto flex w-full items-center justify-between gap-x-2 px-3 py-2 md:px-6 lg:flex-nowrap lg:gap-x-7 lg:px-0 lg:py-4"
       >
         <div data-header-logo className="z-10 shrink-0">
           <HeaderLogo />
         </div>
-        <div className="ml-auto hidden min-w-0 text-lg leading-5 sm:block lg:text-xl">
+        <div className="ml-auto hidden min-w-0 text-xl leading-5 lg:block">
           <nav aria-label={labels.primaryNavigation}>
             <HeaderNavLinks />
           </nav>
         </div>
         <div
           data-header-controls
-          className="z-10 flex shrink-0 items-center gap-x-2 text-slate-600 sm:gap-x-4 dark:text-white/90"
+          className="z-10 flex shrink-0 items-center gap-x-1.5 text-slate-600 lg:gap-x-4 dark:text-white/90"
         >
           <Link
             href="/feed.xml"
             aria-label={labels.subscribeRss}
-            className="hidden hover:text-sky-700 sm:inline-flex dark:hover:text-sky-300"
+            className="hidden h-10 w-10 touch-manipulation items-center justify-center rounded-full hover:text-sky-700 lg:inline-flex dark:hover:text-sky-300"
           >
             <Icon name="Rss" className="h-6 w-6" inlineSpacing={false} />
           </Link>
@@ -108,7 +108,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
             aria-label={mobileNavigationOpen ? labels.closeNavigation : labels.openNavigation}
             aria-expanded={mobileNavigationOpen}
             aria-controls="mobile-primary-navigation"
-            className="inline-flex h-11 w-11 items-center justify-center text-slate-700 hover:text-sky-700 sm:hidden dark:text-white/90 dark:hover:text-sky-300"
+            className="inline-flex h-11 w-11 items-center justify-center text-slate-700 hover:text-sky-700 lg:hidden dark:text-white/90 dark:hover:text-sky-300"
             onClick={() => setMobileNavigationOpen((open) => !open)}
           >
             {mobileNavigationOpen ? (
@@ -121,7 +121,7 @@ const Header = ({ hideOnMobile = false }: { hideOnMobile?: boolean }) => {
         {mobileNavigationOpen && isMobile && (
           <div
             id="mobile-primary-navigation"
-            className="dark:bg-surface-card-dark absolute inset-x-0 top-full border-t border-slate-200 bg-white shadow-sm sm:hidden dark:border-white/10"
+            className="dark:bg-surface-card-dark absolute inset-x-0 top-full border-t border-slate-200 bg-white shadow-sm lg:hidden dark:border-white/10"
           >
             <nav aria-label={labels.primaryNavigation}>
               <HeaderNavLinks variant="mobile" onNavigate={() => setMobileNavigationOpen(false)} />

@@ -22,10 +22,10 @@ const ThemeSwitch = () => {
     <motion.button
       type="button"
       aria-label={labels.toggleTheme}
-      className="hover:text-sky-700 dark:hover:text-sky-300"
+      className="inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full hover:text-sky-700 dark:hover:text-sky-300"
       onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
-      whileHover={shouldReduceMotion ? undefined : { scale: 1.1 }}
-      whileTap={shouldReduceMotion ? undefined : { scale: 0.92 }}
+      whileHover={shouldReduceMotion ? undefined : { scale: 1.04 }}
+      whileTap={shouldReduceMotion ? undefined : { scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
     >
       <AnimatePresence mode="wait" initial={false}>

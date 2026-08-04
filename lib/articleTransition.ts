@@ -12,6 +12,7 @@ const MAX_IMAGE_SRC_LENGTH = 2_048
 const MAX_TITLE_LENGTH = 240
 const MAX_SUMMARY_LENGTH = 600
 const MAX_PRESENTATION_ITEM_LENGTH = 600
+const ARTICLE_DESKTOP_SURFACE_WIDTH = 780
 
 export type ArticleTransitionRect = {
   top: number
@@ -322,7 +323,9 @@ export function getArticleTransitionDestination(
 
   const mobile = viewport.width < 640
   const top = mobile ? 72 : 120
-  const width = mobile ? viewport.width : Math.min(780, viewport.width - 30)
+  const width = mobile
+    ? viewport.width
+    : Math.min(ARTICLE_DESKTOP_SURFACE_WIDTH, viewport.width - 30)
 
   if (width <= 0 || viewport.height <= top) {
     return null

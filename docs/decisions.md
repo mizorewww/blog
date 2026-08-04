@@ -143,3 +143,91 @@
 - 插件顺序：rehype-mathjax 必须排在 rehype-pretty-code 之前（math 插件整体替换 `language-math` 节点，pretty-code 会把渲染产物当代码破坏）。
 
 **后果**：公式在构建期渲染为内联 SVG，无运行时成本；单 `$` 保持字面值，ticker 与货币文本不受影响；LaTeX 语法错误不会中断构建，公式位置渲染出带错误说明的标记（`merror`），需要作者目视检查。用法见 [content.md](./content.md#数学公式)。
+
+## ADR-0012 本地 Playwright UI 截图流程
+
+日期：2026-08-04
+
+**背景**：UI/UX 改动需要可重复的渲染证据，但当前仓库没有视觉快照门禁。直接引入新的视觉回归服务或图片对比库会扩大依赖面，也容易把局部 polish 变成脆弱的 CI 截图维护成本。
+
+**决策**：
+
+- 复用现有 `@playwright/test`，新增 `yarn ui:screenshots` 本地命令，通过 Chromium 捕捉代表性首页、文章、搜索、分类和 404 页面。
+- 截图默认访问已启动的静态 preview，覆盖 desktop `1440x900` 与 mobile `375x812`，默认 dark theme，可用参数切换 light/both、页面集合、viewport、locale、文章路径和 base URL。
+- 文章阅读检查支持局部页面键：`article-top`、`article-math`、`article-code`、`article-toc`、`article-image`、`article-bottom`。`compact` viewport 固定为 `320x812`，用于验证 320px reflow。
+- 截图输出到 `docs/agent-records/screenshots/<label>/`。该目录由本机 agent 记录使用，通过 Git ignore 机制保持不提交。
+- 截图与 probe 输出必须限制在 `docs/agent-records/` 内；路径越界直接失败。截图捕捉使用 reduced motion，并在每次导航后确认根节点主题 class，再等待 Header 与主内容动画稳定后保存。
+- 不新增依赖，不把截图作为 source-controlled snapshot，也不把图片对比加入 CI gate。确定性质量仍由 format、lint、typecheck、unit、e2e、deadcode 和 perf 检查负责。
+
+**后果**：UI 审阅可以获得稳定、可复跑的本地截图证据，同时仓库不承担图片资产 churn 和视觉像素差异门禁。脚本只负责捕捉；服务未启动、响应码异常或页面未到达预期状态时直接失败。
+
+## ADR-0013 文章阅读系统优先级
+
+日期：2026-08-04
+
+**背景**：文章页是博客的核心使用路径。旧布局把 16:9 大封面、标题卡、更新时间/source、额外作者/标签/commit 详情和移动 TOC 都放在正文之前，导致首段在 `1440x900` 与手机 viewport 中都靠后出现。MDX 中的行间公式、代码块控件、长目录标题和标题锚点也分别存在 320px 重排问题。
+
+**决策**：
+
+- 文章 header 只保留阅读决策必需信息：封面、标题、更新时间/source、摘要、发布日期和主标签。作者、次级标签和 commit 列表移到正文后的 `details` 区域。
+- 文章封面改为阅读页专用比例：`320px`/手机宽度下约 `2:1`，`640px` 以上约 `2.8:1`。列表卡片仍使用自己的卡片比例，`ArticleCardPresentation` 通过 `variant` 显式区分卡片与文章页样式，转场 overlay 在 source/destination 间切换对应 variant。
+- 正文使用 `article-prose` 作用域承载长文排版。正文测量保持在 60-75ch 范围内；普通段落、列表、标题、引用、脚注等不得制造页面级横向滚动。
+- 代码块、表格和行间 MathJax 是允许二维内容的例外，只能在自身容器内横向滚动。复制控件放在代码前的工具行，复制失败必须显示并宣告可恢复提示。
+- 标题锚点不再依赖负向位移或 hover-only 发现；hash 跳转目标保留固定 header offset。桌面 TOC 长标题允许换行，不再单行截断。
+- 内容图片必须有符合用途的 alt；Markdown 图片继承文章内圆角和黑/白低透明 outline，有 title 时显示 caption。
+
+**后果**：文章首屏优先给正文让路，辅助信息仍可访问；MDX 元素在 320px reflow 下通过内部滚动处理宽内容，页面根部保持单向滚动。转场、TOC、代码复制、MathJax 和图片行为由 article e2e 几何/行为断言覆盖，截图只作为人工审阅证据。
+
+## ADR-0014 全站发现界面与工具化 UI 量化
+
+日期：2026-08-04
+
+**背景**：文章阅读系统完成后，剩余问题集中在发现与全局 shell：移动 header 视觉拥挤但必须保留 44px 关键命中区；首页首卡在 `375x812` 中约 `394px` 高，首屏只能扫到约一张卡；搜索初始态标题、输入和空白垂直占用偏大；分类/标签 chip 约 `55px` 高并形成同权重的"药丸墙"；桌面左右侧栏与主列表共用强卡片 chrome，削弱主列表优先级。
+
+**决策**：
+
+- 移动 header 的语言切换改为单一"切到另一语言"按钮；桌面保留双段语言切换。Logo、主题、菜单、RSS 和页脚社交链接使用真实可量化的目标盒，移动关键控件保持 `44px` 以上，桌面 RSS 至少 `40px`。
+- 列表卡片和文章页头部分离密度：`ArticleCardPresentation` 的 card variant 更紧凑并限制摘要行数，文章 variant 保留 Phase 1 的阅读层级。列表封面在移动端使用更浅比例，文章转场 marker 与图片性能属性保持不变。
+- 侧栏 widget 改为低视觉权重 surface：更轻的背景、ring/shadow、标题和统计文本，让中间主列表成为桌面首要视觉对象。侧栏分类/tag 链接仍保持 `44px` 可点击盒，内部文字可更轻。
+- 搜索页保留稳定 live region、`aria-busy` 和 Pagefind 静态搜索路径，同时压缩初始态垂直占用，补齐输入提示文案、结果/空/错误视觉状态和 320px 几何断言。
+- 分类/标签 index chip 使用紧凑视觉层级，保持 `44px` 点击盒、长词断行、current/link 语义和 locale 路径。
+- Header 的移动 disclosure 覆盖 `<1024px`，桌面导航从 `lg` 开始显示，防止中文导航在 640px/768px 和 200% reflow 宽度下被挤成竖排；RSS 和双段语言切换同步到同一断点。
+- 分类/标签 detail 页面显示紧凑的上下文标题（如 `分类：折腾`、`#Linux`），不再只有屏幕阅读器标题；404 页面在移动端顶端对齐，让错误码、说明和返回链接都进入首屏。
+- Footer 元信息按语义单元换行，commit badge 自身不带行首分隔符，避免窄屏出现孤立标点。
+- `AppShell` 在客户端 route change 后把焦点移到 `main`，使用 `preventScroll` 避免破坏浏览器/Next.js 的滚动所有权。
+- 本地 UI 工具从截图扩展到可复现的数值 probe。截图继续保存在 ignored agent records，不成为 CI 像素门禁；行为由 e2e 几何、状态和可访问性断言负责。
+
+**后果**：发现页在移动端能更快扫到多篇文章，搜索和 term 页面状态更明确，桌面侧栏不再与主列表争夺同等权重。由于 header、route focus、搜索、term 和 screenshot/probe 工具都涉及交互或静态 preview，相关改动必须跑 `test:e2e` 和 `perf:check`。
+
+## ADR-0015 Reading Max 长文排版与本地证据合同
+
+日期：2026-08-04
+
+**背景**：文章页仍存在两个会直接影响长文阅读的问题：普通正文在实际渲染中落回 `16px / 28px` 的弱层级，暗色 inline code 仍使用浅色 token；同时缺少覆盖 `1280`、`1728`、`1920`、真实 200% 文本缩放和 Markdown family 的确定性检查。
+
+**决策**：
+
+- `article-prose` 成为文章正文排版唯一源，使用比 Tailwind Typography 默认更高的作用域优先级覆盖正文、标题、inline code、列表、引用、表格、图片、脚注和 details 等样式；Shiki fenced code 继续由代码块组件与高亮主题控制。
+- 普通正文使用响应式阅读字号与 `1.65` 行高。英文正文 measure 以 `39.25rem` 为上限，中文通过 `html:lang(zh)` 放宽到 `40rem`，以实测字符行长同时满足中英文阈值。
+- 暗色 inline code 使用正文专用暗色 foreground/background/border token，显式清除浅色 gradient；链接里的 inline code 复用同一 surface 和 border，仅前景色进入链接角色。每个暗色 inline code 对比度必须不低于 `4.5:1`。
+- 本地 `ui:screenshots` 与 `ui:probe` 复用 Playwright，不新增视觉测试依赖。截图和 JSON 只写入 `docs/agent-records/reading-max/`；测试用 Markdown fixture 来自共享 `scripts/reading-fixture.mjs`，不加入公开内容或路由。
+- E2E 以计算后的几何和样式为准，覆盖中英文 320-1920px line measure、首段可见高度、wide TOC、dark inline code、真实 rich article 的 code/table/MathJax 内部滚动、200% 文本缩放和 Markdown family fixture。
+
+**后果**：文章页的阅读宽度、字号、暗色 code surface 和 Markdown family 行为可由浏览器测试与本地 evidence 复现；截图仍用于人工目视检查，不进入 source-controlled 像素门禁。后续改变正文排版、代码块、表格、MathJax、图片或文章布局时，需要同步更新 Reading Max 阈值或重新采集 evidence。
+
+## ADR-0016 文章共享阅读 Rail 与宽屏 TOC 光学平衡
+
+日期：2026-08-04
+
+**背景**：Reading Max 后，文章页仍有多条横向参照线：header/body、正文段落、代码块、表格、MathJax、图片、license、文章详情和上下篇导航分别由不同 padding 或 `max-width` 控制。宽屏 TOC 从 `1280px` 开始贴在正文右侧时，容易让主阅读列随辅助导航一起偏离视口中心；代码、表格和行间公式虽可内部滚动，但边缘提示不一致。
+
+**决策**：
+
+- `article-reading-surface` 暴露 `--article-rail-width`，`article-content-rail` 与 `article-prose` 直接子元素共用同一 rail。英文 rail 上限为 `39.25rem`，中文仍为 `40rem`；移动和 `640px` 附近由响应式 gutter 控制，避免英文行长超过既有阈值。
+- 正文直系 block family、Shiki figure、Markdown 表格、行间 MathJax、图片 figure、`.article-data-block`、脚注、license notice、文章详情和上下篇导航都以首段外边缘为对齐基准。二维内容仍只允许容器内部横向滚动。
+- 桌面 TOC 从 `1440px` 开始显示。宽屏时 `article-reading-surface` 固定为 `780px` 并与正文 rail 一起按视口中心对齐；TOC 是右侧辅助导航，宽 `190px`、距 surface `36px`，不参与主阅读列居中计算，视觉权重低于正文。
+- `1280px` 保持单列文章布局，不显示桌面 TOC。`1440px` 仍必须保留可见 TOC，且右侧边距不少于 `96px`；`1728px` 不少于 `240px`，`1920px` 不少于 `330px`。文章打开转场和 skeleton 的目标 geometry 使用同一个居中 surface 合同，不使用 transform 修正。
+- 表格、行间 MathJax、plain pre 和 Shiki pre 使用相同的 local/scroll gradient 边缘提示，明暗色由 article surface 变量控制。
+- test-only fixture 覆盖 fixture embed、plain pre 和脚注 backref；`ui:probe` 的顶层 `readingAlignment` 节点输出 edge delta、rail delta、surface/text center offset、detached wide TOC、200% 文本缩放和 scroll affordance failure summary。
+
+**后果**：文章阅读页只有一条正文 rail，宽屏时视觉重心按主阅读列居中，TOC 保持可见但从属于正文。后续新增文章内数据组件时，若它是正文语义块，应加入 `article-data-block` 或 `article-content-rail`；若它是二维内容，必须保留内部滚动和边缘提示。

@@ -3,10 +3,10 @@
 /* eslint-disable @next/next/no-img-element -- The inert transition snapshot reuses the already-loaded runtime currentSrc; it is not content or an LCP image. */
 import { AnimatePresence, motion } from 'motion/react'
 import { useEffect, useState, type CSSProperties } from 'react'
-import { articleCardPresentationClasses } from '@/components/ArticleCardPresentation'
+import { getArticleCardPresentationClasses } from '@/components/ArticleCardPresentation'
 import Icon from '@/components/Icon'
 import { MetaIcon, metaItemClass } from '@/components/PostMeta'
-import { skyLink } from '@/components/ui/styles'
+import { imageOutlineClass, skyLink } from '@/components/ui/styles'
 import {
   ARTICLE_TRANSITION_EASE,
   ARTICLE_TRANSITION_EXIT_DURATION_SECONDS,
@@ -25,7 +25,7 @@ type VisibleTransitionState = Extract<
 type LayoutMode = 'source' | 'destination' | 'return-target'
 
 function destinationCoverHeight(destination: ArticleTransitionGeometry) {
-  return (destination.width * 9) / 16
+  return destination.width >= 640 ? destination.width / 2.8 : destination.width / 2
 }
 
 function visibleState(state: ArticleTransitionState): VisibleTransitionState | null {
@@ -93,13 +93,16 @@ function TransitionSurface({
     layout: { duration: layoutDuration, ease: ARTICLE_TRANSITION_EASE },
   }
   const readMoreVisible = layoutMode === 'source' || layoutMode === 'return-target'
+  const presentationClasses = getArticleCardPresentationClasses(
+    readMoreVisible ? 'card' : 'article'
+  )
 
   return (
     <motion.div
       layout
       layoutDependency={layoutMode}
       data-article-transition-overlay-surface
-      className="dark:bg-surface-card-dark absolute z-10 overflow-hidden bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 dark:shadow-black/30 dark:ring-white/10"
+      className="article-reading-surface dark:bg-surface-card-dark absolute z-10 overflow-hidden bg-white shadow-[0_18px_50px_rgba(15,23,42,0.18)] ring-1 ring-slate-950/5 dark:shadow-black/30 dark:ring-white/10"
       style={containStyle}
       initial={state.reducedMotion && state.phase === 'opening' ? { opacity: 0.72 } : false}
       animate={reducedOpacity === undefined ? { opacity: 1 } : { opacity: reducedOpacity }}
@@ -144,14 +147,14 @@ function TransitionSurface({
           src={state.snapshot.imageSrc}
           alt=""
           draggable={false}
-          className="h-full w-full object-cover"
+          className={`${imageOutlineClass} h-full w-full object-cover`}
         />
       </motion.div>
 
       <motion.div
         layout
         layoutDependency={layoutMode}
-        className={articleCardPresentationClasses.content}
+        className={presentationClasses.content}
         transition={childLayoutTransition}
       >
         <motion.h1
@@ -159,7 +162,7 @@ function TransitionSurface({
           layoutDependency={layoutMode}
           data-article-transition-overlay-title
           data-article-transition-overlay-item="title"
-          className={articleCardPresentationClasses.title}
+          className={presentationClasses.title}
           transition={childLayoutTransition}
         >
           {state.snapshot.title}
@@ -170,10 +173,10 @@ function TransitionSurface({
             layout
             layoutDependency={layoutMode}
             data-article-transition-overlay-item="git"
-            className={articleCardPresentationClasses.git}
+            className={presentationClasses.git}
             transition={childLayoutTransition}
           >
-            <div className={articleCardPresentationClasses.gitRow}>
+            <div className={presentationClasses.gitRow}>
               {state.snapshot.gitUpdated && (
                 <motion.span
                   layout
@@ -207,7 +210,7 @@ function TransitionSurface({
             layout
             layoutDependency={layoutMode}
             data-article-transition-overlay-item="summary"
-            className={articleCardPresentationClasses.summary}
+            className={presentationClasses.summary}
             transition={childLayoutTransition}
           >
             {state.snapshot.summary}
@@ -217,10 +220,10 @@ function TransitionSurface({
         <motion.div
           layout
           layoutDependency={layoutMode}
-          className={articleCardPresentationClasses.footer}
+          className={presentationClasses.footer}
           transition={childLayoutTransition}
         >
-          <div className={articleCardPresentationClasses.footerMeta}>
+          <div className={presentationClasses.footerMeta}>
             <motion.span
               layout
               layoutDependency={layoutMode}
@@ -249,7 +252,7 @@ function TransitionSurface({
             layout
             layoutDependency={layoutMode}
             data-article-transition-overlay-item="read-more"
-            className={articleCardPresentationClasses.readMoreSlot}
+            className={presentationClasses.readMoreSlot}
             initial={false}
             animate={{ opacity: readMoreVisible ? 1 : 0 }}
             transition={{
@@ -260,7 +263,7 @@ function TransitionSurface({
               },
             }}
           >
-            <span className={articleCardPresentationClasses.readMore}>
+            <span className={presentationClasses.readMore}>
               <span>{state.snapshot.readMore}</span>
               <Icon name="ArrowRight" className="h-4 w-4" inlineSpacing={false} decorative />
             </span>

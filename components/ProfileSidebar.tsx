@@ -34,45 +34,48 @@ export default function ProfileSidebar({
 
   return (
     <aside className="blog-sidebar-left space-y-5 bg-transparent">
-      <section className={`${cardClass} px-5 py-6 text-center sm:px-6 sm:py-7`}>
+      <section
+        data-profile-card
+        className={`${cardClass} px-5 py-5 text-center sm:px-6 sm:py-6 lg:bg-white/82 lg:shadow-[0_0_0_1px_rgba(15,23,42,0.035),0_8px_22px_rgba(21,30,43,0.045)] lg:ring-slate-950/[0.04] lg:dark:bg-white/[0.045] lg:dark:shadow-[0_0_0_1px_rgba(255,255,255,0.045)] lg:dark:ring-white/[0.06]`}
+      >
         <Image
           src="/static/images/avatar.png"
-          width={96}
-          height={96}
+          width={84}
+          height={84}
           alt={siteMetadata.author}
           className="mx-auto rounded-full"
         />
-        <h2 className="mt-5 text-2xl font-medium text-slate-900 dark:text-white/90">
+        <h2 className="mt-4 text-xl font-medium text-slate-900 dark:text-white/86">
           {siteMetadata.author}
         </h2>
-        <p className="mt-3 text-base leading-7 text-slate-600 dark:text-white/70">
+        <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-white/64">
           {siteMetadata.description}
         </p>
-        <dl className="mt-6 grid grid-cols-4 gap-2 text-center">
+        <dl className="mt-5 grid grid-cols-4 gap-2 text-center">
           <div>
-            <dt className="text-2xl text-slate-900 dark:text-white/90">{posts.length}</dt>
-            <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.articles}</dd>
+            <dt className="text-xl text-slate-900 dark:text-white/86">{posts.length}</dt>
+            <dd className="mt-1 text-xs text-slate-500 dark:text-white/55">{labels.articles}</dd>
           </div>
           <div>
-            <dt className="text-2xl text-slate-900 dark:text-white/90">{categories.length}</dt>
-            <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.categories}</dd>
+            <dt className="text-xl text-slate-900 dark:text-white/86">{categories.length}</dt>
+            <dd className="mt-1 text-xs text-slate-500 dark:text-white/55">{labels.categories}</dd>
           </div>
           <div>
-            <dt className="text-2xl text-slate-900 dark:text-white/90">{tags.length}</dt>
-            <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.tags}</dd>
+            <dt className="text-xl text-slate-900 dark:text-white/86">{tags.length}</dt>
+            <dd className="mt-1 text-xs text-slate-500 dark:text-white/55">{labels.tags}</dd>
           </div>
           <div>
-            <dt className="text-2xl text-slate-900 dark:text-white/90">
+            <dt className="text-xl text-slate-900 dark:text-white/86">
               {totalWords(posts, locale)}
             </dt>
-            <dd className="mt-1 text-sm text-slate-500 dark:text-white/60">{labels.words}</dd>
+            <dd className="mt-1 text-xs text-slate-500 dark:text-white/55">{labels.words}</dd>
           </div>
         </dl>
       </section>
 
       <div className="blog-sidebar-left-sticky space-y-5">
         <BlogWidgetCard title={labels.categories}>
-          <div className="space-y-4">
+          <div className="space-y-2">
             {categories.length === 0 && (
               <p className="text-slate-500 dark:text-white/60">{labels.noCategories}</p>
             )}
@@ -80,10 +83,10 @@ export default function ProfileSidebar({
               <Link
                 key={category.slug}
                 href={localizePath(`/categories/${category.slug}`, locale)}
-                className="flex items-center justify-between text-base text-slate-700 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300"
+                className="flex min-h-11 items-center justify-between gap-3 rounded-[6px] px-1 text-sm text-slate-600 hover:text-sky-700 dark:text-white/70 dark:hover:text-sky-300"
               >
-                <span>{category.label}</span>
-                <span className="dark:bg-border-subtle-dark rounded-[10px] bg-slate-200 px-3 py-1 text-sm text-slate-600 dark:text-white/70">
+                <span className="[overflow-wrap:anywhere]">{category.label}</span>
+                <span className="rounded-[8px] bg-slate-200/70 px-2 py-0.5 text-xs text-slate-500 dark:bg-white/8 dark:text-white/55">
                   {category.count}
                 </span>
               </Link>
@@ -92,7 +95,7 @@ export default function ProfileSidebar({
         </BlogWidgetCard>
 
         <BlogWidgetCard title={labels.popularTags}>
-          <div className="flex flex-wrap gap-x-3 gap-y-3 text-base">
+          <div className="flex flex-wrap gap-x-2 gap-y-1.5 text-sm">
             {tags.length === 0 && (
               <p className="text-slate-500 dark:text-white/60">{labels.noTags}</p>
             )}
@@ -100,7 +103,7 @@ export default function ProfileSidebar({
               <Link
                 key={tag.slug}
                 href={localizePath(`/tags/${tag.slug}`, locale)}
-                className="text-slate-700 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300"
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-[6px] px-1 text-slate-600 hover:text-sky-700 dark:text-white/68 dark:hover:text-sky-300"
               >
                 # {tag.label}
               </Link>

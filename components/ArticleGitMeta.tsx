@@ -1,7 +1,10 @@
 'use client'
 
 import { useId, useState } from 'react'
-import { articleCardPresentationClasses } from '@/components/ArticleCardPresentation'
+import {
+  getArticleCardPresentationClasses,
+  type ArticleCardPresentationVariant,
+} from '@/components/ArticleCardPresentation'
 import CollapsiblePanel from '@/components/animata/CollapsiblePanel'
 import Link from '@/components/Link'
 import { MenuList, MenuListItem } from '@/components/animata/MenuList'
@@ -19,12 +22,14 @@ export default function ArticleGitMeta({
   dateLocale,
   showCommits = false,
   showOverview = true,
+  variant = 'card',
 }: {
   post: BlogListPost
   locale: Locale
   dateLocale: string
   showCommits?: boolean
   showOverview?: boolean
+  variant?: ArticleCardPresentationVariant
 }) {
   const now = useNow()
   const [commitsOpen, setCommitsOpen] = useState(false)
@@ -40,15 +45,16 @@ export default function ArticleGitMeta({
 
   const hasOverview = Boolean(updatedAt || post.githubUrl)
   const hasCommits = showCommits && commits.length > 0
+  const classes = getArticleCardPresentationClasses(variant)
 
   if ((!showOverview || !hasOverview) && !hasCommits) {
     return null
   }
 
   return (
-    <div className={articleCardPresentationClasses.git}>
+    <div className={classes.git}>
       {showOverview && hasOverview && (
-        <div className={articleCardPresentationClasses.gitRow}>
+        <div className={classes.gitRow}>
           {updatedAt && (
             <MetaItem icon="clock" data-article-transition-git-updated>
               {labels.gitUpdated}{' '}

@@ -18,22 +18,22 @@ export default function UtilitySidebar({
   return (
     <aside className="blog-sidebar-right space-y-5 bg-transparent lg:self-start">
       <BlogWidgetCard title={labels.recentPosts}>
-        <div className="dark:divide-border-muted-dark divide-y divide-slate-200">
+        <div className="divide-y divide-slate-200/75 dark:divide-white/8">
           {posts.slice(0, 4).map((post) => (
             <Link
               key={post.path}
               href={`/${post.path}/`}
               data-blog-post-link
-              className="block py-4 first:pt-0"
+              className="block py-3 first:pt-0"
             >
               <time
                 dateTime={post.date}
                 suppressHydrationWarning
-                className="block text-sm text-slate-500 dark:text-white/60"
+                className="block text-xs text-slate-500 dark:text-white/55"
               >
                 {formatDate(post.date, dateLocale)}
               </time>
-              <span className="mt-2 block text-base leading-7 text-slate-800 hover:text-sky-700 dark:text-white/80 dark:hover:text-sky-300">
+              <span className="mt-1.5 block text-sm leading-6 text-slate-700 hover:text-sky-700 dark:text-white/70 dark:hover:text-sky-300">
                 {post.title}
               </span>
             </Link>

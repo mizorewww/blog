@@ -1,13 +1,24 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import { readingFixtureHtml } from '../../scripts/reading-fixture.mjs'
 
 const ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
+const RICH_ARTICLE_PATH = '/zh/making-memoh-cheaper-on-telegram/'
+const IMAGE_ARTICLE_PATH = '/zh/kde-plasma-obsdian-web-clipper/'
 const SOURCE_PATH = '/zh/categories/%E6%8A%98%E8%85%BE/'
 const CARD_KEY = 'zh/xiaomi-book-pro-14'
 const TITLE = '小米Book Pro 14 Linux使用体验'
 const BODY_TEXT = '入手这台 Xiaomi Book Pro 14 的理由其实挺简单'
 const RETURN_LABEL = '返回列表'
 const ARTICLE_RETURN_MARKER_KEY = 'mizore:article-return'
+const LIGHT_INLINE_CODE_COLOR = 'rgb(76, 79, 105)'
+const LIGHT_INLINE_CODE_GRADIENT = 'linear-gradient(oklab(0.997434'
+const LIGHT_INLINE_CODE_BORDER = 'oklab(0.869'
+const ARTICLE_DESKTOP_SURFACE_WIDTH = 780
+const ARTICLE_DESKTOP_TOC_WIDTH = 190
+const ARTICLE_DESKTOP_TOC_GAP = 36
+const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1440
 const scrollTolerance = 10
+const readingEnvironmentInitPages = new WeakSet<Page>()
 const CARD_PRESENTATION_MARKERS = [
   'title',
   'git-updated',
@@ -78,6 +89,29 @@ type TransitionProbe = {
   headerZ: number
   coverObjectFit: string
   snapshotText: string
+}
+type ThemeName = 'light' | 'dark'
+type ReadingLanguage = 'zh' | 'en'
+type ReadingViewport = { width: number; height: number }
+type ReadingMeasureThreshold = { medianMin: number; medianMax: number; max: number }
+type InlineCodeStyleMetrics = {
+  color: string
+  backgroundColor: string
+  backgroundImage: string
+  borderColor: string
+  borderTopWidth: string
+  borderRadius: string
+  boxDecorationBreak: string
+  fontSize: string
+  lineHeight: string
+  paddingInlineStart: string
+  contrast: number
+}
+type DesktopTocPaintMetrics = {
+  opacity: number
+  headingContrast: number
+  minContrast: number
+  items: { text: string; contrast: number }[]
 }
 
 // ---------- shared navigation helpers ----------
@@ -168,6 +202,730 @@ async function expectRestoredScrollY(page: Page, expected: number) {
   expect(Math.abs((await stableScrollY(page)) - expected)).toBeLessThanOrEqual(scrollTolerance)
 }
 
+function parsePx(value: string) {
+  return Number.parseFloat(value.replace('px', ''))
+}
+
+function readingMeasureThreshold(
+  language: ReadingLanguage,
+  width: number
+): ReadingMeasureThreshold {
+  if (language === 'zh') {
+    if (width <= 320) return { medianMin: 16, medianMax: 24, max: 28 }
+    if (width <= 375) return { medianMin: 18, medianMax: 28, max: 32 }
+    if (width <= 640) return { medianMin: 32, medianMax: 44, max: 48 }
+    return { medianMin: 38, medianMax: 48, max: 56 }
+  }
+
+  if (width <= 320) return { medianMin: 24, medianMax: 34, max: 38 }
+  if (width <= 375) return { medianMin: 30, medianMax: 42, max: 46 }
+  if (width <= 640) return { medianMin: 52, medianMax: 66, max: 70 }
+  return { medianMin: 60, medianMax: 76, max: 80 }
+}
+
+function firstProseVisibilityThreshold(width: number) {
+  if (width <= 375) return { maxTop: 680, minVisibleHeight: 120 }
+  if (width <= 768) return { maxTop: 700, minVisibleHeight: 80 }
+  if (width <= 1024) return { maxTop: 720, minVisibleHeight: 72 }
+  if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { maxTop: 730, minVisibleHeight: 72 }
+  return { maxTop: 680, minVisibleHeight: 72 }
+}
+
+function wideTocRightMarginMin(width: number) {
+  if (width >= 1920) return 330
+  if (width >= 1728) return 240
+  return 96
+}
+
+async function ensureReadingEnvironmentInit(page: Page) {
+  if (readingEnvironmentInitPages.has(page)) {
+    return
+  }
+
+  await page.addInitScript(() => {
+    const options = JSON.parse(window.name || '{}') as {
+      __articleReadingEnvironment?: boolean
+      selectedTheme?: ThemeName
+      selectedTextScale?: number
+    }
+
+    if (options.__articleReadingEnvironment !== true || !options.selectedTheme) {
+      return
+    }
+
+    localStorage.setItem('theme', options.selectedTheme)
+    const root = document.documentElement
+
+    root.classList.toggle('light', options.selectedTheme === 'light')
+    root.classList.toggle('dark', options.selectedTheme === 'dark')
+    root.style.colorScheme = options.selectedTheme
+
+    if (!options.selectedTextScale || options.selectedTextScale === 100) {
+      root.style.removeProperty('font-size')
+    } else {
+      root.style.fontSize = `${options.selectedTextScale}%`
+    }
+  })
+  readingEnvironmentInitPages.add(page)
+}
+
+async function applyReadingEnvironment(page: Page, theme: ThemeName, textScale = 100) {
+  await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+  const apply = async () => {
+    await page.evaluate(
+      ({ selectedTheme, selectedTextScale }) => {
+        localStorage.setItem('theme', selectedTheme)
+        const root = document.documentElement
+
+        root.classList.toggle('light', selectedTheme === 'light')
+        root.classList.toggle('dark', selectedTheme === 'dark')
+        root.style.colorScheme = selectedTheme
+
+        if (selectedTextScale === 100) {
+          root.style.removeProperty('font-size')
+        } else {
+          root.style.fontSize = `${selectedTextScale}%`
+        }
+      },
+      { selectedTheme: theme, selectedTextScale: textScale }
+    )
+  }
+  const waitForTheme = async () => {
+    await page.waitForFunction(
+      (selectedTheme) => {
+        const root = document.documentElement
+
+        return root.classList.contains('dark') === (selectedTheme === 'dark')
+      },
+      theme,
+      { timeout: 3000 }
+    )
+  }
+
+  await apply()
+  await waitForTheme()
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+  )
+  await apply()
+  await waitForTheme()
+}
+
+async function openReadingPage(
+  page: Page,
+  path: string,
+  viewport: ReadingViewport,
+  theme: ThemeName,
+  textScale = 100
+) {
+  await ensureReadingEnvironmentInit(page)
+  await page.evaluate(
+    ({ selectedTheme, selectedTextScale }) => {
+      window.name = JSON.stringify({
+        __articleReadingEnvironment: true,
+        selectedTheme,
+        selectedTextScale,
+      })
+    },
+    { selectedTheme: theme, selectedTextScale: textScale }
+  )
+  await page.setViewportSize(viewport)
+  await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' })
+  await page.goto(path)
+  await applyReadingEnvironment(page, theme, textScale)
+  await expect(page.locator('[data-article-body]')).toBeVisible()
+}
+
+async function injectReadingFixture(page: Page) {
+  await page.evaluate((fixtureHtml) => {
+    const prose = document.querySelector<HTMLElement>('[data-article-body] .article-prose')
+
+    if (!prose) {
+      throw new Error('Missing article prose fixture target')
+    }
+
+    prose.innerHTML = fixtureHtml
+  }, readingFixtureHtml)
+}
+
+async function noPageOverflow(page: Page) {
+  return page.evaluate(() => ({
+    clientWidth: document.documentElement.clientWidth,
+    overflowPx: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+  }))
+}
+
+async function articleReadingMetrics(page: Page) {
+  return page.evaluate(() => {
+    const firstParagraph = document.querySelector<HTMLElement>(
+      '[data-article-body] .article-prose > p'
+    )
+    const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
+    const surface = document.querySelector<HTMLElement>('[data-article-surface]')
+
+    if (!firstParagraph || !surface) {
+      throw new Error('Missing article reading metric target')
+    }
+
+    const lineCounts = (() => {
+      const range = document.createRange()
+      const walker = document.createTreeWalker(firstParagraph, NodeFilter.SHOW_TEXT)
+      const lines = new Map<number, { count: number; width: number }>()
+      const paragraphLeft = firstParagraph.getBoundingClientRect().left
+
+      while (walker.nextNode()) {
+        const node = walker.currentNode
+        const text = node.textContent || ''
+
+        for (let index = 0; index < text.length; index += 1) {
+          if (text[index] === '\n') continue
+
+          range.setStart(node, index)
+          range.setEnd(node, index + 1)
+
+          for (const rect of range.getClientRects()) {
+            if (rect.width === 0 || rect.height === 0) continue
+
+            const top = Math.round(rect.top)
+            const current = lines.get(top) || { count: 0, width: 0 }
+
+            current.count += 1
+            current.width = Math.max(current.width, rect.right - paragraphLeft)
+            lines.set(top, current)
+          }
+        }
+      }
+
+      range.detach()
+
+      return [...lines.values()]
+    })()
+    const sortedCounts = lineCounts
+      .map((line) => line.count)
+      .sort((first, second) => first - second)
+    const paragraphRect = firstParagraph.getBoundingClientRect()
+    const paragraphStyle = getComputedStyle(firstParagraph)
+    const surfaceRect = surface.getBoundingClientRect()
+    const rawTocRect = toc?.getBoundingClientRect() || null
+    const tocVisible =
+      !!toc &&
+      !!rawTocRect &&
+      getComputedStyle(toc).display !== 'none' &&
+      rawTocRect.width > 0 &&
+      rawTocRect.height > 0
+    const tocRect = tocVisible ? rawTocRect : null
+    const tocItems = tocVisible
+      ? [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => {
+          const rect = item.getBoundingClientRect()
+          const lineHeight = Number.parseFloat(getComputedStyle(item).lineHeight) || 20
+
+          return {
+            clientWidth: item.clientWidth,
+            scrollWidth: item.scrollWidth,
+            text: item.textContent?.trim() || '',
+            lines: Math.max(1, Math.round(rect.height / lineHeight)),
+            clipped: item.scrollWidth > item.clientWidth + 1,
+          }
+        })
+      : []
+    const groupLeft = Math.min(surfaceRect.left, tocRect?.left ?? surfaceRect.left)
+    const groupRight = Math.max(surfaceRect.right, tocRect?.right ?? surfaceRect.right)
+
+    return {
+      document: {
+        clientWidth: document.documentElement.clientWidth,
+        overflowPx: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      },
+      firstParagraph: {
+        top: paragraphRect.top,
+        bottom: paragraphRect.bottom,
+        width: paragraphRect.width,
+        visibleHeight:
+          Math.min(paragraphRect.bottom, window.innerHeight) - Math.max(paragraphRect.top, 0),
+        fontSize: paragraphStyle.fontSize,
+        lineHeight: paragraphStyle.lineHeight,
+        medianCharsPerLine: sortedCounts[Math.floor(sortedCounts.length / 2)] || 0,
+        maxCharsPerLine: sortedCounts.at(-1) || 0,
+      },
+      toc: tocRect
+        ? {
+            width: tocRect.width,
+            gapFromSurface: tocRect.left - surfaceRect.right,
+            rightMargin: window.innerWidth - tocRect.right,
+            position: getComputedStyle(toc!).position,
+            opacity: Number.parseFloat(getComputedStyle(toc!).opacity),
+            items: tocItems,
+          }
+        : null,
+      layout: {
+        groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
+        surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
+        textCenterOffset: (paragraphRect.left + paragraphRect.right) / 2 - window.innerWidth / 2,
+      },
+    }
+  })
+}
+
+async function desktopTocPaintMetrics(page: Page): Promise<DesktopTocPaintMetrics | null> {
+  return page.evaluate(() => {
+    const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
+    const rect = toc?.getBoundingClientRect() || null
+
+    if (
+      !toc ||
+      !rect ||
+      getComputedStyle(toc).display === 'none' ||
+      rect.width === 0 ||
+      rect.height === 0
+    ) {
+      return null
+    }
+
+    type Rgba = { r: number; g: number; b: number; a: number }
+
+    const parseAlpha = (value: string | undefined) =>
+      value?.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value || '1')
+    const parseLightness = (value: string) =>
+      value.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value)
+    const srgbChannel = (channel: number) => {
+      const clamped = Math.min(1, Math.max(0, channel))
+
+      return (clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055) * 255
+    }
+    const oklabToRgba = (l: number, a: number, b: number, alpha: number): Rgba => {
+      const lPrime = l + 0.3963377774 * a + 0.2158037573 * b
+      const mPrime = l - 0.1055613458 * a - 0.0638541728 * b
+      const sPrime = l - 0.0894841775 * a - 1.291485548 * b
+      const l3 = lPrime ** 3
+      const m3 = mPrime ** 3
+      const s3 = sPrime ** 3
+
+      return {
+        r: srgbChannel(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
+        g: srgbChannel(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
+        b: srgbChannel(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3),
+        a: alpha,
+      }
+    }
+    const parseColor = (value: string): Rgba | null => {
+      const rgb = value.match(
+        /rgba?\(\s*([0-9.]+)\s*,?\s+([0-9.]+)\s*,?\s+([0-9.]+)(?:\s*[/,]\s*([0-9.]+%?))?\s*\)/
+      )
+
+      if (rgb) {
+        return {
+          r: Number.parseFloat(rgb[1]),
+          g: Number.parseFloat(rgb[2]),
+          b: Number.parseFloat(rgb[3]),
+          a: parseAlpha(rgb[4]),
+        }
+      }
+
+      const oklab = value.match(
+        /oklab\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
+      )
+
+      if (oklab) {
+        return oklabToRgba(
+          parseLightness(oklab[1]),
+          Number.parseFloat(oklab[2]),
+          Number.parseFloat(oklab[3]),
+          parseAlpha(oklab[4])
+        )
+      }
+
+      const oklch = value.match(
+        /oklch\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
+      )
+
+      if (oklch) {
+        const hue = (Number.parseFloat(oklch[3]) * Math.PI) / 180
+        const chroma = Number.parseFloat(oklch[2])
+
+        return oklabToRgba(
+          parseLightness(oklch[1]),
+          chroma * Math.cos(hue),
+          chroma * Math.sin(hue),
+          parseAlpha(oklch[4])
+        )
+      }
+
+      return null
+    }
+    const composite = (top: Rgba, bottom: Rgba): Rgba => {
+      const alpha = top.a + bottom.a * (1 - top.a)
+
+      if (alpha === 0) {
+        return { r: 0, g: 0, b: 0, a: 0 }
+      }
+
+      return {
+        r: (top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / alpha,
+        g: (top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / alpha,
+        b: (top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / alpha,
+        a: alpha,
+      }
+    }
+    const luminanceChannel = (channel: number) => {
+      const normalized = channel / 255
+
+      return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
+    }
+    const luminance = (color: Rgba) =>
+      0.2126 * luminanceChannel(color.r) +
+      0.7152 * luminanceChannel(color.g) +
+      0.0722 * luminanceChannel(color.b)
+    const contrast = (first: Rgba, second: Rgba) => {
+      const lighter = Math.max(luminance(first), luminance(second))
+      const darker = Math.min(luminance(first), luminance(second))
+
+      return (lighter + 0.05) / (darker + 0.05)
+    }
+    const effectiveBackground = (target: Element): Rgba => {
+      const chain: Element[] = []
+      let current: Element | null = target
+
+      while (current) {
+        chain.push(current)
+        current = current.parentElement
+      }
+
+      let result: Rgba = getComputedStyle(document.documentElement).colorScheme.includes('dark')
+        ? { r: 0, g: 0, b: 0, a: 1 }
+        : { r: 255, g: 255, b: 255, a: 1 }
+
+      for (const item of chain.reverse()) {
+        const color = parseColor(getComputedStyle(item).backgroundColor)
+
+        if (color && color.a > 0) {
+          result = composite(color, result)
+        }
+      }
+
+      return result
+    }
+    const inheritedOpacity = (target: Element) => {
+      let opacity = 1
+      let current: Element | null = target
+
+      while (current instanceof HTMLElement) {
+        opacity *= Number.parseFloat(getComputedStyle(current).opacity)
+        current = current.parentElement
+      }
+
+      return opacity
+    }
+    const renderedContrast = (target: HTMLElement) => {
+      const foreground = parseColor(getComputedStyle(target).color)
+
+      if (!foreground) {
+        return 0
+      }
+
+      const background = effectiveBackground(target)
+      const paintedForeground = composite(
+        { ...foreground, a: foreground.a * inheritedOpacity(target) },
+        background
+      )
+
+      return Math.round(contrast(paintedForeground, background) * 100) / 100
+    }
+
+    const heading = toc.querySelector<HTMLElement>('h2')
+    const items = [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => ({
+      text: item.textContent?.trim() || '',
+      contrast: renderedContrast(item),
+    }))
+    const headingContrast = heading ? renderedContrast(heading) : 0
+    const contrasts = [headingContrast, ...items.map((item) => item.contrast)]
+
+    return {
+      opacity: Number.parseFloat(getComputedStyle(toc).opacity),
+      headingContrast,
+      minContrast: Math.min(...contrasts),
+      items,
+    }
+  })
+}
+
+async function expectDesktopTocPaint(page: Page, label: string) {
+  const paint = await desktopTocPaintMetrics(page)
+
+  expect(paint, label).not.toBeNull()
+  expect(paint!.opacity, label).toBe(1)
+  expect(paint!.headingContrast, `${label} heading`).toBeGreaterThanOrEqual(4.5)
+  expect(paint!.minContrast, `${label} minimum`).toBeGreaterThanOrEqual(4.5)
+
+  for (const item of paint!.items) {
+    expect(item.contrast, `${label} ${item.text}`).toBeGreaterThanOrEqual(4.5)
+  }
+}
+
+async function inlineCodeStyleMetrics(
+  page: Page,
+  selector = '[data-article-body] .article-prose :not(pre) > code'
+): Promise<InlineCodeStyleMetrics> {
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      type Rgba = { r: number; g: number; b: number; a: number }
+
+      const parseColor = (value: string): Rgba | null => {
+        const match = value.match(
+          /rgba?\(\s*([0-9.]+)\s*,?\s+([0-9.]+)\s*,?\s+([0-9.]+)(?:\s*[/,]\s*([0-9.]+%?))?\s*\)/
+        )
+
+        if (!match) {
+          return null
+        }
+
+        return {
+          r: Number.parseFloat(match[1]),
+          g: Number.parseFloat(match[2]),
+          b: Number.parseFloat(match[3]),
+          a: match[4]?.endsWith('%')
+            ? Number.parseFloat(match[4]) / 100
+            : Number.parseFloat(match[4] || '1'),
+        }
+      }
+      const composite = (top: Rgba, bottom: Rgba): Rgba => {
+        const alpha = top.a + bottom.a * (1 - top.a)
+
+        if (alpha === 0) {
+          return { r: 0, g: 0, b: 0, a: 0 }
+        }
+
+        return {
+          r: (top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / alpha,
+          g: (top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / alpha,
+          b: (top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / alpha,
+          a: alpha,
+        }
+      }
+      const luminanceChannel = (channel: number) => {
+        const normalized = channel / 255
+        return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
+      }
+      const luminance = (color: Rgba) =>
+        0.2126 * luminanceChannel(color.r) +
+        0.7152 * luminanceChannel(color.g) +
+        0.0722 * luminanceChannel(color.b)
+      const contrast = (first: Rgba, second: Rgba) => {
+        const lighter = Math.max(luminance(first), luminance(second))
+        const darker = Math.min(luminance(first), luminance(second))
+
+        return (lighter + 0.05) / (darker + 0.05)
+      }
+      const effectiveBackground = (target: Element): Rgba => {
+        const chain: Element[] = []
+        let current: Element | null = target
+
+        while (current) {
+          chain.push(current)
+          current = current.parentElement
+        }
+
+        let result: Rgba = getComputedStyle(document.documentElement).colorScheme.includes('dark')
+          ? { r: 0, g: 0, b: 0, a: 1 }
+          : { r: 255, g: 255, b: 255, a: 1 }
+
+        for (const item of chain.reverse()) {
+          const color = parseColor(getComputedStyle(item).backgroundColor)
+
+          if (color && color.a > 0) {
+            result = composite(color, result)
+          }
+        }
+
+        return result
+      }
+
+      const style = getComputedStyle(element)
+      const foreground = parseColor(style.color)
+
+      return {
+        color: style.color,
+        backgroundColor: style.backgroundColor,
+        backgroundImage: style.backgroundImage,
+        borderColor: style.borderColor,
+        borderTopWidth: style.borderTopWidth,
+        borderRadius: style.borderRadius,
+        boxDecorationBreak:
+          style.getPropertyValue('box-decoration-break') ||
+          style.getPropertyValue('-webkit-box-decoration-break'),
+        fontSize: style.fontSize,
+        lineHeight: style.lineHeight,
+        paddingInlineStart: style.paddingInlineStart,
+        contrast: foreground ? contrast(foreground, effectiveBackground(element)) : 0,
+      }
+    })
+}
+
+async function scrollBoxMetrics(page: Page, selector: string) {
+  return page
+    .locator(selector)
+    .first()
+    .evaluate((element) => {
+      const rect = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        overflowX: style.overflowX,
+        rect: {
+          top: rect.top,
+          right: rect.right,
+          bottom: rect.bottom,
+          left: rect.left,
+          width: rect.width,
+          height: rect.height,
+        },
+        backgroundImage: style.backgroundImage,
+        backgroundAttachment: style.backgroundAttachment,
+      }
+    })
+}
+
+async function articleRailAlignmentMetrics(page: Page) {
+  return page.locator('[data-article-body] .article-prose').evaluate((root) => {
+    const paragraph = root.querySelector<HTMLElement>(':scope > p')
+    const surface = document.querySelector<HTMLElement>('[data-article-surface]')
+
+    if (!paragraph || !surface) {
+      throw new Error('Missing article rail alignment target')
+    }
+
+    const rect = (element: Element) => {
+      const bounds = element.getBoundingClientRect()
+
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        width: bounds.width,
+        height: bounds.height,
+      }
+    }
+    const reference = rect(paragraph)
+    const edgeDelta = (name: string, element: Element) => {
+      const bounds = rect(element)
+
+      return {
+        name,
+        left: bounds.left - reference.left,
+        right: bounds.right - reference.right,
+        width: bounds.width - reference.width,
+      }
+    }
+    const directSelectors = [
+      ['h2', ':scope > h2'],
+      ['h3', ':scope > h3'],
+      ['h4', ':scope > h4'],
+      ['h5', ':scope > h5'],
+      ['h6', ':scope > h6'],
+      ['ul', ':scope > ul'],
+      ['ol', ':scope > ol'],
+      ['blockquote', ':scope > blockquote'],
+      ['details', ':scope > details'],
+      ['figure', ':scope > .article-figure'],
+      ['figcaption', ':scope > .article-figure figcaption'],
+      ['shiki', ':scope > figure[data-rehype-pretty-code-figure]'],
+      ['shiki-pre', ':scope > figure[data-rehype-pretty-code-figure] [data-code-pre]'],
+      ['table', ':scope > .article-table-scroll'],
+      ['math', ":scope > mjx-container[jax='SVG'][display='true']"],
+      ['pre', ':scope > pre'],
+      ['data-block', ':scope > .article-data-block'],
+      ['footnotes', ':scope > .footnotes'],
+    ] as const
+    const directEdges = directSelectors.flatMap(([name, selector]) => {
+      const element = root.querySelector(selector)
+
+      return element ? [edgeDelta(name, element)] : []
+    })
+    const railEdges = [...document.querySelectorAll<HTMLElement>('.article-content-rail')]
+      .filter((element) => {
+        const bounds = element.getBoundingClientRect()
+
+        return bounds.width > 0 && bounds.height > 0 && !!element.closest('[data-article-surface]')
+      })
+      .map((element, index) => edgeDelta(`rail-${index}`, element))
+    const scrollSurfaces = [
+      'figure[data-rehype-pretty-code-figure] [data-code-pre]',
+      '.article-table-scroll',
+      "mjx-container[jax='SVG'][display='true']",
+      ':scope > pre',
+    ].flatMap((selector) => {
+      const element = selector.startsWith(':scope')
+        ? root.querySelector<HTMLElement>(selector)
+        : root.querySelector<HTMLElement>(selector)
+
+      if (!element) {
+        return []
+      }
+
+      const style = getComputedStyle(element)
+
+      return [
+        {
+          selector,
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          overflowX: style.overflowX,
+          backgroundImage: style.backgroundImage,
+          backgroundAttachment: style.backgroundAttachment,
+        },
+      ]
+    })
+    const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
+    const tocRect = toc?.getBoundingClientRect()
+    const tocVisible =
+      !!toc &&
+      !!tocRect &&
+      getComputedStyle(toc).display !== 'none' &&
+      tocRect.width > 0 &&
+      tocRect.height > 0
+    const surfaceRect = surface.getBoundingClientRect()
+    const groupLeft = Math.min(surfaceRect.left, tocVisible ? tocRect!.left : surfaceRect.left)
+    const groupRight = Math.max(surfaceRect.right, tocVisible ? tocRect!.right : surfaceRect.right)
+
+    return {
+      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      directEdges,
+      railEdges,
+      scrollSurfaces,
+      layout: {
+        groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
+        surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
+        textCenterOffset: (reference.left + reference.right) / 2 - window.innerWidth / 2,
+      },
+      toc: tocVisible
+        ? {
+            width: tocRect!.width,
+            gapFromSurface: tocRect!.left - surfaceRect.right,
+            rightMargin: window.innerWidth - tocRect!.right,
+            position: getComputedStyle(toc).position,
+            opacity: Number.parseFloat(getComputedStyle(toc).opacity),
+            items: [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => {
+              const rect = item.getBoundingClientRect()
+              const lineHeight = Number.parseFloat(getComputedStyle(item).lineHeight) || 20
+
+              return {
+                clientWidth: item.clientWidth,
+                scrollWidth: item.scrollWidth,
+                text: item.textContent?.trim() || '',
+                lines: Math.max(1, Math.round(rect.height / lineHeight)),
+                clipped: item.scrollWidth > item.clientWidth + 1,
+              }
+            }),
+          }
+        : null,
+    }
+  })
+}
+
 // ---------- transition helpers ----------
 
 function card(page: Page) {
@@ -199,7 +957,7 @@ async function elementRect(locator: Locator): Promise<Rect> {
 function destination(width: number, height: number) {
   const mobile = width < 640
   const top = mobile ? 72 : 120
-  const surfaceWidth = mobile ? width : Math.min(780, width - 30)
+  const surfaceWidth = mobile ? width : Math.min(ARTICLE_DESKTOP_SURFACE_WIDTH, width - 30)
 
   return {
     top,
@@ -208,6 +966,10 @@ function destination(width: number, height: number) {
     height: height - top,
     radius: mobile ? 0 : 8,
   }
+}
+
+function articleCoverHeight(width: number) {
+  return width >= 640 ? width / 2.8 : width / 2
 }
 
 function expectRectNear(actual: Rect, expected: Rect, tolerance = 4) {
@@ -347,9 +1109,20 @@ async function installTransitionProbe(page: Page) {
       const returnControl = document.querySelector<HTMLElement>(
         '[data-article-transition-destination-only]'
       )
-      const languageIndicator = document.querySelector<HTMLElement>(
-        '[data-animata-language-switcher-active]'
-      )
+      const languageIndicator =
+        Array.from(
+          document.querySelectorAll<HTMLElement>('[data-animata-language-switcher-active]')
+        ).find((element) => {
+          const rect = element.getBoundingClientRect()
+          const style = getComputedStyle(element)
+
+          return (
+            rect.width > 0 &&
+            rect.height > 0 &&
+            style.display !== 'none' &&
+            style.visibility !== 'hidden'
+          )
+        }) || null
       const languageIndicatorOwner = languageIndicator?.parentElement
       const languageIndicatorRect = languageIndicator?.getBoundingClientRect()
       const languageIndicatorOwnerRect = languageIndicatorOwner?.getBoundingClientRect()
@@ -670,6 +1443,9 @@ for (const viewport of [
           ? {
               left: desktopTocElement.getBoundingClientRect().left,
               right: desktopTocElement.getBoundingClientRect().right,
+              width: desktopTocElement.getBoundingClientRect().width,
+              position: getComputedStyle(desktopTocElement).position,
+              opacity: Number.parseFloat(getComputedStyle(desktopTocElement).opacity),
             }
           : null,
         viewportWidth: window.innerWidth,
@@ -677,8 +1453,8 @@ for (const viewport of [
       }
     })
 
-    const expectedWidth = viewport.width < 640 ? viewport.width : 780
-    const expectedLeft = (viewport.width - expectedWidth) / 2
+    const expectedWidth = viewport.width < 640 ? viewport.width : ARTICLE_DESKTOP_SURFACE_WIDTH
+    const expectedLeft = destination(viewport.width, viewport.height).left
 
     expect(Math.abs(geometry.surface.top - viewport.top)).toBeLessThanOrEqual(4)
     expect(Math.abs(geometry.surface.left - expectedLeft)).toBeLessThanOrEqual(4)
@@ -686,7 +1462,9 @@ for (const viewport of [
     expect(Math.abs(geometry.radius - viewport.radius)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(geometry.close.width - 44)).toBeLessThanOrEqual(0.5)
     expect(Math.abs(geometry.close.height - 44)).toBeLessThanOrEqual(0.5)
-    expect(Math.abs(geometry.cover.width / geometry.cover.height - 16 / 9)).toBeLessThan(0.02)
+    expect(Math.abs(geometry.cover.height - articleCoverHeight(geometry.cover.width))).toBeLessThan(
+      4
+    )
     expect(geometry.cover.top).toBeLessThan(geometry.title.top)
     expect(geometry.cover.right).toBeLessThanOrEqual(geometry.surface.right + 0.5)
     expect(geometry.bodyHeight).toBeGreaterThan(0)
@@ -697,12 +1475,25 @@ for (const viewport of [
 
     await expect(close).toHaveAttribute('href', '/zh/')
 
-    if (viewport.width >= 1280) {
+    if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       await expect(page.locator('.article-toc-desktop')).toBeVisible()
       await expect(surface.locator('.article-toc-desktop')).toHaveCount(0)
       expect(geometry.desktopToc).not.toBeNull()
-      expect(geometry.desktopToc!.left).toBeGreaterThanOrEqual(geometry.surface.right + 32)
-      expect(geometry.desktopToc!.right).toBeLessThanOrEqual(geometry.viewportWidth - 14)
+      expect(Math.abs(geometry.desktopToc!.width - ARTICLE_DESKTOP_TOC_WIDTH)).toBeLessThanOrEqual(
+        1
+      )
+      expect(geometry.desktopToc!.left - geometry.surface.right).toBeGreaterThanOrEqual(
+        ARTICLE_DESKTOP_TOC_GAP - 1
+      )
+      expect(geometry.desktopToc!.left - geometry.surface.right).toBeLessThanOrEqual(
+        ARTICLE_DESKTOP_TOC_GAP + 1
+      )
+      expect(geometry.viewportWidth - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
+        wideTocRightMarginMin(viewport.width)
+      )
+      expect(geometry.desktopToc!.position).toBe('sticky')
+      expect(geometry.desktopToc!.opacity).toBe(1)
+      await expectDesktopTocPaint(page, `static surface ${viewport.width}`)
     } else {
       await expect(page.locator('.article-toc-mobile')).toBeVisible()
       await expect(surface.locator('.article-toc-mobile')).toHaveCount(1)
@@ -712,6 +1503,793 @@ for (const viewport of [
     }
   })
 }
+
+for (const scenario of [
+  {
+    name: 'zh light desktop',
+    path: ARTICLE_PATH,
+    theme: 'light' as const,
+    viewport: { width: 1440, height: 900 },
+    maxParagraphTop: 820,
+  },
+  {
+    name: 'zh dark mobile',
+    path: ARTICLE_PATH,
+    theme: 'dark' as const,
+    viewport: { width: 375, height: 812 },
+    maxParagraphTop: 680,
+  },
+  {
+    name: 'en light mobile',
+    path: '/en/xiaomi-book-pro-14/',
+    theme: 'light' as const,
+    viewport: { width: 375, height: 812 },
+    maxParagraphTop: 680,
+  },
+  {
+    name: 'en dark desktop',
+    path: '/en/xiaomi-book-pro-14/',
+    theme: 'dark' as const,
+    viewport: { width: 1440, height: 900 },
+    maxParagraphTop: 820,
+  },
+] as const) {
+  test(`article prose starts in the first viewport for ${scenario.name}`, async ({ page }) => {
+    await page.setViewportSize(scenario.viewport)
+    await page.addInitScript((theme) => localStorage.setItem('theme', theme), scenario.theme)
+    await page.goto(scenario.path)
+
+    const metrics = await page.evaluate(() => {
+      const title = document.querySelector<HTMLElement>('h1')
+      const prose = document.querySelector<HTMLElement>('[data-article-body] .article-prose')
+      const firstParagraph = document.querySelector<HTMLElement>(
+        '[data-article-body] .article-prose > p'
+      )
+      const firstBodyH2 = document.querySelector<HTMLElement>(
+        '[data-article-body] .article-prose h2'
+      )
+
+      if (!title || !prose || !firstParagraph || !firstBodyH2) {
+        throw new Error('Missing article reading hierarchy target')
+      }
+
+      const paragraphRect = firstParagraph.getBoundingClientRect()
+      const titleStyle = getComputedStyle(title)
+      const bodyH2Style = getComputedStyle(firstBodyH2)
+
+      return {
+        paragraphTop: paragraphRect.top,
+        paragraphBottom: paragraphRect.bottom,
+        visibleParagraphHeight:
+          Math.min(paragraphRect.bottom, window.innerHeight) - Math.max(paragraphRect.top, 0),
+        paragraphWidth: paragraphRect.width,
+        proseWidth: prose.getBoundingClientRect().width,
+        titleFontSize: Number.parseFloat(titleStyle.fontSize),
+        bodyH2FontSize: Number.parseFloat(bodyH2Style.fontSize),
+        titleLetterSpacing: titleStyle.letterSpacing,
+        bodyH2LetterSpacing: bodyH2Style.letterSpacing,
+        viewportWidth: window.innerWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }
+    })
+
+    expect(metrics.paragraphTop).toBeLessThan(scenario.maxParagraphTop)
+    expect(metrics.paragraphBottom).toBeGreaterThan(0)
+    expect(metrics.visibleParagraphHeight).toBeGreaterThan(40)
+    expect(metrics.paragraphWidth).toBeLessThanOrEqual(Math.min(metrics.proseWidth, 720))
+    expect(metrics.titleFontSize).toBeGreaterThan(metrics.bodyH2FontSize + 3)
+    expect(['normal', '0px']).toContain(metrics.titleLetterSpacing)
+    expect(['normal', '0px']).toContain(metrics.bodyH2LetterSpacing)
+    expect(metrics.scrollWidth).toBeLessThanOrEqual(metrics.viewportWidth)
+  })
+}
+
+test('Reading Max prose rhythm and line measure meet the viewport matrix', async ({ page }) => {
+  const routes = [
+    { language: 'zh' as const, path: ARTICLE_PATH },
+    { language: 'en' as const, path: '/en/xiaomi-book-pro-14/' },
+  ]
+  const viewports = [
+    { width: 320, height: 812 },
+    { width: 375, height: 812 },
+    { width: 640, height: 900 },
+    { width: 768, height: 1024 },
+    { width: 1024, height: 768 },
+    { width: 1280, height: 960 },
+    { width: 1440, height: 960 },
+    { width: 1728, height: 960 },
+    { width: 1920, height: 960 },
+  ]
+
+  for (const route of routes) {
+    for (const viewport of viewports) {
+      for (const theme of ['light', 'dark'] as const) {
+        await openReadingPage(page, route.path, viewport, theme)
+
+        const metrics = await articleReadingMetrics(page)
+        const threshold = readingMeasureThreshold(route.language, viewport.width)
+        const visibility = firstProseVisibilityThreshold(viewport.width)
+        const fontSize = parsePx(metrics.firstParagraph.fontSize)
+        const lineHeight = parsePx(metrics.firstParagraph.lineHeight)
+        const ratio = lineHeight / fontSize
+
+        expect(
+          metrics.document.overflowPx,
+          `${route.language} ${theme} ${viewport.width}`
+        ).toBeLessThanOrEqual(0)
+        expect(fontSize).toBeGreaterThanOrEqual(16)
+        expect(ratio).toBeGreaterThanOrEqual(1.62)
+        expect(ratio).toBeLessThanOrEqual(1.68)
+        expect(metrics.firstParagraph.medianCharsPerLine).toBeGreaterThanOrEqual(
+          threshold.medianMin
+        )
+        expect(metrics.firstParagraph.medianCharsPerLine).toBeLessThanOrEqual(threshold.medianMax)
+        expect(metrics.firstParagraph.maxCharsPerLine).toBeLessThanOrEqual(threshold.max)
+        expect(metrics.firstParagraph.top).toBeLessThanOrEqual(visibility.maxTop)
+        expect(metrics.firstParagraph.visibleHeight).toBeGreaterThanOrEqual(
+          visibility.minVisibleHeight
+        )
+        expect(Math.abs(metrics.layout.surfaceCenterOffset)).toBeLessThanOrEqual(1)
+        expect(Math.abs(metrics.layout.textCenterOffset)).toBeLessThanOrEqual(1)
+
+        if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+          expect(metrics.toc).not.toBeNull()
+          expect(metrics.toc!.width).toBeGreaterThanOrEqual(189)
+          expect(metrics.toc!.width).toBeLessThanOrEqual(191)
+          expect(metrics.toc!.gapFromSurface).toBeGreaterThanOrEqual(ARTICLE_DESKTOP_TOC_GAP - 1)
+          expect(metrics.toc!.gapFromSurface).toBeLessThanOrEqual(ARTICLE_DESKTOP_TOC_GAP + 1)
+          expect(metrics.toc!.rightMargin).toBeGreaterThanOrEqual(
+            wideTocRightMarginMin(viewport.width)
+          )
+          expect(metrics.toc!.position).toBe('sticky')
+          expect(metrics.toc!.opacity).toBe(1)
+          await expectDesktopTocPaint(page, `${route.language} ${theme} ${viewport.width}`)
+
+          for (const item of metrics.toc!.items) {
+            expect(item.scrollWidth, item.text).toBeLessThanOrEqual(item.clientWidth + 1)
+            expect(item.clipped, item.text).toBe(false)
+            expect(item.lines, item.text).toBeLessThanOrEqual(4)
+          }
+        } else {
+          expect(metrics.toc).toBeNull()
+        }
+      }
+    }
+  }
+})
+
+test('article content families, data blocks, and TOC share the reading rail', async ({ page }) => {
+  const scenarios = [
+    {
+      name: 'rich-mobile',
+      path: RICH_ARTICLE_PATH,
+      viewport: { width: 320, height: 812 },
+      theme: 'dark' as const,
+      textScale: 100,
+      fixture: false,
+      expected: ['h2', 'ul', 'shiki', 'shiki-pre', 'table', 'math', 'data-block'],
+    },
+    {
+      name: 'rich-wide',
+      path: RICH_ARTICLE_PATH,
+      viewport: { width: 1440, height: 960 },
+      theme: 'dark' as const,
+      textScale: 100,
+      fixture: false,
+      expected: ['h2', 'ul', 'shiki', 'shiki-pre', 'table', 'math', 'data-block'],
+    },
+    {
+      name: 'rich-text-200-mobile',
+      path: RICH_ARTICLE_PATH,
+      viewport: { width: 640, height: 900 },
+      theme: 'dark' as const,
+      textScale: 200,
+      fixture: false,
+      expected: ['h2', 'ul', 'shiki', 'shiki-pre', 'table', 'math', 'data-block'],
+    },
+    {
+      name: 'rich-text-200-wide',
+      path: RICH_ARTICLE_PATH,
+      viewport: { width: 1440, height: 960 },
+      theme: 'dark' as const,
+      textScale: 200,
+      fixture: false,
+      expected: ['h2', 'ul', 'shiki', 'shiki-pre', 'table', 'math', 'data-block'],
+    },
+    {
+      name: 'fixture-mobile',
+      path: ARTICLE_PATH,
+      viewport: { width: 320, height: 812 },
+      theme: 'dark' as const,
+      textScale: 100,
+      fixture: true,
+      expected: [
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'ul',
+        'ol',
+        'blockquote',
+        'details',
+        'figure',
+        'figcaption',
+        'table',
+        'pre',
+        'data-block',
+        'footnotes',
+      ],
+    },
+    {
+      name: 'fixture-wide',
+      path: ARTICLE_PATH,
+      viewport: { width: 1920, height: 960 },
+      theme: 'light' as const,
+      textScale: 100,
+      fixture: true,
+      expected: [
+        'h2',
+        'h3',
+        'h4',
+        'h5',
+        'h6',
+        'ul',
+        'ol',
+        'blockquote',
+        'details',
+        'figure',
+        'figcaption',
+        'table',
+        'pre',
+        'data-block',
+        'footnotes',
+      ],
+    },
+  ]
+
+  for (const scenario of scenarios) {
+    await openReadingPage(
+      page,
+      scenario.path,
+      scenario.viewport,
+      scenario.theme,
+      scenario.textScale
+    )
+
+    if (scenario.fixture) {
+      await injectReadingFixture(page)
+    }
+
+    const metrics = await articleRailAlignmentMetrics(page)
+    const directNames = metrics.directEdges.map((edge) => edge.name)
+
+    expect(metrics.documentOverflow, scenario.name).toBeLessThanOrEqual(0)
+    expect(directNames, scenario.name).toEqual(expect.arrayContaining(scenario.expected))
+    expect(metrics.railEdges.length, scenario.name).toBeGreaterThan(0)
+
+    for (const edge of [...metrics.directEdges, ...metrics.railEdges]) {
+      expect(Math.abs(edge.left), `${scenario.name} ${edge.name} left`).toBeLessThanOrEqual(1)
+      expect(Math.abs(edge.right), `${scenario.name} ${edge.name} right`).toBeLessThanOrEqual(1)
+      expect(Math.abs(edge.width), `${scenario.name} ${edge.name} width`).toBeLessThanOrEqual(1)
+    }
+
+    expect(Math.abs(metrics.layout.surfaceCenterOffset), scenario.name).toBeLessThanOrEqual(1)
+    expect(Math.abs(metrics.layout.textCenterOffset), scenario.name).toBeLessThanOrEqual(1)
+
+    if (scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+      expect(metrics.toc, scenario.name).not.toBeNull()
+      expect(metrics.toc!.width).toBeGreaterThanOrEqual(189)
+      expect(metrics.toc!.width).toBeLessThanOrEqual(191)
+      expect(metrics.toc!.gapFromSurface).toBeGreaterThanOrEqual(ARTICLE_DESKTOP_TOC_GAP - 1)
+      expect(metrics.toc!.gapFromSurface).toBeLessThanOrEqual(ARTICLE_DESKTOP_TOC_GAP + 1)
+      expect(metrics.toc!.rightMargin).toBeGreaterThanOrEqual(
+        wideTocRightMarginMin(scenario.viewport.width)
+      )
+      expect(metrics.toc!.position).toBe('sticky')
+      expect(metrics.toc!.opacity).toBe(1)
+      await expectDesktopTocPaint(page, scenario.name)
+
+      for (const item of metrics.toc!.items) {
+        expect(item.scrollWidth, `${scenario.name} ${item.text}`).toBeLessThanOrEqual(
+          item.clientWidth + 1
+        )
+        expect(item.clipped, `${scenario.name} ${item.text}`).toBe(false)
+        expect(item.lines, `${scenario.name} ${item.text}`).toBeLessThanOrEqual(4)
+      }
+    } else {
+      expect(metrics.toc, scenario.name).toBeNull()
+    }
+
+    for (const item of metrics.scrollSurfaces) {
+      expect(item.backgroundImage, `${scenario.name} ${item.selector}`).toContain('linear-gradient')
+      expect(item.backgroundAttachment, `${scenario.name} ${item.selector}`).toContain('local')
+
+      if (item.scrollWidth > item.clientWidth) {
+        expect(['auto', 'scroll']).toContain(item.overflowX)
+      }
+    }
+  }
+})
+
+test('dark article inline code uses dark tokens while real Shiki blocks keep their styling', async ({
+  page,
+}) => {
+  await openReadingPage(page, ARTICLE_PATH, { width: 375, height: 812 }, 'dark')
+
+  const inlineCode = await inlineCodeStyleMetrics(page)
+
+  expect(inlineCode.color).not.toBe(LIGHT_INLINE_CODE_COLOR)
+  expect(inlineCode.backgroundImage).toBe('none')
+  expect(inlineCode.backgroundImage).not.toContain(LIGHT_INLINE_CODE_GRADIENT)
+  expect(inlineCode.borderColor).not.toContain(LIGHT_INLINE_CODE_BORDER)
+  expect(inlineCode.contrast).toBeGreaterThanOrEqual(4.5)
+  expect(['clone', '-webkit-clone']).toContain(inlineCode.boxDecorationBreak)
+
+  const shikiCode = await inlineCodeStyleMetrics(
+    page,
+    'figure[data-rehype-pretty-code-figure] pre code'
+  )
+
+  expect(shikiCode.borderTopWidth).toBe('0px')
+  expect(shikiCode.borderRadius).toBe('0px')
+  expect(shikiCode.backgroundImage).not.toContain(LIGHT_INLINE_CODE_GRADIENT)
+  expect(shikiCode.paddingInlineStart).toBe('0px')
+
+  await injectReadingFixture(page)
+
+  const fixtureInlineCode = await inlineCodeStyleMetrics(page, '#reading-fixture-h2 code')
+  const linkedCode = await inlineCodeStyleMetrics(page, '[data-article-body] .article-prose a code')
+
+  expect(linkedCode.backgroundColor).toBe(fixtureInlineCode.backgroundColor)
+  expect(linkedCode.backgroundImage).toBe(fixtureInlineCode.backgroundImage)
+  expect(linkedCode.borderColor).toBe(fixtureInlineCode.borderColor)
+  expect(linkedCode.contrast).toBeGreaterThanOrEqual(4.5)
+  expect(linkedCode.color).not.toBe(LIGHT_INLINE_CODE_COLOR)
+})
+
+test('Reading Max injected Markdown family remains coherent and reflow-safe', async ({ page }) => {
+  const viewports = [
+    { width: 320, height: 812 },
+    { width: 640, height: 900 },
+    { width: 768, height: 1024 },
+    { width: 1440, height: 960 },
+    { width: 1920, height: 960 },
+  ]
+
+  for (const viewport of viewports) {
+    for (const theme of ['light', 'dark'] as const) {
+      await openReadingPage(page, ARTICLE_PATH, viewport, theme)
+      await injectReadingFixture(page)
+
+      const metrics = await page.locator('[data-article-body] .article-prose').evaluate((root) => {
+        const count = (selector: string) => root.querySelectorAll(selector).length
+        const styleNumber = (selector: string, property: string) =>
+          Number.parseFloat(
+            String(
+              getComputedStyle(root.querySelector<HTMLElement>(selector)!).getPropertyValue(
+                property
+              )
+            )
+          )
+        const headingAnchor = root.querySelector<HTMLElement>('#reading-fixture-h2 a')
+        const heading = root.querySelector<HTMLElement>('#reading-fixture-h2')
+        const table = root.querySelector<HTMLElement>('.article-table-scroll')
+        const longToken = root.querySelector<HTMLElement>('p:last-child')
+        const mark = root.querySelector<HTMLElement>('mark')
+        const checked = root.querySelector<HTMLElement>('input[type="checkbox"]:checked')
+        const unchecked = root.querySelector<HTMLElement>('input[type="checkbox"]:not(:checked)')
+        const separator = root.querySelector<HTMLElement>('hr')
+        const backref = root.querySelector<HTMLElement>('.data-footnote-backref')
+
+        if (
+          !headingAnchor ||
+          !heading ||
+          !table ||
+          !longToken ||
+          !mark ||
+          !checked ||
+          !unchecked ||
+          !separator ||
+          !backref
+        ) {
+          throw new Error('Missing injected reading family target')
+        }
+
+        const anchorRect = headingAnchor.getBoundingClientRect()
+        const headingRect = heading.getBoundingClientRect()
+        const backrefRect = backref.getBoundingClientRect()
+
+        return {
+          counts: {
+            h2: count('h2'),
+            h3: count('h3'),
+            h4: count('h4'),
+            h5: count('h5'),
+            h6: count('h6'),
+            p: count('p'),
+            strong: count('strong'),
+            em: count('em'),
+            del: count('del'),
+            ul: count('ul'),
+            ol: count('ol'),
+            task: count('.task-list-item, input[type="checkbox"]'),
+            links: count('a'),
+            blockquote: count('blockquote'),
+            inlineCode: count(':not(pre) > code'),
+            linkedCode: count('a code'),
+            preCode: count('pre code'),
+            table: count('table'),
+            image: count('img'),
+            figure: count('figure'),
+            caption: count('figcaption'),
+            details: count('details'),
+            summary: count('summary'),
+            footnotes: count('.footnotes'),
+            footnoteRefs: count('sup a[href="#reading-fixture-footnote"]'),
+            footnoteBackrefs: count('.data-footnote-backref'),
+            kbd: count('kbd'),
+            abbr: count('abbr'),
+            mark: count('mark'),
+            sub: count('sub'),
+            sup: count('sup'),
+            hr: count('hr'),
+            embeds: count('[data-reading-fixture-embed]'),
+          },
+          headingSizes: {
+            h2: styleNumber('h2', 'font-size'),
+            h3: styleNumber('h3', 'font-size'),
+            h4: styleNumber('h4', 'font-size'),
+            h5: styleNumber('h5', 'font-size'),
+            h6: styleNumber('h6', 'font-size'),
+          },
+          anchor: {
+            left: anchorRect.left,
+            right: anchorRect.right,
+            width: anchorRect.width,
+            height: anchorRect.height,
+            headingLeft: headingRect.left,
+            viewportWidth: window.innerWidth,
+          },
+          table: {
+            clientWidth: table.clientWidth,
+            scrollWidth: table.scrollWidth,
+            overflowX: getComputedStyle(table).overflowX,
+          },
+          longToken: {
+            clientWidth: longToken.clientWidth,
+            scrollWidth: longToken.scrollWidth,
+          },
+          mark: {
+            color: getComputedStyle(mark).color,
+            backgroundColor: getComputedStyle(mark).backgroundColor,
+          },
+          checkboxes: [checked, unchecked].map((box) => {
+            const rect = box.getBoundingClientRect()
+
+            return {
+              width: rect.width,
+              height: rect.height,
+              backgroundColor: getComputedStyle(box).backgroundColor,
+            }
+          }),
+          footnote: {
+            separatorDisplay: getComputedStyle(separator).display,
+            backrefWidth: backrefRect.width,
+            backrefHeight: backrefRect.height,
+            backrefBackground: getComputedStyle(backref).backgroundColor,
+          },
+          documentOverflow:
+            document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        }
+      })
+
+      for (const [name, count] of Object.entries(metrics.counts)) {
+        expect(count, `${name} ${theme} ${viewport.width}`).toBeGreaterThan(0)
+      }
+
+      expect(metrics.documentOverflow).toBeLessThanOrEqual(0)
+      expect(metrics.headingSizes.h2).toBeGreaterThan(metrics.headingSizes.h3)
+      expect(metrics.headingSizes.h3).toBeGreaterThan(metrics.headingSizes.h4)
+      expect(metrics.headingSizes.h4).toBeGreaterThan(metrics.headingSizes.h5)
+      expect(metrics.headingSizes.h5).toBeGreaterThan(metrics.headingSizes.h6)
+      expect(metrics.anchor.width).toBeGreaterThanOrEqual(24)
+      expect(metrics.anchor.height).toBeGreaterThanOrEqual(24)
+      expect(metrics.anchor.left).toBeGreaterThanOrEqual(0)
+      expect(metrics.anchor.right).toBeLessThanOrEqual(metrics.anchor.viewportWidth)
+      expect(metrics.table.scrollWidth).toBeGreaterThanOrEqual(metrics.table.clientWidth)
+      expect(['auto', 'scroll']).toContain(metrics.table.overflowX)
+      expect(metrics.longToken.scrollWidth).toBeLessThanOrEqual(metrics.longToken.clientWidth + 1)
+      expect(metrics.mark.backgroundColor).not.toBe('rgb(255, 255, 0)')
+      expect(metrics.mark.backgroundColor).not.toBe('yellow')
+      expect(metrics.footnote.separatorDisplay).toBe('none')
+      expect(metrics.footnote.backrefWidth).toBeGreaterThanOrEqual(24)
+      expect(metrics.footnote.backrefHeight).toBeGreaterThanOrEqual(24)
+      expect(metrics.footnote.backrefBackground).not.toBe('rgba(0, 0, 0, 0)')
+
+      for (const checkbox of metrics.checkboxes) {
+        expect(checkbox.width).toBeGreaterThanOrEqual(16)
+        expect(checkbox.height).toBeGreaterThanOrEqual(16)
+        expect(checkbox.backgroundColor).not.toBe('rgba(0, 0, 0, 0)')
+      }
+    }
+  }
+})
+
+test('Reading Max rich content and 200 percent text resize stay internally scrollable', async ({
+  page,
+}) => {
+  for (const theme of ['light', 'dark'] as const) {
+    await openReadingPage(page, RICH_ARTICLE_PATH, { width: 320, height: 812 }, theme)
+
+    const math = await scrollBoxMetrics(page, "mjx-container[jax='SVG'][display='true']")
+    const code = await scrollBoxMetrics(
+      page,
+      'figure[data-rehype-pretty-code-figure] [data-code-pre]'
+    )
+    const table = await scrollBoxMetrics(page, '[data-article-body] .article-table-scroll')
+    const overflow = await noPageOverflow(page)
+
+    expect(overflow.overflowPx).toBeLessThanOrEqual(0)
+    for (const item of [math, code, table]) {
+      expect(item.scrollWidth).toBeGreaterThan(item.clientWidth)
+      expect(['auto', 'scroll']).toContain(item.overflowX)
+    }
+  }
+
+  for (const path of [ARTICLE_PATH, '/en/xiaomi-book-pro-14/', RICH_ARTICLE_PATH]) {
+    await openReadingPage(page, path, { width: 640, height: 900 }, 'dark', 200)
+
+    const rootFont = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)
+    const overflow = await noPageOverflow(page)
+    const close = await scrollBoxMetrics(
+      page,
+      'a[aria-label="返回列表"], a[aria-label="Back to list"]'
+    )
+    const tocButton = page.locator('.article-toc-mobile button').first()
+
+    expect(rootFont).toBe('32px')
+    expect(overflow.overflowPx).toBeLessThanOrEqual(0)
+    expect(close.rect.width).toBeGreaterThanOrEqual(44)
+    expect(close.rect.height).toBeGreaterThanOrEqual(44)
+
+    if ((await tocButton.count()) > 0) {
+      const tocButtonBox = await scrollBoxMetrics(page, '.article-toc-mobile button')
+      expect(tocButtonBox.rect.height).toBeGreaterThanOrEqual(44)
+    }
+
+    const inlineCode = await inlineCodeStyleMetrics(page)
+
+    expect(inlineCode.color).not.toBe(LIGHT_INLINE_CODE_COLOR)
+    expect(inlineCode.backgroundImage).toBe('none')
+    expect(inlineCode.contrast).toBeGreaterThanOrEqual(4.5)
+
+    if (path === RICH_ARTICLE_PATH) {
+      for (const selector of [
+        'figure[data-rehype-pretty-code-figure] [data-code-pre]',
+        "mjx-container[jax='SVG'][display='true']",
+        '[data-article-body] .article-table-scroll',
+      ]) {
+        const metrics = await scrollBoxMetrics(page, selector)
+
+        expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth)
+        expect(['auto', 'scroll']).toContain(metrics.overflowX)
+      }
+    }
+  }
+})
+
+test('display MathJax is contained at 320px with internal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 812 })
+  await page.goto(RICH_ARTICLE_PATH)
+
+  const equation = page.locator("mjx-container[jax='SVG'][display='true']").first()
+  await equation.scrollIntoViewIfNeeded()
+
+  const metrics = await equation.evaluate((element) => {
+    const body = document.querySelector<HTMLElement>('[data-article-body]')
+
+    if (!body) {
+      throw new Error('Missing article body')
+    }
+
+    const rect = element.getBoundingClientRect()
+    const bodyRect = body.getBoundingClientRect()
+    const style = getComputedStyle(element)
+
+    return {
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+      overflowX: style.overflowX,
+      left: rect.left,
+      right: rect.right,
+      bodyLeft: bodyRect.left,
+      bodyRight: bodyRect.right,
+      viewportWidth: window.innerWidth,
+      pageScrollWidth: document.documentElement.scrollWidth,
+    }
+  })
+
+  expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth)
+  expect(['auto', 'scroll']).toContain(metrics.overflowX)
+  expect(metrics.left).toBeGreaterThanOrEqual(metrics.bodyLeft - 1)
+  expect(metrics.right).toBeLessThanOrEqual(metrics.bodyRight + 1)
+  expect(metrics.pageScrollWidth).toBeLessThanOrEqual(metrics.viewportWidth)
+})
+
+test('code controls do not overlap the first code line at 320px', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 812 })
+  await page.goto(RICH_ARTICLE_PATH)
+
+  const figure = page.locator('figure[data-rehype-pretty-code-figure]').first()
+  await figure.scrollIntoViewIfNeeded()
+
+  const metrics = await figure.evaluate((root) => {
+    const header = root.querySelector<HTMLElement>('[data-code-header]')
+    const pre = root.querySelector<HTMLElement>('[data-code-pre]')
+    const firstLine = root.querySelector<HTMLElement>('[data-code-line]')
+    const copyButton = root.querySelector<HTMLElement>('[data-code-copy]')
+    const sourceLink = root.querySelector<HTMLElement>('a[href*="github.com"]')
+
+    if (!header || !pre || !firstLine || !copyButton) {
+      throw new Error('Missing code block geometry target')
+    }
+
+    const rect = (element: HTMLElement) => {
+      const bounds = element.getBoundingClientRect()
+
+      return {
+        top: bounds.top,
+        right: bounds.right,
+        bottom: bounds.bottom,
+        left: bounds.left,
+        width: bounds.width,
+        height: bounds.height,
+      }
+    }
+    const intersects = (first: ReturnType<typeof rect>, second: ReturnType<typeof rect>) =>
+      first.left < second.right &&
+      first.right > second.left &&
+      first.top < second.bottom &&
+      first.bottom > second.top
+    const firstLineRect = rect(firstLine)
+    const copyRect = rect(copyButton)
+    const sourceRect = sourceLink ? rect(sourceLink) : null
+
+    return {
+      header: rect(header),
+      pre: rect(pre),
+      firstLine: firstLineRect,
+      copy: copyRect,
+      source: sourceRect,
+      copyIntersectsFirstLine: intersects(copyRect, firstLineRect),
+      sourceIntersectsFirstLine: sourceRect ? intersects(sourceRect, firstLineRect) : false,
+      preClientWidth: pre.clientWidth,
+      preScrollWidth: pre.scrollWidth,
+      preOverflowX: getComputedStyle(pre).overflowX,
+      viewportWidth: window.innerWidth,
+      pageScrollWidth: document.documentElement.scrollWidth,
+    }
+  })
+
+  expect(metrics.header.bottom).toBeLessThanOrEqual(metrics.pre.top + 1)
+  expect(metrics.copyIntersectsFirstLine).toBe(false)
+  expect(metrics.sourceIntersectsFirstLine).toBe(false)
+  expect(metrics.copy.width).toBeGreaterThanOrEqual(44)
+  expect(metrics.copy.height).toBeGreaterThanOrEqual(44)
+  expect(metrics.preScrollWidth).toBeGreaterThan(metrics.preClientWidth)
+  expect(['auto', 'scroll']).toContain(metrics.preOverflowX)
+  expect(metrics.pageScrollWidth).toBeLessThanOrEqual(metrics.viewportWidth)
+})
+
+test('code copy failure is announced with recovery text', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: {
+        writeText: async () => {
+          throw new Error('blocked')
+        },
+      },
+    })
+  })
+  await page.goto(RICH_ARTICLE_PATH)
+
+  const figure = page.locator('figure[data-rehype-pretty-code-figure]').first()
+  const status = figure.locator('[role="status"]')
+
+  await figure.getByRole('button', { name: '复制代码' }).click()
+  await expect(status).toContainText('复制失败，请手动选择代码。')
+  await expect(figure.getByRole('button', { name: '复制失败，请手动选择代码。' })).toBeVisible()
+})
+
+test('desktop TOC wraps long labels and heading hashes clear the fixed header', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(RICH_ARTICLE_PATH)
+
+  await expect(page.locator('.article-toc-desktop')).toBeVisible()
+
+  const tocMetrics = await page.locator('.article-toc-desktop a span').evaluateAll((items) =>
+    items.map((item) => {
+      const style = getComputedStyle(item)
+
+      return {
+        text: item.textContent?.trim() || '',
+        clientWidth: item.clientWidth,
+        scrollWidth: item.scrollWidth,
+        whiteSpace: style.whiteSpace,
+      }
+    })
+  )
+
+  expect(tocMetrics.length).toBeGreaterThan(0)
+  for (const item of tocMetrics) {
+    expect(item.whiteSpace).not.toBe('nowrap')
+    expect(item.scrollWidth, item.text).toBeLessThanOrEqual(item.clientWidth + 1)
+  }
+
+  const heading = page.locator('[data-article-body] h2').first()
+  const headingId = await heading.getAttribute('id')
+
+  expect(headingId).toBeTruthy()
+  await page.goto(`${RICH_ARTICLE_PATH}#${headingId}`)
+
+  await expect
+    .poll(() =>
+      page.evaluate((id) => {
+        const target = document.getElementById(id)
+        const header = document.querySelector<HTMLElement>('body header')
+
+        if (!target || !header) {
+          throw new Error('Missing hash offset target')
+        }
+
+        return target.getBoundingClientRect().top - header.getBoundingClientRect().bottom
+      }, headingId!)
+    )
+    .toBeGreaterThanOrEqual(8)
+
+  const hashMetrics = await page.evaluate((id) => {
+    const target = document.getElementById(id)
+    const header = document.querySelector<HTMLElement>('body header')
+    const anchor = target?.querySelector<HTMLElement>('a:has(.content-header-link)')
+
+    if (!target || !header || !anchor) {
+      throw new Error('Missing heading anchor target')
+    }
+
+    const targetRect = target.getBoundingClientRect()
+    const headerRect = header.getBoundingClientRect()
+    const anchorRect = anchor.getBoundingClientRect()
+
+    return {
+      headingTop: targetRect.top,
+      headerBottom: headerRect.bottom,
+      anchorLeft: anchorRect.left,
+      anchorRight: anchorRect.right,
+      headingLeft: targetRect.left,
+      anchorWidth: anchorRect.width,
+      pageScrollWidth: document.documentElement.scrollWidth,
+      viewportWidth: window.innerWidth,
+    }
+  }, headingId!)
+
+  expect(hashMetrics.headingTop).toBeGreaterThanOrEqual(hashMetrics.headerBottom + 8)
+  expect(hashMetrics.anchorLeft).toBeGreaterThanOrEqual(0)
+  expect(hashMetrics.anchorRight).toBeLessThanOrEqual(hashMetrics.headingLeft - 0.5)
+  expect(hashMetrics.anchorWidth).toBeGreaterThanOrEqual(24)
+  expect(hashMetrics.pageScrollWidth).toBeLessThanOrEqual(hashMetrics.viewportWidth)
+})
+
+test('content screenshots expose meaningful image alt text', async ({ page }) => {
+  await page.goto(IMAGE_ARTICLE_PATH)
+
+  await expect(
+    page.getByRole('img', { name: 'KDE 系统设置中 Obsidian 的窗口规则配置界面' })
+  ).toBeVisible()
+})
 
 for (const viewport of [
   { width: 320, height: 720, top: 72, radius: 0 },
@@ -790,15 +2368,19 @@ for (const viewport of [
           desktopToc:
             getComputedStyle(desktopToc).display === 'none'
               ? null
-              : rect('[data-article-skeleton-desktop-toc]'),
+              : {
+                  ...rect('[data-article-skeleton-desktop-toc]'),
+                  position: getComputedStyle(desktopToc).position,
+                  opacity: Number.parseFloat(getComputedStyle(desktopToc).opacity),
+                },
           surfaceCount: root.querySelectorAll('[data-article-skeleton-surface]').length,
           viewportWidth: window.innerWidth,
           scrollWidth: document.documentElement.scrollWidth,
         }
       })
 
-      const expectedWidth = viewport.width < 640 ? viewport.width : 780
-      const expectedLeft = (viewport.width - expectedWidth) / 2
+      const expectedWidth = viewport.width < 640 ? viewport.width : ARTICLE_DESKTOP_SURFACE_WIDTH
+      const expectedLeft = destination(viewport.width, viewport.height).left
 
       expect(geometry.surfaceCount).toBe(1)
       expect(Math.abs(geometry.surface.top - viewport.top)).toBeLessThanOrEqual(4)
@@ -808,17 +2390,31 @@ for (const viewport of [
       expect(Math.abs(geometry.cover.top - geometry.surface.top)).toBeLessThanOrEqual(0.5)
       expect(Math.abs(geometry.cover.left - geometry.surface.left)).toBeLessThanOrEqual(0.5)
       expect(Math.abs(geometry.cover.right - geometry.surface.right)).toBeLessThanOrEqual(0.5)
-      expect(Math.abs(geometry.cover.width / geometry.cover.height - 16 / 9)).toBeLessThan(0.02)
+      expect(
+        Math.abs(geometry.cover.height - articleCoverHeight(geometry.cover.width))
+      ).toBeLessThan(4)
       expect(geometry.cover.bottom).toBeLessThan(geometry.body.top)
       expect(geometry.background).not.toBe('rgba(0, 0, 0, 0)')
       expect(geometry.surface.right).toBeLessThanOrEqual(geometry.viewportWidth + 0.5)
       expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.viewportWidth)
 
-      if (viewport.width >= 1280) {
+      if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
         expect(geometry.mobileToc).toBeNull()
         expect(geometry.desktopToc).not.toBeNull()
-        expect(geometry.desktopToc!.left).toBeGreaterThanOrEqual(geometry.surface.right + 32)
-        expect(geometry.desktopToc!.right).toBeLessThanOrEqual(geometry.viewportWidth - 14)
+        expect(
+          Math.abs(geometry.desktopToc!.width - ARTICLE_DESKTOP_TOC_WIDTH)
+        ).toBeLessThanOrEqual(1)
+        expect(geometry.desktopToc!.left - geometry.surface.right).toBeGreaterThanOrEqual(
+          ARTICLE_DESKTOP_TOC_GAP - 1
+        )
+        expect(geometry.desktopToc!.left - geometry.surface.right).toBeLessThanOrEqual(
+          ARTICLE_DESKTOP_TOC_GAP + 1
+        )
+        expect(geometry.viewportWidth - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
+          wideTocRightMarginMin(viewport.width)
+        )
+        expect(geometry.desktopToc!.position).toBe('sticky')
+        expect(geometry.desktopToc!.opacity).toBe(1)
       } else {
         expect(geometry.desktopToc).toBeNull()
         expect(geometry.mobileToc).not.toBeNull()
@@ -960,6 +2556,51 @@ test('adjacent article navigation does not reuse list return provenance', async 
 
   await returnLink(page).click()
   await expect(page).toHaveURL('/zh/')
+})
+
+test('single adjacent article navigation uses the full mobile rail', async ({ page }) => {
+  await openReadingPage(page, ARTICLE_PATH, { width: 320, height: 812 }, 'dark')
+
+  const nav = page.locator('.article-post-nav')
+  await nav.scrollIntoViewIfNeeded()
+  await expect(nav.locator('a')).toHaveCount(1)
+
+  const metrics = await nav.evaluate((root) => {
+    const link = root.querySelector<HTMLElement>('a')
+    const emptyColumns = root.querySelectorAll(':scope > div').length
+
+    if (!link) {
+      throw new Error('Missing adjacent article link')
+    }
+
+    const navRect = root.getBoundingClientRect()
+    const linkRect = link.getBoundingClientRect()
+    const title = link.querySelector<HTMLElement>('span:last-child')
+    const titleRect = title?.getBoundingClientRect()
+
+    return {
+      childCount: root.children.length,
+      emptyColumns,
+      nav: {
+        left: navRect.left,
+        right: navRect.right,
+        width: navRect.width,
+      },
+      link: {
+        left: linkRect.left,
+        right: linkRect.right,
+        width: linkRect.width,
+      },
+      titleWidth: titleRect?.width ?? 0,
+    }
+  })
+
+  expect(metrics.childCount).toBe(1)
+  expect(metrics.emptyColumns).toBe(0)
+  expect(Math.abs(metrics.link.left - metrics.nav.left)).toBeLessThanOrEqual(1)
+  expect(Math.abs(metrics.link.right - metrics.nav.right)).toBeLessThanOrEqual(1)
+  expect(metrics.link.width).toBeGreaterThanOrEqual(metrics.nav.width - 1)
+  expect(metrics.titleWidth).toBeGreaterThanOrEqual(metrics.nav.width - 1)
 })
 
 test('browser Back restores the list with native scroll restoration', async ({ page }) => {
@@ -1123,6 +2764,12 @@ test('related commits remain a bounded disclosure on the article page', async ({
   await page.goto(ARTICLE_PATH)
 
   const article = page.locator('article[data-article-reader]')
+  const details = article.locator('details').filter({ hasText: '文章信息' })
+  await expect(details.locator('summary')).toBeVisible()
+  await expect(article.locator('a[href*="/commit/"]')).toHaveCount(0)
+
+  await details.locator('summary').click()
+
   const commitsButton = article.getByRole('button', { name: /相关提交/ })
   await expect(commitsButton).toHaveAttribute('aria-expanded', 'false')
 
@@ -1167,7 +2814,7 @@ for (const scenario of [
       top: target.top,
       left: target.left,
       width: target.width,
-      height: (target.width * 9) / 16,
+      height: articleCoverHeight(target.width),
     })
 
     const middle = frames.reduce((closest, frame) =>

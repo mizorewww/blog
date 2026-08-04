@@ -11,7 +11,7 @@ import {
 } from '@/lib/content/posts'
 import { buildTermIndexPageData, buildTermPageMeta } from '@/lib/content/termPages'
 import { getTermRouteField, type TermField } from '@/lib/content/terms'
-import { isLocale, type Locale } from '@/lib/i18n'
+import { isLocale, type Locale, ui } from '@/lib/i18n'
 import { localizedAlternates, localizedTermAlternates } from '@/lib/seo/alternates'
 import { createPostCollectionJsonLd } from '@/lib/structuredData'
 import { genPageMetadata } from 'app/seo'
@@ -132,6 +132,10 @@ export async function renderTermPage(field: TermField, props: RawTermParams) {
 
   const termMeta = buildTermPageMeta(params.locale, field, params.term)
   const { posts, categoryCounts, tagCounts } = getListData(params.locale, field, termMeta.slug)
+  const visibleTitle =
+    field === 'categories'
+      ? ui[params.locale].categoryDetailTitle(termMeta.term)
+      : ui[params.locale].tagDetailTitle(termMeta.term)
   const jsonLd = createPostCollectionJsonLd({
     title: termMeta.title,
     description: termMeta.description,
@@ -146,6 +150,7 @@ export async function renderTermPage(field: TermField, props: RawTermParams) {
       <ListLayout
         posts={posts}
         title={termMeta.title}
+        visibleTitle={visibleTitle}
         locale={params.locale}
         categoryCounts={categoryCounts}
         tagCounts={tagCounts}

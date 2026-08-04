@@ -11,6 +11,7 @@ import Link from '@/components/Link'
 import MDXServerRenderer from '@/components/MDXServerRenderer'
 import PostNavLinks from '@/components/PostNavLinks'
 import ResponsiveImage from '@/components/ResponsiveImage'
+import { divider, imageOutlineClass, mutedText, skyLink } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
 import { formatDate } from '@/lib/formatDate'
 import { localizePath, localeConfig, type Locale, ui } from '@/lib/i18n'
@@ -38,17 +39,20 @@ export default function PostLayout({
   const homeHref = localizePath('/', locale)
   const authorNames = authorDetails.map((author) => author.name).filter(Boolean)
   const postMeta = toListPost(post)
+  const secondaryTags = post.tags.slice(1)
+  const hasArticleDetails =
+    authorNames.length > 0 || secondaryTags.length > 0 || post.gitCommits.length > 0
 
   return (
     <div className="article-shell mx-auto w-full pb-16 sm:pt-6">
       <ArticleReader>
         <div
-          className="article-reading-surface dark:bg-surface-card-dark relative z-0 min-w-0 overflow-hidden bg-white shadow-sm ring-1 shadow-slate-300/70 ring-slate-950/5 dark:shadow-black/20 dark:ring-white/10"
+          className="article-reading-surface dark:bg-surface-card-dark relative z-0 min-w-0 overflow-hidden bg-white shadow-[0_0_0_1px_rgba(15,23,42,0.04),0_14px_40px_rgba(15,23,42,0.08)] ring-1 ring-slate-950/5 dark:shadow-[0_0_0_1px_rgba(255,255,255,0.06)] dark:ring-white/10"
           data-article-surface
         >
           <header className="article-header min-w-0">
             <div
-              className="dark:bg-surface-cover-dark relative aspect-[16/9] overflow-hidden bg-slate-100"
+              className="dark:bg-surface-cover-dark relative aspect-[2/1] overflow-hidden bg-slate-100 sm:aspect-[2.8/1]"
               data-article-cover
             >
               <ResponsiveImage
@@ -57,7 +61,7 @@ export default function PostLayout({
                 fill
                 sizes="(min-width: 640px) 780px, 100vw"
                 priority
-                className="object-cover"
+                className={`${imageOutlineClass} object-cover`}
               />
               <ArticleReturnLink
                 key={post.path}
@@ -72,7 +76,14 @@ export default function PostLayout({
             <ArticleCardPresentation
               headingLevel="h1"
               title={post.title}
-              gitMeta={<ArticleGitMeta post={postMeta} locale={locale} dateLocale={dateLocale} />}
+              gitMeta={
+                <ArticleGitMeta
+                  post={postMeta}
+                  locale={locale}
+                  dateLocale={dateLocale}
+                  variant="article"
+                />
+              }
               summary={post.summary}
               publishedAt={post.date}
               publishedText={formatDate(post.date, dateLocale)}
@@ -80,50 +91,69 @@ export default function PostLayout({
               primaryTagHref={
                 post.tags[0] ? localizePath(`/tags/${slug(post.tags[0])}`, locale) : undefined
               }
+              variant="article"
             />
-
-            {(authorNames.length > 0 || post.tags.length > 1 || post.gitCommits.length > 0) && (
-              <div
-                data-article-transition-destination-only
-                className="px-5 pb-8 text-sm text-slate-500 sm:px-6 dark:text-white/60"
-              >
-                {(authorNames.length > 0 || post.tags.length > 1) && (
-                  <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
-                    {authorNames.length > 0 && <span>{authorNames.join(', ')}</span>}
-                    {post.tags.slice(1, 3).map((tag) => (
-                      <Link
-                        key={tag}
-                        href={localizePath(`/tags/${slug(tag)}`, locale)}
-                        className="hover:text-sky-700 dark:hover:text-sky-300"
-                      >
-                        #{tag}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-                <ArticleGitMeta
-                  post={postMeta}
-                  locale={locale}
-                  dateLocale={dateLocale}
-                  showCommits
-                  showOverview={false}
-                />
-              </div>
-            )}
           </header>
 
           <ArticleTableOfContents headings={toc} locale={locale} variant="mobile" />
 
-          <div className="px-5 pt-10 pb-10 sm:px-8 lg:px-10">
+          <div className="pt-6 pb-10">
             <div className="article-body min-w-0" data-article-body>
-              <div className="prose prose-slate dark:prose-invert max-w-none">
+              <div className="article-prose prose prose-slate dark:prose-invert max-w-none">
                 <MDXServerRenderer modulePath={post.mdxModulePath} />
                 <ArticleLicenseNotice locale={locale} />
               </div>
             </div>
 
+            {hasArticleDetails && (
+              <section
+                data-article-transition-destination-only
+                className={`article-content-rail article-data-block not-prose mt-8 border-t ${divider} pt-5 text-sm leading-7 ${mutedText}`}
+              >
+                <details className="group">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-[6px] px-1 text-slate-700 transition-colors duration-150 hover:text-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 dark:text-white/80 dark:hover:text-sky-300 [&::-webkit-details-marker]:hidden">
+                    <span className="font-medium">{labels.articleDetails}</span>
+                    <Icon
+                      name="ChevronDown"
+                      className="h-4 w-4 shrink-0 text-slate-500 transition-transform duration-150 group-open:rotate-180 motion-reduce:transition-none dark:text-white/60"
+                      inlineSpacing={false}
+                      decorative
+                    />
+                  </summary>
+                  <div className="mt-3 space-y-4">
+                    {(authorNames.length > 0 || secondaryTags.length > 0) && (
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                        {authorNames.length > 0 && (
+                          <span>
+                            {labels.articleAuthors}: {authorNames.join(', ')}
+                          </span>
+                        )}
+                        {secondaryTags.map((tag) => (
+                          <Link
+                            key={tag}
+                            href={localizePath(`/tags/${slug(tag)}`, locale)}
+                            className={skyLink}
+                          >
+                            #{tag}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                    <ArticleGitMeta
+                      post={postMeta}
+                      locale={locale}
+                      dateLocale={dateLocale}
+                      showCommits
+                      showOverview={false}
+                      variant="article"
+                    />
+                  </div>
+                </details>
+              </section>
+            )}
+
             {(previousPost || nextPost) && (
-              <div className="mt-10">
+              <div className="article-content-rail mt-10">
                 <PostNavLinks previousPost={previousPost} nextPost={nextPost} locale={locale} />
               </div>
             )}

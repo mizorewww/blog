@@ -15,13 +15,13 @@ export default function ArticleRouteSkeleton() {
           <header className="article-header min-w-0">
             <div
               data-article-skeleton-cover
-              className="dark:bg-surface-cover-dark relative aspect-[16/9] overflow-hidden bg-slate-100"
+              className="dark:bg-surface-cover-dark relative aspect-[2/1] overflow-hidden bg-slate-100 sm:aspect-[2.8/1]"
             >
               <Skeleton className="h-full w-full rounded-none" />
               <Skeleton className="absolute top-3 right-3 h-11 w-11 rounded-full" />
             </div>
 
-            <div className="space-y-5 px-5 pt-6 pb-8 sm:px-8 sm:pt-8 lg:px-10 xl:pb-0">
+            <div className="article-content-rail space-y-5 pt-6 pb-8 sm:pt-8 min-[90rem]:pb-0">
               <Skeleton className="h-11 w-5/6" />
               <Skeleton className="h-6 w-full" />
               <Skeleton className="h-5 w-2/3" />
@@ -31,14 +31,14 @@ export default function ArticleRouteSkeleton() {
 
           <section
             data-article-skeleton-mobile-toc
-            className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 xl:hidden"
+            className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 min-[90rem]:hidden"
           >
-            <div className="px-5 py-3 sm:px-8 lg:px-10">
+            <div className="article-content-rail py-3">
               <Skeleton className="h-6 w-32" />
             </div>
           </section>
 
-          <div data-article-skeleton-body className="space-y-4 px-5 pt-10 pb-10 sm:px-8 lg:px-10">
+          <div data-article-skeleton-body className="article-content-rail space-y-4 pt-6 pb-10">
             <Skeleton className="h-7 w-2/3" />
             <Skeleton className="h-5 w-full" />
             <Skeleton className="h-5 w-full" />
@@ -49,7 +49,7 @@ export default function ArticleRouteSkeleton() {
 
         <aside
           data-article-skeleton-desktop-toc
-          className="article-toc-desktop hidden space-y-3 xl:block"
+          className="article-toc-desktop hidden space-y-3 min-[90rem]:block"
         >
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-4 w-full" />

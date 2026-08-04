@@ -20,6 +20,7 @@ type SearchState =
   | { phase: 'loading'; query: string }
   | { phase: 'results'; query: string; results: SearchResult[] }
   | { phase: 'empty'; query: string }
+  | { phase: 'error'; query: string }
 
 type PagefindAPI = {
   init: () => void
@@ -49,10 +50,57 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
   const [state, setState] = useState<SearchState>({ phase: 'idle' })
   const shouldReduceMotion = useReducedMotion()
   const pagefindRef = useRef<PagefindAPI | null>(null)
+  const pagefindLoadFailedRef = useRef(false)
+  const activeSearchRef = useRef(0)
+  const queryRef = useRef('')
   const inputRef = useRef<HTMLInputElement>(null)
+  const headingId = 'search-page-heading'
+  const statusId = 'search-status'
 
   useEffect(() => {
     inputRef.current?.focus()
+  }, [])
+
+  const performSearch = useCallback(async (searchQuery: string) => {
+    const trimmedQuery = searchQuery.trim()
+    const searchId = activeSearchRef.current + 1
+    activeSearchRef.current = searchId
+
+    if (!trimmedQuery) {
+      setState({ phase: 'idle' })
+      return
+    }
+
+    const pf = pagefindRef.current
+    if (!pf) {
+      setState(
+        pagefindLoadFailedRef.current
+          ? { phase: 'error', query: trimmedQuery }
+          : { phase: 'loading', query: trimmedQuery }
+      )
+      return
+    }
+
+    setState({ phase: 'loading', query: trimmedQuery })
+
+    try {
+      const search = await pf.debouncedSearch(trimmedQuery, {}, 250)
+      if (!search || activeSearchRef.current !== searchId) return
+
+      const results = await Promise.all(search.results.slice(0, RESULT_LIMIT).map((r) => r.data()))
+
+      if (activeSearchRef.current !== searchId) return
+
+      if (results.length === 0) {
+        setState({ phase: 'empty', query: trimmedQuery })
+      } else {
+        setState({ phase: 'results', query: trimmedQuery, results })
+      }
+    } catch {
+      if (activeSearchRef.current === searchId) {
+        setState({ phase: 'error', query: trimmedQuery })
+      }
+    }
   }, [])
 
   useEffect(() => {
@@ -60,51 +108,41 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
 
     loadPagefind()
       .then((pf) => {
-        if (cancelled) return
+        if (cancelled) {
+          return
+        }
+
         pf.init()
         pagefindRef.current = pf
+        pagefindLoadFailedRef.current = false
+
+        if (queryRef.current.trim()) {
+          void performSearch(queryRef.current)
+        }
       })
       .catch(() => {
-        // pagefind.js is only available after `yarn build` generates the
-        // static export + index. In dev mode this silently fails.
+        if (cancelled) return
+
+        pagefindLoadFailedRef.current = true
+
+        if (queryRef.current.trim()) {
+          setState({ phase: 'error', query: queryRef.current.trim() })
+        }
       })
 
     return () => {
       cancelled = true
+      pagefindRef.current = null
     }
-  }, [])
-
-  const performSearch = useCallback(async (searchQuery: string) => {
-    const pf = pagefindRef.current
-    if (!pf || !searchQuery.trim()) {
-      setState({ phase: 'idle' })
-      return
-    }
-
-    setState({ phase: 'loading', query: searchQuery })
-
-    try {
-      const search = await pf.debouncedSearch(searchQuery, {}, 250)
-      if (!search) return
-
-      const results = await Promise.all(search.results.slice(0, RESULT_LIMIT).map((r) => r.data()))
-
-      if (results.length === 0) {
-        setState({ phase: 'empty', query: searchQuery })
-      } else {
-        setState({ phase: 'results', query: searchQuery, results })
-      }
-    } catch {
-      setState({ phase: 'empty', query: searchQuery })
-    }
-  }, [])
+  }, [performSearch])
 
   const onInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const value = e.target.value
       setQuery(value)
+      queryRef.current = value
       pagefindRef.current?.preload(value)
-      performSearch(value)
+      void performSearch(value)
     },
     [performSearch]
   )
@@ -112,86 +150,123 @@ export default function SearchPageClient({ locale }: { locale: Locale }) {
   const itemTransition = shouldReduceMotion
     ? { duration: 0 }
     : { duration: animataQuickDuration, ease: animataEase }
+  let statusMessage: string = labels.searchHint
+
+  if (state.phase === 'loading') {
+    statusMessage = labels.searchLoading(state.query)
+  } else if (state.phase === 'results') {
+    statusMessage = labels.searchResultCount(state.results.length, state.query)
+  } else if (state.phase === 'empty') {
+    statusMessage = labels.searchNoResults(state.query)
+  } else if (state.phase === 'error') {
+    statusMessage = labels.searchUnavailable(state.query)
+  }
 
   return (
-    <div className="blog-shell mx-auto w-full px-4 py-10 sm:px-0">
-      <h1 className="mb-6 text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl dark:text-white/90">
+    <div className="blog-shell mx-auto w-full px-4 pt-6 pb-12 sm:px-0 sm:pt-10">
+      <h1
+        id={headingId}
+        className="mb-4 text-2xl leading-tight font-semibold tracking-tight text-slate-900 sm:mb-6 sm:text-4xl dark:text-white/90"
+      >
         {labels.search}
       </h1>
 
-      <div
-        className={`relative mb-6 ${cardClass} flex items-center gap-3 px-5 py-4 transition-shadow duration-200 focus-within:ring-2 focus-within:ring-sky-500/30`}
-      >
-        <Icon
-          name="Search"
-          className="h-5 w-5 shrink-0 text-slate-400 dark:text-white/40"
-          inlineSpacing={false}
-          decorative
-        />
-        <input
-          ref={inputRef}
-          type="search"
-          value={query}
-          onChange={onInput}
-          placeholder={labels.searchPlaceholder}
-          aria-label={labels.search}
-          className="w-full bg-transparent text-base text-slate-900 outline-none placeholder:text-slate-400 dark:text-white/90 dark:placeholder:text-white/40"
-        />
+      <section role="search" aria-labelledby={headingId}>
+        <div
+          className={`relative mb-3 ${cardClass} flex min-h-11 items-center gap-3 px-4 py-2.5 focus-within:ring-2 focus-within:ring-sky-500/30 motion-safe:transition-[box-shadow] motion-safe:duration-200 sm:mb-5 sm:px-5 sm:py-3`}
+        >
+          <Icon
+            name="Search"
+            className="h-5 w-5 shrink-0 text-slate-400 dark:text-white/40"
+            inlineSpacing={false}
+            decorative
+          />
+          <input
+            ref={inputRef}
+            type="search"
+            value={query}
+            onChange={onInput}
+            aria-label={labels.search}
+            className="w-full bg-transparent text-base text-slate-900 outline-none dark:text-white/90"
+          />
+        </div>
+      </section>
+
+      <div id={statusId} role="status" className="sr-only">
+        {statusMessage}
       </div>
 
-      {state.phase === 'idle' && <p className={`px-1 text-sm ${mutedText}`}>{labels.searchHint}</p>}
+      <div
+        data-search-results
+        data-search-state={state.phase}
+        aria-busy={state.phase === 'loading'}
+        aria-describedby={statusId}
+      >
+        {state.phase === 'idle' && (
+          <p className={`px-1 text-sm leading-6 ${mutedText}`}>{labels.searchHint}</p>
+        )}
 
-      {state.phase === 'loading' && (
-        <div className="space-y-3">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className={`${cardClass} px-5 py-4`}>
-              <Skeleton className="mb-2 h-5 w-2/3" />
-              <Skeleton className="h-4 w-full" />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {state.phase === 'empty' && (
-        <p className={`px-1 text-sm ${mutedText}`}>{labels.searchNoResults(state.query)}</p>
-      )}
-
-      {state.phase === 'results' && (
-        <div className="space-y-3">
-          <p className={`mb-2 px-1 text-sm ${mutedText}`}>
-            {labels.searchResultCount(state.results.length, state.query)}
-          </p>
-          <AnimatePresence mode="popLayout">
-            {state.results.map((result) => (
-              <motion.div
-                key={result.url}
-                layout
-                initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
-                whileHover={shouldReduceMotion ? undefined : { y: -2 }}
-                transition={itemTransition}
-              >
-                <Link
-                  href={result.url}
-                  data-blog-post-link
-                  className={`${cardClass} block px-5 py-4 transition-colors duration-200 hover:ring-sky-300 dark:hover:ring-sky-700`}
-                >
-                  <h2 className="mb-1.5 text-lg font-medium text-slate-900 dark:text-white/90">
-                    {result.meta?.title || result.url}
-                  </h2>
-                  {result.excerpt && (
-                    <p
-                      className="text-sm leading-6 text-slate-600 dark:text-white/70 [&_mark]:rounded [&_mark]:bg-sky-100 [&_mark]:px-0.5 [&_mark]:text-sky-700 dark:[&_mark]:bg-sky-900/40 dark:[&_mark]:text-sky-300"
-                      dangerouslySetInnerHTML={{ __html: result.excerpt }}
-                    />
-                  )}
-                </Link>
-              </motion.div>
+        {state.phase === 'loading' && (
+          <div className="space-y-3">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className={`${cardClass} px-4 py-3 sm:px-5 sm:py-4`}>
+                <Skeleton className="mb-2 h-5 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+              </div>
             ))}
-          </AnimatePresence>
-        </div>
-      )}
+          </div>
+        )}
+
+        {state.phase === 'empty' && (
+          <p className={`px-1 text-sm leading-6 ${mutedText}`}>
+            {labels.searchNoResults(state.query)}
+          </p>
+        )}
+
+        {state.phase === 'error' && (
+          <p className={`px-1 text-sm leading-6 ${mutedText}`}>
+            {labels.searchUnavailable(state.query)}
+          </p>
+        )}
+
+        {state.phase === 'results' && (
+          <div className="space-y-3">
+            <p className={`mb-2 px-1 text-sm ${mutedText}`}>
+              {labels.searchResultCount(state.results.length, state.query)}
+            </p>
+            <AnimatePresence mode="popLayout">
+              {state.results.map((result) => (
+                <motion.div
+                  key={result.url}
+                  layout
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, y: -8 }}
+                  whileHover={shouldReduceMotion ? undefined : { y: -2 }}
+                  transition={itemTransition}
+                >
+                  <Link
+                    href={result.url}
+                    data-blog-post-link
+                    data-search-result-card
+                    className={`${cardClass} block px-4 py-3 hover:ring-sky-300 motion-safe:transition-[box-shadow,color,background-color] motion-safe:duration-200 sm:px-5 sm:py-4 dark:hover:ring-sky-700`}
+                  >
+                    <h2 className="mb-1.5 text-base leading-6 font-medium [overflow-wrap:anywhere] text-slate-900 sm:text-lg dark:text-white/90">
+                      {result.meta?.title || result.url}
+                    </h2>
+                    {result.excerpt && (
+                      <p
+                        className="text-sm leading-6 text-slate-600 dark:text-white/70 [&_mark]:rounded [&_mark]:bg-sky-100 [&_mark]:px-0.5 [&_mark]:text-sky-700 dark:[&_mark]:bg-sky-900/40 dark:[&_mark]:text-sky-300"
+                        dangerouslySetInnerHTML={{ __html: result.excerpt }}
+                      />
+                    )}
+                  </Link>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -90,7 +90,7 @@ function getWidgetFrameStyle(height: number | string, theme: TradingViewTheme) {
 function TradingViewWidgetFrame({ children, height, theme }: TradingViewWidgetFrameProps) {
   return (
     <div
-      className="not-prose dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm"
+      className="article-data-block not-prose dark:border-border-subtle-dark dark:bg-surface-code-dark my-7 overflow-hidden rounded-[8px] border border-slate-200 bg-white shadow-sm"
       style={getWidgetFrameStyle(height, theme)}
     >
       {children}

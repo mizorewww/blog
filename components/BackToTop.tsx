@@ -20,10 +20,10 @@ export default function BackToTop({ label, onClick }: { label: string; onClick: 
       onClick={onClick}
       visible={visible}
       y={12}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.92 }}
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-      className={`dark:bg-surface-card-dark/90 fixed right-4 bottom-5 z-40 inline-flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur hover:text-sky-700 sm:right-6 lg:right-8 dark:text-white/75 dark:hover:text-sky-300 ${
+      className={`dark:bg-surface-card-dark/90 fixed right-[calc(1rem+env(safe-area-inset-right))] bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 inline-flex h-11 w-11 touch-manipulation items-center justify-center rounded-full bg-white/90 text-slate-600 shadow-[0_10px_30px_rgba(15,23,42,0.16)] backdrop-blur hover:text-sky-700 sm:right-[calc(1.5rem+env(safe-area-inset-right))] lg:right-[calc(2rem+env(safe-area-inset-right))] dark:text-white/75 dark:hover:text-sky-300 ${
         visible ? 'pointer-events-auto' : 'pointer-events-none'
       }`}
     >

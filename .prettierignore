@@ -4,3 +4,6 @@ lib/generated/image-manifest.ts
 
 # Vendored third-party skill files; keep upstream formatting to simplify updates.
 .agents/skills/humanizer-zh/
+
+# Local agent records and generated UI review screenshots are not source artifacts.
+docs/agent-records/

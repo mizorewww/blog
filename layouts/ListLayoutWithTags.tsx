@@ -14,6 +14,7 @@ const POSTS_PER_BATCH = 5
 interface ListLayoutProps {
   posts: BlogListPost[]
   title: string
+  visibleTitle?: string
   locale?: Locale
   categoryCounts?: CountMap
   tagCounts?: CountMap
@@ -22,6 +23,7 @@ interface ListLayoutProps {
 export default function ListLayoutWithTags({
   posts,
   title,
+  visibleTitle,
   locale = defaultLocale,
   categoryCounts: providedCategoryCounts,
   tagCounts: providedTagCounts,
@@ -35,6 +37,7 @@ export default function ListLayoutWithTags({
   const tagCounts = providedTagCounts || getTagCounts(posts)
   const displayPosts = posts.slice(0, visibleCount)
   const hasMore = visibleCount < posts.length
+  const heading = visibleTitle || title
 
   const loadMorePosts = useCallback(() => {
     setVisibleCount((count) => Math.min(count + POSTS_PER_BATCH, posts.length))
@@ -74,14 +77,23 @@ export default function ListLayoutWithTags({
       dateLocale={dateLocale}
     >
       <div>
-        <h1 className="sr-only">{title}</h1>
+        <h1
+          data-list-page-heading={visibleTitle ? 'visible' : 'hidden'}
+          className={
+            visibleTitle
+              ? 'mb-4 text-2xl leading-tight font-semibold tracking-tight text-slate-900 sm:mb-5 sm:text-3xl dark:text-white/90'
+              : 'sr-only'
+          }
+        >
+          {heading}
+        </h1>
         {!displayPosts.length && (
           <div className="dark:bg-surface-card-dark rounded-[8px] bg-white px-8 py-10 text-slate-600 dark:text-white/70">
             {labels.noPosts}
           </div>
         )}
         {displayPosts.map((post, index) => (
-          <div key={post.path} className={index === 0 ? 'mt-0' : 'mt-6'}>
+          <div key={post.path} className={index === 0 ? 'mt-0' : 'mt-4 sm:mt-6'}>
             <PostCard post={post} locale={locale} dateLocale={dateLocale} priority={index === 0} />
           </div>
         ))}

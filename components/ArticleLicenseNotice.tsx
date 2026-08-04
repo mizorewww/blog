@@ -9,7 +9,9 @@ export default function ArticleLicenseNotice({ locale }: { locale: Locale }) {
     : 'https://creativecommons.org/licenses/by-nc-sa/4.0/'
 
   return (
-    <div className={`not-prose mt-10 border-t ${divider} pt-4 text-sm leading-7 ${mutedText}`}>
+    <div
+      className={`article-content-rail article-data-block not-prose mt-10 border-t ${divider} pt-4 text-sm leading-7 ${mutedText}`}
+    >
       {isZh ? (
         <p>
           除另有说明，本文内容采用{' '}

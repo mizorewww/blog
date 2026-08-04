@@ -6,7 +6,7 @@ type TermRoute = {
   navigationLabel: string
   indexHeading: string
   indexPath: string
-  detailHeading: string
+  detailVisibleHeading: string
   detailPath: string
 }
 
@@ -17,7 +17,7 @@ const termRoutes: TermRoute[] = [
     navigationLabel: '分类',
     indexHeading: '全部分类',
     indexPath: '/zh/categories/',
-    detailHeading: '折腾',
+    detailVisibleHeading: '分类：折腾',
     detailPath: '/zh/categories/%E6%8A%98%E8%85%BE/',
   },
   {
@@ -26,7 +26,7 @@ const termRoutes: TermRoute[] = [
     navigationLabel: '标签',
     indexHeading: '全部标签',
     indexPath: '/zh/tags/',
-    detailHeading: 'Linux',
+    detailVisibleHeading: '#Linux',
     detailPath: '/zh/tags/linux/',
   },
   {
@@ -35,7 +35,7 @@ const termRoutes: TermRoute[] = [
     navigationLabel: 'Categories',
     indexHeading: 'Categories',
     indexPath: '/en/categories/',
-    detailHeading: '折腾',
+    detailVisibleHeading: 'Category: 折腾',
     detailPath: '/en/categories/%E6%8A%98%E8%85%BE/',
   },
   {
@@ -44,7 +44,7 @@ const termRoutes: TermRoute[] = [
     navigationLabel: 'Tags',
     indexHeading: 'Tags',
     indexPath: '/en/tags/',
-    detailHeading: 'Linux',
+    detailVisibleHeading: '#Linux',
     detailPath: '/en/tags/linux/',
   },
 ]
@@ -54,7 +54,7 @@ async function navigateFromPrimaryNavigation(page: Page, route: TermRoute) {
   const openNavigationLabel = route.locale === 'zh' ? '打开导航' : 'Open navigation'
   const navigationLabel = route.locale === 'zh' ? '主导航' : 'Primary navigation'
 
-  if ((page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) < 640) {
+  if ((page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) < 1024) {
     await header.getByRole('button', { name: openNavigationLabel }).click()
   }
 
@@ -68,6 +68,20 @@ function expectNoStreamingFallback(html: string) {
   expect(html).not.toContain('id="B:0"')
   expect(html).not.toContain('id="S:0"')
   expect(html).not.toContain('animata-shimmer')
+}
+
+async function expectStableTermChip(page: Page, href: string) {
+  const chip = page.locator(`main a[href="${decodeURI(href)}"]`).first()
+  const box = await chip.boundingBox()
+  const transitionProperty = await chip.evaluate(
+    (element) => getComputedStyle(element).transitionProperty
+  )
+
+  expect(box).not.toBeNull()
+  expect(box!.width).toBeGreaterThanOrEqual(44)
+  expect(box!.height).toBeGreaterThanOrEqual(44)
+  expect(transitionProperty).not.toContain('all')
+  expect(transitionProperty).toContain('color')
 }
 
 test.describe('term routes without JavaScript', () => {
@@ -93,7 +107,9 @@ test.describe('term routes without JavaScript', () => {
 
       expect(response?.status()).toBe(200)
       expectNoStreamingFallback((await response?.text()) || '')
-      await expect(page.getByRole('heading', { level: 1, name: route.detailHeading })).toBeVisible()
+      await expect(
+        page.getByRole('heading', { level: 1, name: route.detailVisibleHeading })
+      ).toBeVisible()
       await expect(page.locator('main [data-post-shell]').first()).toBeVisible()
       await expect(page.locator('[class*="animata-shimmer"]')).toHaveCount(0)
     })
@@ -109,11 +125,14 @@ for (const route of termRoutes) {
 
     await expect(page).toHaveURL(route.indexPath)
     await expect(page.getByRole('heading', { level: 1, name: route.indexHeading })).toBeVisible()
+    await expectStableTermChip(page, route.detailPath)
 
     await page.locator(`main a[href="${decodeURI(route.detailPath)}"]`).click()
 
     await expect(page).toHaveURL(route.detailPath)
-    await expect(page.getByRole('heading', { level: 1, name: route.detailHeading })).toBeVisible()
+    await expect(
+      page.getByRole('heading', { level: 1, name: route.detailVisibleHeading })
+    ).toBeVisible()
     await expect(page.locator('main [data-post-shell]').first()).toBeVisible()
   })
 }

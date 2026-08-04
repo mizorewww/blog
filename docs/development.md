@@ -72,6 +72,97 @@ yarn playwright install chromium
 
 新增 lucide 图标引用后可运行 `yarn icons:generate`；pre-commit 也会更新并暂存 `lib/generated/lucide-icons.ts`。
 
+## UI 截图
+
+UI 改动需要目视检查时，先启动静态预览，让 Pagefind、404 和导出路由都使用生产路径：
+
+```bash
+yarn preview
+```
+
+如果已经构建过，也可以复用现有 `out/`：
+
+```bash
+yarn preview --no-build --port 3001
+```
+
+另开一个终端生成截图：
+
+```bash
+yarn ui:screenshots --label after
+```
+
+默认访问 `http://127.0.0.1:3001`，捕捉 `zh` 的首页、文章、搜索、分类和 404，在 `1440x900` desktop 与 `375x812` mobile 两个 viewport 下使用 dark theme。捕捉时使用 reduced motion，并在每次导航后确认根节点主题 class，再等待 Header 与主内容区域动画稳定。常用参数：
+
+```bash
+yarn ui:screenshots --label after --theme both
+yarn ui:screenshots --label header-polish --pages home,article,404
+yarn ui:screenshots --label reading --pages article-top,article-math,article-code,article-data-block --viewports desktop,compact --theme both
+yarn ui:screenshots --label comprehensive-after --pages home,search-results,search-empty,categories,tags,category-term,tag-term,404 --viewports compact,mobile,landscape,tablet,laptop,desktop --theme both
+yarn ui:screenshots --label local --base-url http://127.0.0.1:4000
+```
+
+页面键除了 `home`、`article`、`search`、`categories` 和 `404`，还支持文章局部截图：`article-top`、`article-math`、`article-code`、`article-table`、`article-toc`、`article-image`、`article-data-block`、`article-bottom`。发现页和搜索状态可用 `search-initial`、`search-results`、`search-empty`、`search-error`、`tags`、`category-term`、`tag-term`。viewport 可选 `compact`、`mobile`、`landscape`、`reflow200`、`tablet`、`laptop`、`desktop`、`w1280`、`w1440`、`w1728`、`w1920`；`compact` 是 `320x812`，`reflow200` 是 `640x900`，用于近似检查 1280px 视口 200% zoom 的重排。
+
+Reading Max 长文排版改动需要额外捕捉真实中英文文章顶部、暗色 inline code、Markdown family fixture 和 200% 文本缩放证据。输出仍必须留在 ignored agent records 下：
+
+```bash
+yarn ui:screenshots --label reading-max-after-zh --out-dir docs/agent-records/reading-max/screenshots/after/zh-top --pages article-top --article-path /zh/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-after-en --out-dir docs/agent-records/reading-max/screenshots/after/en-top --pages article-top --article-path /en/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-inline-code --out-dir docs/agent-records/reading-max/screenshots/after/inline-code --pages article-inline-code --article-path /zh/blog-git-metadata-and-icons/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-markdown-fixture --out-dir docs/agent-records/reading-max/screenshots/after/markdown-fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-rich-content --out-dir docs/agent-records/reading-max/screenshots/after/rich-content --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-images --out-dir docs/agent-records/reading-max/screenshots/after/images --pages article-image --article-path /zh/kde-plasma-obsdian-web-clipper/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-textscale-zh --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-zh --pages article-top,markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports reflow200 --theme both --text-scale 200
+yarn ui:screenshots --label reading-max-textscale-rich --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports reflow200 --theme both --text-scale 200
+```
+
+`/zh/making-memoh-cheaper-on-telegram/` 是真实 rich-content 样本，包含 Shiki 代码块、行间 MathJax 和 Markdown 表格；`/zh/kde-plasma-obsdian-web-clipper/` 包含真实正文图片，适合 `article-image`。不要把 `article-math` 指向缺少 MathJax 的文章，否则局部截图会按设计等待目标元素并失败。
+
+`w1280`、`w1440`、`w1728`、`w1920` 分别是 `1280x960`、`1440x960`、`1728x960`、`1920x960`。`--text-scale 200` 会把根字体设为 `200%`，用于验证真实 200% 文本缩放，而不是只缩小 viewport。
+
+截图还支持局部捕捉和滚动：
+
+```bash
+yarn ui:screenshots --label focus --pages home --selector '[data-post-shell]' --theme light
+yarn ui:screenshots --label footer --pages article-bottom --full-page
+yarn ui:screenshots --label section --pages article --scroll-to '.article-post-nav'
+```
+
+输出目录必须位于 `docs/agent-records/` 下的安全子目录，例如默认的 `docs/agent-records/screenshots/<label>/` 或 Reading Max 专用的 `docs/agent-records/reading-max/screenshots/after/`；实际允许范围以脚本校验为准。该目录只保存本机 agent 记录，不进入 Git。脚本不会启动服务器；如果目标服务、页面状态或响应码不符合预期，会以非零状态退出。`--out-dir` 指向允许范围外部时会直接失败，避免 UI 审阅图片散落到仓库其他位置。
+
+需要量化 UI 关键指标时，使用：
+
+```bash
+yarn ui:probe --base-url http://127.0.0.1:3001 --out docs/agent-records/comprehensive-after-probe.json
+```
+
+probe 会输出 header 控件命中区、首页首卡高度、侧栏视觉权重、term chip 高度、搜索初始/结果/空/错误状态、404 inset 和多 viewport 页面横向 overflow。该 JSON 也是本机 agent 记录，不提交；`--out` 同样必须留在 `docs/agent-records/` 下。
+
+同一个 probe 还会输出 `readingMax` 节点，覆盖：
+
+- 中英文文章在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的正文宽度、首段可见高度、字符行长、TOC 间距和 dark inline code computed style/contrast。
+- test-only Markdown fixture 的 h2-h6、列表、任务列表、blockquote、details、footnotes、kbd、abbr、mark、sub/sup、图片、表格、长 token 和嵌入块覆盖。
+- 真实 rich article 的代码、表格和 MathJax 内部横向滚动。
+- `640x900` 下 `--text-scale 200` 的根字体、页面 overflow 和内部滚动状态。
+
+Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、页面 overflow、TOC 宽度/间距/右侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
+
+宽屏光学平衡改动的期望是：`1440px` 及以上文章 surface 为 `780px` 且按视口居中，正文 rail center offset 不超过 `1px`；桌面 TOC 不参与居中，保持 `190px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1440px` 仍可见。
+
+Reading Alignment 截图建议按真实文章和 fixture 分组，输出到本机 agent records：
+
+```bash
+yarn ui:screenshots --label reading-alignment-after-xiaomi --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/xiaomi --pages article-top,article-toc,article-data-block --article-path /zh/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-images --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/images --pages article-image --article-path /zh/kde-plasma-obsdian-web-clipper/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-feature --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/feature --pages article-top,article-data-block --article-path /zh/blog-git-metadata-and-icons/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-textscale-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports reflow200,w1440 --theme both --text-scale 200
+yarn ui:screenshots --label reading-alignment-textscale-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports reflow200,w1440 --theme both --text-scale 200
+yarn ui:screenshots --label wide-reading-optical-balance --out-dir docs/agent-records/wide-reading-optical-balance/screenshots/final --pages article-top,article-toc --article-path /zh/xiaomi-book-pro-14/ --viewports w1440,w1728,w1920 --theme both
+```
+
 ## 构建与性能
 
 生产构建：
@@ -173,8 +264,8 @@ E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中�
 
 - 短 TOC、提交记录和菜单可以使用 disclosure 动效，但需要稳定的触发按钮、`aria-expanded`、可识别的内容关系和 reduced-motion 等价行为。ThemeSwitch、复制反馈、active indicator 与 BackToTop 使用 fast 档，不与路由主动画同时 stagger。
 - hover 和 focus 只能改变阴影、边框、颜色、opacity 或小范围 transform，不得改变控件占位尺寸。图标按钮使用稳定的点击区域和 accessible name；文本必须在 320 px 宽度下不与相邻控件重叠。
-- `<640px` 使用 `Menu`/`X` 图标按钮控制移动导航 disclosure：触发器固定 `44x44px`，提供随状态变化的 accessible name、`aria-expanded` 和 `aria-controls`；`Escape` 关闭并把焦点还给触发器；pathname 变化、进入 `>=640px` 或点击 Header 外部都会关闭。面板打开时文章滚动隐藏逻辑不得隐藏 Header。移动面板直接挂载，不播放入场/退出动画，使用普通 `<nav>` 语义，不用 `role="menu"`、focus trap 或 scroll lock。
-- `>=640px` 保留桌面导航布局和 Motion active underline，不渲染移动 disclosure。
+- `<1024px` 使用 `Menu`/`X` 图标按钮控制移动导航 disclosure：触发器固定 `44x44px`，提供随状态变化的 accessible name、`aria-expanded` 和 `aria-controls`；`Escape` 关闭并把焦点还给触发器；pathname 变化、进入 `>=1024px` 或点击 Header 外部都会关闭。面板打开时文章滚动隐藏逻辑不得隐藏 Header。移动面板直接挂载，不播放入场/退出动画，使用普通 `<nav>` 语义，不用 `role="menu"`、focus trap 或 scroll lock。
+- `>=1024px` 保留桌面导航布局和 Motion active underline，不渲染移动 disclosure。这个断点给中英文导航、RSS、主题按钮和语言切换留下单行空间，避免 640px/768px 平板与 200% reflow 宽度下出现竖排或重叠。
 
 ## 开发纪律
 

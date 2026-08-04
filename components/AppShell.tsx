@@ -93,6 +93,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
   )
   const [hideHeaderOnMobile, setHideHeaderOnMobile] = useState(false)
   const previousScrollYRef = useRef(0)
+  const mainRef = useRef<HTMLElement>(null)
+  const routeFocusReadyRef = useRef(false)
   const transitionStateRef = useRef<ArticleTransitionState>(transitionState)
   const isReadingPost = isBlogPostPath(pathname)
   const shouldReduceMotion = useReducedMotion()
@@ -160,6 +162,15 @@ export default function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     setFallbackTargetPath(null)
     dispatchTransition({ type: 'route-committed', pathname })
+  }, [pathname])
+
+  useEffect(() => {
+    if (!routeFocusReadyRef.current) {
+      routeFocusReadyRef.current = true
+      return
+    }
+
+    mainRef.current?.focus({ preventScroll: true })
   }, [pathname])
 
   useEffect(() => {
@@ -342,15 +353,16 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {fallbackTargetPath && (
           <div
             data-article-transition-fallback={fallbackTargetPath}
-            className="dark:bg-surface-page-dark bg-surface-page pointer-events-none fixed inset-x-0 top-[72px] bottom-0 z-40 overflow-hidden sm:top-[96px]"
+            className="dark:bg-surface-page-dark bg-surface-page pointer-events-none fixed inset-x-0 top-[72px] bottom-0 z-40 overflow-hidden lg:top-[96px]"
           >
             <ArticleRouteSkeleton />
           </div>
         )}
         <main
+          ref={mainRef}
           id="main-content"
           tabIndex={-1}
-          className="flex-1 pt-[72px] sm:pt-[96px]"
+          className="flex-1 pt-[72px] lg:pt-[96px]"
           data-article-transition-destination={destinationStage ?? undefined}
         >
           {children}

@@ -17,33 +17,45 @@ export default function Footer() {
   return (
     <footer className="shrink-0 bg-transparent text-slate-500 dark:text-white/60">
       <div className="blog-shell dark:border-border-footer-dark mx-auto flex w-full flex-col items-center border-t border-slate-200 px-4 py-7 text-center">
-        <div className="mb-3 flex space-x-4 text-slate-500 dark:text-white/60">
+        <div className="mb-3 flex flex-wrap justify-center gap-2 text-slate-500 dark:text-white/60">
           <SocialIcon kind="mail" href={`mailto:${siteMetadata.email}`} size={6} locale={locale} />
           <SocialIcon kind="github" href={siteMetadata.github} size={6} locale={locale} />
           <SocialIcon kind="x" href={siteMetadata.x} size={6} locale={locale} />
           <SocialIcon kind="telegram" href={siteMetadata.telegram} size={6} locale={locale} />
         </div>
-        <div className="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm">
-          <div>{siteMetadata.author}</div>
-          <div>{` • `}</div>
-          <div>{`© ${new Date().getFullYear()}`}</div>
-          <div>{` • `}</div>
-          <div>{siteMetadata.title}</div>
+        <div
+          data-footer-meta
+          className="mb-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-sm"
+        >
+          <span data-footer-meta-unit="author" className="whitespace-nowrap">
+            {siteMetadata.author}
+          </span>
+          <span data-footer-meta-unit="year" className="inline-flex items-center gap-x-2">
+            <span data-footer-separator aria-hidden="true">
+              •
+            </span>
+            <span className="whitespace-nowrap">{`© ${new Date().getFullYear()}`}</span>
+          </span>
+          <span data-footer-meta-unit="title" className="inline-flex items-center gap-x-2">
+            <span data-footer-separator aria-hidden="true">
+              •
+            </span>
+            <span className="whitespace-nowrap">{siteMetadata.title}</span>
+          </span>
           {commitHash && (
-            <>
-              <div>{` • `}</div>
+            <span data-footer-meta-unit="commit" className="inline-flex items-center">
               <a
                 href={commitUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={labels.latestCommit(commitHash)}
-                className="inline-flex items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 hover:text-sky-700 dark:bg-white/10 dark:hover:text-sky-300"
+                className="inline-flex min-h-8 items-center gap-1.5 rounded-[6px] bg-slate-200/70 px-2 py-0.5 hover:text-sky-700 dark:bg-white/10 dark:hover:text-sky-300"
               >
                 <Icon name="GitCommit" className="h-3.5 w-3.5" inlineSpacing={false} />
                 <span className="text-xs tracking-[0.08em] uppercase">commit</span>
                 <span className="font-mono">{commitHash}</span>
               </a>
-            </>
+            </span>
           )}
         </div>
       </div>

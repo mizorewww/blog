@@ -21,7 +21,7 @@ export default function BlogFrame({
   children: ReactNode
 }) {
   return (
-    <div className="blog-frame mx-auto grid w-full gap-y-6 px-3 pt-4 pb-14 sm:px-5 sm:pt-6 lg:px-0">
+    <div className="blog-frame mx-auto grid w-full gap-y-5 px-3 pt-3 pb-14 sm:gap-y-6 sm:px-5 sm:pt-6 lg:px-0">
       <div className="blog-main-column">{children}</div>
       <ProfileSidebar
         posts={posts}

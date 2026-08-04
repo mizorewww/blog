@@ -21,35 +21,31 @@ export default function PostNavLinks({
   return (
     <nav
       aria-label={labels.previousArticle}
-      className="article-post-nav not-prose flex items-stretch justify-between gap-4 border-t border-slate-200 pt-6 dark:border-white/10"
+      className="article-post-nav not-prose flex flex-col gap-4 border-t border-slate-200 pt-6 sm:flex-row sm:items-stretch sm:justify-between dark:border-white/10"
     >
-      {previousPost ? (
+      {previousPost && (
         <Link
           href={`/${previousPost.path}/`}
           aria-label={labels.previousPost(previousPost.title)}
-          className="group flex min-w-0 flex-1 flex-col gap-1"
+          className="group flex min-w-0 flex-col gap-1 sm:flex-1"
         >
           <span className={`text-xs ${mutedText}`}>← {labels.previousArticle}</span>
           <span className="font-medium text-slate-700 transition-colors duration-200 group-hover:text-sky-700 dark:text-white/80 dark:group-hover:text-sky-300">
             {previousPost.title}
           </span>
         </Link>
-      ) : (
-        <div className="flex-1" />
       )}
-      {nextPost ? (
+      {nextPost && (
         <Link
           href={`/${nextPost.path}/`}
           aria-label={labels.nextPost(nextPost.title)}
-          className="group flex min-w-0 flex-1 flex-col items-end gap-1 text-right"
+          className="group flex min-w-0 flex-col items-start gap-1 text-left sm:flex-1 sm:items-end sm:text-right"
         >
           <span className={`text-xs ${mutedText}`}>{labels.nextArticle} →</span>
           <span className="font-medium text-slate-700 transition-colors duration-200 group-hover:text-sky-700 dark:text-white/80 dark:group-hover:text-sky-300">
             {nextPost.title}
           </span>
         </Link>
-      ) : (
-        <div className="flex-1" />
       )}
     </nav>
   )

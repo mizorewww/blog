@@ -39,6 +39,14 @@ async function expectInsideViewport(locator: Locator, page: Page) {
   expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height)
 }
 
+async function expectTouchTarget(locator: Locator, minSize = 44) {
+  const box = await locator.boundingBox()
+
+  expect(box).not.toBeNull()
+  expect(box!.width).toBeGreaterThanOrEqual(minSize)
+  expect(box!.height).toBeGreaterThanOrEqual(minSize)
+}
+
 for (const { width, locale, openLabel, closeLabel, navigationLabel, activeLink } of [
   {
     width: 320,
@@ -49,7 +57,7 @@ for (const { width, locale, openLabel, closeLabel, navigationLabel, activeLink }
     activeLink: '首页',
   },
   {
-    width: 390,
+    width: 375,
     locale: 'en',
     openLabel: 'Open navigation',
     closeLabel: 'Close navigation',
@@ -68,6 +76,7 @@ for (const { width, locale, openLabel, closeLabel, navigationLabel, activeLink }
     const controls = header.locator('[data-header-controls]')
     const button = header.getByRole('button', { name: openLabel })
     const languageSwitcher = controls.locator('[data-header-language-switcher]')
+    const mobileLanguageSwitch = languageSwitcher.locator('[data-language-switcher-mobile]')
     const themeButton = controls.getByRole('button', {
       name: locale === 'zh' ? '切换暗色模式' : 'Toggle dark mode',
     })
@@ -79,6 +88,12 @@ for (const { width, locale, openLabel, closeLabel, navigationLabel, activeLink }
     await expect(button).toHaveAttribute('aria-controls', 'mobile-primary-navigation')
     await expect(button).toHaveCSS('width', '44px')
     await expect(button).toHaveCSS('height', '44px')
+    await expectTouchTarget(button)
+    await expectTouchTarget(themeButton)
+    await expect(mobileLanguageSwitch).toBeVisible()
+    await expectTouchTarget(mobileLanguageSwitch)
+    await expectInsideViewport(mobileLanguageSwitch, page)
+    await expect(languageSwitcher.locator('[data-language-switcher-desktop]')).toBeHidden()
     await expect(desktopNavigation).toBeHidden()
     await expectNoIntersection(logo, controls)
     await expectInsideViewport(languageSwitcher, page)
@@ -133,7 +148,7 @@ test('mobile disclosure closes on Escape, route changes, and the desktop breakpo
   await expect(openButton).toHaveAttribute('aria-expanded', 'false')
 
   await openButton.click()
-  await page.setViewportSize({ width: 640, height: 844 })
+  await page.setViewportSize({ width: 1024, height: 844 })
   await expect(openButton).toBeHidden()
   await expect(header.locator('#mobile-primary-navigation')).toHaveCount(0)
   await expect(header.getByRole('navigation', { name: '主导航' })).toBeVisible()
@@ -168,16 +183,55 @@ test('an open mobile disclosure keeps the reading header visible while scrolling
   await expect(header.getByRole('navigation', { name: '主导航' })).toBeVisible()
 })
 
-for (const width of [640, 1440]) {
+for (const { width, height } of [
+  { width: 640, height: 900 },
+  { width: 768, height: 1024 },
+  { width: 812, height: 375 },
+]) {
+  test(`tablet header uses the disclosure navigation at ${width}x${height}`, async ({ page }) => {
+    await page.setViewportSize({ width, height })
+    await page.goto('/zh/')
+
+    const header = page.getByRole('banner')
+    const menuButton = header.getByRole('button', { name: '打开导航' })
+
+    await expect(menuButton).toBeVisible()
+    await expect(header.getByRole('link', { name: '首页', exact: true })).toBeHidden()
+    await expect(header.getByRole('link', { name: '订阅 Atom RSS' })).toBeHidden()
+    await expect(header.locator('[data-language-switcher-mobile]')).toBeVisible()
+    await expect(header.locator('[data-language-switcher-desktop]')).toBeHidden()
+    await expectTouchTarget(menuButton)
+    await expectNoHorizontalOverflow(page)
+  })
+}
+
+for (const width of [1024, 1440]) {
   test(`desktop navigation remains visible at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 })
     await page.goto('/zh/')
 
     const header = page.getByRole('banner')
+    const rss = header.getByRole('link', { name: '订阅 Atom RSS' })
+    const desktopLanguageLinks = header
+      .locator('[data-language-switcher-desktop]')
+      .getByRole('link')
 
     await expect(header.getByRole('button', { name: '打开导航' })).toBeHidden()
     await expect(header.getByRole('link', { name: '首页', exact: true })).toBeVisible()
     await expect(header.getByRole('link', { name: '搜索', exact: true })).toBeVisible()
+    await expectTouchTarget(rss, 40)
+    await expect(desktopLanguageLinks).toHaveCount(2)
+    for (const link of await desktopLanguageLinks.all()) {
+      await expectTouchTarget(link)
+    }
+    for (const label of ['首页', '分类', '标签', '搜索']) {
+      const link = header.getByRole('link', { name: label, exact: true })
+      const box = await link.boundingBox()
+
+      expect(box).not.toBeNull()
+      expect(box!.height).toBeLessThanOrEqual(44)
+      await expect(link).toHaveCSS('white-space', 'nowrap')
+    }
     await expectNoHorizontalOverflow(page)
   })
 }

@@ -26,7 +26,7 @@ const HeaderNavLinks = ({
       className={
         isMobile
           ? 'flex flex-col text-base text-slate-700 dark:text-white/90'
-          : 'no-scrollbar flex max-w-full items-center justify-start gap-x-7 overflow-x-auto text-slate-700 dark:text-white/90'
+          : 'no-scrollbar flex max-w-full items-center justify-start gap-x-4 overflow-x-auto text-slate-700 lg:gap-x-7 dark:text-white/90'
       }
     >
       {headerNavLinks.map((link) => {
@@ -46,7 +46,9 @@ const HeaderNavLinks = ({
             aria-current={active ? 'page' : undefined}
             onClick={onNavigate}
             className={`relative font-medium transition-colors duration-200 hover:text-sky-700 dark:hover:text-sky-300 ${
-              isMobile ? 'min-h-11 px-4 py-3' : ''
+              isMobile
+                ? 'min-h-11 px-4 py-3'
+                : 'inline-flex min-h-10 shrink-0 items-center whitespace-nowrap'
             } ${
               active
                 ? isMobile

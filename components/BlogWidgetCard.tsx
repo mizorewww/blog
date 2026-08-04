@@ -11,8 +11,11 @@ export default function BlogWidgetCard({
   className?: string
 }) {
   return (
-    <section className={`${widgetCardClass} px-5 py-5 sm:px-6 sm:py-6 ${className}`}>
-      <h2 className="mb-5 text-base font-medium text-slate-500 dark:text-white/60">{title}</h2>
+    <section
+      data-blog-widget-card
+      className={`${widgetCardClass} px-4 py-4 sm:px-5 sm:py-5 ${className}`}
+    >
+      <h2 className="mb-3 text-sm font-medium text-slate-500 dark:text-white/55">{title}</h2>
       {children}
     </section>
   )

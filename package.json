@@ -23,6 +23,8 @@
     "typecheck:scripts": "tsc --noEmit --pretty false -p tsconfig.scripts.json",
     "deadcode:check": "knip --include files,dependencies,devDependencies,unlisted,binaries,unresolved --no-progress --no-config-hints",
     "agent:watchdog": "node ./scripts/agent-watchdog.mjs",
+    "ui:screenshots": "node ./scripts/capture-ui-screenshots.mjs",
+    "ui:probe": "node ./scripts/probe-ui-metrics.mjs",
     "quality:html": "scripts/quality-html.sh out",
     "size:report": "node ./scripts/asset-report.mjs",
     "size:budget": "node ./scripts/asset-budget.mjs",

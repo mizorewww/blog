@@ -26,20 +26,39 @@ figure[data-rehype-pretty-code-figure] .code-language-label {
   @apply shrink-0 font-sans text-[0.62rem] font-semibold tracking-wide text-slate-400 dark:text-white/45;
 }
 
-/* Keep the first line clear of the always-visible floating logo + copy button. */
-figure[data-rehype-pretty-code-figure] .code-block-floating code > [data-code-line]:first-of-type {
-  padding-right: 7rem;
+figure[data-rehype-pretty-code-figure] .code-header {
+  @apply border-b border-slate-200/80 bg-white/60 dark:border-white/10 dark:bg-white/[0.03];
 }
 
-/* Titled/sourced blocks: quiet text row above the code, so the code itself
-   can start closer to it than a standalone block's first line. */
 figure[data-rehype-pretty-code-figure] .code-header + pre {
-  padding-top: 0.25rem;
+  padding-top: 0.85rem;
 }
 
 figure[data-rehype-pretty-code-figure] pre {
-  @apply m-0 overflow-x-auto px-0 py-4 text-sm leading-6;
-  background: var(--shiki-light-bg);
+  @apply m-0 max-w-full overflow-x-auto px-0 pt-4 pb-4 text-sm leading-6;
+  --code-scroll-edge-bg: var(--shiki-light-bg, rgb(248 250 252));
+  --code-scroll-edge-shadow: rgb(15 23 42 / 0.18);
+  width: calc(100% + 2px);
+  max-width: calc(100% + 2px);
+  margin-inline: -1px;
+  background-color: var(--code-scroll-edge-bg);
+  background-image:
+    linear-gradient(to right, var(--code-scroll-edge-bg) 30%, rgb(255 255 255 / 0)),
+    linear-gradient(to left, var(--code-scroll-edge-bg) 30%, rgb(255 255 255 / 0)),
+    linear-gradient(to right, var(--code-scroll-edge-shadow), rgb(15 23 42 / 0)),
+    linear-gradient(to left, var(--code-scroll-edge-shadow), rgb(15 23 42 / 0));
+  background-attachment: local, local, scroll, scroll;
+  background-position:
+    0 0,
+    100% 0,
+    0 0,
+    100% 0;
+  background-repeat: no-repeat;
+  background-size:
+    1.75rem 100%,
+    1.75rem 100%,
+    0.9rem 100%,
+    0.9rem 100%;
   color: var(--shiki-light);
   scrollbar-color: color-mix(in oklab, var(--shiki-light) 28%, transparent) transparent;
   scrollbar-width: thin;
@@ -78,7 +97,8 @@ code[data-theme] span {
 }
 
 .dark figure[data-rehype-pretty-code-figure] pre {
-  background: var(--shiki-dark-bg);
+  --code-scroll-edge-bg: var(--shiki-dark-bg, var(--color-surface-code-dark));
+  --code-scroll-edge-shadow: rgb(255 255 255 / 0.18);
   color: var(--shiki-dark);
   scrollbar-color: color-mix(in oklab, var(--shiki-dark) 28%, transparent) transparent;
 }
