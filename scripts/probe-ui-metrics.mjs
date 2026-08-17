@@ -745,6 +745,33 @@ async function articleRailAlignmentMetrics(page) {
     const groupRight = Math.max(surfaceRect.right, tocVisible ? tocRect.right : surfaceRect.right)
     const tocHeading = tocVisible && toc instanceof HTMLElement ? toc.querySelector('h2') : null
     const tocHeadingContrast = tocHeading instanceof HTMLElement ? renderedContrast(tocHeading) : 0
+    const table = root.querySelector(':scope > .article-table-scroll')
+    const tableRect = table instanceof HTMLElement ? table.getBoundingClientRect() : null
+    const tableInner = table instanceof HTMLElement ? table.querySelector('table') : null
+    const tableHeader = table instanceof HTMLElement ? table.querySelector('th') : null
+    const tableEvenCell =
+      table instanceof HTMLElement ? table.querySelector('tbody tr:nth-child(even) td') : null
+    const tableMetrics =
+      table instanceof HTMLElement && tableRect && tableInner instanceof HTMLElement
+        ? {
+            width: Math.round(tableRect.width * 10) / 10,
+            left: Math.round(tableRect.left * 10) / 10,
+            clientWidth: table.clientWidth,
+            scrollWidth: table.scrollWidth,
+            overflowX: getComputedStyle(table).overflowX,
+            tableWidth: Math.round(tableInner.getBoundingClientRect().width * 10) / 10,
+            tableComputedWidth: getComputedStyle(tableInner).width,
+            containerComputedWidth: getComputedStyle(table).width,
+            thBackground:
+              tableHeader instanceof HTMLElement
+                ? getComputedStyle(tableHeader).backgroundColor
+                : '',
+            evenRowBackground:
+              tableEvenCell instanceof HTMLElement
+                ? getComputedStyle(tableEvenCell).backgroundColor
+                : '',
+          }
+        : null
 
     return {
       document: {
@@ -756,6 +783,7 @@ async function articleRailAlignmentMetrics(page) {
       directEdges,
       railEdges,
       scrollSurfaces,
+      table: tableMetrics,
       layout: {
         groupCenterOffset:
           Math.round(((groupLeft + groupRight) / 2 - window.innerWidth / 2) * 10) / 10,
@@ -840,7 +868,8 @@ function alignmentFailures(row) {
     /** @type {{ width: number, gapFromSurface: number, leftMargin: number, position: string, opacity: number, headingContrast: number, items: { text: string, clientWidth: number, scrollWidth: number, lines: number, contrast: number, clipped: boolean }[] } | null} */ (
       metrics.toc
     )
-  const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'table', 'math', 'pre'])
+  const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'math', 'pre'])
+  const tableNames = new Set(['table'])
   const captionNames = new Set(['figcaption'])
   const edgeGroups = [
     .../** @type {{ name: string, left: number, right: number, width: number }[]} */ (
@@ -851,10 +880,16 @@ function alignmentFailures(row) {
     ),
   ]
   const railAlignedEdges = edgeGroups.filter(
-    (edge) => !breakoutNames.has(edge.name) && !captionNames.has(edge.name)
+    (edge) =>
+      !breakoutNames.has(edge.name) && !tableNames.has(edge.name) && !captionNames.has(edge.name)
   )
   const breakoutEdges = edgeGroups.filter((edge) => breakoutNames.has(edge.name))
+  const tableEdges = edgeGroups.filter((edge) => tableNames.has(edge.name))
   const captionEdges = edgeGroups.filter((edge) => captionNames.has(edge.name))
+  const table =
+    /** @type {{ width: number, left: number, clientWidth: number, scrollWidth: number, overflowX: string, tableWidth: number, tableComputedWidth: string, containerComputedWidth: string, thBackground: string, evenRowBackground: string } | null} */ (
+      metrics.table
+    )
 
   if (document.overflowPx > 0) {
     failures.push({ kind: 'page-overflow', overflowPx: document.overflowPx })
@@ -875,6 +910,50 @@ function alignmentFailures(row) {
     const rightInset = layout.surfaceRight - breakoutRight
     if (edge.width < -1 || Math.abs(leftInset - rightInset) > 2) {
       failures.push({ kind: 'breakout-misaligned', edge, leftInset, rightInset })
+    }
+  }
+
+  for (const edge of tableEdges) {
+    if (!table) {
+      failures.push({ kind: 'table-missing', edge })
+      continue
+    }
+    const breakoutMax = layout.surfaceRight - layout.surfaceLeft
+    if (table.width > breakoutMax + 1) {
+      failures.push({ kind: 'table-too-wide', width: table.width, breakoutMax })
+    }
+    if (/^100%/.test(table.containerComputedWidth) || table.tableComputedWidth === '100%') {
+      failures.push({
+        kind: 'table-stretched',
+        containerComputedWidth: table.containerComputedWidth,
+        tableComputedWidth: table.tableComputedWidth,
+      })
+    }
+    if (table.width > Math.max(table.tableWidth, table.scrollWidth) + 2) {
+      failures.push({
+        kind: 'table-not-fit-content',
+        width: table.width,
+        tableWidth: table.tableWidth,
+      })
+    }
+    if (viewport.width >= 1024) {
+      if (Math.abs(edge.left) > 1) {
+        failures.push({ kind: 'table-left-misaligned', edge })
+      }
+    } else if (Math.abs(edge.left + edge.right) > 2) {
+      failures.push({ kind: 'table-not-centered', edge })
+    }
+    if (
+      table.scrollWidth > table.clientWidth + 1 &&
+      !['auto', 'scroll'].includes(table.overflowX)
+    ) {
+      failures.push({ kind: 'table-overflow-hidden', overflowX: table.overflowX })
+    }
+    if (!table.thBackground || table.thBackground === 'rgba(0, 0, 0, 0)') {
+      failures.push({ kind: 'table-header-unstyled', thBackground: table.thBackground })
+    }
+    if (table.evenRowBackground === table.thBackground) {
+      failures.push({ kind: 'table-zebra-missing', evenRowBackground: table.evenRowBackground })
     }
   }
 

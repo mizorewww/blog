@@ -183,7 +183,6 @@
     &
       > :where(
         pre,
-        .article-table-scroll,
         .article-figure,
         figure[data-rehype-pretty-code-figure],
         mjx-container[jax='SVG'][display='true']
@@ -194,6 +193,17 @@
       );
       box-sizing: border-box;
       width: var(--article-breakout-width);
+      max-width: var(--article-breakout-width);
+      margin-inline: auto;
+    }
+
+    & > :where(.article-table-scroll) {
+      --article-breakout-width: min(
+        100%,
+        calc(100% - (var(--article-gutter, 1.25rem) * 2))
+      );
+      box-sizing: border-box;
+      width: fit-content;
       max-width: var(--article-breakout-width);
       margin-inline: auto;
     }
@@ -517,11 +527,11 @@
 
     & :where(.article-table-scroll table) {
       margin: 0;
-      min-width: max-content;
-      width: 100%;
+      width: max-content;
+      max-width: 100%;
       border-collapse: separate;
       border-spacing: 0;
-      font-size: 0.94em;
+      font-size: 0.875rem;
       line-height: 1.55;
     }
 
@@ -529,7 +539,7 @@
       white-space: normal;
       overflow-wrap: break-word;
       vertical-align: top;
-      padding: 0.72rem 0.9rem;
+      padding: 0.625rem 0.75rem;
     }
 
     & :where(th) {
@@ -539,7 +549,15 @@
     }
 
     & :where(thead th) {
-      border-bottom: 1px solid color-mix(in oklab, var(--color-slate-300) 72%, transparent);
+      border-bottom: 1px solid color-mix(in oklab, var(--color-sky-400) 42%, var(--color-slate-300));
+    }
+
+    & :where(tbody tr:nth-child(even) td) {
+      background: color-mix(in oklab, var(--color-slate-50) 60%, transparent);
+    }
+
+    & :where(tbody tr:hover td) {
+      background: color-mix(in oklab, var(--color-sky-50) 40%, transparent);
     }
 
     & :where(tbody tr + tr td) {
@@ -744,11 +762,22 @@
     }
 
     & :where(th) {
-      background: rgb(15 23 42 / 0.38);
-      color: rgb(255 255 255 / 0.88);
+      background: rgb(15 23 42 / 0.65);
+      color: rgb(255 255 255 / 0.9);
     }
 
-    & :where(thead th),
+    & :where(thead th) {
+      border-bottom-color: color-mix(in oklab, var(--color-sky-400) 36%, transparent);
+    }
+
+    & :where(tbody tr:nth-child(even) td) {
+      background: rgb(255 255 255 / 0.03);
+    }
+
+    & :where(tbody tr:hover td) {
+      background: color-mix(in oklab, var(--color-sky-400) 6%, transparent);
+    }
+
     & :where(tbody tr + tr td) {
       border-color: rgb(255 255 255 / 0.1);
     }
@@ -797,6 +826,11 @@
 
     .article-prose.prose :where(.article-figure figcaption) {
       margin-inline: 0 auto;
+    }
+
+    .article-prose.prose > :where(.article-table-scroll) {
+      margin-left: var(--article-gutter, 1.25rem);
+      margin-right: auto;
     }
   }
 

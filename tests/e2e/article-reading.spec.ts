@@ -910,6 +910,26 @@ async function articleRailAlignmentMetrics(page: Page) {
         },
       ]
     })
+    const table = root.querySelector<HTMLElement>(':scope > .article-table-scroll')
+    const tableRect = table?.getBoundingClientRect()
+    const tableInner = table?.querySelector<HTMLTableElement>('table') ?? null
+    const tableMetrics =
+      table && tableRect && tableInner
+        ? {
+            width: tableRect.width,
+            left: tableRect.left,
+            clientWidth: table.clientWidth,
+            scrollWidth: table.scrollWidth,
+            overflowX: getComputedStyle(table).overflowX,
+            tableWidth: tableInner.getBoundingClientRect().width,
+            tableComputedWidth: getComputedStyle(tableInner).width,
+            containerComputedWidth: getComputedStyle(table).width,
+            thBackground: getComputedStyle(table.querySelector('th') ?? table).backgroundColor,
+            evenRowBackground: getComputedStyle(
+              table.querySelector('tbody tr:nth-child(even) td') ?? table
+            ).backgroundColor,
+          }
+        : null
     const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
     const tocRect = toc?.getBoundingClientRect()
     const tocVisible =
@@ -927,6 +947,7 @@ async function articleRailAlignmentMetrics(page: Page) {
       directEdges,
       railEdges,
       scrollSurfaces,
+      table: tableMetrics,
       layout: {
         groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
         surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
@@ -1826,12 +1847,15 @@ test('article content families, data blocks, and TOC share the reading rail', as
     expect(directNames, scenario.name).toEqual(expect.arrayContaining(scenario.expected))
     expect(metrics.railEdges.length, scenario.name).toBeGreaterThan(0)
 
-    const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'table', 'math', 'pre'])
+    const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'math', 'pre'])
+    const tableNames = new Set(['table'])
     const captionNames = new Set(['figcaption'])
     const railAlignedEdges = [...metrics.directEdges, ...metrics.railEdges].filter(
-      (edge) => !breakoutNames.has(edge.name) && !captionNames.has(edge.name)
+      (edge) =>
+        !breakoutNames.has(edge.name) && !tableNames.has(edge.name) && !captionNames.has(edge.name)
     )
     const breakoutEdges = metrics.directEdges.filter((edge) => breakoutNames.has(edge.name))
+    const tableEdges = metrics.directEdges.filter((edge) => tableNames.has(edge.name))
     const captionEdges = metrics.directEdges.filter((edge) => captionNames.has(edge.name))
 
     for (const edge of railAlignedEdges) {
@@ -1850,6 +1874,33 @@ test('article content families, data blocks, and TOC share the reading rail', as
         Math.abs(leftInset - rightInset),
         `${scenario.name} ${edge.name} breakout surface centering`
       ).toBeLessThanOrEqual(2)
+    }
+
+    for (const edge of tableEdges) {
+      expect(metrics.table, `${scenario.name} table metrics`).not.toBeNull()
+      const table = metrics.table!
+      const breakoutMax = metrics.layout.surfaceRight - metrics.layout.surfaceLeft
+      expect(table.width, `${scenario.name} table max-width`).toBeLessThanOrEqual(breakoutMax + 1)
+      expect(table.containerComputedWidth, `${scenario.name} table not stretched`).not.toMatch(
+        /^100%/
+      )
+      expect(table.tableComputedWidth, `${scenario.name} inner table max-content`).not.toBe('100%')
+      expect(table.width, `${scenario.name} table fit-content`).toBeLessThanOrEqual(
+        Math.max(table.tableWidth, table.scrollWidth) + 2
+      )
+      if (scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+        expect(Math.abs(edge.left), `${scenario.name} table left`).toBeLessThanOrEqual(1)
+      } else {
+        expect(
+          Math.abs(edge.left + edge.right),
+          `${scenario.name} table centering`
+        ).toBeLessThanOrEqual(2)
+      }
+      if (table.scrollWidth > table.clientWidth + 1) {
+        expect(['auto', 'scroll']).toContain(table.overflowX)
+      }
+      expect(table.thBackground, `${scenario.name} table header`).not.toBe('rgba(0, 0, 0, 0)')
+      expect(table.evenRowBackground, `${scenario.name} table zebra`).not.toBe(table.thBackground)
     }
 
     for (const edge of captionEdges) {
@@ -2050,6 +2101,12 @@ test('Reading Max injected Markdown family remains coherent and reflow-safe', as
             clientWidth: table.clientWidth,
             scrollWidth: table.scrollWidth,
             overflowX: getComputedStyle(table).overflowX,
+            width: table.getBoundingClientRect().width,
+            computedWidth: getComputedStyle(table).width,
+            innerWidth: table.querySelector('table')?.getBoundingClientRect().width ?? 0,
+            left: table.getBoundingClientRect().left,
+            paragraphLeft: root.querySelector<HTMLElement>(':scope > p')?.getBoundingClientRect()
+              .left,
           },
           longToken: {
             clientWidth: longToken.clientWidth,
@@ -2094,6 +2151,11 @@ test('Reading Max injected Markdown family remains coherent and reflow-safe', as
       expect(metrics.anchor.right).toBeLessThanOrEqual(metrics.anchor.viewportWidth)
       expect(metrics.table.scrollWidth).toBeGreaterThanOrEqual(metrics.table.clientWidth)
       expect(['auto', 'scroll']).toContain(metrics.table.overflowX)
+      expect(metrics.table.computedWidth).not.toMatch(/^100%/)
+      expect(metrics.table.width).toBeLessThanOrEqual(metrics.table.innerWidth + 2)
+      if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT && metrics.table.paragraphLeft != null) {
+        expect(Math.abs(metrics.table.left - metrics.table.paragraphLeft)).toBeLessThanOrEqual(1)
+      }
       expect(metrics.longToken.scrollWidth).toBeLessThanOrEqual(metrics.longToken.clientWidth + 1)
       expect(metrics.mark.backgroundColor).not.toBe('rgb(255, 255, 0)')
       expect(metrics.mark.backgroundColor).not.toBe('yellow')
@@ -2122,14 +2184,38 @@ test('Reading Max rich content and 200 percent text resize stay internally scrol
       page,
       'figure[data-rehype-pretty-code-figure] [data-code-pre]'
     )
-    const table = await scrollBoxMetrics(page, '[data-article-body] .article-table-scroll')
+    const compactTable = await scrollBoxMetrics(page, '[data-article-body] .article-table-scroll')
+    const wideTable = await page
+      .locator('[data-article-body] .article-table-scroll')
+      .nth(1)
+      .evaluate((element) => {
+        const rect = element.getBoundingClientRect()
+        const style = getComputedStyle(element)
+        return {
+          clientWidth: element.clientWidth,
+          scrollWidth: element.scrollWidth,
+          overflowX: style.overflowX,
+          rect: {
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height,
+          },
+          backgroundImage: style.backgroundImage,
+          backgroundAttachment: style.backgroundAttachment,
+        }
+      })
     const overflow = await noPageOverflow(page)
 
     expect(overflow.overflowPx).toBeLessThanOrEqual(0)
-    for (const item of [math, code, table]) {
+    for (const item of [math, code, wideTable]) {
       expect(item.scrollWidth).toBeGreaterThan(item.clientWidth)
       expect(['auto', 'scroll']).toContain(item.overflowX)
     }
+    expect(['auto', 'scroll']).toContain(compactTable.overflowX)
+    expect(compactTable.clientWidth).toBeLessThanOrEqual(compactTable.scrollWidth + 1)
   }
 
   for (const path of [ARTICLE_PATH, '/en/xiaomi-book-pro-14/', RICH_ARTICLE_PATH]) {
@@ -2163,13 +2249,32 @@ test('Reading Max rich content and 200 percent text resize stay internally scrol
       for (const selector of [
         'figure[data-rehype-pretty-code-figure] [data-code-pre]',
         "mjx-container[jax='SVG'][display='true']",
-        '[data-article-body] .article-table-scroll',
       ]) {
         const metrics = await scrollBoxMetrics(page, selector)
 
         expect(metrics.scrollWidth).toBeGreaterThan(metrics.clientWidth)
         expect(['auto', 'scroll']).toContain(metrics.overflowX)
       }
+
+      const tables = page.locator('[data-article-body] .article-table-scroll')
+      const tableCount = await tables.count()
+      expect(tableCount).toBeGreaterThan(1)
+      let overflowingTables = 0
+      for (let index = 0; index < tableCount; index += 1) {
+        const metrics = await tables.nth(index).evaluate((element) => {
+          const style = getComputedStyle(element)
+          return {
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            overflowX: style.overflowX,
+          }
+        })
+        expect(['auto', 'scroll']).toContain(metrics.overflowX)
+        if (metrics.scrollWidth > metrics.clientWidth) {
+          overflowingTables += 1
+        }
+      }
+      expect(overflowingTables).toBeGreaterThan(0)
     }
   }
 })
