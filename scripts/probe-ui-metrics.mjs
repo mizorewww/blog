@@ -5,6 +5,12 @@ import { chromium } from '@playwright/test'
 import { mkdir, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import {
+  ARTICLE_DESKTOP_TOC_BREAKPOINT,
+  ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_TOC_GAP,
+  ARTICLE_TOC_WIDTH,
+} from '../lib/articleLayout.ts'
 import { readingFixtureHtml } from './reading-fixture.mjs'
 
 /**
@@ -836,7 +842,7 @@ function articleShellLeft(width) {
     return 0
   }
 
-  return (width - Math.min(1440, width - 30)) / 2
+  return (width - Math.min(ARTICLE_SHELL_MAX_WIDTH, width - 30)) / 2
 }
 
 /**
@@ -936,7 +942,7 @@ function alignmentFailures(row) {
         tableWidth: table.tableWidth,
       })
     }
-    if (viewport.width >= 1024) {
+    if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       if (Math.abs(edge.left) > 1) {
         failures.push({ kind: 'table-left-misaligned', edge })
       }
@@ -963,11 +969,11 @@ function alignmentFailures(row) {
     }
   }
 
-  if (viewport.width < 1024 && Math.abs(layout.surfaceCenterOffset) > 1) {
+  if (viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT && Math.abs(layout.surfaceCenterOffset) > 1) {
     failures.push({ kind: 'surface-offset', offset: layout.surfaceCenterOffset })
   }
 
-  if (viewport.width < 1024) {
+  if (viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
     if (Math.abs(layout.textCenterOffset - layout.surfaceCenterOffset) > 1) {
       failures.push({ kind: 'text-offset', offset: layout.textCenterOffset })
     }
@@ -978,15 +984,15 @@ function alignmentFailures(row) {
     }
   }
 
-  if (viewport.width >= 1024) {
+  if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
     if (!toc) {
       failures.push({ kind: 'toc-missing' })
     } else {
-      if (toc.width < 255 || toc.width > 257) {
+      if (toc.width < ARTICLE_TOC_WIDTH - 1 || toc.width > ARTICLE_TOC_WIDTH + 1) {
         failures.push({ kind: 'toc-width', width: toc.width })
       }
 
-      if (toc.gapFromSurface < 35 || toc.gapFromSurface > 37) {
+      if (toc.gapFromSurface < ARTICLE_TOC_GAP - 1 || toc.gapFromSurface > ARTICLE_TOC_GAP + 1) {
         failures.push({ kind: 'toc-gap', gap: toc.gapFromSurface })
       }
 
@@ -2090,11 +2096,11 @@ async function probeReadingAlignment(browser, baseUrl) {
       maxEdgeDeltaPx: 1,
       maxSurfaceCenterOffsetPx: 1,
       maxTextCenterOffsetPx: 1,
-      wideTocWidthPx: [189, 191],
-      wideTocGapPx: [35, 37],
+      wideTocWidthPx: [ARTICLE_TOC_WIDTH - 1, ARTICLE_TOC_WIDTH + 1],
+      wideTocGapPx: [ARTICLE_TOC_GAP - 1, ARTICLE_TOC_GAP + 1],
       wideTocOpacity: 1,
       minTocTextContrast: 4.5,
-      desktopTocStartsAtPx: 1440,
+      desktopTocStartsAtPx: ARTICLE_DESKTOP_TOC_BREAKPOINT,
     },
     rows,
     summary: {

@@ -1,0 +1,6 @@
+export const ARTICLE_SHELL_MAX_WIDTH = 1440
+export const ARTICLE_TOC_WIDTH = 256
+export const ARTICLE_TOC_GAP = 36
+export const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
+export const ARTICLE_RAIL_MAX_EN_REM = 49
+export const ARTICLE_RAIL_MAX_ZH_REM = 56

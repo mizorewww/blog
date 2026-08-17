@@ -835,7 +835,7 @@
   }
 
   html:lang(zh) .article-reading-surface {
-    --article-rail-max: 56rem;
+    --article-rail-max: var(--article-rail-max-zh, 56rem);
   }
 }
 
@@ -906,7 +906,14 @@
     }
   }
 
+  /* Keep these tokens in sync with lib/articleLayout.ts */
   .article-shell {
+    --article-shell-max: 1440px;
+    --article-toc-width: 256px;
+    --article-toc-gap: 36px;
+    --article-toc-breakpoint: 1024px;
+    --article-rail-max-en: 49rem;
+    --article-rail-max-zh: 56rem;
     max-width: 100%;
   }
 
@@ -923,7 +930,7 @@
 
   .article-reading-surface {
     --article-gutter: clamp(1.25rem, 5vw, 2.5rem);
-    --article-rail-max: 49rem;
+    --article-rail-max: var(--article-rail-max-en, 49rem);
     --article-rail-width: min(calc(100% - (var(--article-gutter) * 2)), var(--article-rail-max));
     --article-scroll-edge-bg: white;
     --article-scroll-edge-shadow: rgb(15 23 42 / 0.16);
@@ -962,7 +969,7 @@
 
   @media (min-width: 640px) {
     .article-shell {
-      max-width: min(calc(100% - 30px), 1440px);
+      max-width: min(calc(100% - 30px), var(--article-shell-max));
     }
 
     .article-reading-surface {
@@ -973,8 +980,8 @@
   @media (min-width: 1024px) {
     .article-surface-layout {
       position: relative;
-      grid-template-columns: 256px minmax(0, 1fr);
-      column-gap: 36px;
+      grid-template-columns: var(--article-toc-width) minmax(0, 1fr);
+      column-gap: var(--article-toc-gap);
       align-items: start;
       justify-content: stretch;
       justify-items: stretch;
@@ -986,7 +993,7 @@
       position: sticky;
       top: 112px;
       justify-self: stretch;
-      width: 256px;
+      width: var(--article-toc-width);
       max-height: calc(100vh - 136px);
       overflow-y: auto;
       font-size: 0.8125rem;

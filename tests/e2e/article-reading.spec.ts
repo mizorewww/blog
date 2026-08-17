@@ -1,4 +1,12 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
+import {
+  ARTICLE_DESKTOP_TOC_BREAKPOINT,
+  ARTICLE_RAIL_MAX_EN_REM,
+  ARTICLE_RAIL_MAX_ZH_REM,
+  ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_TOC_GAP,
+  ARTICLE_TOC_WIDTH,
+} from '../../lib/articleLayout'
 import { readingFixtureHtml } from '../../scripts/reading-fixture.mjs'
 
 const ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
@@ -13,13 +21,10 @@ const ARTICLE_RETURN_MARKER_KEY = 'mizore:article-return'
 const LIGHT_INLINE_CODE_COLOR = 'rgb(76, 79, 105)'
 const LIGHT_INLINE_CODE_GRADIENT = 'linear-gradient(oklab(0.997434'
 const LIGHT_INLINE_CODE_BORDER = 'oklab(0.869'
-const ARTICLE_SHELL_MAX_WIDTH = 1440
-const ARTICLE_DESKTOP_TOC_WIDTH = 256
-const ARTICLE_DESKTOP_TOC_GAP = 36
-const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
-// Desktop rail measure: 56rem zh / 49rem en. Task A left-aligns the rail at >=1024px.
-const ARTICLE_RAIL_MAX_ZH_PX = 56 * 16
-const ARTICLE_RAIL_MAX_EN_PX = 49 * 16
+const ARTICLE_DESKTOP_TOC_WIDTH = ARTICLE_TOC_WIDTH
+const ARTICLE_DESKTOP_TOC_GAP = ARTICLE_TOC_GAP
+const ARTICLE_RAIL_MAX_ZH_PX = ARTICLE_RAIL_MAX_ZH_REM * 16
+const ARTICLE_RAIL_MAX_EN_PX = ARTICLE_RAIL_MAX_EN_REM * 16
 const scrollTolerance = 10
 const readingEnvironmentInitPages = new WeakSet<Page>()
 const CARD_PRESENTATION_MARKERS = [

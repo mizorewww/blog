@@ -1,3 +1,9 @@
+import {
+  ARTICLE_DESKTOP_TOC_BREAKPOINT,
+  ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_TOC_GAP,
+  ARTICLE_TOC_WIDTH,
+} from '@/lib/articleLayout'
 import { normalizePathname } from '@/lib/blogRouteState'
 
 export const ARTICLE_TRANSITION_OPEN_DURATION_SECONDS = 0.38
@@ -12,10 +18,6 @@ const MAX_IMAGE_SRC_LENGTH = 2_048
 const MAX_TITLE_LENGTH = 240
 const MAX_SUMMARY_LENGTH = 600
 const MAX_PRESENTATION_ITEM_LENGTH = 600
-const ARTICLE_SHELL_MAX_WIDTH = 1440
-const ARTICLE_TOC_WIDTH = 256
-const ARTICLE_TOC_GAP = 36
-const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
 
 export type ArticleTransitionRect = {
   top: number

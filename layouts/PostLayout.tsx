@@ -13,6 +13,12 @@ import PostNavLinks from '@/components/PostNavLinks'
 import ResponsiveImage from '@/components/ResponsiveImage'
 import { divider, imageOutlineClass, mutedText, skyLink } from '@/components/ui/styles'
 import siteMetadata from '@/data/siteMetadata'
+import {
+  ARTICLE_DESKTOP_TOC_BREAKPOINT,
+  ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_TOC_GAP,
+  ARTICLE_TOC_WIDTH,
+} from '@/lib/articleLayout'
 import { formatDate } from '@/lib/formatDate'
 import { localizePath, localeConfig, type Locale, ui } from '@/lib/i18n'
 import { toListPost, type PostNavItem } from '@/lib/listPosts'
@@ -42,6 +48,7 @@ export default function PostLayout({
   const secondaryTags = post.tags.slice(1)
   const hasArticleDetails =
     authorNames.length > 0 || secondaryTags.length > 0 || post.gitCommits.length > 0
+  const coverSizes = `(min-width: ${ARTICLE_DESKTOP_TOC_BREAKPOINT}px) calc(min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px) - ${ARTICLE_TOC_WIDTH + ARTICLE_TOC_GAP}px), (min-width: 640px) min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px), 100vw`
 
   return (
     <div className="article-shell mx-auto w-full pb-16 sm:pt-6">
@@ -59,7 +66,7 @@ export default function PostLayout({
                 src={post.image || siteMetadata.socialBanner}
                 alt=""
                 fill
-                sizes="(min-width: 1024px) calc(min(100vw - 30px, 1440px) - 292px), (min-width: 640px) min(100vw - 30px, 1440px), 100vw"
+                sizes={coverSizes}
                 priority
                 className={`${imageOutlineClass} object-cover`}
               />
