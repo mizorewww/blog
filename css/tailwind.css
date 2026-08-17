@@ -133,7 +133,7 @@
   }
 
   .article-prose.prose {
-    --article-measure: var(--article-rail-width, min(100%, 40rem));
+    --article-measure: var(--article-rail-width, min(100%, 49rem));
     --article-inline-code-fg: rgb(51 65 85);
     --article-inline-code-bg: rgb(248 250 252 / 0.96);
     --article-inline-code-border: rgb(148 163 184 / 0.54);
@@ -768,8 +768,40 @@
     }
   }
 
+  @media (min-width: 1024px) {
+    .article-prose.prose > :where(
+        h1,
+        h2,
+        h3,
+        h4,
+        h5,
+        h6,
+        p,
+        ul,
+        ol,
+        dl,
+        blockquote,
+        details,
+        hr,
+        .footnotes,
+        .article-data-block
+      ) {
+      margin-left: var(--article-gutter, 1.25rem);
+      margin-right: auto;
+    }
+
+    .article-prose.prose :where(h1, h2, h3, h4, h5, h6) {
+      margin-left: var(--article-gutter, 1.25rem);
+      margin-right: auto;
+    }
+
+    .article-prose.prose :where(.article-figure figcaption) {
+      margin-inline: 0 auto;
+    }
+  }
+
   html:lang(zh) .article-reading-surface {
-    --article-rail-max: 46rem;
+    --article-rail-max: 56rem;
   }
 }
 
@@ -857,7 +889,7 @@
 
   .article-reading-surface {
     --article-gutter: clamp(1.25rem, 5vw, 2.5rem);
-    --article-rail-max: 40rem;
+    --article-rail-max: 49rem;
     --article-rail-width: min(calc(100% - (var(--article-gutter) * 2)), var(--article-rail-max));
     --article-scroll-edge-bg: white;
     --article-scroll-edge-shadow: rgb(15 23 42 / 0.16);
@@ -938,6 +970,11 @@
       font-size: 0.75rem;
       line-height: 1.35;
       letter-spacing: 0.04em;
+    }
+
+    .article-content-rail {
+      margin-left: var(--article-gutter);
+      margin-right: auto;
     }
   }
 }

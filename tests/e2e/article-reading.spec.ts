@@ -17,6 +17,9 @@ const ARTICLE_SHELL_MAX_WIDTH = 1440
 const ARTICLE_DESKTOP_TOC_WIDTH = 256
 const ARTICLE_DESKTOP_TOC_GAP = 36
 const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
+// Desktop rail measure: 56rem zh / 49rem en. Task A left-aligns the rail at >=1024px.
+const ARTICLE_RAIL_MAX_ZH_PX = 56 * 16
+const ARTICLE_RAIL_MAX_EN_PX = 49 * 16
 const scrollTolerance = 10
 const readingEnvironmentInitPages = new WeakSet<Page>()
 const CARD_PRESENTATION_MARKERS = [
@@ -215,20 +218,24 @@ function readingMeasureThreshold(
     if (width <= 375) return { medianMin: 18, medianMax: 28, max: 32 }
     if (width <= 640) return { medianMin: 32, medianMax: 44, max: 48 }
     if (width <= 1024) return { medianMin: 36, medianMax: 48, max: 56 }
-    return { medianMin: 38, medianMax: 56, max: 64 }
+    // 56rem zh rail at ~1.09-1.125rem yields ~50-66 chars/line.
+    return { medianMin: 42, medianMax: 68, max: 74 }
   }
 
   if (width <= 320) return { medianMin: 24, medianMax: 34, max: 38 }
   if (width <= 375) return { medianMin: 30, medianMax: 42, max: 46 }
   if (width <= 640) return { medianMin: 52, medianMax: 66, max: 70 }
-  return { medianMin: 60, medianMax: 82, max: 86 }
+  if (width <= 1024) return { medianMin: 60, medianMax: 82, max: 86 }
+  // 49rem en rail at ~1.09-1.125rem yields ~80-100 chars/line.
+  return { medianMin: 72, medianMax: 104, max: 110 }
 }
 
 function firstProseVisibilityThreshold(width: number) {
   if (width <= 375) return { maxTop: 680, minVisibleHeight: 120 }
   if (width <= 768) return { maxTop: 700, minVisibleHeight: 80 }
   if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { maxTop: 720, minVisibleHeight: 72 }
-  return { maxTop: 800, minVisibleHeight: 72 }
+  // Desktop cover uses the full surface width, so the first paragraph sits lower.
+  return { maxTop: 920, minVisibleHeight: 48 }
 }
 
 function articleSurfaceWidth(width: number) {
@@ -243,6 +250,12 @@ function articleSurfaceWidth(width: number) {
   }
 
   return shellWidth - ARTICLE_DESKTOP_TOC_WIDTH - ARTICLE_DESKTOP_TOC_GAP
+}
+
+function articleGutterPx(width: number, textScale = 100) {
+  const rootPx = 16 * (textScale / 100)
+  const vw = width * 0.05
+  return Math.min(Math.max(1.25 * rootPx, vw), 2.5 * rootPx)
 }
 
 function articleShellLeft(width: number) {
@@ -480,6 +493,7 @@ async function articleReadingMetrics(page: Page) {
         groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
         surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
         textCenterOffset: (paragraphRect.left + paragraphRect.right) / 2 - window.innerWidth / 2,
+        textLeftInset: paragraphRect.left - surfaceRect.left,
       },
     }
   })
@@ -917,6 +931,11 @@ async function articleRailAlignmentMetrics(page: Page) {
         groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
         surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
         textCenterOffset: (reference.left + reference.right) / 2 - window.innerWidth / 2,
+        textLeftInset: reference.left - surfaceRect.left,
+        paragraphLeft: reference.left,
+        paragraphRight: reference.right,
+        surfaceLeft: surfaceRect.left,
+        surfaceRight: surfaceRect.right,
       },
       toc: tocVisible
         ? {
@@ -1600,7 +1619,10 @@ for (const scenario of [
     expect(metrics.paragraphTop).toBeLessThan(scenario.maxParagraphTop)
     expect(metrics.paragraphBottom).toBeGreaterThan(0)
     expect(metrics.visibleParagraphHeight).toBeGreaterThan(40)
-    expect(metrics.paragraphWidth).toBeLessThanOrEqual(Math.min(metrics.proseWidth, 736))
+    const railMaxPx = scenario.path.startsWith('/zh/')
+      ? ARTICLE_RAIL_MAX_ZH_PX
+      : ARTICLE_RAIL_MAX_EN_PX
+    expect(metrics.paragraphWidth).toBeLessThanOrEqual(Math.min(metrics.proseWidth, railMaxPx))
     expect(metrics.titleFontSize).toBeGreaterThan(metrics.bodyH2FontSize + 3)
     expect(['normal', '0px']).toContain(metrics.titleLetterSpacing)
     expect(['normal', '0px']).toContain(metrics.bodyH2LetterSpacing)
@@ -1649,16 +1671,24 @@ test('Reading Max prose rhythm and line measure meet the viewport matrix', async
         )
         expect(metrics.firstParagraph.medianCharsPerLine).toBeLessThanOrEqual(threshold.medianMax)
         expect(metrics.firstParagraph.maxCharsPerLine).toBeLessThanOrEqual(threshold.max)
-        expect(metrics.firstParagraph.top).toBeLessThanOrEqual(visibility.maxTop)
-        expect(metrics.firstParagraph.visibleHeight).toBeGreaterThanOrEqual(
-          visibility.minVisibleHeight
-        )
+        expect(
+          metrics.firstParagraph.top,
+          `${route.language} ${theme} ${viewport.width} top`
+        ).toBeLessThanOrEqual(visibility.maxTop)
+        expect(
+          metrics.firstParagraph.visibleHeight,
+          `${route.language} ${theme} ${viewport.width} visible`
+        ).toBeGreaterThanOrEqual(visibility.minVisibleHeight)
         if (viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
           expect(Math.abs(metrics.layout.surfaceCenterOffset)).toBeLessThanOrEqual(1)
+          expect(
+            Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset)
+          ).toBeLessThanOrEqual(1)
+        } else {
+          const gutter = articleGutterPx(viewport.width)
+          expect(metrics.layout.textLeftInset).toBeGreaterThanOrEqual(gutter - 1)
+          expect(metrics.layout.textLeftInset).toBeLessThanOrEqual(gutter + 1)
         }
-        expect(
-          Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset)
-        ).toBeLessThanOrEqual(1)
 
         if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
           expect(metrics.toc).not.toBeNull()
@@ -1812,9 +1842,13 @@ test('article content families, data blocks, and TOC share the reading rail', as
 
     for (const edge of breakoutEdges) {
       expect(edge.width, `${scenario.name} ${edge.name} breakout width`).toBeGreaterThanOrEqual(-1)
+      const breakoutLeft = metrics.layout.paragraphLeft + edge.left
+      const breakoutRight = metrics.layout.paragraphRight + edge.right
+      const leftInset = breakoutLeft - metrics.layout.surfaceLeft
+      const rightInset = metrics.layout.surfaceRight - breakoutRight
       expect(
-        Math.abs(edge.left + edge.right),
-        `${scenario.name} ${edge.name} breakout centering`
+        Math.abs(leftInset - rightInset),
+        `${scenario.name} ${edge.name} breakout surface centering`
       ).toBeLessThanOrEqual(2)
     }
 
@@ -1828,11 +1862,15 @@ test('article content families, data blocks, and TOC share the reading rail', as
 
     if (scenario.viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       expect(Math.abs(metrics.layout.surfaceCenterOffset), scenario.name).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset),
+        scenario.name
+      ).toBeLessThanOrEqual(1)
+    } else {
+      const gutter = articleGutterPx(scenario.viewport.width, scenario.textScale)
+      expect(metrics.layout.textLeftInset, scenario.name).toBeGreaterThanOrEqual(gutter - 1)
+      expect(metrics.layout.textLeftInset, scenario.name).toBeLessThanOrEqual(gutter + 1)
     }
-    expect(
-      Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset),
-      scenario.name
-    ).toBeLessThanOrEqual(1)
 
     if (scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       expect(metrics.toc, scenario.name).not.toBeNull()

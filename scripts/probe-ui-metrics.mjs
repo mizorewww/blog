@@ -764,6 +764,11 @@ async function articleRailAlignmentMetrics(page) {
           10,
         textCenterOffset:
           Math.round(((reference.left + reference.right) / 2 - window.innerWidth / 2) * 10) / 10,
+        textLeftInset: Math.round((reference.left - surfaceRect.left) * 10) / 10,
+        paragraphLeft: Math.round(reference.left * 10) / 10,
+        paragraphRight: Math.round(reference.right * 10) / 10,
+        surfaceLeft: Math.round(surfaceRect.left * 10) / 10,
+        surfaceRight: Math.round(surfaceRect.right * 10) / 10,
       },
       toc:
         tocVisible && toc instanceof HTMLElement && tocRect
@@ -807,6 +812,17 @@ function articleShellLeft(width) {
 }
 
 /**
+ * @param {number} width
+ * @param {number} [textScale]
+ * @returns {number}
+ */
+function articleGutterPx(width, textScale = 100) {
+  const rootPx = 16 * (textScale / 100)
+  const vw = width * 0.05
+  return Math.min(Math.max(1.25 * rootPx, vw), 2.5 * rootPx)
+}
+
+/**
  * @param {Record<string, unknown>} row
  * @returns {Record<string, unknown>[]}
  */
@@ -817,7 +833,7 @@ function alignmentFailures(row) {
   const textScale = typeof row.textScale === 'number' ? row.textScale : 100
   const document = /** @type {{ overflowPx: number }} */ (metrics.document)
   const layout =
-    /** @type {{ groupCenterOffset: number, surfaceCenterOffset: number, textCenterOffset: number }} */ (
+    /** @type {{ groupCenterOffset: number, surfaceCenterOffset: number, textCenterOffset: number, textLeftInset: number, paragraphLeft: number, paragraphRight: number, surfaceLeft: number, surfaceRight: number }} */ (
       metrics.layout
     )
   const toc =
@@ -853,8 +869,12 @@ function alignmentFailures(row) {
   }
 
   for (const edge of breakoutEdges) {
-    if (edge.width < -1 || Math.abs(edge.left + edge.right) > 2) {
-      failures.push({ kind: 'breakout-misaligned', edge })
+    const breakoutLeft = layout.paragraphLeft + edge.left
+    const breakoutRight = layout.paragraphRight + edge.right
+    const leftInset = breakoutLeft - layout.surfaceLeft
+    const rightInset = layout.surfaceRight - breakoutRight
+    if (edge.width < -1 || Math.abs(leftInset - rightInset) > 2) {
+      failures.push({ kind: 'breakout-misaligned', edge, leftInset, rightInset })
     }
   }
 
@@ -868,8 +888,15 @@ function alignmentFailures(row) {
     failures.push({ kind: 'surface-offset', offset: layout.surfaceCenterOffset })
   }
 
-  if (Math.abs(layout.textCenterOffset - layout.surfaceCenterOffset) > 1) {
-    failures.push({ kind: 'text-offset', offset: layout.textCenterOffset })
+  if (viewport.width < 1024) {
+    if (Math.abs(layout.textCenterOffset - layout.surfaceCenterOffset) > 1) {
+      failures.push({ kind: 'text-offset', offset: layout.textCenterOffset })
+    }
+  } else {
+    const gutter = articleGutterPx(viewport.width, textScale)
+    if (layout.textLeftInset < gutter - 1 || layout.textLeftInset > gutter + 1) {
+      failures.push({ kind: 'text-left-inset', inset: layout.textLeftInset, gutter })
+    }
   }
 
   if (viewport.width >= 1024) {
