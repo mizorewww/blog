@@ -112,11 +112,11 @@ content/blog/en/example.mdx
 
 ## 正文排版合同
 
-文章正文由 `article-prose` 作用域统一承载。文章页所有正文相关外边缘都必须走同一条阅读 rail：标题、段落、列表、引用、details、脚注、图片 figure、代码块、表格、行间 MathJax、license notice、文章详情和上下篇导航都应与 `article-content-rail` 对齐。普通段落、标题、列表、引用、脚注、details、kbd、abbr、mark、sub/sup 等 inline 和 block family 必须保持页面级无横向滚动；真正二维的代码块、表格和行间 MathJax 只能在自身容器内横向滚动，并需要保留可见横向滚动边缘提示。
+文章正文由 `article-prose` 作用域统一承载。文章页正文相关外边缘按层走同一条阅读 rail：文字类 block（标题、段落、列表、引用、details、脚注、license notice、文章详情和上下篇导航）与 `article-content-rail` 对齐，在 `1024px` 及以上左缘为 surface 左缘加 gutter；`pre`、Shiki figure、图片 figure 和行间 MathJax 在 surface 内 breakout 到 `calc(100% - 2 * gutter)`；表格使用 `fit-content` 紧凑尺寸并左对齐，仅在超出 breakout 上限时容器内横向滚动。普通段落、标题、列表、引用、脚注、details、kbd、abbr、mark、sub/sup 等 inline 和 block family 必须保持页面级无横向滚动；真正二维的代码块、表格和行间 MathJax 只能在自身容器内横向滚动，并需要保留可见横向滚动边缘提示。
 
-`1024px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心；左侧 TOC 是辅助导航，保持 `256px` 列宽、低权重和固定 surface 间距，不参与正文 rail 居中。`1023px` 及以下继续使用单列阅读布局和折叠 TOC。
+`1024px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心：正文 rail 在 surface 内贴左对齐（左缘 = surface 左缘 + gutter），surface 填满居中 `article-shell` 的右侧栏。左侧 TOC 是辅助导航，保持 `256px` 列宽、低权重和固定 surface 间距，不参与 rail 对齐计算。`1023px` 及以下继续使用单列阅读布局和折叠 TOC。
 
-正文阅读宽度按语言调节：英文文章使用较窄的长文 measure，中文文章略宽，避免英文桌面行长过长或中文桌面断行过碎。普通正文在移动端不低于 16px，并用紧凑但可读的行高；标题层级按 h2-h6 递减，不用孤立装饰替代结构。
+正文阅读宽度按语言调节：英文文章使用较窄的长文 measure，rail 上限 `49rem`；中文文章略宽，rail 上限 `56rem`，避免英文桌面行长过长或中文桌面断行过碎。普通正文在移动端不低于 16px，并用紧凑但可读的行高；标题层级按 h2-h6 递减，不用孤立装饰替代结构。
 
 inline code 使用正文专用语义 token。暗色模式下 inline code 必须是暗色 surface，不得沿用浅色 gradient 或浅色文字；链接里的 code 继承同一 surface/border，仅改变链接前景色。Shiki fenced code 仍由代码块组件和高亮主题控制，不套用 inline code 的 border、padding 或背景规则。
 

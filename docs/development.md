@@ -146,9 +146,9 @@ probe 会输出 header 控件命中区、首页首卡高度、侧栏视觉权重
 - 真实 rich article 的代码、表格和 MathJax 内部横向滚动。
 - `640x900` 下 `--text-scale 200` 的根字体、页面 overflow 和内部滚动状态。
 
-Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、页面 overflow、TOC 宽度/间距/左侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
+Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、text left inset（textLeftInset）、页面 overflow、TOC 宽度/间距/左侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
 
-宽屏光学平衡改动的期望是：`1024px` 及以上文章 surface 填满居中 `article-shell` 的右侧栏，正文 rail 在 surface 内居中且 center offset 不超过 `1px`；桌面 TOC 在左侧常驻，保持 `256px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1024px` 仍可见。
+宽屏光学平衡改动的期望是：`1024px` 及以上文章 surface 填满居中 `article-shell` 的右侧栏，正文 rail 在 surface 内贴左对齐（textLeftInset = gutter，±1px）；`1024px` 以下正文 rail 在 surface 内居中且 center offset 不超过 `1px`。桌面 TOC 在左侧常驻，保持 `256px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1024px` 仍可见。
 
 Reading Alignment 截图建议按真实文章和 fixture 分组，输出到本机 agent records：
 
