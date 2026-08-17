@@ -114,7 +114,7 @@ content/blog/en/example.mdx
 
 文章正文由 `article-prose` 作用域统一承载。文章页所有正文相关外边缘都必须走同一条阅读 rail：标题、段落、列表、引用、details、脚注、图片 figure、代码块、表格、行间 MathJax、license notice、文章详情和上下篇导航都应与 `article-content-rail` 对齐。普通段落、标题、列表、引用、脚注、details、kbd、abbr、mark、sub/sup 等 inline 和 block family 必须保持页面级无横向滚动；真正二维的代码块、表格和行间 MathJax 只能在自身容器内横向滚动，并需要保留可见横向滚动边缘提示。
 
-`1440px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心；右侧 TOC 是辅助导航，保持窄列、低权重和固定 surface 间距，不参与正文居中。`1280px` 及以下继续使用单列阅读布局。
+`1024px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心；左侧 TOC 是辅助导航，保持 `256px` 列宽、低权重和固定 surface 间距，不参与正文 rail 居中。`1023px` 及以下继续使用单列阅读布局和折叠 TOC。
 
 正文阅读宽度按语言调节：英文文章使用较窄的长文 measure，中文文章略宽，避免英文桌面行长过长或中文桌面断行过碎。普通正文在移动端不低于 16px，并用紧凑但可读的行高；标题层级按 h2-h6 递减，不用孤立装饰替代结构。
 

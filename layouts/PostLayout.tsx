@@ -59,7 +59,7 @@ export default function PostLayout({
                 src={post.image || siteMetadata.socialBanner}
                 alt=""
                 fill
-                sizes="(min-width: 640px) 780px, 100vw"
+                sizes="(min-width: 1024px) calc(min(100vw - 30px, 1440px) - 292px), (min-width: 640px) min(100vw - 30px, 1440px), 100vw"
                 priority
                 className={`${imageOutlineClass} object-cover`}
               />

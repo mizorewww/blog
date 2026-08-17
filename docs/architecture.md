@@ -86,7 +86,7 @@ TOC、阅读进度、代码复制、主题、第三方 widget 和经过验证的
 
 surface、cover、title、Git 信息、summary、published date 与 primary tag 是持久元素。它们在快照终点与文章共享头部中必须保持相同的元素顺序、字体、字重、行高、换行约束和目标 geometry，并按 child 分别执行 layout projection；不得用 opacity crossfade 遮掩两套标题或元信息渲染。Git 相对时间在捕获时冻结，避免过渡中因时钟或 hydration 改变文案。read-more 只属于来源卡片，在 inert 快照中保留 layout space 后平滑淡出，返回接近来源卡片时再恢复；它不会成为文章页上的可聚焦自链接。该合同是规范性目标，不能仅凭本段文档推断实现已完成。
 
-转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`1440px` 下目标面宽 `780px`、水平居中、`top: 120px`、radius 为 `8px`。打开使用 `380 ms`，经验证的返回使用 `340 ms`，二者 easing 均为 `[0.32, 0.72, 0, 1]`。
+转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`640–1023px` 下目标面为居中 shell（`min(viewport - 30px, 1440px)`）、`top: 120px`、radius 为 `8px`；`1024px` 及以上目标面为同一居中 shell 减去左侧 TOC `256px` 与间距 `36px` 后的右侧栏，`top: 120px`、radius 为 `8px`。打开使用 `380 ms`，经验证的返回使用 `340 ms`，二者 easing 均为 `[0.32, 0.72, 0, 1]`。
 
 转场不等待路由，路由也不等待转场。普通文章 Link 立即导航；返回控制立即执行已验证的 Back 或本地化 fallback Link。返回折叠只有在列表提交后能找到匹配的完整卡片和有效 rectangle 时才继续，否则立即移除覆盖层；它不能滚动列表来制造目标。缺数据、无效矩形、storage 失败、route mismatch、动画中断和 viewport resize 同样立即退化为无覆盖层的普通导航。
 

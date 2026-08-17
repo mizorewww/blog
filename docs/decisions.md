@@ -208,7 +208,7 @@
 **决策**：
 
 - `article-prose` 成为文章正文排版唯一源，使用比 Tailwind Typography 默认更高的作用域优先级覆盖正文、标题、inline code、列表、引用、表格、图片、脚注和 details 等样式；Shiki fenced code 继续由代码块组件与高亮主题控制。
-- 普通正文使用响应式阅读字号与 `1.65` 行高。英文正文 measure 以 `39.25rem` 为上限，中文通过 `html:lang(zh)` 放宽到 `40rem`，以实测字符行长同时满足中英文阈值。
+- 普通正文使用响应式阅读字号与 `1.65` 行高。英文正文 measure 以 `40rem` 为上限，中文通过 `html:lang(zh)` 放宽到 `46rem`，以实测字符行长同时满足中英文阈值。
 - 暗色 inline code 使用正文专用暗色 foreground/background/border token，显式清除浅色 gradient；链接里的 inline code 复用同一 surface 和 border，仅前景色进入链接角色。每个暗色 inline code 对比度必须不低于 `4.5:1`。
 - 本地 `ui:screenshots` 与 `ui:probe` 复用 Playwright，不新增视觉测试依赖。截图和 JSON 只写入 `docs/agent-records/reading-max/`；测试用 Markdown fixture 来自共享 `scripts/reading-fixture.mjs`，不加入公开内容或路由。
 - E2E 以计算后的几何和样式为准，覆盖中英文 320-1920px line measure、首段可见高度、wide TOC、dark inline code、真实 rich article 的 code/table/MathJax 内部滚动、200% 文本缩放和 Markdown family fixture。
@@ -223,10 +223,10 @@
 
 **决策**：
 
-- `article-reading-surface` 暴露 `--article-rail-width`，`article-content-rail` 与 `article-prose` 直接子元素共用同一 rail。英文 rail 上限为 `39.25rem`，中文仍为 `40rem`；移动和 `640px` 附近由响应式 gutter 控制，避免英文行长超过既有阈值。
-- 正文直系 block family、Shiki figure、Markdown 表格、行间 MathJax、图片 figure、`.article-data-block`、脚注、license notice、文章详情和上下篇导航都以首段外边缘为对齐基准。二维内容仍只允许容器内部横向滚动。
-- 桌面 TOC 从 `1440px` 开始显示。宽屏时 `article-reading-surface` 固定为 `780px` 并与正文 rail 一起按视口中心对齐；TOC 是右侧辅助导航，宽 `190px`、距 surface `36px`，不参与主阅读列居中计算，视觉权重低于正文。
-- `1280px` 保持单列文章布局，不显示桌面 TOC。`1440px` 仍必须保留可见 TOC，且右侧边距不少于 `96px`；`1728px` 不少于 `240px`，`1920px` 不少于 `330px`。文章打开转场和 skeleton 的目标 geometry 使用同一个居中 surface 合同，不使用 transform 修正。
+- `article-reading-surface` 暴露 `--article-rail-width`，`article-content-rail` 与文字类 `article-prose` 直接子元素共用同一 rail。英文 rail 上限为 `40rem`，中文为 `46rem`；移动和 `640px` 附近由响应式 gutter 控制。宽元素（`pre`、Shiki figure、表格、图片 figure、行间 MathJax）在 surface 内 breakout 到 `calc(100% - 2 * gutter)`，`figcaption` 与文字元素仍保持 rail。
+- 正文直系文字 block family、`.article-data-block`、脚注、license notice、文章详情和上下篇导航都以首段外边缘为对齐基准。二维内容仍只允许容器内部横向滚动，但容器本身可以比 rail 更宽。
+- 桌面 TOC 从 `1024px` 开始显示，位于左侧，宽 `256px`、距 surface `36px`。`article-shell` 上限为 `1440px` 并在视口居中；surface 不再固定 `780px`，而是占据 shell 右侧剩余栏宽。正文 rail 在 surface 内居中，TOC 不参与 rail 居中计算。
+- `1024px` 及以上必须保留可见左侧 TOC，并贴齐居中 `article-shell` 的左缘。文章打开转场和 skeleton 的目标 geometry 使用同一个 surface 合同：`<640px` 全宽、`640–1023px` 居中 shell、`≥1024px` 为 shell 减去 `292px` 后的右侧栏。
 - 表格、行间 MathJax、plain pre 和 Shiki pre 使用相同的 local/scroll gradient 边缘提示，明暗色由 article surface 变量控制。
 - test-only fixture 覆盖 fixture embed、plain pre 和脚注 backref；`ui:probe` 的顶层 `readingAlignment` 节点输出 edge delta、rail delta、surface/text center offset、detached wide TOC、200% 文本缩放和 scroll affordance failure summary。
 

@@ -12,7 +12,10 @@ const MAX_IMAGE_SRC_LENGTH = 2_048
 const MAX_TITLE_LENGTH = 240
 const MAX_SUMMARY_LENGTH = 600
 const MAX_PRESENTATION_ITEM_LENGTH = 600
-const ARTICLE_DESKTOP_SURFACE_WIDTH = 780
+const ARTICLE_SHELL_MAX_WIDTH = 1440
+const ARTICLE_TOC_WIDTH = 256
+const ARTICLE_TOC_GAP = 36
+const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
 
 export type ArticleTransitionRect = {
   top: number
@@ -322,10 +325,15 @@ export function getArticleTransitionDestination(
   }
 
   const mobile = viewport.width < 640
+  const desktop = viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT
   const top = mobile ? 72 : 120
-  const width = mobile
+  const shellWidth = mobile
     ? viewport.width
-    : Math.min(ARTICLE_DESKTOP_SURFACE_WIDTH, viewport.width - 30)
+    : Math.min(ARTICLE_SHELL_MAX_WIDTH, viewport.width - 30)
+  const width = desktop ? shellWidth - ARTICLE_TOC_WIDTH - ARTICLE_TOC_GAP : shellWidth
+  const left = desktop
+    ? (viewport.width - shellWidth) / 2 + ARTICLE_TOC_WIDTH + ARTICLE_TOC_GAP
+    : (viewport.width - width) / 2
 
   if (width <= 0 || viewport.height <= top) {
     return null
@@ -333,7 +341,7 @@ export function getArticleTransitionDestination(
 
   return {
     top,
-    left: (viewport.width - width) / 2,
+    left,
     width,
     height: viewport.height - top,
     radius: mobile ? 0 : 8,

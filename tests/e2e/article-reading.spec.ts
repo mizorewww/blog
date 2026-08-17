@@ -13,10 +13,10 @@ const ARTICLE_RETURN_MARKER_KEY = 'mizore:article-return'
 const LIGHT_INLINE_CODE_COLOR = 'rgb(76, 79, 105)'
 const LIGHT_INLINE_CODE_GRADIENT = 'linear-gradient(oklab(0.997434'
 const LIGHT_INLINE_CODE_BORDER = 'oklab(0.869'
-const ARTICLE_DESKTOP_SURFACE_WIDTH = 780
-const ARTICLE_DESKTOP_TOC_WIDTH = 190
+const ARTICLE_SHELL_MAX_WIDTH = 1440
+const ARTICLE_DESKTOP_TOC_WIDTH = 256
 const ARTICLE_DESKTOP_TOC_GAP = 36
-const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1440
+const ARTICLE_DESKTOP_TOC_BREAKPOINT = 1024
 const scrollTolerance = 10
 const readingEnvironmentInitPages = new WeakSet<Page>()
 const CARD_PRESENTATION_MARKERS = [
@@ -214,27 +214,43 @@ function readingMeasureThreshold(
     if (width <= 320) return { medianMin: 16, medianMax: 24, max: 28 }
     if (width <= 375) return { medianMin: 18, medianMax: 28, max: 32 }
     if (width <= 640) return { medianMin: 32, medianMax: 44, max: 48 }
-    return { medianMin: 38, medianMax: 48, max: 56 }
+    if (width <= 1024) return { medianMin: 36, medianMax: 48, max: 56 }
+    return { medianMin: 38, medianMax: 56, max: 64 }
   }
 
   if (width <= 320) return { medianMin: 24, medianMax: 34, max: 38 }
   if (width <= 375) return { medianMin: 30, medianMax: 42, max: 46 }
   if (width <= 640) return { medianMin: 52, medianMax: 66, max: 70 }
-  return { medianMin: 60, medianMax: 76, max: 80 }
+  return { medianMin: 60, medianMax: 82, max: 86 }
 }
 
 function firstProseVisibilityThreshold(width: number) {
   if (width <= 375) return { maxTop: 680, minVisibleHeight: 120 }
   if (width <= 768) return { maxTop: 700, minVisibleHeight: 80 }
-  if (width <= 1024) return { maxTop: 720, minVisibleHeight: 72 }
-  if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { maxTop: 730, minVisibleHeight: 72 }
-  return { maxTop: 680, minVisibleHeight: 72 }
+  if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { maxTop: 720, minVisibleHeight: 72 }
+  return { maxTop: 800, minVisibleHeight: 72 }
 }
 
-function wideTocRightMarginMin(width: number) {
-  if (width >= 1920) return 330
-  if (width >= 1728) return 240
-  return 96
+function articleSurfaceWidth(width: number) {
+  if (width < 640) {
+    return width
+  }
+
+  const shellWidth = Math.min(ARTICLE_SHELL_MAX_WIDTH, width - 30)
+
+  if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+    return shellWidth
+  }
+
+  return shellWidth - ARTICLE_DESKTOP_TOC_WIDTH - ARTICLE_DESKTOP_TOC_GAP
+}
+
+function articleShellLeft(width: number) {
+  if (width < 640) {
+    return 0
+  }
+
+  return (width - Math.min(ARTICLE_SHELL_MAX_WIDTH, width - 30)) / 2
 }
 
 async function ensureReadingEnvironmentInit(page: Page) {
@@ -452,8 +468,9 @@ async function articleReadingMetrics(page: Page) {
       toc: tocRect
         ? {
             width: tocRect.width,
-            gapFromSurface: tocRect.left - surfaceRect.right,
-            rightMargin: window.innerWidth - tocRect.right,
+            gapFromSurface: surfaceRect.left - tocRect.right,
+            leftMargin: tocRect.left,
+            shellAligned: true,
             position: getComputedStyle(toc!).position,
             opacity: Number.parseFloat(getComputedStyle(toc!).opacity),
             items: tocItems,
@@ -904,8 +921,8 @@ async function articleRailAlignmentMetrics(page: Page) {
       toc: tocVisible
         ? {
             width: tocRect!.width,
-            gapFromSurface: tocRect!.left - surfaceRect.right,
-            rightMargin: window.innerWidth - tocRect!.right,
+            gapFromSurface: surfaceRect.left - tocRect!.right,
+            leftMargin: tocRect!.left,
             position: getComputedStyle(toc).position,
             opacity: Number.parseFloat(getComputedStyle(toc).opacity),
             items: [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => {
@@ -956,12 +973,19 @@ async function elementRect(locator: Locator): Promise<Rect> {
 
 function destination(width: number, height: number) {
   const mobile = width < 640
+  const desktop = width >= ARTICLE_DESKTOP_TOC_BREAKPOINT
   const top = mobile ? 72 : 120
-  const surfaceWidth = mobile ? width : Math.min(ARTICLE_DESKTOP_SURFACE_WIDTH, width - 30)
+  const shellWidth = mobile ? width : Math.min(ARTICLE_SHELL_MAX_WIDTH, width - 30)
+  const surfaceWidth = desktop
+    ? shellWidth - ARTICLE_DESKTOP_TOC_WIDTH - ARTICLE_DESKTOP_TOC_GAP
+    : shellWidth
+  const left = desktop
+    ? (width - shellWidth) / 2 + ARTICLE_DESKTOP_TOC_WIDTH + ARTICLE_DESKTOP_TOC_GAP
+    : (width - surfaceWidth) / 2
 
   return {
     top,
-    left: (width - surfaceWidth) / 2,
+    left,
     width: surfaceWidth,
     height: height - top,
     radius: mobile ? 0 : 8,
@@ -1453,7 +1477,7 @@ for (const viewport of [
       }
     })
 
-    const expectedWidth = viewport.width < 640 ? viewport.width : ARTICLE_DESKTOP_SURFACE_WIDTH
+    const expectedWidth = articleSurfaceWidth(viewport.width)
     const expectedLeft = destination(viewport.width, viewport.height).left
 
     expect(Math.abs(geometry.surface.top - viewport.top)).toBeLessThanOrEqual(4)
@@ -1482,15 +1506,15 @@ for (const viewport of [
       expect(Math.abs(geometry.desktopToc!.width - ARTICLE_DESKTOP_TOC_WIDTH)).toBeLessThanOrEqual(
         1
       )
-      expect(geometry.desktopToc!.left - geometry.surface.right).toBeGreaterThanOrEqual(
+      expect(geometry.surface.left - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
         ARTICLE_DESKTOP_TOC_GAP - 1
       )
-      expect(geometry.desktopToc!.left - geometry.surface.right).toBeLessThanOrEqual(
+      expect(geometry.surface.left - geometry.desktopToc!.right).toBeLessThanOrEqual(
         ARTICLE_DESKTOP_TOC_GAP + 1
       )
-      expect(geometry.viewportWidth - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
-        wideTocRightMarginMin(viewport.width)
-      )
+      expect(
+        Math.abs(geometry.desktopToc!.left - articleShellLeft(viewport.width))
+      ).toBeLessThanOrEqual(1)
       expect(geometry.desktopToc!.position).toBe('sticky')
       expect(geometry.desktopToc!.opacity).toBe(1)
       await expectDesktopTocPaint(page, `static surface ${viewport.width}`)
@@ -1576,7 +1600,7 @@ for (const scenario of [
     expect(metrics.paragraphTop).toBeLessThan(scenario.maxParagraphTop)
     expect(metrics.paragraphBottom).toBeGreaterThan(0)
     expect(metrics.visibleParagraphHeight).toBeGreaterThan(40)
-    expect(metrics.paragraphWidth).toBeLessThanOrEqual(Math.min(metrics.proseWidth, 720))
+    expect(metrics.paragraphWidth).toBeLessThanOrEqual(Math.min(metrics.proseWidth, 736))
     expect(metrics.titleFontSize).toBeGreaterThan(metrics.bodyH2FontSize + 3)
     expect(['normal', '0px']).toContain(metrics.titleLetterSpacing)
     expect(['normal', '0px']).toContain(metrics.bodyH2LetterSpacing)
@@ -1629,18 +1653,22 @@ test('Reading Max prose rhythm and line measure meet the viewport matrix', async
         expect(metrics.firstParagraph.visibleHeight).toBeGreaterThanOrEqual(
           visibility.minVisibleHeight
         )
-        expect(Math.abs(metrics.layout.surfaceCenterOffset)).toBeLessThanOrEqual(1)
-        expect(Math.abs(metrics.layout.textCenterOffset)).toBeLessThanOrEqual(1)
+        if (viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+          expect(Math.abs(metrics.layout.surfaceCenterOffset)).toBeLessThanOrEqual(1)
+        }
+        expect(
+          Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset)
+        ).toBeLessThanOrEqual(1)
 
         if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
           expect(metrics.toc).not.toBeNull()
-          expect(metrics.toc!.width).toBeGreaterThanOrEqual(189)
-          expect(metrics.toc!.width).toBeLessThanOrEqual(191)
+          expect(metrics.toc!.width).toBeGreaterThanOrEqual(255)
+          expect(metrics.toc!.width).toBeLessThanOrEqual(257)
           expect(metrics.toc!.gapFromSurface).toBeGreaterThanOrEqual(ARTICLE_DESKTOP_TOC_GAP - 1)
           expect(metrics.toc!.gapFromSurface).toBeLessThanOrEqual(ARTICLE_DESKTOP_TOC_GAP + 1)
-          expect(metrics.toc!.rightMargin).toBeGreaterThanOrEqual(
-            wideTocRightMarginMin(viewport.width)
-          )
+          expect(
+            Math.abs(metrics.toc!.leftMargin - articleShellLeft(viewport.width))
+          ).toBeLessThanOrEqual(1)
           expect(metrics.toc!.position).toBe('sticky')
           expect(metrics.toc!.opacity).toBe(1)
           await expectDesktopTocPaint(page, `${route.language} ${theme} ${viewport.width}`)
@@ -1768,24 +1796,53 @@ test('article content families, data blocks, and TOC share the reading rail', as
     expect(directNames, scenario.name).toEqual(expect.arrayContaining(scenario.expected))
     expect(metrics.railEdges.length, scenario.name).toBeGreaterThan(0)
 
-    for (const edge of [...metrics.directEdges, ...metrics.railEdges]) {
+    const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'table', 'math', 'pre'])
+    const captionNames = new Set(['figcaption'])
+    const railAlignedEdges = [...metrics.directEdges, ...metrics.railEdges].filter(
+      (edge) => !breakoutNames.has(edge.name) && !captionNames.has(edge.name)
+    )
+    const breakoutEdges = metrics.directEdges.filter((edge) => breakoutNames.has(edge.name))
+    const captionEdges = metrics.directEdges.filter((edge) => captionNames.has(edge.name))
+
+    for (const edge of railAlignedEdges) {
       expect(Math.abs(edge.left), `${scenario.name} ${edge.name} left`).toBeLessThanOrEqual(1)
       expect(Math.abs(edge.right), `${scenario.name} ${edge.name} right`).toBeLessThanOrEqual(1)
       expect(Math.abs(edge.width), `${scenario.name} ${edge.name} width`).toBeLessThanOrEqual(1)
     }
 
-    expect(Math.abs(metrics.layout.surfaceCenterOffset), scenario.name).toBeLessThanOrEqual(1)
-    expect(Math.abs(metrics.layout.textCenterOffset), scenario.name).toBeLessThanOrEqual(1)
+    for (const edge of breakoutEdges) {
+      expect(edge.width, `${scenario.name} ${edge.name} breakout width`).toBeGreaterThanOrEqual(-1)
+      expect(
+        Math.abs(edge.left + edge.right),
+        `${scenario.name} ${edge.name} breakout centering`
+      ).toBeLessThanOrEqual(2)
+    }
+
+    for (const edge of captionEdges) {
+      expect(edge.width, `${scenario.name} ${edge.name} caption width`).toBeLessThanOrEqual(1)
+      expect(
+        Math.abs(edge.left + edge.right),
+        `${scenario.name} ${edge.name} caption centering`
+      ).toBeLessThanOrEqual(2)
+    }
+
+    if (scenario.viewport.width < ARTICLE_DESKTOP_TOC_BREAKPOINT) {
+      expect(Math.abs(metrics.layout.surfaceCenterOffset), scenario.name).toBeLessThanOrEqual(1)
+    }
+    expect(
+      Math.abs(metrics.layout.textCenterOffset - metrics.layout.surfaceCenterOffset),
+      scenario.name
+    ).toBeLessThanOrEqual(1)
 
     if (scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       expect(metrics.toc, scenario.name).not.toBeNull()
-      expect(metrics.toc!.width).toBeGreaterThanOrEqual(189)
-      expect(metrics.toc!.width).toBeLessThanOrEqual(191)
+      expect(metrics.toc!.width).toBeGreaterThanOrEqual(255)
+      expect(metrics.toc!.width).toBeLessThanOrEqual(257)
       expect(metrics.toc!.gapFromSurface).toBeGreaterThanOrEqual(ARTICLE_DESKTOP_TOC_GAP - 1)
       expect(metrics.toc!.gapFromSurface).toBeLessThanOrEqual(ARTICLE_DESKTOP_TOC_GAP + 1)
-      expect(metrics.toc!.rightMargin).toBeGreaterThanOrEqual(
-        wideTocRightMarginMin(scenario.viewport.width)
-      )
+      expect(
+        Math.abs(metrics.toc!.leftMargin - articleShellLeft(scenario.viewport.width))
+      ).toBeLessThanOrEqual(1)
       expect(metrics.toc!.position).toBe('sticky')
       expect(metrics.toc!.opacity).toBe(1)
       await expectDesktopTocPaint(page, scenario.name)
@@ -2379,7 +2436,7 @@ for (const viewport of [
         }
       })
 
-      const expectedWidth = viewport.width < 640 ? viewport.width : ARTICLE_DESKTOP_SURFACE_WIDTH
+      const expectedWidth = articleSurfaceWidth(viewport.width)
       const expectedLeft = destination(viewport.width, viewport.height).left
 
       expect(geometry.surfaceCount).toBe(1)
@@ -2404,15 +2461,15 @@ for (const viewport of [
         expect(
           Math.abs(geometry.desktopToc!.width - ARTICLE_DESKTOP_TOC_WIDTH)
         ).toBeLessThanOrEqual(1)
-        expect(geometry.desktopToc!.left - geometry.surface.right).toBeGreaterThanOrEqual(
+        expect(geometry.surface.left - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
           ARTICLE_DESKTOP_TOC_GAP - 1
         )
-        expect(geometry.desktopToc!.left - geometry.surface.right).toBeLessThanOrEqual(
+        expect(geometry.surface.left - geometry.desktopToc!.right).toBeLessThanOrEqual(
           ARTICLE_DESKTOP_TOC_GAP + 1
         )
-        expect(geometry.viewportWidth - geometry.desktopToc!.right).toBeGreaterThanOrEqual(
-          wideTocRightMarginMin(viewport.width)
-        )
+        expect(
+          Math.abs(geometry.desktopToc!.left - articleShellLeft(viewport.width))
+        ).toBeLessThanOrEqual(1)
         expect(geometry.desktopToc!.position).toBe('sticky')
         expect(geometry.desktopToc!.opacity).toBe(1)
       } else {

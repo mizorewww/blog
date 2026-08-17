@@ -769,8 +769,8 @@ async function articleRailAlignmentMetrics(page) {
         tocVisible && toc instanceof HTMLElement && tocRect
           ? {
               width: Math.round(tocRect.width * 10) / 10,
-              gapFromSurface: Math.round((tocRect.left - surfaceRect.right) * 10) / 10,
-              rightMargin: Math.round((window.innerWidth - tocRect.right) * 10) / 10,
+              gapFromSurface: Math.round((surfaceRect.left - tocRect.right) * 10) / 10,
+              leftMargin: Math.round(tocRect.left * 10) / 10,
               position: getComputedStyle(toc).position,
               opacity: Math.round(Number.parseFloat(getComputedStyle(toc).opacity) * 100) / 100,
               headingContrast: tocHeadingContrast,
@@ -798,10 +798,12 @@ async function articleRailAlignmentMetrics(page) {
  * @param {number} width
  * @returns {number}
  */
-function wideTocRightMarginMin(width) {
-  if (width >= 1920) return 330
-  if (width >= 1728) return 240
-  return 96
+function articleShellLeft(width) {
+  if (width < 640) {
+    return 0
+  }
+
+  return (width - Math.min(1440, width - 30)) / 2
 }
 
 /**
@@ -819,9 +821,11 @@ function alignmentFailures(row) {
       metrics.layout
     )
   const toc =
-    /** @type {{ width: number, gapFromSurface: number, rightMargin: number, position: string, opacity: number, headingContrast: number, items: { text: string, clientWidth: number, scrollWidth: number, lines: number, contrast: number, clipped: boolean }[] } | null} */ (
+    /** @type {{ width: number, gapFromSurface: number, leftMargin: number, position: string, opacity: number, headingContrast: number, items: { text: string, clientWidth: number, scrollWidth: number, lines: number, contrast: number, clipped: boolean }[] } | null} */ (
       metrics.toc
     )
+  const breakoutNames = new Set(['figure', 'shiki', 'shiki-pre', 'table', 'math', 'pre'])
+  const captionNames = new Set(['figcaption'])
   const edgeGroups = [
     .../** @type {{ name: string, left: number, right: number, width: number }[]} */ (
       metrics.directEdges
@@ -830,12 +834,17 @@ function alignmentFailures(row) {
       metrics.railEdges
     ),
   ]
+  const railAlignedEdges = edgeGroups.filter(
+    (edge) => !breakoutNames.has(edge.name) && !captionNames.has(edge.name)
+  )
+  const breakoutEdges = edgeGroups.filter((edge) => breakoutNames.has(edge.name))
+  const captionEdges = edgeGroups.filter((edge) => captionNames.has(edge.name))
 
   if (document.overflowPx > 0) {
     failures.push({ kind: 'page-overflow', overflowPx: document.overflowPx })
   }
 
-  for (const edge of edgeGroups) {
+  for (const edge of railAlignedEdges) {
     const maxDelta = Math.max(Math.abs(edge.left), Math.abs(edge.right), Math.abs(edge.width))
 
     if (maxDelta > 1) {
@@ -843,19 +852,31 @@ function alignmentFailures(row) {
     }
   }
 
-  if (Math.abs(layout.surfaceCenterOffset) > 1) {
+  for (const edge of breakoutEdges) {
+    if (edge.width < -1 || Math.abs(edge.left + edge.right) > 2) {
+      failures.push({ kind: 'breakout-misaligned', edge })
+    }
+  }
+
+  for (const edge of captionEdges) {
+    if (edge.width > 1 || Math.abs(edge.left + edge.right) > 2) {
+      failures.push({ kind: 'caption-misaligned', edge })
+    }
+  }
+
+  if (viewport.width < 1024 && Math.abs(layout.surfaceCenterOffset) > 1) {
     failures.push({ kind: 'surface-offset', offset: layout.surfaceCenterOffset })
   }
 
-  if (Math.abs(layout.textCenterOffset) > 1) {
+  if (Math.abs(layout.textCenterOffset - layout.surfaceCenterOffset) > 1) {
     failures.push({ kind: 'text-offset', offset: layout.textCenterOffset })
   }
 
-  if (viewport.width >= 1440) {
+  if (viewport.width >= 1024) {
     if (!toc) {
       failures.push({ kind: 'toc-missing' })
     } else {
-      if (toc.width < 189 || toc.width > 191) {
+      if (toc.width < 255 || toc.width > 257) {
         failures.push({ kind: 'toc-width', width: toc.width })
       }
 
@@ -863,8 +884,8 @@ function alignmentFailures(row) {
         failures.push({ kind: 'toc-gap', gap: toc.gapFromSurface })
       }
 
-      if (toc.rightMargin < wideTocRightMarginMin(viewport.width)) {
-        failures.push({ kind: 'toc-right-margin', rightMargin: toc.rightMargin })
+      if (Math.abs(toc.leftMargin - articleShellLeft(viewport.width)) > 1) {
+        failures.push({ kind: 'toc-left-margin', leftMargin: toc.leftMargin })
       }
 
       if (toc.position !== 'sticky') {

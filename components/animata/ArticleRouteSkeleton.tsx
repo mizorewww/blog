@@ -21,7 +21,7 @@ export default function ArticleRouteSkeleton() {
               <Skeleton className="absolute top-3 right-3 h-11 w-11 rounded-full" />
             </div>
 
-            <div className="article-content-rail space-y-5 pt-6 pb-8 sm:pt-8 min-[90rem]:pb-0">
+            <div className="article-content-rail space-y-5 pt-6 pb-8 sm:pt-8 lg:pb-0">
               <Skeleton className="h-11 w-5/6" />
               <Skeleton className="h-6 w-full" />
               <Skeleton className="h-5 w-2/3" />
@@ -31,7 +31,7 @@ export default function ArticleRouteSkeleton() {
 
           <section
             data-article-skeleton-mobile-toc
-            className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 min-[90rem]:hidden"
+            className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 lg:hidden"
           >
             <div className="article-content-rail py-3">
               <Skeleton className="h-6 w-32" />
@@ -49,7 +49,7 @@ export default function ArticleRouteSkeleton() {
 
         <aside
           data-article-skeleton-desktop-toc
-          className="article-toc-desktop hidden space-y-3 min-[90rem]:block"
+          className="article-toc-desktop hidden space-y-3 lg:block"
         >
           <Skeleton className="h-5 w-28" />
           <Skeleton className="h-4 w-full" />

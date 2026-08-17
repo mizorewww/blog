@@ -120,7 +120,7 @@ export default function ArticleTableOfContents({
 
   if (variant === 'mobile') {
     return (
-      <section className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 min-[90rem]:hidden">
+      <section className="article-toc-mobile dark:border-border-subtle-dark w-full overflow-hidden border-y border-slate-200 lg:hidden">
         <button
           type="button"
           aria-controls={panelId}
@@ -158,7 +158,7 @@ export default function ArticleTableOfContents({
   }
 
   return (
-    <aside className="article-toc-desktop hidden min-[90rem]:block">
+    <aside className="article-toc-desktop hidden lg:block">
       <h2 className="mb-2 text-xs font-medium tracking-[0.04em] text-slate-600 uppercase dark:text-white/70">
         {labels.tableOfContents}
       </h2>

@@ -146,9 +146,9 @@ probe 会输出 header 控件命中区、首页首卡高度、侧栏视觉权重
 - 真实 rich article 的代码、表格和 MathJax 内部横向滚动。
 - `640x900` 下 `--text-scale 200` 的根字体、页面 overflow 和内部滚动状态。
 
-Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、页面 overflow、TOC 宽度/间距/右侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
+Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、页面 overflow、TOC 宽度/间距/左侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
 
-宽屏光学平衡改动的期望是：`1440px` 及以上文章 surface 为 `780px` 且按视口居中，正文 rail center offset 不超过 `1px`；桌面 TOC 不参与居中，保持 `190px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1440px` 仍可见。
+宽屏光学平衡改动的期望是：`1024px` 及以上文章 surface 填满居中 `article-shell` 的右侧栏，正文 rail 在 surface 内居中且 center offset 不超过 `1px`；桌面 TOC 在左侧常驻，保持 `256px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1024px` 仍可见。
 
 Reading Alignment 截图建议按真实文章和 fixture 分组，输出到本机 agent records：
 
@@ -240,7 +240,7 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - title 与其余持久信息在 overlay 终点和文章头部必须保持相同的元素顺序、字体、字重、行高、换行约束和 geometry，逐 child 投影且不使用 opacity crossfade 交接。捕获时冻结 Git 相对时间文案。read-more 只在 inert snapshot 中保留占位并平滑淡出，返回时平滑恢复，不在文章页生成可聚焦自链接。
 - 完整卡片打开且目标 pathname 已提交后，允许 snapshot 背后出现 fixed/inert/opaque underlay，直到 route 与 card motion 同时 ready。目标 DOM 必须继续挂载、保持语义和静态布局，导航、history、focus 与 scroll 都不能等待视觉 handoff。underlay 不得用于直达、失败或退化路径，也不得用于任何返回路径。
 - destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可在 validated opening 期间为 `opacity: 0`，并在 handoff 后用 `180 ms` reveal。正文及其所有祖先不得使用该 marker 或继承 transition opacity，必须在视觉层下保持静态可见。共享 cover、title、Git 信息、summary、date 与 tag 不得 opacity crossfade；snapshot 必须保持为最终 motion frame 的 topmost shared representation。reduced motion 在极短 snapshot 提示后立即显示目标 presentation，不等待 underlay 或 reveal。
-- `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`1440px` 目标面宽 `780px`、居中、`top: 120px`、radius `8px`。
+- `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`640–1023px` 目标面为居中 shell、`top: 120px`、radius `8px`；`1024px` 及以上目标面为同一居中 shell 减去左侧 TOC `256px + 36px` 后的右侧栏、`top: 120px`、radius `8px`。
 - Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除 snapshot、underlay 和 destination-only staging；这些歧义路径不得遮挡目标 pixels。
 - reduced motion 下禁止完整卡片的大范围 translate/scale，只允许极短 opacity 提示；正文、URL、focus 和 history 结果必须与正常模式一致。
 - Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先、文章路由或分类/标签的 index/detail 定义 `loading.tsx`，因为 Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时把最终内容留在隐藏的 `S:0` segment 后面。
