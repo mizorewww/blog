@@ -204,53 +204,55 @@ async function stylesForSelector(page, selector) {
  * @returns {Promise<Record<string, number>>}
  */
 async function articleCoverage(page) {
-  return page.locator('[data-article-body] .article-prose').evaluate((root) => {
-    /**
-     * @param {string} selector
-     * @returns {number}
-     */
-    const count = (selector) => root.querySelectorAll(selector).length
+  return page
+    .locator('[data-article-body].article-prose, [data-article-body] .article-prose')
+    .evaluate((root) => {
+      /**
+       * @param {string} selector
+       * @returns {number}
+       */
+      const count = (selector) => root.querySelectorAll(selector).length
 
-    return {
-      p: count('p'),
-      h2: count('h2'),
-      h3: count('h3'),
-      h4: count('h4'),
-      h5: count('h5'),
-      h6: count('h6'),
-      strong: count('strong'),
-      em: count('em'),
-      del: count('del'),
-      ul: count('ul'),
-      ol: count('ol'),
-      li: count('li'),
-      task: count('.task-list-item, input[type="checkbox"]'),
-      a: count('a'),
-      blockquote: count('blockquote'),
-      inlineCode: count(':not(pre) > code'),
-      linkedCode: count('a code'),
-      fencedCode: count('pre code'),
-      tables: count('table'),
-      images: count('img'),
-      figures: count('figure'),
-      captions: count('figcaption'),
-      hr: count('hr'),
-      details: count('details'),
-      summary: count('summary'),
-      footnotes: count('.footnotes'),
-      footnoteRefs: count('sup a[href^="#reading-fixture-footnote"], sup a[href^="#fn"]'),
-      footnoteBackrefs: count('.data-footnote-backref, a[href^="#fnref"]'),
-      kbd: count('kbd'),
-      abbr: count('abbr'),
-      mark: count('mark'),
-      sub: count('sub'),
-      sup: count('sup'),
-      math: count('mjx-container'),
-      longTokens: Array.from(root.querySelectorAll('p, li, td')).filter((element) =>
-        /[A-Za-z0-9:/._-]{48,}/.test(element.textContent || '')
-      ).length,
-    }
-  })
+      return {
+        p: count('p'),
+        h2: count('h2'),
+        h3: count('h3'),
+        h4: count('h4'),
+        h5: count('h5'),
+        h6: count('h6'),
+        strong: count('strong'),
+        em: count('em'),
+        del: count('del'),
+        ul: count('ul'),
+        ol: count('ol'),
+        li: count('li'),
+        task: count('.task-list-item, input[type="checkbox"]'),
+        a: count('a'),
+        blockquote: count('blockquote'),
+        inlineCode: count(':not(pre) > code'),
+        linkedCode: count('a code'),
+        fencedCode: count('pre code'),
+        tables: count('table'),
+        images: count('img'),
+        figures: count('figure'),
+        captions: count('figcaption'),
+        hr: count('hr'),
+        details: count('details'),
+        summary: count('summary'),
+        footnotes: count('.footnotes'),
+        footnoteRefs: count('sup a[href^="#reading-fixture-footnote"], sup a[href^="#fn"]'),
+        footnoteBackrefs: count('.data-footnote-backref, a[href^="#fnref"]'),
+        kbd: count('kbd'),
+        abbr: count('abbr'),
+        mark: count('mark'),
+        sub: count('sub'),
+        sup: count('sup'),
+        math: count('mjx-container'),
+        longTokens: Array.from(root.querySelectorAll('p, li, td')).filter((element) =>
+          /[A-Za-z0-9:/._-]{48,}/.test(element.textContent || '')
+        ).length,
+      }
+    })
 }
 
 /**
@@ -258,7 +260,11 @@ async function articleCoverage(page) {
  * @returns {Promise<Record<string, unknown> | null>}
  */
 async function inlineCodeMetrics(page) {
-  const locator = page.locator('[data-article-body] .article-prose :not(pre) > code').first()
+  const locator = page
+    .locator(
+      '[data-article-body].article-prose :not(pre) > code, [data-article-body] .article-prose :not(pre) > code'
+    )
+    .first()
 
   if ((await locator.count()) === 0) {
     return null
@@ -436,402 +442,406 @@ async function internalScrollMetrics(page, selector) {
  * @returns {Promise<Record<string, unknown>>}
  */
 async function articleRailAlignmentMetrics(page) {
-  return page.locator('[data-article-body] .article-prose').evaluate((root) => {
-    const paragraph = root.querySelector(':scope > p')
-    const surface = document.querySelector('[data-article-surface]')
+  return page
+    .locator('[data-article-body].article-prose, [data-article-body] .article-prose')
+    .evaluate((root) => {
+      const paragraph = root.querySelector(':scope > p')
+      const surface = document.querySelector('[data-article-surface]')
 
-    if (!(paragraph instanceof HTMLElement) || !(surface instanceof HTMLElement)) {
-      throw new Error('Missing article rail alignment target')
-    }
-
-    /**
-     * @param {Element} element
-     * @returns {{ left: number, right: number, width: number, height: number }}
-     */
-    const rect = (element) => {
-      const bounds = element.getBoundingClientRect()
-
-      return {
-        left: Math.round(bounds.left * 10) / 10,
-        right: Math.round(bounds.right * 10) / 10,
-        width: Math.round(bounds.width * 10) / 10,
-        height: Math.round(bounds.height * 10) / 10,
+      if (!(paragraph instanceof HTMLElement) || !(surface instanceof HTMLElement)) {
+        throw new Error('Missing article rail alignment target')
       }
-    }
-    const reference = rect(paragraph)
-    /**
-     * @param {string} name
-     * @param {Element} element
-     * @returns {{ name: string, left: number, right: number, width: number }}
-     */
-    const edgeDelta = (name, element) => {
-      const bounds = rect(element)
 
-      return {
-        name,
-        left: Math.round((bounds.left - reference.left) * 10) / 10,
-        right: Math.round((bounds.right - reference.right) * 10) / 10,
-        width: Math.round((bounds.width - reference.width) * 10) / 10,
-      }
-    }
-    const directSelectors = [
-      ['h2', ':scope > h2'],
-      ['h3', ':scope > h3'],
-      ['h4', ':scope > h4'],
-      ['h5', ':scope > h5'],
-      ['h6', ':scope > h6'],
-      ['ul', ':scope > ul'],
-      ['ol', ':scope > ol'],
-      ['blockquote', ':scope > blockquote'],
-      ['details', ':scope > details'],
-      ['figure', ':scope > .article-figure'],
-      ['figcaption', ':scope > .article-figure figcaption'],
-      ['shiki', ':scope > figure[data-rehype-pretty-code-figure]'],
-      ['shiki-pre', ':scope > figure[data-rehype-pretty-code-figure] [data-code-pre]'],
-      ['table', ':scope > .article-table-scroll'],
-      ['math', ":scope > mjx-container[jax='SVG'][display='true']"],
-      ['pre', ':scope > pre'],
-      ['data-block', ':scope > .article-data-block'],
-      ['footnotes', ':scope > .footnotes'],
-    ]
-    const directEdges = directSelectors.flatMap(([name, selector]) => {
-      const element = root.querySelector(selector)
-
-      return element ? [edgeDelta(name, element)] : []
-    })
-    const railEdges = Array.from(document.querySelectorAll('.article-content-rail'))
-      .filter((element) => {
+      /**
+       * @param {Element} element
+       * @returns {{ left: number, right: number, width: number, height: number }}
+       */
+      const rect = (element) => {
         const bounds = element.getBoundingClientRect()
 
-        return (
-          bounds.width > 0 &&
-          bounds.height > 0 &&
-          element instanceof HTMLElement &&
-          !!element.closest('[data-article-surface]')
-        )
-      })
-      .map((element, index) => edgeDelta(`rail-${index}`, element))
-    const scrollSurfaces = [
-      'figure[data-rehype-pretty-code-figure] [data-code-pre]',
-      '.article-table-scroll',
-      "mjx-container[jax='SVG'][display='true']",
-      ':scope > pre',
-    ].flatMap((selector) => {
-      const element = selector.startsWith(':scope')
-        ? root.querySelector(selector)
-        : root.querySelector(selector)
-
-      if (!(element instanceof HTMLElement)) {
-        return []
-      }
-
-      const style = getComputedStyle(element)
-
-      return [
-        {
-          selector,
-          clientWidth: element.clientWidth,
-          scrollWidth: element.scrollWidth,
-          overflowPx: element.scrollWidth - element.clientWidth,
-          overflowX: style.overflowX,
-          backgroundImage: style.backgroundImage,
-          backgroundAttachment: style.backgroundAttachment,
-        },
-      ]
-    })
-    const toc = document.querySelector('.article-toc-desktop')
-    const tocRect = toc instanceof HTMLElement ? toc.getBoundingClientRect() : null
-    const tocVisible =
-      toc instanceof HTMLElement &&
-      !!tocRect &&
-      getComputedStyle(toc).display !== 'none' &&
-      tocRect.width > 0 &&
-      tocRect.height > 0
-    /**
-     * @param {string | undefined} value
-     * @returns {number}
-     */
-    const parseAlpha = (value) =>
-      value?.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value || '1')
-    /**
-     * @param {string} value
-     * @returns {number}
-     */
-    const parseLightness = (value) =>
-      value.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value)
-    /**
-     * @param {number} channel
-     * @returns {number}
-     */
-    const srgbChannel = (channel) => {
-      const clamped = Math.min(1, Math.max(0, channel))
-
-      return (clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055) * 255
-    }
-    /**
-     * @param {number} l
-     * @param {number} a
-     * @param {number} b
-     * @param {number} alpha
-     * @returns {{ r: number, g: number, b: number, a: number }}
-     */
-    const oklabToRgba = (l, a, b, alpha) => {
-      const lPrime = l + 0.3963377774 * a + 0.2158037573 * b
-      const mPrime = l - 0.1055613458 * a - 0.0638541728 * b
-      const sPrime = l - 0.0894841775 * a - 1.291485548 * b
-      const l3 = lPrime ** 3
-      const m3 = mPrime ** 3
-      const s3 = sPrime ** 3
-
-      return {
-        r: srgbChannel(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
-        g: srgbChannel(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
-        b: srgbChannel(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3),
-        a: alpha,
-      }
-    }
-    /**
-     * @param {string} value
-     * @returns {{ r: number, g: number, b: number, a: number } | null}
-     */
-    const parseColor = (value) => {
-      const rgb = value.match(
-        /rgba?\(\s*([0-9.]+)\s*,?\s+([0-9.]+)\s*,?\s+([0-9.]+)(?:\s*[/,]\s*([0-9.]+%?))?\s*\)/
-      )
-
-      if (rgb) {
         return {
-          r: Number.parseFloat(rgb[1]),
-          g: Number.parseFloat(rgb[2]),
-          b: Number.parseFloat(rgb[3]),
-          a: parseAlpha(rgb[4]),
+          left: Math.round(bounds.left * 10) / 10,
+          right: Math.round(bounds.right * 10) / 10,
+          width: Math.round(bounds.width * 10) / 10,
+          height: Math.round(bounds.height * 10) / 10,
         }
       }
+      const reference = rect(paragraph)
+      /**
+       * @param {string} name
+       * @param {Element} element
+       * @returns {{ name: string, left: number, right: number, width: number }}
+       */
+      const edgeDelta = (name, element) => {
+        const bounds = rect(element)
 
-      const oklab = value.match(
-        /oklab\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
-      )
+        return {
+          name,
+          left: Math.round((bounds.left - reference.left) * 10) / 10,
+          right: Math.round((bounds.right - reference.right) * 10) / 10,
+          width: Math.round((bounds.width - reference.width) * 10) / 10,
+        }
+      }
+      const directSelectors = [
+        ['h2', ':scope > h2'],
+        ['h3', ':scope > h3'],
+        ['h4', ':scope > h4'],
+        ['h5', ':scope > h5'],
+        ['h6', ':scope > h6'],
+        ['ul', ':scope > ul'],
+        ['ol', ':scope > ol'],
+        ['blockquote', ':scope > blockquote'],
+        ['details', ':scope > details'],
+        ['figure', ':scope > .article-figure'],
+        ['figcaption', ':scope > .article-figure figcaption'],
+        ['shiki', ':scope > figure[data-rehype-pretty-code-figure]'],
+        ['shiki-pre', ':scope > figure[data-rehype-pretty-code-figure] [data-code-pre]'],
+        ['table', ':scope > .article-table-scroll'],
+        ['math', ":scope > mjx-container[jax='SVG'][display='true']"],
+        ['pre', ':scope > pre'],
+        ['data-block', ':scope > .article-data-block'],
+        ['footnotes', ':scope > .footnotes'],
+      ]
+      const directEdges = directSelectors.flatMap(([name, selector]) => {
+        const element = root.querySelector(selector)
 
-      if (oklab) {
-        return oklabToRgba(
-          parseLightness(oklab[1]),
-          Number.parseFloat(oklab[2]),
-          Number.parseFloat(oklab[3]),
-          parseAlpha(oklab[4])
+        return element ? [edgeDelta(name, element)] : []
+      })
+      const railEdges = Array.from(document.querySelectorAll('.article-content-rail'))
+        .filter((element) => {
+          const bounds = element.getBoundingClientRect()
+
+          return (
+            bounds.width > 0 &&
+            bounds.height > 0 &&
+            element instanceof HTMLElement &&
+            !!element.closest('[data-article-surface]')
+          )
+        })
+        .map((element, index) => edgeDelta(`rail-${index}`, element))
+      const scrollSurfaces = [
+        'figure[data-rehype-pretty-code-figure] [data-code-pre]',
+        '.article-table-scroll',
+        "mjx-container[jax='SVG'][display='true']",
+        ':scope > pre',
+      ].flatMap((selector) => {
+        const element = selector.startsWith(':scope')
+          ? root.querySelector(selector)
+          : root.querySelector(selector)
+
+        if (!(element instanceof HTMLElement)) {
+          return []
+        }
+
+        const style = getComputedStyle(element)
+
+        return [
+          {
+            selector,
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            overflowPx: element.scrollWidth - element.clientWidth,
+            overflowX: style.overflowX,
+            backgroundImage: style.backgroundImage,
+            backgroundAttachment: style.backgroundAttachment,
+          },
+        ]
+      })
+      const toc = document.querySelector('.article-toc-desktop')
+      const tocRect = toc instanceof HTMLElement ? toc.getBoundingClientRect() : null
+      const tocVisible =
+        toc instanceof HTMLElement &&
+        !!tocRect &&
+        getComputedStyle(toc).display !== 'none' &&
+        tocRect.width > 0 &&
+        tocRect.height > 0
+      /**
+       * @param {string | undefined} value
+       * @returns {number}
+       */
+      const parseAlpha = (value) =>
+        value?.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value || '1')
+      /**
+       * @param {string} value
+       * @returns {number}
+       */
+      const parseLightness = (value) =>
+        value.endsWith('%') ? Number.parseFloat(value) / 100 : Number.parseFloat(value)
+      /**
+       * @param {number} channel
+       * @returns {number}
+       */
+      const srgbChannel = (channel) => {
+        const clamped = Math.min(1, Math.max(0, channel))
+
+        return (clamped <= 0.0031308 ? 12.92 * clamped : 1.055 * clamped ** (1 / 2.4) - 0.055) * 255
+      }
+      /**
+       * @param {number} l
+       * @param {number} a
+       * @param {number} b
+       * @param {number} alpha
+       * @returns {{ r: number, g: number, b: number, a: number }}
+       */
+      const oklabToRgba = (l, a, b, alpha) => {
+        const lPrime = l + 0.3963377774 * a + 0.2158037573 * b
+        const mPrime = l - 0.1055613458 * a - 0.0638541728 * b
+        const sPrime = l - 0.0894841775 * a - 1.291485548 * b
+        const l3 = lPrime ** 3
+        const m3 = mPrime ** 3
+        const s3 = sPrime ** 3
+
+        return {
+          r: srgbChannel(4.0767416621 * l3 - 3.3077115913 * m3 + 0.2309699292 * s3),
+          g: srgbChannel(-1.2684380046 * l3 + 2.6097574011 * m3 - 0.3413193965 * s3),
+          b: srgbChannel(-0.0041960863 * l3 - 0.7034186147 * m3 + 1.707614701 * s3),
+          a: alpha,
+        }
+      }
+      /**
+       * @param {string} value
+       * @returns {{ r: number, g: number, b: number, a: number } | null}
+       */
+      const parseColor = (value) => {
+        const rgb = value.match(
+          /rgba?\(\s*([0-9.]+)\s*,?\s+([0-9.]+)\s*,?\s+([0-9.]+)(?:\s*[/,]\s*([0-9.]+%?))?\s*\)/
         )
-      }
 
-      const oklch = value.match(
-        /oklch\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
-      )
+        if (rgb) {
+          return {
+            r: Number.parseFloat(rgb[1]),
+            g: Number.parseFloat(rgb[2]),
+            b: Number.parseFloat(rgb[3]),
+            a: parseAlpha(rgb[4]),
+          }
+        }
 
-      if (oklch) {
-        const hue = (Number.parseFloat(oklch[3]) * Math.PI) / 180
-        const chroma = Number.parseFloat(oklch[2])
-
-        return oklabToRgba(
-          parseLightness(oklch[1]),
-          chroma * Math.cos(hue),
-          chroma * Math.sin(hue),
-          parseAlpha(oklch[4])
+        const oklab = value.match(
+          /oklab\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
         )
-      }
 
-      return null
-    }
-    /**
-     * @param {{ r: number, g: number, b: number, a: number }} top
-     * @param {{ r: number, g: number, b: number, a: number }} bottom
-     * @returns {{ r: number, g: number, b: number, a: number }}
-     */
-    const composite = (top, bottom) => {
-      const alpha = top.a + bottom.a * (1 - top.a)
+        if (oklab) {
+          return oklabToRgba(
+            parseLightness(oklab[1]),
+            Number.parseFloat(oklab[2]),
+            Number.parseFloat(oklab[3]),
+            parseAlpha(oklab[4])
+          )
+        }
 
-      if (alpha === 0) {
-        return { r: 0, g: 0, b: 0, a: 0 }
+        const oklch = value.match(
+          /oklch\(\s*([^)\s]+)\s+([^)\s]+)\s+([^)\s/]+)(?:\s*\/\s*([^)\s]+))?\s*\)/
+        )
+
+        if (oklch) {
+          const hue = (Number.parseFloat(oklch[3]) * Math.PI) / 180
+          const chroma = Number.parseFloat(oklch[2])
+
+          return oklabToRgba(
+            parseLightness(oklch[1]),
+            chroma * Math.cos(hue),
+            chroma * Math.sin(hue),
+            parseAlpha(oklch[4])
+          )
+        }
+
+        return null
       }
+      /**
+       * @param {{ r: number, g: number, b: number, a: number }} top
+       * @param {{ r: number, g: number, b: number, a: number }} bottom
+       * @returns {{ r: number, g: number, b: number, a: number }}
+       */
+      const composite = (top, bottom) => {
+        const alpha = top.a + bottom.a * (1 - top.a)
+
+        if (alpha === 0) {
+          return { r: 0, g: 0, b: 0, a: 0 }
+        }
+
+        return {
+          r: (top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / alpha,
+          g: (top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / alpha,
+          b: (top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / alpha,
+          a: alpha,
+        }
+      }
+      /**
+       * @param {number} channel
+       * @returns {number}
+       */
+      const luminanceChannel = (channel) => {
+        const normalized = channel / 255
+
+        return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
+      }
+      /**
+       * @param {{ r: number, g: number, b: number, a: number }} color
+       * @returns {number}
+       */
+      const luminance = (color) =>
+        0.2126 * luminanceChannel(color.r) +
+        0.7152 * luminanceChannel(color.g) +
+        0.0722 * luminanceChannel(color.b)
+      /**
+       * @param {{ r: number, g: number, b: number, a: number }} first
+       * @param {{ r: number, g: number, b: number, a: number }} second
+       * @returns {number}
+       */
+      const contrast = (first, second) => {
+        const lighter = Math.max(luminance(first), luminance(second))
+        const darker = Math.min(luminance(first), luminance(second))
+
+        return (lighter + 0.05) / (darker + 0.05)
+      }
+      /**
+       * @param {Element} target
+       * @returns {{ r: number, g: number, b: number, a: number }}
+       */
+      const effectiveBackground = (target) => {
+        const chain = /** @type {Element[]} */ ([])
+        let current = /** @type {Element | null} */ (target)
+
+        while (current) {
+          chain.push(current)
+          current = current.parentElement
+        }
+
+        let result = getComputedStyle(document.documentElement).colorScheme.includes('dark')
+          ? { r: 0, g: 0, b: 0, a: 1 }
+          : { r: 255, g: 255, b: 255, a: 1 }
+
+        for (const item of chain.reverse()) {
+          const color = parseColor(getComputedStyle(item).backgroundColor)
+
+          if (color && color.a > 0) {
+            result = composite(color, result)
+          }
+        }
+
+        return result
+      }
+      /**
+       * @param {Element} target
+       * @returns {number}
+       */
+      const inheritedOpacity = (target) => {
+        let opacity = 1
+        let current = /** @type {Element | null} */ (target)
+
+        while (current instanceof HTMLElement) {
+          opacity *= Number.parseFloat(getComputedStyle(current).opacity)
+          current = current.parentElement
+        }
+
+        return opacity
+      }
+      /**
+       * @param {HTMLElement} target
+       * @returns {number}
+       */
+      const renderedContrast = (target) => {
+        const foreground = parseColor(getComputedStyle(target).color)
+
+        if (!foreground) {
+          return 0
+        }
+
+        const background = effectiveBackground(target)
+        const paintedForeground = composite(
+          { ...foreground, a: foreground.a * inheritedOpacity(target) },
+          background
+        )
+
+        return Math.round(contrast(paintedForeground, background) * 100) / 100
+      }
+      const surfaceRect = surface.getBoundingClientRect()
+      const groupLeft = Math.min(surfaceRect.left, tocVisible ? tocRect.left : surfaceRect.left)
+      const groupRight = Math.max(surfaceRect.right, tocVisible ? tocRect.right : surfaceRect.right)
+      const tocHeading = tocVisible && toc instanceof HTMLElement ? toc.querySelector('h2') : null
+      const tocHeadingContrast =
+        tocHeading instanceof HTMLElement ? renderedContrast(tocHeading) : 0
+      const table = root.querySelector(':scope > .article-table-scroll')
+      const tableRect = table instanceof HTMLElement ? table.getBoundingClientRect() : null
+      const tableInner = table instanceof HTMLElement ? table.querySelector('table') : null
+      const tableHeader = table instanceof HTMLElement ? table.querySelector('th') : null
+      const tableEvenCell =
+        table instanceof HTMLElement ? table.querySelector('tbody tr:nth-child(even) td') : null
+      const tableMetrics =
+        table instanceof HTMLElement && tableRect && tableInner instanceof HTMLElement
+          ? {
+              width: Math.round(tableRect.width * 10) / 10,
+              left: Math.round(tableRect.left * 10) / 10,
+              clientWidth: table.clientWidth,
+              scrollWidth: table.scrollWidth,
+              overflowX: getComputedStyle(table).overflowX,
+              tableWidth: Math.round(tableInner.getBoundingClientRect().width * 10) / 10,
+              tableComputedWidth: getComputedStyle(tableInner).width,
+              containerComputedWidth: getComputedStyle(table).width,
+              thBackground:
+                tableHeader instanceof HTMLElement
+                  ? getComputedStyle(tableHeader).backgroundColor
+                  : '',
+              evenRowBackground:
+                tableEvenCell instanceof HTMLElement
+                  ? getComputedStyle(tableEvenCell).backgroundColor
+                  : '',
+            }
+          : null
 
       return {
-        r: (top.r * top.a + bottom.r * bottom.a * (1 - top.a)) / alpha,
-        g: (top.g * top.a + bottom.g * bottom.a * (1 - top.a)) / alpha,
-        b: (top.b * top.a + bottom.b * bottom.a * (1 - top.a)) / alpha,
-        a: alpha,
+        document: {
+          scrollWidth: document.documentElement.scrollWidth,
+          clientWidth: document.documentElement.clientWidth,
+          overflowPx: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        },
+        paragraph: reference,
+        directEdges,
+        railEdges,
+        scrollSurfaces,
+        table: tableMetrics,
+        layout: {
+          groupCenterOffset:
+            Math.round(((groupLeft + groupRight) / 2 - window.innerWidth / 2) * 10) / 10,
+          surfaceCenterOffset:
+            Math.round(((surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2) * 10) /
+            10,
+          textCenterOffset:
+            Math.round(((reference.left + reference.right) / 2 - window.innerWidth / 2) * 10) / 10,
+          textLeftInset: Math.round((reference.left - surfaceRect.left) * 10) / 10,
+          paragraphLeft: Math.round(reference.left * 10) / 10,
+          paragraphRight: Math.round(reference.right * 10) / 10,
+          surfaceLeft: Math.round(surfaceRect.left * 10) / 10,
+          surfaceRight: Math.round(surfaceRect.right * 10) / 10,
+        },
+        toc:
+          tocVisible && toc instanceof HTMLElement && tocRect
+            ? {
+                width: Math.round(tocRect.width * 10) / 10,
+                gapFromSurface: Math.round((surfaceRect.left - tocRect.right) * 10) / 10,
+                leftMargin: Math.round(tocRect.left * 10) / 10,
+                position: getComputedStyle(toc).position,
+                opacity: Math.round(Number.parseFloat(getComputedStyle(toc).opacity) * 100) / 100,
+                headingContrast: tocHeadingContrast,
+                items: Array.from(toc.querySelectorAll('a span')).map((item) => {
+                  const itemElement = /** @type {HTMLElement} */ (item)
+                  const rect = itemElement.getBoundingClientRect()
+                  const lineHeight =
+                    Number.parseFloat(getComputedStyle(itemElement).lineHeight) || 20
+
+                  return {
+                    text: itemElement.textContent?.trim() || '',
+                    clientWidth: itemElement.clientWidth,
+                    scrollWidth: itemElement.scrollWidth,
+                    lines: Math.max(1, Math.round(rect.height / lineHeight)),
+                    contrast: renderedContrast(itemElement),
+                    clipped: itemElement.scrollWidth > itemElement.clientWidth + 1,
+                  }
+                }),
+              }
+            : null,
       }
-    }
-    /**
-     * @param {number} channel
-     * @returns {number}
-     */
-    const luminanceChannel = (channel) => {
-      const normalized = channel / 255
-
-      return normalized <= 0.03928 ? normalized / 12.92 : ((normalized + 0.055) / 1.055) ** 2.4
-    }
-    /**
-     * @param {{ r: number, g: number, b: number, a: number }} color
-     * @returns {number}
-     */
-    const luminance = (color) =>
-      0.2126 * luminanceChannel(color.r) +
-      0.7152 * luminanceChannel(color.g) +
-      0.0722 * luminanceChannel(color.b)
-    /**
-     * @param {{ r: number, g: number, b: number, a: number }} first
-     * @param {{ r: number, g: number, b: number, a: number }} second
-     * @returns {number}
-     */
-    const contrast = (first, second) => {
-      const lighter = Math.max(luminance(first), luminance(second))
-      const darker = Math.min(luminance(first), luminance(second))
-
-      return (lighter + 0.05) / (darker + 0.05)
-    }
-    /**
-     * @param {Element} target
-     * @returns {{ r: number, g: number, b: number, a: number }}
-     */
-    const effectiveBackground = (target) => {
-      const chain = /** @type {Element[]} */ ([])
-      let current = /** @type {Element | null} */ (target)
-
-      while (current) {
-        chain.push(current)
-        current = current.parentElement
-      }
-
-      let result = getComputedStyle(document.documentElement).colorScheme.includes('dark')
-        ? { r: 0, g: 0, b: 0, a: 1 }
-        : { r: 255, g: 255, b: 255, a: 1 }
-
-      for (const item of chain.reverse()) {
-        const color = parseColor(getComputedStyle(item).backgroundColor)
-
-        if (color && color.a > 0) {
-          result = composite(color, result)
-        }
-      }
-
-      return result
-    }
-    /**
-     * @param {Element} target
-     * @returns {number}
-     */
-    const inheritedOpacity = (target) => {
-      let opacity = 1
-      let current = /** @type {Element | null} */ (target)
-
-      while (current instanceof HTMLElement) {
-        opacity *= Number.parseFloat(getComputedStyle(current).opacity)
-        current = current.parentElement
-      }
-
-      return opacity
-    }
-    /**
-     * @param {HTMLElement} target
-     * @returns {number}
-     */
-    const renderedContrast = (target) => {
-      const foreground = parseColor(getComputedStyle(target).color)
-
-      if (!foreground) {
-        return 0
-      }
-
-      const background = effectiveBackground(target)
-      const paintedForeground = composite(
-        { ...foreground, a: foreground.a * inheritedOpacity(target) },
-        background
-      )
-
-      return Math.round(contrast(paintedForeground, background) * 100) / 100
-    }
-    const surfaceRect = surface.getBoundingClientRect()
-    const groupLeft = Math.min(surfaceRect.left, tocVisible ? tocRect.left : surfaceRect.left)
-    const groupRight = Math.max(surfaceRect.right, tocVisible ? tocRect.right : surfaceRect.right)
-    const tocHeading = tocVisible && toc instanceof HTMLElement ? toc.querySelector('h2') : null
-    const tocHeadingContrast = tocHeading instanceof HTMLElement ? renderedContrast(tocHeading) : 0
-    const table = root.querySelector(':scope > .article-table-scroll')
-    const tableRect = table instanceof HTMLElement ? table.getBoundingClientRect() : null
-    const tableInner = table instanceof HTMLElement ? table.querySelector('table') : null
-    const tableHeader = table instanceof HTMLElement ? table.querySelector('th') : null
-    const tableEvenCell =
-      table instanceof HTMLElement ? table.querySelector('tbody tr:nth-child(even) td') : null
-    const tableMetrics =
-      table instanceof HTMLElement && tableRect && tableInner instanceof HTMLElement
-        ? {
-            width: Math.round(tableRect.width * 10) / 10,
-            left: Math.round(tableRect.left * 10) / 10,
-            clientWidth: table.clientWidth,
-            scrollWidth: table.scrollWidth,
-            overflowX: getComputedStyle(table).overflowX,
-            tableWidth: Math.round(tableInner.getBoundingClientRect().width * 10) / 10,
-            tableComputedWidth: getComputedStyle(tableInner).width,
-            containerComputedWidth: getComputedStyle(table).width,
-            thBackground:
-              tableHeader instanceof HTMLElement
-                ? getComputedStyle(tableHeader).backgroundColor
-                : '',
-            evenRowBackground:
-              tableEvenCell instanceof HTMLElement
-                ? getComputedStyle(tableEvenCell).backgroundColor
-                : '',
-          }
-        : null
-
-    return {
-      document: {
-        scrollWidth: document.documentElement.scrollWidth,
-        clientWidth: document.documentElement.clientWidth,
-        overflowPx: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      },
-      paragraph: reference,
-      directEdges,
-      railEdges,
-      scrollSurfaces,
-      table: tableMetrics,
-      layout: {
-        groupCenterOffset:
-          Math.round(((groupLeft + groupRight) / 2 - window.innerWidth / 2) * 10) / 10,
-        surfaceCenterOffset:
-          Math.round(((surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2) * 10) /
-          10,
-        textCenterOffset:
-          Math.round(((reference.left + reference.right) / 2 - window.innerWidth / 2) * 10) / 10,
-        textLeftInset: Math.round((reference.left - surfaceRect.left) * 10) / 10,
-        paragraphLeft: Math.round(reference.left * 10) / 10,
-        paragraphRight: Math.round(reference.right * 10) / 10,
-        surfaceLeft: Math.round(surfaceRect.left * 10) / 10,
-        surfaceRight: Math.round(surfaceRect.right * 10) / 10,
-      },
-      toc:
-        tocVisible && toc instanceof HTMLElement && tocRect
-          ? {
-              width: Math.round(tocRect.width * 10) / 10,
-              gapFromSurface: Math.round((surfaceRect.left - tocRect.right) * 10) / 10,
-              leftMargin: Math.round(tocRect.left * 10) / 10,
-              position: getComputedStyle(toc).position,
-              opacity: Math.round(Number.parseFloat(getComputedStyle(toc).opacity) * 100) / 100,
-              headingContrast: tocHeadingContrast,
-              items: Array.from(toc.querySelectorAll('a span')).map((item) => {
-                const itemElement = /** @type {HTMLElement} */ (item)
-                const rect = itemElement.getBoundingClientRect()
-                const lineHeight = Number.parseFloat(getComputedStyle(itemElement).lineHeight) || 20
-
-                return {
-                  text: itemElement.textContent?.trim() || '',
-                  clientWidth: itemElement.clientWidth,
-                  scrollWidth: itemElement.scrollWidth,
-                  lines: Math.max(1, Math.round(rect.height / lineHeight)),
-                  contrast: renderedContrast(itemElement),
-                  clipped: itemElement.scrollWidth > itemElement.clientWidth + 1,
-                }
-              }),
-            }
-          : null,
-    }
-  })
+    })
 }
 
 /**
@@ -1177,11 +1187,19 @@ async function articleTopMetrics(page) {
 
     const surface = document.querySelector('[data-article-surface]')
     const body = document.querySelector('[data-article-body]')
-    const prose = document.querySelector('[data-article-body] .article-prose')
+    const prose = document.querySelector(
+      '[data-article-body].article-prose, [data-article-body] .article-prose'
+    )
     const h1 = document.querySelector('h1')
-    const h2 = document.querySelector('[data-article-body] .article-prose h2')
-    const h3 = document.querySelector('[data-article-body] .article-prose h3')
-    const firstParagraph = document.querySelector('[data-article-body] .article-prose > p')
+    const h2 = document.querySelector(
+      '[data-article-body].article-prose h2, [data-article-body] .article-prose h2'
+    )
+    const h3 = document.querySelector(
+      '[data-article-body].article-prose h3, [data-article-body] .article-prose h3'
+    )
+    const firstParagraph = document.querySelector(
+      '[data-article-body].article-prose > p, [data-article-body] .article-prose > p'
+    )
     const toc = document.querySelector('.article-toc-desktop')
 
     if (
@@ -1408,7 +1426,9 @@ async function applyTextScale(page, textScale) {
  */
 async function injectReadingFixture(page) {
   await page.evaluate((fixtureHtml) => {
-    const prose = document.querySelector('[data-article-body] .article-prose')
+    const prose = document.querySelector(
+      '[data-article-body].article-prose, [data-article-body] .article-prose'
+    )
     if (!(prose instanceof HTMLElement)) {
       throw new Error('Missing article prose fixture target')
     }
@@ -1848,16 +1868,16 @@ async function probeReadingFixture(browser, baseUrl) {
               inlineCode: await inlineCodeMetrics(page),
               linkedCode: await internalScrollMetrics(
                 page,
-                '[data-article-body] .article-prose a code'
+                '[data-article-body].article-prose a code, [data-article-body] .article-prose a code'
               ),
               preCode: await internalScrollMetrics(
                 page,
-                '[data-article-body] .article-prose pre code'
+                '[data-article-body].article-prose pre code, [data-article-body] .article-prose pre code'
               ),
               table: await internalScrollMetrics(page, '[data-article-body] .article-table-scroll'),
               longToken: await internalScrollMetrics(
                 page,
-                '[data-article-body] .article-prose p:last-child'
+                '[data-article-body].article-prose p:last-child, [data-article-body] .article-prose p:last-child'
               ),
             }
           }

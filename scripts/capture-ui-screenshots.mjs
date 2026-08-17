@@ -436,7 +436,9 @@ async function applyTextScale(page, textScale) {
  */
 async function injectReadingFixture(page) {
   await page.evaluate((fixtureHtml) => {
-    const prose = document.querySelector('[data-article-body] .article-prose')
+    const prose = document.querySelector(
+      '[data-article-body].article-prose, [data-article-body] .article-prose'
+    )
     if (!(prose instanceof HTMLElement)) {
       throw new Error('Missing article prose fixture target')
     }
@@ -508,7 +510,11 @@ async function prepareCapture(page, key, options) {
   if (key === 'article-inline-code') {
     await scrollLocatorIntoCapture(
       page,
-      page.locator('[data-article-body] .article-prose :not(pre) > code').first()
+      page
+        .locator(
+          '[data-article-body].article-prose :not(pre) > code, [data-article-body] .article-prose :not(pre) > code'
+        )
+        .first()
     )
     return
   }

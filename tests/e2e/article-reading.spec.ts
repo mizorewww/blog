@@ -372,7 +372,9 @@ async function openReadingPage(
 
 async function injectReadingFixture(page: Page) {
   await page.evaluate((fixtureHtml) => {
-    const prose = document.querySelector<HTMLElement>('[data-article-body] .article-prose')
+    const prose = document.querySelector<HTMLElement>(
+      '[data-article-body].article-prose, [data-article-body] .article-prose'
+    )
 
     if (!prose) {
       throw new Error('Missing article prose fixture target')
@@ -393,7 +395,7 @@ async function noPageOverflow(page: Page) {
 async function articleReadingMetrics(page: Page) {
   return page.evaluate(() => {
     const firstParagraph = document.querySelector<HTMLElement>(
-      '[data-article-body] .article-prose > p'
+      '[data-article-body].article-prose > p, [data-article-body] .article-prose > p'
     )
     const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
     const surface = document.querySelector<HTMLElement>('[data-article-surface]')
@@ -701,7 +703,7 @@ async function expectDesktopTocPaint(page: Page, label: string) {
 
 async function inlineCodeStyleMetrics(
   page: Page,
-  selector = '[data-article-body] .article-prose :not(pre) > code'
+  selector = '[data-article-body].article-prose :not(pre) > code, [data-article-body] .article-prose :not(pre) > code'
 ): Promise<InlineCodeStyleMetrics> {
   return page
     .locator(selector)
@@ -827,165 +829,173 @@ async function scrollBoxMetrics(page: Page, selector: string) {
 }
 
 async function articleRailAlignmentMetrics(page: Page) {
-  return page.locator('[data-article-body] .article-prose').evaluate((root) => {
-    const paragraph = root.querySelector<HTMLElement>(':scope > p')
-    const surface = document.querySelector<HTMLElement>('[data-article-surface]')
+  return page
+    .locator('[data-article-body].article-prose, [data-article-body] .article-prose')
+    .evaluate((root) => {
+      const paragraph = root.querySelector<HTMLElement>(':scope > p')
+      const surface = document.querySelector<HTMLElement>('[data-article-surface]')
 
-    if (!paragraph || !surface) {
-      throw new Error('Missing article rail alignment target')
-    }
-
-    const rect = (element: Element) => {
-      const bounds = element.getBoundingClientRect()
-
-      return {
-        left: bounds.left,
-        right: bounds.right,
-        width: bounds.width,
-        height: bounds.height,
+      if (!paragraph || !surface) {
+        throw new Error('Missing article rail alignment target')
       }
-    }
-    const reference = rect(paragraph)
-    const edgeDelta = (name: string, element: Element) => {
-      const bounds = rect(element)
 
-      return {
-        name,
-        left: bounds.left - reference.left,
-        right: bounds.right - reference.right,
-        width: bounds.width - reference.width,
-      }
-    }
-    const directSelectors = [
-      ['h2', ':scope > h2'],
-      ['h3', ':scope > h3'],
-      ['h4', ':scope > h4'],
-      ['h5', ':scope > h5'],
-      ['h6', ':scope > h6'],
-      ['ul', ':scope > ul'],
-      ['ol', ':scope > ol'],
-      ['blockquote', ':scope > blockquote'],
-      ['details', ':scope > details'],
-      ['figure', ':scope > .article-figure'],
-      ['figcaption', ':scope > .article-figure figcaption'],
-      ['shiki', ':scope > figure[data-rehype-pretty-code-figure]'],
-      ['shiki-pre', ':scope > figure[data-rehype-pretty-code-figure] [data-code-pre]'],
-      ['table', ':scope > .article-table-scroll'],
-      ['math', ":scope > mjx-container[jax='SVG'][display='true']"],
-      ['pre', ':scope > pre'],
-      ['data-block', ':scope > .article-data-block'],
-      ['footnotes', ':scope > .footnotes'],
-    ] as const
-    const directEdges = directSelectors.flatMap(([name, selector]) => {
-      const element = root.querySelector(selector)
-
-      return element ? [edgeDelta(name, element)] : []
-    })
-    const railEdges = [...document.querySelectorAll<HTMLElement>('.article-content-rail')]
-      .filter((element) => {
+      const rect = (element: Element) => {
         const bounds = element.getBoundingClientRect()
 
-        return bounds.width > 0 && bounds.height > 0 && !!element.closest('[data-article-surface]')
-      })
-      .map((element, index) => edgeDelta(`rail-${index}`, element))
-    const scrollSurfaces = [
-      'figure[data-rehype-pretty-code-figure] [data-code-pre]',
-      '.article-table-scroll',
-      "mjx-container[jax='SVG'][display='true']",
-      ':scope > pre',
-    ].flatMap((selector) => {
-      const element = selector.startsWith(':scope')
-        ? root.querySelector<HTMLElement>(selector)
-        : root.querySelector<HTMLElement>(selector)
-
-      if (!element) {
-        return []
+        return {
+          left: bounds.left,
+          right: bounds.right,
+          width: bounds.width,
+          height: bounds.height,
+        }
       }
+      const reference = rect(paragraph)
+      const edgeDelta = (name: string, element: Element) => {
+        const bounds = rect(element)
 
-      const style = getComputedStyle(element)
+        return {
+          name,
+          left: bounds.left - reference.left,
+          right: bounds.right - reference.right,
+          width: bounds.width - reference.width,
+        }
+      }
+      const directSelectors = [
+        ['h2', ':scope > h2'],
+        ['h3', ':scope > h3'],
+        ['h4', ':scope > h4'],
+        ['h5', ':scope > h5'],
+        ['h6', ':scope > h6'],
+        ['ul', ':scope > ul'],
+        ['ol', ':scope > ol'],
+        ['blockquote', ':scope > blockquote'],
+        ['details', ':scope > details'],
+        ['figure', ':scope > .article-figure'],
+        ['figcaption', ':scope > .article-figure figcaption'],
+        ['shiki', ':scope > figure[data-rehype-pretty-code-figure]'],
+        ['shiki-pre', ':scope > figure[data-rehype-pretty-code-figure] [data-code-pre]'],
+        ['table', ':scope > .article-table-scroll'],
+        ['math', ":scope > mjx-container[jax='SVG'][display='true']"],
+        ['pre', ':scope > pre'],
+        ['data-block', ':scope > .article-data-block'],
+        ['footnotes', ':scope > .footnotes'],
+      ] as const
+      const directEdges = directSelectors.flatMap(([name, selector]) => {
+        const element = root.querySelector(selector)
 
-      return [
-        {
-          selector,
-          clientWidth: element.clientWidth,
-          scrollWidth: element.scrollWidth,
-          overflowX: style.overflowX,
-          backgroundImage: style.backgroundImage,
-          backgroundAttachment: style.backgroundAttachment,
+        return element ? [edgeDelta(name, element)] : []
+      })
+      const railEdges = [...document.querySelectorAll<HTMLElement>('.article-content-rail')]
+        .filter((element) => {
+          const bounds = element.getBoundingClientRect()
+
+          return (
+            bounds.width > 0 && bounds.height > 0 && !!element.closest('[data-article-surface]')
+          )
+        })
+        .map((element, index) => edgeDelta(`rail-${index}`, element))
+      const scrollSurfaces = [
+        'figure[data-rehype-pretty-code-figure] [data-code-pre]',
+        '.article-table-scroll',
+        "mjx-container[jax='SVG'][display='true']",
+        ':scope > pre',
+      ].flatMap((selector) => {
+        const element = selector.startsWith(':scope')
+          ? root.querySelector<HTMLElement>(selector)
+          : root.querySelector<HTMLElement>(selector)
+
+        if (!element) {
+          return []
+        }
+
+        const style = getComputedStyle(element)
+
+        return [
+          {
+            selector,
+            clientWidth: element.clientWidth,
+            scrollWidth: element.scrollWidth,
+            overflowX: style.overflowX,
+            backgroundImage: style.backgroundImage,
+            backgroundAttachment: style.backgroundAttachment,
+          },
+        ]
+      })
+      const table = root.querySelector<HTMLElement>(':scope > .article-table-scroll')
+      const tableRect = table?.getBoundingClientRect()
+      const tableInner = table?.querySelector<HTMLTableElement>('table') ?? null
+      const tableMetrics =
+        table && tableRect && tableInner
+          ? {
+              width: tableRect.width,
+              left: tableRect.left,
+              clientWidth: table.clientWidth,
+              scrollWidth: table.scrollWidth,
+              overflowX: getComputedStyle(table).overflowX,
+              tableWidth: tableInner.getBoundingClientRect().width,
+              tableComputedWidth: getComputedStyle(tableInner).width,
+              containerComputedWidth: getComputedStyle(table).width,
+              thBackground: getComputedStyle(table.querySelector('th') ?? table).backgroundColor,
+              evenRowBackground: getComputedStyle(
+                table.querySelector('tbody tr:nth-child(even) td') ?? table
+              ).backgroundColor,
+            }
+          : null
+      const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
+      const tocRect = toc?.getBoundingClientRect()
+      const tocVisible =
+        !!toc &&
+        !!tocRect &&
+        getComputedStyle(toc).display !== 'none' &&
+        tocRect.width > 0 &&
+        tocRect.height > 0
+      const surfaceRect = surface.getBoundingClientRect()
+      const groupLeft = Math.min(surfaceRect.left, tocVisible ? tocRect!.left : surfaceRect.left)
+      const groupRight = Math.max(
+        surfaceRect.right,
+        tocVisible ? tocRect!.right : surfaceRect.right
+      )
+
+      return {
+        documentOverflow:
+          document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        directEdges,
+        railEdges,
+        scrollSurfaces,
+        table: tableMetrics,
+        layout: {
+          groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
+          surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
+          textCenterOffset: (reference.left + reference.right) / 2 - window.innerWidth / 2,
+          textLeftInset: reference.left - surfaceRect.left,
+          paragraphLeft: reference.left,
+          paragraphRight: reference.right,
+          surfaceLeft: surfaceRect.left,
+          surfaceRight: surfaceRect.right,
         },
-      ]
+        toc: tocVisible
+          ? {
+              width: tocRect!.width,
+              gapFromSurface: surfaceRect.left - tocRect!.right,
+              leftMargin: tocRect!.left,
+              position: getComputedStyle(toc).position,
+              opacity: Number.parseFloat(getComputedStyle(toc).opacity),
+              items: [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => {
+                const rect = item.getBoundingClientRect()
+                const lineHeight = Number.parseFloat(getComputedStyle(item).lineHeight) || 20
+
+                return {
+                  clientWidth: item.clientWidth,
+                  scrollWidth: item.scrollWidth,
+                  text: item.textContent?.trim() || '',
+                  lines: Math.max(1, Math.round(rect.height / lineHeight)),
+                  clipped: item.scrollWidth > item.clientWidth + 1,
+                }
+              }),
+            }
+          : null,
+      }
     })
-    const table = root.querySelector<HTMLElement>(':scope > .article-table-scroll')
-    const tableRect = table?.getBoundingClientRect()
-    const tableInner = table?.querySelector<HTMLTableElement>('table') ?? null
-    const tableMetrics =
-      table && tableRect && tableInner
-        ? {
-            width: tableRect.width,
-            left: tableRect.left,
-            clientWidth: table.clientWidth,
-            scrollWidth: table.scrollWidth,
-            overflowX: getComputedStyle(table).overflowX,
-            tableWidth: tableInner.getBoundingClientRect().width,
-            tableComputedWidth: getComputedStyle(tableInner).width,
-            containerComputedWidth: getComputedStyle(table).width,
-            thBackground: getComputedStyle(table.querySelector('th') ?? table).backgroundColor,
-            evenRowBackground: getComputedStyle(
-              table.querySelector('tbody tr:nth-child(even) td') ?? table
-            ).backgroundColor,
-          }
-        : null
-    const toc = document.querySelector<HTMLElement>('.article-toc-desktop')
-    const tocRect = toc?.getBoundingClientRect()
-    const tocVisible =
-      !!toc &&
-      !!tocRect &&
-      getComputedStyle(toc).display !== 'none' &&
-      tocRect.width > 0 &&
-      tocRect.height > 0
-    const surfaceRect = surface.getBoundingClientRect()
-    const groupLeft = Math.min(surfaceRect.left, tocVisible ? tocRect!.left : surfaceRect.left)
-    const groupRight = Math.max(surfaceRect.right, tocVisible ? tocRect!.right : surfaceRect.right)
-
-    return {
-      documentOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      directEdges,
-      railEdges,
-      scrollSurfaces,
-      table: tableMetrics,
-      layout: {
-        groupCenterOffset: (groupLeft + groupRight) / 2 - window.innerWidth / 2,
-        surfaceCenterOffset: (surfaceRect.left + surfaceRect.right) / 2 - window.innerWidth / 2,
-        textCenterOffset: (reference.left + reference.right) / 2 - window.innerWidth / 2,
-        textLeftInset: reference.left - surfaceRect.left,
-        paragraphLeft: reference.left,
-        paragraphRight: reference.right,
-        surfaceLeft: surfaceRect.left,
-        surfaceRight: surfaceRect.right,
-      },
-      toc: tocVisible
-        ? {
-            width: tocRect!.width,
-            gapFromSurface: surfaceRect.left - tocRect!.right,
-            leftMargin: tocRect!.left,
-            position: getComputedStyle(toc).position,
-            opacity: Number.parseFloat(getComputedStyle(toc).opacity),
-            items: [...toc.querySelectorAll<HTMLElement>('a span')].map((item) => {
-              const rect = item.getBoundingClientRect()
-              const lineHeight = Number.parseFloat(getComputedStyle(item).lineHeight) || 20
-
-              return {
-                clientWidth: item.clientWidth,
-                scrollWidth: item.scrollWidth,
-                text: item.textContent?.trim() || '',
-                lines: Math.max(1, Math.round(rect.height / lineHeight)),
-                clipped: item.scrollWidth > item.clientWidth + 1,
-              }
-            }),
-          }
-        : null,
-    }
-  })
 }
 
 // ---------- transition helpers ----------
@@ -1610,12 +1620,14 @@ for (const scenario of [
 
     const metrics = await page.evaluate(() => {
       const title = document.querySelector<HTMLElement>('h1')
-      const prose = document.querySelector<HTMLElement>('[data-article-body] .article-prose')
+      const prose = document.querySelector<HTMLElement>(
+        '[data-article-body].article-prose, [data-article-body] .article-prose'
+      )
       const firstParagraph = document.querySelector<HTMLElement>(
-        '[data-article-body] .article-prose > p'
+        '[data-article-body].article-prose > p, [data-article-body] .article-prose > p'
       )
       const firstBodyH2 = document.querySelector<HTMLElement>(
-        '[data-article-body] .article-prose h2'
+        '[data-article-body].article-prose h2, [data-article-body] .article-prose h2'
       )
 
       if (!title || !prose || !firstParagraph || !firstBodyH2) {
@@ -2003,7 +2015,10 @@ test('dark article inline code uses dark tokens while real Shiki blocks keep the
   await injectReadingFixture(page)
 
   const fixtureInlineCode = await inlineCodeStyleMetrics(page, '#reading-fixture-h2 code')
-  const linkedCode = await inlineCodeStyleMetrics(page, '[data-article-body] .article-prose a code')
+  const linkedCode = await inlineCodeStyleMetrics(
+    page,
+    '[data-article-body].article-prose a code, [data-article-body] .article-prose a code'
+  )
 
   expect(linkedCode.backgroundColor).toBe(fixtureInlineCode.backgroundColor)
   expect(linkedCode.backgroundImage).toBe(fixtureInlineCode.backgroundImage)
@@ -2026,133 +2041,135 @@ test('Reading Max injected Markdown family remains coherent and reflow-safe', as
       await openReadingPage(page, ARTICLE_PATH, viewport, theme)
       await injectReadingFixture(page)
 
-      const metrics = await page.locator('[data-article-body] .article-prose').evaluate((root) => {
-        const count = (selector: string) => root.querySelectorAll(selector).length
-        const styleNumber = (selector: string, property: string) =>
-          Number.parseFloat(
-            String(
-              getComputedStyle(root.querySelector<HTMLElement>(selector)!).getPropertyValue(
-                property
+      const metrics = await page
+        .locator('[data-article-body].article-prose, [data-article-body] .article-prose')
+        .evaluate((root) => {
+          const count = (selector: string) => root.querySelectorAll(selector).length
+          const styleNumber = (selector: string, property: string) =>
+            Number.parseFloat(
+              String(
+                getComputedStyle(root.querySelector<HTMLElement>(selector)!).getPropertyValue(
+                  property
+                )
               )
             )
-          )
-        const headingAnchor = root.querySelector<HTMLElement>('#reading-fixture-h2 a')
-        const heading = root.querySelector<HTMLElement>('#reading-fixture-h2')
-        const table = root.querySelector<HTMLElement>('.article-table-scroll')
-        const longToken = root.querySelector<HTMLElement>('p:last-child')
-        const mark = root.querySelector<HTMLElement>('mark')
-        const checked = root.querySelector<HTMLElement>('input[type="checkbox"]:checked')
-        const unchecked = root.querySelector<HTMLElement>('input[type="checkbox"]:not(:checked)')
-        const separator = root.querySelector<HTMLElement>('hr')
-        const backref = root.querySelector<HTMLElement>('.data-footnote-backref')
+          const headingAnchor = root.querySelector<HTMLElement>('#reading-fixture-h2 a')
+          const heading = root.querySelector<HTMLElement>('#reading-fixture-h2')
+          const table = root.querySelector<HTMLElement>('.article-table-scroll')
+          const longToken = root.querySelector<HTMLElement>('p:last-child')
+          const mark = root.querySelector<HTMLElement>('mark')
+          const checked = root.querySelector<HTMLElement>('input[type="checkbox"]:checked')
+          const unchecked = root.querySelector<HTMLElement>('input[type="checkbox"]:not(:checked)')
+          const separator = root.querySelector<HTMLElement>('hr')
+          const backref = root.querySelector<HTMLElement>('.data-footnote-backref')
 
-        if (
-          !headingAnchor ||
-          !heading ||
-          !table ||
-          !longToken ||
-          !mark ||
-          !checked ||
-          !unchecked ||
-          !separator ||
-          !backref
-        ) {
-          throw new Error('Missing injected reading family target')
-        }
+          if (
+            !headingAnchor ||
+            !heading ||
+            !table ||
+            !longToken ||
+            !mark ||
+            !checked ||
+            !unchecked ||
+            !separator ||
+            !backref
+          ) {
+            throw new Error('Missing injected reading family target')
+          }
 
-        const anchorRect = headingAnchor.getBoundingClientRect()
-        const headingRect = heading.getBoundingClientRect()
-        const backrefRect = backref.getBoundingClientRect()
+          const anchorRect = headingAnchor.getBoundingClientRect()
+          const headingRect = heading.getBoundingClientRect()
+          const backrefRect = backref.getBoundingClientRect()
 
-        return {
-          counts: {
-            h2: count('h2'),
-            h3: count('h3'),
-            h4: count('h4'),
-            h5: count('h5'),
-            h6: count('h6'),
-            p: count('p'),
-            strong: count('strong'),
-            em: count('em'),
-            del: count('del'),
-            ul: count('ul'),
-            ol: count('ol'),
-            task: count('.task-list-item, input[type="checkbox"]'),
-            links: count('a'),
-            blockquote: count('blockquote'),
-            inlineCode: count(':not(pre) > code'),
-            linkedCode: count('a code'),
-            preCode: count('pre code'),
-            table: count('table'),
-            image: count('img'),
-            figure: count('figure'),
-            caption: count('figcaption'),
-            details: count('details'),
-            summary: count('summary'),
-            footnotes: count('.footnotes'),
-            footnoteRefs: count('sup a[href="#reading-fixture-footnote"]'),
-            footnoteBackrefs: count('.data-footnote-backref'),
-            kbd: count('kbd'),
-            abbr: count('abbr'),
-            mark: count('mark'),
-            sub: count('sub'),
-            sup: count('sup'),
-            hr: count('hr'),
-            embeds: count('[data-reading-fixture-embed]'),
-          },
-          headingSizes: {
-            h2: styleNumber('h2', 'font-size'),
-            h3: styleNumber('h3', 'font-size'),
-            h4: styleNumber('h4', 'font-size'),
-            h5: styleNumber('h5', 'font-size'),
-            h6: styleNumber('h6', 'font-size'),
-          },
-          anchor: {
-            left: anchorRect.left,
-            right: anchorRect.right,
-            width: anchorRect.width,
-            height: anchorRect.height,
-            headingLeft: headingRect.left,
-            viewportWidth: window.innerWidth,
-          },
-          table: {
-            clientWidth: table.clientWidth,
-            scrollWidth: table.scrollWidth,
-            overflowX: getComputedStyle(table).overflowX,
-            width: table.getBoundingClientRect().width,
-            computedWidth: getComputedStyle(table).width,
-            innerWidth: table.querySelector('table')?.getBoundingClientRect().width ?? 0,
-            left: table.getBoundingClientRect().left,
-            paragraphLeft: root.querySelector<HTMLElement>(':scope > p')?.getBoundingClientRect()
-              .left,
-          },
-          longToken: {
-            clientWidth: longToken.clientWidth,
-            scrollWidth: longToken.scrollWidth,
-          },
-          mark: {
-            color: getComputedStyle(mark).color,
-            backgroundColor: getComputedStyle(mark).backgroundColor,
-          },
-          checkboxes: [checked, unchecked].map((box) => {
-            const rect = box.getBoundingClientRect()
+          return {
+            counts: {
+              h2: count('h2'),
+              h3: count('h3'),
+              h4: count('h4'),
+              h5: count('h5'),
+              h6: count('h6'),
+              p: count('p'),
+              strong: count('strong'),
+              em: count('em'),
+              del: count('del'),
+              ul: count('ul'),
+              ol: count('ol'),
+              task: count('.task-list-item, input[type="checkbox"]'),
+              links: count('a'),
+              blockquote: count('blockquote'),
+              inlineCode: count(':not(pre) > code'),
+              linkedCode: count('a code'),
+              preCode: count('pre code'),
+              table: count('table'),
+              image: count('img'),
+              figure: count('figure'),
+              caption: count('figcaption'),
+              details: count('details'),
+              summary: count('summary'),
+              footnotes: count('.footnotes'),
+              footnoteRefs: count('sup a[href="#reading-fixture-footnote"]'),
+              footnoteBackrefs: count('.data-footnote-backref'),
+              kbd: count('kbd'),
+              abbr: count('abbr'),
+              mark: count('mark'),
+              sub: count('sub'),
+              sup: count('sup'),
+              hr: count('hr'),
+              embeds: count('[data-reading-fixture-embed]'),
+            },
+            headingSizes: {
+              h2: styleNumber('h2', 'font-size'),
+              h3: styleNumber('h3', 'font-size'),
+              h4: styleNumber('h4', 'font-size'),
+              h5: styleNumber('h5', 'font-size'),
+              h6: styleNumber('h6', 'font-size'),
+            },
+            anchor: {
+              left: anchorRect.left,
+              right: anchorRect.right,
+              width: anchorRect.width,
+              height: anchorRect.height,
+              headingLeft: headingRect.left,
+              viewportWidth: window.innerWidth,
+            },
+            table: {
+              clientWidth: table.clientWidth,
+              scrollWidth: table.scrollWidth,
+              overflowX: getComputedStyle(table).overflowX,
+              width: table.getBoundingClientRect().width,
+              computedWidth: getComputedStyle(table).width,
+              innerWidth: table.querySelector('table')?.getBoundingClientRect().width ?? 0,
+              left: table.getBoundingClientRect().left,
+              paragraphLeft: root.querySelector<HTMLElement>(':scope > p')?.getBoundingClientRect()
+                .left,
+            },
+            longToken: {
+              clientWidth: longToken.clientWidth,
+              scrollWidth: longToken.scrollWidth,
+            },
+            mark: {
+              color: getComputedStyle(mark).color,
+              backgroundColor: getComputedStyle(mark).backgroundColor,
+            },
+            checkboxes: [checked, unchecked].map((box) => {
+              const rect = box.getBoundingClientRect()
 
-            return {
-              width: rect.width,
-              height: rect.height,
-              backgroundColor: getComputedStyle(box).backgroundColor,
-            }
-          }),
-          footnote: {
-            separatorDisplay: getComputedStyle(separator).display,
-            backrefWidth: backrefRect.width,
-            backrefHeight: backrefRect.height,
-            backrefBackground: getComputedStyle(backref).backgroundColor,
-          },
-          documentOverflow:
-            document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        }
-      })
+              return {
+                width: rect.width,
+                height: rect.height,
+                backgroundColor: getComputedStyle(box).backgroundColor,
+              }
+            }),
+            footnote: {
+              separatorDisplay: getComputedStyle(separator).display,
+              backrefWidth: backrefRect.width,
+              backrefHeight: backrefRect.height,
+              backrefBackground: getComputedStyle(backref).backgroundColor,
+            },
+            documentOverflow:
+              document.documentElement.scrollWidth - document.documentElement.clientWidth,
+          }
+        })
 
       for (const [name, count] of Object.entries(metrics.counts)) {
         expect(count, `${name} ${theme} ${viewport.width}`).toBeGreaterThan(0)
