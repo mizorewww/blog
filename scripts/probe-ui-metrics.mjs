@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   ARTICLE_DESKTOP_TOC_BREAKPOINT,
+  ARTICLE_RAIL_MAX_ZH_REM,
   ARTICLE_SHELL_MAX_WIDTH,
   ARTICLE_TOC_GAP,
   ARTICLE_TOC_WIDTH,
@@ -941,6 +942,23 @@ function alignmentFailures(row) {
         width: table.width,
         tableWidth: table.tableWidth,
       })
+    }
+    if (
+      row.route === '/zh/making-memoh-cheaper-on-telegram/' &&
+      !row.fixture &&
+      viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT &&
+      row.textScale === 100
+    ) {
+      const compactTableMax = ARTICLE_RAIL_MAX_ZH_REM * 16 * 0.75
+      const paragraphWidth = layout.paragraphRight - layout.paragraphLeft
+      if (table.width > compactTableMax || table.width >= paragraphWidth - 80) {
+        failures.push({
+          kind: 'table-not-compact',
+          width: table.width,
+          compactTableMax,
+          paragraphWidth,
+        })
+      }
     }
     if (viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
       if (Math.abs(edge.left) > 1) {

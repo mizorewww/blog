@@ -1893,6 +1893,19 @@ test('article content families, data blocks, and TOC share the reading rail', as
       expect(table.width, `${scenario.name} table fit-content`).toBeLessThanOrEqual(
         Math.max(table.tableWidth, table.scrollWidth) + 2
       )
+      if (
+        scenario.path === RICH_ARTICLE_PATH &&
+        scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT &&
+        scenario.textScale === 100
+      ) {
+        const compactTableMax = ARTICLE_RAIL_MAX_ZH_PX * 0.75
+        expect(table.width, `${scenario.name} compact 3-col table`).toBeLessThanOrEqual(
+          compactTableMax
+        )
+        expect(table.width, `${scenario.name} compact table vs rail`).toBeLessThan(
+          metrics.layout.paragraphRight - metrics.layout.paragraphLeft - 80
+        )
+      }
       if (scenario.viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT) {
         expect(Math.abs(edge.left), `${scenario.name} table left`).toBeLessThanOrEqual(1)
       } else {
