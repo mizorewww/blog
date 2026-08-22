@@ -31,7 +31,7 @@ figure[data-rehype-pretty-code-figure] .code-header {
 }
 
 figure[data-rehype-pretty-code-figure] .code-header + pre {
-  padding-top: 0.85rem;
+  padding-top: 0.5rem;
 }
 
 figure[data-rehype-pretty-code-figure] pre {

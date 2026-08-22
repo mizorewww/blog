@@ -4,16 +4,23 @@ import {
   ARTICLE_RAIL_MAX_EN_REM,
   ARTICLE_RAIL_MAX_ZH_REM,
   ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_SURFACE_CHROME_DEDUCTION,
   ARTICLE_TOC_GAP,
   ARTICLE_TOC_WIDTH,
+  ARTICLE_TREE_GAP,
+  ARTICLE_TREE_WIDTH,
 } from '../../lib/articleLayout'
 import { readingFixtureHtml } from '../../scripts/reading-fixture.mjs'
 
-const ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
-const RICH_ARTICLE_PATH = '/zh/making-memoh-cheaper-on-telegram/'
-const IMAGE_ARTICLE_PATH = '/zh/kde-plasma-obsdian-web-clipper/'
+// The topic folders are non-ASCII (技术/折腾). Playwright reports page.url() in
+// percent-encoded form, so goto/toHaveURL/route assertions use the encoded path,
+// while rendered href / data-* attributes keep the raw (decoded) form.
+const ARTICLE_HREF = '/zh/折腾/xiaomi-book-pro-14/'
+const ARTICLE_PATH = encodeURI(ARTICLE_HREF)
+const RICH_ARTICLE_PATH = encodeURI('/zh/技术/making-memoh-cheaper-on-telegram/')
+const IMAGE_ARTICLE_PATH = encodeURI('/zh/折腾/kde-plasma-obsdian-web-clipper/')
 const SOURCE_PATH = '/zh/categories/%E6%8A%98%E8%85%BE/'
-const CARD_KEY = 'zh/xiaomi-book-pro-14'
+const CARD_KEY = 'zh/折腾/xiaomi-book-pro-14'
 const TITLE = '小米Book Pro 14 Linux使用体验'
 const BODY_TEXT = '入手这台 Xiaomi Book Pro 14 的理由其实挺简单'
 const RETURN_LABEL = '返回列表'
@@ -69,6 +76,7 @@ type LanguageIndicatorFrame = {
 type TransitionFrame = Rect & {
   time: number
   phase: string
+  sequence: string
   transform: string
   overlayCount: number
   cover: Rect
@@ -76,6 +84,7 @@ type TransitionFrame = Rect & {
   destinationStage: string
   underlayPresent: boolean
   underlayOpaque: boolean
+  underlayOpacity: number
   destinationOnlyOpacities: number[]
   sharedDestinationOpacities: number[]
   overlayOwnsCoverPoint: boolean
@@ -83,6 +92,9 @@ type TransitionFrame = Rect & {
   coverPointOwnership: PointOwnership
   returnControlPointOwnership: PointOwnership
   languageIndicator: LanguageIndicatorFrame
+  treePresent: boolean
+  treePhase: string
+  tree: Rect | null
 }
 type TransitionProbe = {
   startedAt: number
@@ -146,6 +158,35 @@ function returnLink(page: Page) {
   return page.getByRole('link', { name: RETURN_LABEL })
 }
 
+async function scrollCategoryEntryForReturn(page: Page, link: Locator) {
+  const previousScrollY = await link.evaluate((element) => {
+    const minScroll = 64
+    const maxScroll = Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+
+    if (maxScroll < minScroll) {
+      throw new Error('Category list is not tall enough to record a restored scroll position')
+    }
+
+    element.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+
+    if (window.scrollY < minScroll) {
+      window.scrollTo(0, minScroll)
+    }
+
+    const rect = element.getBoundingClientRect()
+
+    if (rect.bottom <= 0 || rect.top >= window.innerHeight) {
+      element.scrollIntoView({ block: 'center', inline: 'nearest' })
+    }
+
+    return window.scrollY
+  })
+
+  expect(previousScrollY).toBeGreaterThan(0)
+  await expect(link).toBeInViewport()
+  return previousScrollY
+}
+
 async function openArticleFromCategory(
   page: Page,
   entry: ArticleEntry = 'read-more',
@@ -159,11 +200,8 @@ async function openArticleFromCategory(
 
   const link = articleEntryLink(page, entry)
 
-  await expect(link).toHaveAttribute('href', ARTICLE_PATH)
-  await link.scrollIntoViewIfNeeded()
-
-  const previousScrollY = await page.evaluate(() => window.scrollY)
-  expect(previousScrollY).toBeGreaterThan(0)
+  await expect(link).toHaveAttribute('href', ARTICLE_HREF)
+  const previousScrollY = await scrollCategoryEntryForReturn(page, link)
 
   await link.click()
   await expect(page).toHaveURL(ARTICLE_PATH)
@@ -222,15 +260,20 @@ function readingMeasureThreshold(
     if (width <= 320) return { medianMin: 16, medianMax: 24, max: 28 }
     if (width <= 375) return { medianMin: 18, medianMax: 28, max: 32 }
     if (width <= 640) return { medianMin: 32, medianMax: 44, max: 48 }
-    if (width <= 1024) return { medianMin: 36, medianMax: 48, max: 56 }
-    // 56rem zh rail at ~1.09-1.125rem yields ~50-66 chars/line.
+    if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { medianMin: 36, medianMax: 48, max: 56 }
+    // 3-col surface at 1024 is ~410px, so the first paragraph reads like a phone column.
+    if (width <= ARTICLE_DESKTOP_TOC_BREAKPOINT) return { medianMin: 18, medianMax: 28, max: 32 }
+    if (width <= 1280) return { medianMin: 28, medianMax: 50, max: 56 }
+    // 56rem zh rail at ~1.09-1.125rem yields ~50-66 chars/line once the surface is wide again.
     return { medianMin: 42, medianMax: 68, max: 74 }
   }
 
   if (width <= 320) return { medianMin: 24, medianMax: 34, max: 38 }
   if (width <= 375) return { medianMin: 30, medianMax: 42, max: 46 }
   if (width <= 640) return { medianMin: 52, medianMax: 66, max: 70 }
-  if (width <= 1024) return { medianMin: 60, medianMax: 82, max: 86 }
+  if (width < ARTICLE_DESKTOP_TOC_BREAKPOINT) return { medianMin: 60, medianMax: 82, max: 86 }
+  if (width <= ARTICLE_DESKTOP_TOC_BREAKPOINT) return { medianMin: 28, medianMax: 48, max: 54 }
+  if (width <= 1280) return { medianMin: 48, medianMax: 78, max: 86 }
   // 49rem en rail at ~1.09-1.125rem yields ~80-100 chars/line.
   return { medianMin: 72, medianMax: 104, max: 110 }
 }
@@ -254,7 +297,7 @@ function articleSurfaceWidth(width: number) {
     return shellWidth
   }
 
-  return shellWidth - ARTICLE_DESKTOP_TOC_WIDTH - ARTICLE_DESKTOP_TOC_GAP
+  return shellWidth - ARTICLE_SURFACE_CHROME_DEDUCTION
 }
 
 function articleGutterPx(width: number, textScale = 100) {
@@ -1031,9 +1074,7 @@ function destination(width: number, height: number) {
   const desktop = width >= ARTICLE_DESKTOP_TOC_BREAKPOINT
   const top = mobile ? 72 : 120
   const shellWidth = mobile ? width : Math.min(ARTICLE_SHELL_MAX_WIDTH, width - 30)
-  const surfaceWidth = desktop
-    ? shellWidth - ARTICLE_DESKTOP_TOC_WIDTH - ARTICLE_DESKTOP_TOC_GAP
-    : shellWidth
+  const surfaceWidth = desktop ? shellWidth - ARTICLE_SURFACE_CHROME_DEDUCTION : shellWidth
   const left = desktop
     ? (width - shellWidth) / 2 + ARTICLE_DESKTOP_TOC_WIDTH + ARTICLE_DESKTOP_TOC_GAP
     : (width - surfaceWidth) / 2
@@ -1139,8 +1180,16 @@ async function installTransitionProbe(page: Page) {
       const destinationRoot = document.querySelector<HTMLElement>(
         '[data-article-transition-destination]'
       )
-      const underlay = root.querySelector<HTMLElement>('[data-article-transition-underlay]')
-      const underlayStyle = underlay ? getComputedStyle(underlay) : null
+      const underlays = root.querySelectorAll<HTMLElement>('[data-article-transition-underlay]')
+      const fadeUnderlay =
+        root.querySelector<HTMLElement>('[data-article-transition-underlay-fade]') ||
+        underlays.item(0)
+      const commitBarrier = root.querySelector<HTMLElement>(
+        '[data-article-transition-commit-barrier]'
+      )
+      const fadeUnderlayStyle = fadeUnderlay ? getComputedStyle(fadeUnderlay) : null
+      const treeRoot = document.querySelector<HTMLElement>('[data-content-tree-transition-overlay]')
+      const treeRect = treeRoot?.getBoundingClientRect()
       const overlayCount = document.querySelectorAll('[data-article-transition-overlay]').length
       const items = Object.fromEntries(
         Array.from(
@@ -1287,15 +1336,18 @@ async function installTransitionProbe(page: Page) {
         width: surfaceRect.width,
         height: surfaceRect.height,
         phase: root.dataset.articleTransitionPhase || '',
+        sequence: root.dataset.articleTransitionSequence || '',
         transform: getComputedStyle(surface).transform,
         overlayCount,
         items,
         destinationStage: destinationRoot?.dataset.articleTransitionDestination || '',
-        underlayPresent: underlay !== null,
+        underlayPresent: underlays.length > 0,
         underlayOpaque:
-          underlayStyle !== null &&
-          underlayStyle.opacity === '1' &&
-          underlayStyle.backgroundColor !== 'rgba(0, 0, 0, 0)',
+          commitBarrier !== null ||
+          (fadeUnderlayStyle !== null &&
+            fadeUnderlayStyle.opacity === '1' &&
+            fadeUnderlayStyle.backgroundColor !== 'rgba(0, 0, 0, 0)'),
+        underlayOpacity: fadeUnderlayStyle ? Number.parseFloat(fadeUnderlayStyle.opacity) : 0,
         destinationOnlyOpacities,
         sharedDestinationOpacities,
         overlayOwnsCoverPoint: coverPointOwnership.ownsPoint,
@@ -1327,6 +1379,16 @@ async function installTransitionProbe(page: Page) {
           width: coverRect.width,
           height: coverRect.height,
         },
+        treePresent: treeRoot !== null,
+        treePhase: treeRoot?.dataset.contentTreeTransitionPhase || '',
+        tree: treeRect
+          ? {
+              top: treeRect.top,
+              left: treeRect.left,
+              width: treeRect.width,
+              height: treeRect.height,
+            }
+          : null,
       })
 
       for (const animation of surface.getAnimations({ subtree: true })) {
@@ -1496,6 +1558,7 @@ for (const viewport of [
       const headerElement = document.querySelector<HTMLElement>('body header')
       const mobileTocElement = document.querySelector<HTMLElement>('.article-toc-mobile')
       const desktopTocElement = document.querySelector<HTMLElement>('.article-toc-desktop')
+      const contentTreeElement = document.querySelector<HTMLElement>('[data-article-content-tree]')
 
       if (!surfaceElement || !bodyElement || !headerElement) {
         throw new Error('Missing article geometry target')
@@ -1525,6 +1588,15 @@ for (const viewport of [
               width: desktopTocElement.getBoundingClientRect().width,
               position: getComputedStyle(desktopTocElement).position,
               opacity: Number.parseFloat(getComputedStyle(desktopTocElement).opacity),
+            }
+          : null,
+        contentTree: contentTreeElement
+          ? {
+              left: contentTreeElement.getBoundingClientRect().left,
+              right: contentTreeElement.getBoundingClientRect().right,
+              width: contentTreeElement.getBoundingClientRect().width,
+              position: getComputedStyle(contentTreeElement).position,
+              visible: contentTreeElement.getClientRects().length > 0,
             }
           : null,
         viewportWidth: window.innerWidth,
@@ -1572,6 +1644,16 @@ for (const viewport of [
       ).toBeLessThanOrEqual(1)
       expect(geometry.desktopToc!.position).toBe('sticky')
       expect(geometry.desktopToc!.opacity).toBe(1)
+      expect(geometry.contentTree).not.toBeNull()
+      expect(geometry.contentTree!.visible).toBe(true)
+      expect(Math.abs(geometry.contentTree!.width - ARTICLE_TREE_WIDTH)).toBeLessThanOrEqual(1)
+      expect(geometry.contentTree!.left - geometry.surface.right).toBeGreaterThanOrEqual(
+        ARTICLE_TREE_GAP - 1
+      )
+      expect(geometry.contentTree!.left - geometry.surface.right).toBeLessThanOrEqual(
+        ARTICLE_TREE_GAP + 1
+      )
+      expect(geometry.contentTree!.position).toBe('sticky')
       await expectDesktopTocPaint(page, `static surface ${viewport.width}`)
     } else {
       await expect(page.locator('.article-toc-mobile')).toBeVisible()
@@ -1579,6 +1661,7 @@ for (const viewport of [
       expect(geometry.mobileToc).not.toBeNull()
       expect(geometry.mobileToc!.top).toBeGreaterThan(geometry.title.top)
       expect(geometry.mobileToc!.bottom).toBeLessThanOrEqual(geometry.body.top)
+      await expect(page.locator('[data-article-content-tree]')).toBeHidden()
     }
   })
 }
@@ -1600,14 +1683,14 @@ for (const scenario of [
   },
   {
     name: 'en light mobile',
-    path: '/en/xiaomi-book-pro-14/',
+    path: '/en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/',
     theme: 'light' as const,
     viewport: { width: 375, height: 812 },
     maxParagraphTop: 680,
   },
   {
     name: 'en dark desktop',
-    path: '/en/xiaomi-book-pro-14/',
+    path: '/en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/',
     theme: 'dark' as const,
     viewport: { width: 1440, height: 900 },
     maxParagraphTop: 820,
@@ -1671,7 +1754,7 @@ for (const scenario of [
 test('Reading Max prose rhythm and line measure meet the viewport matrix', async ({ page }) => {
   const routes = [
     { language: 'zh' as const, path: ARTICLE_PATH },
-    { language: 'en' as const, path: '/en/xiaomi-book-pro-14/' },
+    { language: 'en' as const, path: '/en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/' },
   ]
   const viewports = [
     { width: 320, height: 812 },
@@ -2253,7 +2336,11 @@ test('Reading Max rich content and 200 percent text resize stay internally scrol
     expect(compactTable.clientWidth).toBeLessThanOrEqual(compactTable.scrollWidth + 1)
   }
 
-  for (const path of [ARTICLE_PATH, '/en/xiaomi-book-pro-14/', RICH_ARTICLE_PATH]) {
+  for (const path of [
+    ARTICLE_PATH,
+    '/en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/',
+    RICH_ARTICLE_PATH,
+  ]) {
     await openReadingPage(page, path, { width: 640, height: 900 }, 'dark', 200)
 
     const rootFont = await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)
@@ -2551,7 +2638,7 @@ for (const viewport of [
     await page.goto('/zh/')
 
     const compactLink = page.locator(
-      `.blog-sidebar-right a[data-blog-post-link][href="${ARTICLE_PATH}"]`
+      `.blog-sidebar-right a[data-blog-post-link][href="${ARTICLE_HREF}"]:not([data-content-tree-post])`
     )
     await expect(compactLink).toHaveCount(1)
     await compactLink.scrollIntoViewIfNeeded()
@@ -2725,10 +2812,7 @@ test('the article return control uses native Back for repeated visits from the s
   await expectRestoredScrollY(page, firstScrollY)
 
   const link = articleEntryLink(page, 'read-more')
-  await link.scrollIntoViewIfNeeded()
-  const secondScrollY = await page.evaluate(() => window.scrollY)
-
-  expect(secondScrollY).toBeGreaterThan(0)
+  const secondScrollY = await scrollCategoryEntryForReturn(page, link)
   await link.click()
   await expect(page).toHaveURL(ARTICLE_PATH)
   await expect(page.locator('[data-article-body]')).toContainText(BODY_TEXT)
@@ -2794,7 +2878,8 @@ test('adjacent article navigation does not reuse list return provenance', async 
 })
 
 test('single adjacent article navigation uses the full mobile rail', async ({ page }) => {
-  await openReadingPage(page, ARTICLE_PATH, { width: 320, height: 812 }, 'dark')
+  // Newest published zh post has only an older neighbor, so the rail is one full-width link.
+  await openReadingPage(page, RICH_ARTICLE_PATH, { width: 320, height: 812 }, 'dark')
 
   const nav = page.locator('.article-post-nav')
   await nav.scrollIntoViewIfNeeded()
@@ -3052,16 +3137,31 @@ for (const scenario of [
       height: articleCoverHeight(target.width),
     })
 
+    const backgroundFrames = frames.filter((frame) => frame.sequence === 'background')
+    const morphFrames = frames.filter((frame) => frame.sequence === 'morph')
+    expect(backgroundFrames.length).toBeGreaterThan(0)
+    expect(morphFrames.length).toBeGreaterThan(0)
+    expect(backgroundFrames.every((frame) => frame.underlayPresent)).toBe(true)
+    expect(
+      backgroundFrames.some((frame) => frame.underlayOpacity > 0 && frame.underlayOpacity < 1)
+    ).toBe(true)
+    for (const frame of backgroundFrames) {
+      expectRectNear(frame, result.source)
+    }
+    expect(morphFrames[0].underlayPresent).toBe(true)
+    expect(morphFrames[0].underlayOpacity).toBeGreaterThanOrEqual(0.99)
+
     const middle = frames.reduce((closest, frame) =>
-      Math.abs(frame.time - 190) < Math.abs(closest.time - 190) ? frame : closest
+      Math.abs(frame.time - 350) < Math.abs(closest.time - 350) ? frame : closest
     )
+    expect(middle.sequence).toBe('morph')
     expectWithin(middle.top, result.source.top, target.top)
     expectWithin(middle.left, result.source.left, target.left)
     expectWithin(middle.width, result.source.width, target.width)
     expectWithin(middle.height, result.source.height, target.height)
 
     expect(result.probe.maxOverlayCount).toBe(1)
-    expect(result.probe.removedAt).toBeLessThanOrEqual(500)
+    expect(result.probe.removedAt).toBeLessThanOrEqual(750)
     expect(result.probe.ariaHidden).toBe('true')
     expect(result.probe.pointerEvents).toBe('none')
     expect(result.probe.position).toBe('fixed')
@@ -3195,7 +3295,7 @@ test('a slow target commit preserves the concealed opening barrier before reveal
 
     expect(precommit.frames.length).toBeGreaterThan(3)
     expect(precommit.frames.every((frame) => frame.destinationStage === '')).toBe(true)
-    expect(precommit.frames.every((frame) => !frame.underlayPresent)).toBe(true)
+    expect(precommit.frames.every((frame) => frame.underlayPresent)).toBe(true)
   } finally {
     releaseRequest()
     await click
@@ -3264,8 +3364,47 @@ for (const scenario of [
       })
     ).toBe(true)
     expect(probe.maxOverlayCount).toBe(1)
-    expect(probe.removedAt).toBeLessThanOrEqual(500)
-    expect(probe.frames.every((frame) => !frame.underlayPresent)).toBe(true)
+    expect(probe.removedAt).toBeLessThanOrEqual(1100)
+    expect(
+      frames
+        .filter((frame) => frame.phase === 'return-waiting' || frame.phase === 'returning')
+        .every((frame) => frame.underlayPresent)
+    ).toBe(true)
+
+    const settleFrames = frames.filter((frame) => frame.sequence === 'settle')
+    expect(settleFrames.length).toBeGreaterThan(0)
+    expectRectNear(settleFrames[0], opened.source)
+    expect(settleFrames.some((frame) => frame.underlayPresent && frame.underlayOpacity < 1)).toBe(
+      true
+    )
+
+    if (scenario.viewport.width >= 1024) {
+      const backgroundTree = frames.filter(
+        (frame) => frame.sequence === 'background' && frame.treePresent && frame.tree
+      )
+      const morphTree = frames.filter(
+        (frame) => frame.sequence === 'morph' && frame.treePresent && frame.tree
+      )
+      const settleTree = frames.filter(
+        (frame) => frame.sequence === 'settle' && frame.treePresent && frame.tree
+      )
+
+      expect(backgroundTree.length).toBeGreaterThan(0)
+      expect(morphTree.length).toBeGreaterThan(0)
+      expect(settleTree.length).toBeGreaterThan(0)
+
+      for (const frame of backgroundTree) {
+        expectRectNear(frame.tree!, backgroundTree[0].tree!)
+      }
+
+      expect(
+        Math.abs(morphTree.at(-1)!.tree!.left - morphTree[0].tree!.left) > 4 ||
+          Math.abs(morphTree.at(-1)!.tree!.top - morphTree[0].tree!.top) > 4 ||
+          Math.abs(morphTree.at(-1)!.tree!.height - morphTree[0].tree!.height) > 4
+      ).toBe(true)
+      expect(settleTree.every((frame) => frame.treePresent)).toBe(true)
+      expectRectNear(settleTree[0].tree!, morphTree.at(-1)!.tree!)
+    }
   })
 }
 
@@ -3305,7 +3444,7 @@ test('a compact search result keeps the destination skeleton fallback', async ({
 
   await page.getByRole('searchbox', { name: '搜索' }).fill('小米')
 
-  const result = page.locator(`a[data-blog-post-link][href="${ARTICLE_PATH}"]`)
+  const result = page.locator(`a[data-blog-post-link][href="${ARTICLE_HREF}"]`)
   await expect(result).toBeVisible()
   const click = result.click()
 

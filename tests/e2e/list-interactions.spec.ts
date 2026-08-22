@@ -20,6 +20,8 @@ test('recent posts do not render article commit metadata', async ({ page }) => {
   await page.goto('/zh/')
 
   await expect(page.locator('.blog-sidebar-right a[href*="/commit/"]')).toHaveCount(0)
+  await expect(page.locator('.blog-sidebar-right [data-content-tree]')).toBeVisible()
+  await expect(page.locator('body')).not.toContainText('文件夹')
 })
 
 test('back to top returns the list to the top', async ({ page }) => {

@@ -107,17 +107,17 @@ yarn ui:screenshots --label local --base-url http://127.0.0.1:4000
 Reading Max 长文排版改动需要额外捕捉真实中英文文章顶部、暗色 inline code、Markdown family fixture 和 200% 文本缩放证据。输出仍必须留在 ignored agent records 下：
 
 ```bash
-yarn ui:screenshots --label reading-max-after-zh --out-dir docs/agent-records/reading-max/screenshots/after/zh-top --pages article-top --article-path /zh/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-after-en --out-dir docs/agent-records/reading-max/screenshots/after/en-top --pages article-top --article-path /en/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-inline-code --out-dir docs/agent-records/reading-max/screenshots/after/inline-code --pages article-inline-code --article-path /zh/blog-git-metadata-and-icons/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-markdown-fixture --out-dir docs/agent-records/reading-max/screenshots/after/markdown-fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-rich-content --out-dir docs/agent-records/reading-max/screenshots/after/rich-content --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-images --out-dir docs/agent-records/reading-max/screenshots/after/images --pages article-image --article-path /zh/kde-plasma-obsdian-web-clipper/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
-yarn ui:screenshots --label reading-max-textscale-zh --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-zh --pages article-top,markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports reflow200 --theme both --text-scale 200
-yarn ui:screenshots --label reading-max-textscale-rich --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports reflow200 --theme both --text-scale 200
+yarn ui:screenshots --label reading-max-after-zh --out-dir docs/agent-records/reading-max/screenshots/after/zh-top --pages article-top --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-after-en --out-dir docs/agent-records/reading-max/screenshots/after/en-top --pages article-top --article-path /en/折腾/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-inline-code --out-dir docs/agent-records/reading-max/screenshots/after/inline-code --pages article-inline-code --article-path /zh/技术/blog-git-metadata-and-icons/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-markdown-fixture --out-dir docs/agent-records/reading-max/screenshots/after/markdown-fixture --pages markdown-fixture --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-rich-content --out-dir docs/agent-records/reading-max/screenshots/after/rich-content --pages article-code,article-math,article-table --article-path /zh/技术/making-memoh-cheaper-on-telegram/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-images --out-dir docs/agent-records/reading-max/screenshots/after/images --pages article-image --article-path /zh/折腾/kde-plasma-obsdian-web-clipper/ --viewports compact,reflow200,tablet,w1440,w1920 --theme both
+yarn ui:screenshots --label reading-max-textscale-zh --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-zh --pages article-top,markdown-fixture --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports reflow200 --theme both --text-scale 200
+yarn ui:screenshots --label reading-max-textscale-rich --out-dir docs/agent-records/reading-max/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/技术/making-memoh-cheaper-on-telegram/ --viewports reflow200 --theme both --text-scale 200
 ```
 
-`/zh/making-memoh-cheaper-on-telegram/` 是真实 rich-content 样本，包含 Shiki 代码块、行间 MathJax 和 Markdown 表格；`/zh/kde-plasma-obsdian-web-clipper/` 包含真实正文图片，适合 `article-image`。不要把 `article-math` 指向缺少 MathJax 的文章，否则局部截图会按设计等待目标元素并失败。
+`/zh/技术/making-memoh-cheaper-on-telegram/` 是真实 rich-content 样本，包含 Shiki 代码块、行间 MathJax 和 Markdown 表格；`/zh/折腾/kde-plasma-obsdian-web-clipper/` 包含真实正文图片，适合 `article-image`。不要把 `article-math` 指向缺少 MathJax 的文章，否则局部截图会按设计等待目标元素并失败。
 
 `w1280`、`w1440`、`w1728`、`w1920` 分别是 `1280x960`、`1440x960`、`1728x960`、`1920x960`。`--text-scale 200` 会把根字体设为 `200%`，用于验证真实 200% 文本缩放，而不是只缩小 viewport。
 
@@ -148,19 +148,19 @@ probe 会输出 header 控件命中区、首页首卡高度、侧栏视觉权重
 
 Reading Alignment 类改动还需要采集共享 rail 与 wide TOC 的证据。`ui:probe` 会额外输出顶层 `readingAlignment` 节点，覆盖真实文章与 test-only fixture 在 `320`、`375`、`640`、`768`、`1024`、`1280`、`1440`、`1728`、`1920` CSS px 下的 edge delta、rail delta、surface/text center offset、text left inset（textLeftInset）、页面 overflow、TOC 宽度/间距/左侧边距、TOC label overflow 和 scroll affordance。该节点还会在 `640x900` 与 `1440x960` 下重复 200% 文本缩放检查。
 
-宽屏光学平衡改动的期望是：`1024px` 及以上文章 surface 填满居中 `article-shell` 的右侧栏，正文 rail 在 surface 内贴左对齐（textLeftInset = gutter，±1px）；`1024px` 以下正文 rail 在 surface 内居中且 center offset 不超过 `1px`。桌面 TOC 在左侧常驻，保持 `256px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1024px` 仍可见。
+宽屏光学平衡改动的期望是：`1024px` 及以上文章页为 `TOC | surface | tree`，surface 占据居中 `article-shell` 减去 `584px` 后的中间栏，正文 rail 在 surface 内贴左对齐（textLeftInset = gutter，±1px）；`1024px` 以下正文 rail 在 surface 内居中且 center offset 不超过 `1px`，文章树隐藏。桌面 TOC 在左侧常驻，保持 `256px` 宽、距 surface `36px`、sticky、低视觉权重、无 clipping/overflow，并在 `1024px` 仍可见。右侧内容树同样 `256px`、距 surface `36px`、sticky。
 
 Reading Alignment 截图建议按真实文章和 fixture 分组，输出到本机 agent records：
 
 ```bash
-yarn ui:screenshots --label reading-alignment-after-xiaomi --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/xiaomi --pages article-top,article-toc,article-data-block --article-path /zh/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
-yarn ui:screenshots --label reading-alignment-after-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
-yarn ui:screenshots --label reading-alignment-after-images --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/images --pages article-image --article-path /zh/kde-plasma-obsdian-web-clipper/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
-yarn ui:screenshots --label reading-alignment-after-feature --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/feature --pages article-top,article-data-block --article-path /zh/blog-git-metadata-and-icons/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
-yarn ui:screenshots --label reading-alignment-after-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
-yarn ui:screenshots --label reading-alignment-textscale-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/making-memoh-cheaper-on-telegram/ --viewports reflow200,w1440 --theme both --text-scale 200
-yarn ui:screenshots --label reading-alignment-textscale-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-fixture --pages markdown-fixture --article-path /zh/xiaomi-book-pro-14/ --viewports reflow200,w1440 --theme both --text-scale 200
-yarn ui:screenshots --label wide-reading-optical-balance --out-dir docs/agent-records/wide-reading-optical-balance/screenshots/final --pages article-top,article-toc --article-path /zh/xiaomi-book-pro-14/ --viewports w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-xiaomi --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/xiaomi --pages article-top,article-toc,article-data-block --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/rich --pages article-code,article-math,article-table --article-path /zh/技术/making-memoh-cheaper-on-telegram/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-images --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/images --pages article-image --article-path /zh/折腾/kde-plasma-obsdian-web-clipper/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-feature --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/feature --pages article-top,article-data-block --article-path /zh/技术/blog-git-metadata-and-icons/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-after-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/fixture --pages markdown-fixture --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports compact,mobile,reflow200,tablet,laptop,w1280,w1440,w1728,w1920 --theme both
+yarn ui:screenshots --label reading-alignment-textscale-rich --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-rich --pages article-code,article-math,article-table --article-path /zh/技术/making-memoh-cheaper-on-telegram/ --viewports reflow200,w1440 --theme both --text-scale 200
+yarn ui:screenshots --label reading-alignment-textscale-fixture --out-dir docs/agent-records/reading-alignment-audit/screenshots/after/textscale200-fixture --pages markdown-fixture --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports reflow200,w1440 --theme both --text-scale 200
+yarn ui:screenshots --label wide-reading-optical-balance --out-dir docs/agent-records/wide-reading-optical-balance/screenshots/final --pages article-top,article-toc --article-path /zh/折腾/xiaomi-book-pro-14/ --viewports w1440,w1728,w1920 --theme both
 ```
 
 ## 构建与性能
@@ -222,7 +222,7 @@ Core Web Vitals 边界：
 
 1. Next.js 和浏览器是路由滚动的唯一所有者。
 2. 文章打开和返回不使用 `scroll: false`、保存的 `scrollY`、延迟恢复、临时 runway 或提交后的二次滚动。文章内普通同文档 fragment 链接以保留现有 Next.js history state 的 `replaceState()` 更新当前文章 entry，并即时滚动已验证目标；不得新增位于文章和列表来源之间的 history entry。
-3. 正文在静态 HTML 中默认挂载、参与静态布局且不依赖客户端透明度或延迟挂载，不是列表内 disclosure。仅 ADR-0008 已验证打开流程的 fixed opaque underlay 可在不修改正文 DOM 的前提下短暂遮挡其 pixels。
+3. 正文在静态 HTML 中默认挂载、参与静态布局且不依赖客户端透明度或延迟挂载，不是列表内 disclosure。仅 ADR-0008 已验证卡片意图的页面色 underlay（打开/返回淡入，提交后的 opaque barrier，返回回位后淡出）可在不修改正文 DOM 的前提下短暂遮挡其 pixels。
 4. 正文及其祖先不执行 `height: 0 -> auto`、整篇 DOM opacity gating、delayed mounting 或依赖 `AnimatePresence` 的退出折叠。
 5. TOC、阅读进度、代码复制和 widget 保持小型 client islands；禁用 JavaScript不影响正文阅读。`ArticleReader` 的 children 由服务端渲染；该边界只持有文章 DOM ref 供 `ReadingProgress` 使用，并捕获经 `lib/articleFragment.ts` 验证的普通同文档 fragment，以保留现有 history state 的 `replaceState()` 和即时滚动避免新增 history entry。不得在该边界导入 `Blog`、MDX、正文状态或可见性逻辑。
 
@@ -234,19 +234,19 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 可见位移使用 `transform`，不超过 8 px；允许局部 opacity，不允许用 opacity 隐藏整篇正文。
 - 一次交互最多一个主要动画；已经提交且状态未变的内容不重播入场。
 - 应用级 `MotionConfig` 使用 `reducedMotion="user"`。减弱动态效果时取消位移、stagger、smooth scroll 和动画等待。
-- App Store 文章卡片转场是唯一 timing/displacement 例外：打开 `380 ms`，经验证的返回 `340 ms`，easing 为 `[0.32, 0.72, 0, 1]`。完整 `PostCard` 必须以 fixed 结构化快照 morph；搜索与侧栏来源只使用单篇 skeleton。
+- App Store 文章卡片转场是唯一 timing/displacement 例外：先用 `160 ms` / `easeOut` 淡入页面色 underlay，再打开 `380 ms` 或经验证返回 `340 ms`，easing 为 `[0.32, 0.72, 0, 1]`。完整 `PostCard` 必须以 fixed 结构化快照 morph；搜索与侧栏来源只使用单篇 skeleton。
 - 快照必须 `aria-hidden="true"`、`pointer-events: none`，只含最小展示数据和数值 rectangle，不用 `cloneNode()`、复制控件、文章 HTML 或 MDX。Header 保持 `z-index: 50`，覆盖层为 `z-index: 40`。
 - `PostCard`、`ArticleCardTransitionOverlay` 与 `PostLayout` 共享一套卡片头部展示合同。surface、cover、title、Git 相对更新时间、源码入口、summary、published date、primary tag 和 read-more affordance 必须分别类型化并拥有各自的 layout marker；禁止把 metadata 合并为一个不可投影的字符串或节点。
 - title 与其余持久信息在 overlay 终点和文章头部必须保持相同的元素顺序、字体、字重、行高、换行约束和 geometry，逐 child 投影且不使用 opacity crossfade 交接。捕获时冻结 Git 相对时间文案。read-more 只在 inert snapshot 中保留占位并平滑淡出，返回时平滑恢复，不在文章页生成可聚焦自链接。
-- 完整卡片打开且目标 pathname 已提交后，允许 snapshot 背后出现 fixed/inert/opaque underlay，直到 route 与 card motion 同时 ready。目标 DOM 必须继续挂载、保持语义和静态布局，导航、history、focus 与 scroll 都不能等待视觉 handoff。underlay 不得用于直达、失败或退化路径，也不得用于任何返回路径。
+- 完整卡片意图从第 0 帧允许 snapshot 背后出现 fixed/inert 页面色 underlay：打开与返回均先淡入 160ms，卡片再移动。目标 pathname 提交后另加 opaque commit barrier，直到 route 与 card motion 同时 ready，但不提前启动 morph。返回在卡片回到列表目标后再把 underlay 淡出。目标 DOM 必须继续挂载、保持语义和静态布局，导航、history、focus 与 scroll 都不能等待视觉 handoff。underlay 不得用于直达、失败或退化路径。
 - destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可在 validated opening 期间为 `opacity: 0`，并在 handoff 后用 `180 ms` reveal。正文及其所有祖先不得使用该 marker 或继承 transition opacity，必须在视觉层下保持静态可见。共享 cover、title、Git 信息、summary、date 与 tag 不得 opacity crossfade；snapshot 必须保持为最终 motion frame 的 topmost shared representation。reduced motion 在极短 snapshot 提示后立即显示目标 presentation，不等待 underlay 或 reveal。
-- `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`640–1023px` 目标面为居中 shell、`top: 120px`、radius `8px`；`1024px` 及以上目标面为同一居中 shell 减去左侧 TOC `256px + 36px` 后的右侧栏、`top: 120px`、radius `8px`。
+- `320px`/`390px` 目标面全宽、`top: 72px`、radius `0`；`640–1023px` 目标面为居中 shell、`top: 120px`、radius `8px`；`1024px` 及以上目标面为同一居中 shell 减去 `584px` 后的中间栏、`top: 120px`、radius `8px`。内容树 companion 在 underlay 淡入期间保持来源/destination rectangle，只在卡片 Phase B 滑动（打开 380ms，companion 返回 340ms），并维持到返回 Phase C 结束；文章→文章只用阅读面 veil。代码块工具行不再使用 `min-h-12`，复制/源码控件保持 `44px`。
 - Link 不调用 `preventDefault()`；route commit、Back 与 fallback Link 都不等待动画。覆盖层不设置 scroll restoration、不保存/修正 scrollY、不锁滚动、不持有焦点。resize、缺数据、route mismatch、无有效目标或动画中断立即移除 snapshot、underlay 和 destination-only staging；这些歧义路径不得遮挡目标 pixels。
 - reduced motion 下禁止完整卡片的大范围 translate/scale，只允许极短 opacity 提示；正文、URL、focus 和 history 结果必须与正常模式一致。
 - Loading UI 是可选的，并且必须与最终页面几何一致。当前实现不为本地化祖先、文章路由或分类/标签的 index/detail 定义 `loading.tsx`，因为 Next.js 静态导出的 streaming fallback 会在禁用 JavaScript 时把最终内容留在隐藏的 `S:0` segment 后面。
 - 普通客户端文章 Link 的目标合同是由 `AppShell` 显示 ADR-0008 快照；完整卡片使用卡片 morph，搜索/侧栏才保留 `ArticleRouteSkeleton` 几何。修改键、新标签页、直达、刷新和禁用 JavaScript 不依赖该覆盖层。
 - 分类和标签页面由预渲染 HTML 直接显示标题、term chip 与文章卡片；搜索只在已渲染的结果区域显示查询 loading。不要假设每个 route 都有 skeleton。
-- 快照可跨 route commit 完成有界视觉退出，但真实文章 DOM 从提交时起已挂载、静态布局且不做 opacity gating 或 delayed mounting。只有已验证的完整卡片打开可由 opaque underlay 遮挡目标 pixels，且只持续到 route 与 card motion 的 handoff signal 同时满足；不得把该 underlay 扩展成第二次加载或正文生命周期门禁。
+- 快照可跨 route commit 完成有界视觉退出，但真实文章 DOM 从提交时起已挂载、静态布局且不做 opacity gating 或 delayed mounting。已验证的完整卡片意图可由页面色 underlay 遮挡来源或目标 pixels；提交后的 opaque barrier 只持续到 route 与 card motion 的 handoff signal 同时满足；不得把该 underlay 扩展成第二次加载或正文生命周期门禁。
 
 路由或动画变更的浏览器验收矩阵至少覆盖：
 
@@ -255,10 +255,10 @@ Motion 与 Animata-derived 组件只能提供视觉反馈，不能拥有文章�
 - 正常动态效果与 reduced motion。
 - 首页、分类或标签列表进入文章，再使用浏览器 Back 和页面返回控制。
 - 文章直达、刷新、新标签页、外部来源和禁用 JavaScript。
-- 完整 PostCard、搜索结果与侧栏三种来源；前者验证 card morph，后两者验证单篇 skeleton fallback。
+- 完整 PostCard、搜索结果与侧栏三种来源；前者验证 card morph，后两者验证单篇 skeleton fallback。列表内容树点击验证树 overlay + 阅读面 veil；文章树点击验证 veil 且 TOC/树不位移。无脚本时内容树仍在 HTML 中且文件夹默认展开。
 - 正常完成、快速重复点击、动画中 resize、目标卡片缺失和 route mismatch 等退化路径。
 
-E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 190 ms 中间帧、380 ms handoff 帧、`180 ms` destination-only reveal 和稳定帧，返回至少记录起点、约 170 ms 中间帧、340 ms 结束帧和 420 ms 稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。每个中间帧都要检查实际 pixels 以及 cover、共享字段和 destination-only controls 位置的 topmost painted layer，不能以被遮挡元素的 DOM presence 或 computed opacity 代替视觉断言。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
+E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中间帧。普通微动效记录点击后早期帧、220 ms 结束帧和 250 ms 之后的稳定帧；文章打开至少记录起点、约 80 ms fade 中间帧、160 ms morph 起点、约 350 ms morph 中间帧、约 540 ms handoff 帧、`180 ms` destination-only reveal 和稳定帧，返回至少记录起点、underlay 淡入、340 ms morph、160 ms underlay 淡出和稳定帧。断言 overlay 为 fixed、inert、Header 在其上方，移动/桌面目标 geometry 符合合同，并证明 route/Back 在动画结束前即可提交；还要逐项比较 title、Git 信息、summary、date 和 tag 在 overlay 终点与文章共享头部的 typography、顺序、换行和 rectangle，确认没有 opacity handoff 或单帧消失。每个中间帧都要检查实际 pixels 以及 cover、共享字段和 destination-only controls 位置的 topmost painted layer，不能以被遮挡元素的 DOM presence 或 computed opacity 代替视觉断言。仅断言最终 URL 或最终位置不足以证明没有闪烁、二次跳动或错误退出动画。
 
 ## 小型交互与移动 Header
 
@@ -280,7 +280,7 @@ E2E 需要验证 URL、目标内容、scrollY、snapshot semantics 与动画中�
 新增文章可使用 CLI 工具：
 
 ```bash
-yarn write-blog create --title "文章标题" --locale zh --slug my-post --draft
+yarn write-blog create --title "文章标题" --locale zh --slug my-post --folder 折腾 --draft
 ```
 
 参数说明：
@@ -288,10 +288,11 @@ yarn write-blog create --title "文章标题" --locale zh --slug my-post --draft
 - `--title`：文章标题（必填）。
 - `--locale`：`zh` 或 `en`（必填）。
 - `--slug`：URL slug；中文标题必须显式提供，脚本不会自动生成拼音 slug。
+- `--folder`：主题子目录，kebab-case 段，可用 `/` 嵌套；拒绝 `..` 以及 `categories`/`tags`/`search`。
 - `--date`：发布日期，默认当天（`YYYY-MM-DD`）。
 - `--summary`、`--categories`、`--tags`、`--translationKey`、`--authors`、`--image`、`--draft`：可选 frontmatter 字段。
 
-工具会创建 `content/blog/{locale}/{slug}.md` 并自动运行 `yarn content:generate` 验证 frontmatter 和 MDX。完整 agent 写作流程（选题、生成 frontmatter、撰写正文、humanizer-zh 润色、构建验证、提交）见 `.agents/instructions/write-blog.md`。
+工具会创建 `content/blog/{locale}/{folder}/{slug}.md` 并自动运行 `yarn content:generate` 验证 frontmatter 和 MDX。完整 agent 写作流程（选题、生成 frontmatter、撰写正文、humanizer-zh 润色、构建验证、提交）见 `.agents/instructions/write-blog.md`。
 
 ## 站点配置
 

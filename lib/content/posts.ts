@@ -5,6 +5,7 @@ import { coreContent, sortPosts, type CoreContent } from '@/lib/contentlayer'
 import { defaultLocale, locales, type Locale } from '@/lib/i18n'
 import { toListPosts, toPostNavItem, type BlogListPost } from '@/lib/listPosts'
 import { normalizeTocHeadings } from '@/lib/toc'
+import { buildContentTree, type ContentTreeNode } from '@/lib/content/contentTree'
 import {
   getCategoryCounts,
   getPostsByTerm,
@@ -18,8 +19,20 @@ import {
 export type BlogListData = {
   sourcePosts: Blog[]
   posts: BlogListPost[]
+  contentTree: ContentTreeNode[]
   categoryCounts: CountMap
   tagCounts: CountMap
+}
+
+function toContentTree(posts: Blog[]) {
+  return buildContentTree(
+    posts.map((post) => ({
+      title: post.title,
+      slug: post.slug,
+      path: post.path,
+      date: post.date,
+    }))
+  )
 }
 
 export function getLocalePosts(locale: Locale) {
@@ -45,6 +58,7 @@ export function getBlogListData(locale: Locale): BlogListData {
   return {
     sourcePosts,
     posts: toListPosts(sortPosts(sourcePosts)),
+    contentTree: toContentTree(sourcePosts),
     categoryCounts: getCategoryCounts(sourcePosts),
     tagCounts: getTagCounts(sourcePosts),
   }
@@ -65,6 +79,7 @@ export function getTermListData(locale: Locale, field: TermField, term: string):
   return {
     sourcePosts,
     posts: toListPosts(sortPosts(filteredPosts)),
+    contentTree: toContentTree(sourcePosts),
     categoryCounts: getCategoryCounts(sourcePosts),
     tagCounts: getTagCounts(sourcePosts),
   }
@@ -88,6 +103,7 @@ export function getPostPageData(locale: Locale, slug: string) {
     toc: normalizeTocHeadings(post.toc),
     previousPost: previousPost ? toPostNavItem(previousPost) : null,
     nextPost: nextPost ? toPostNavItem(nextPost) : null,
+    contentTree: toContentTree(sortedPosts),
   }
 }
 

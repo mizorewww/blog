@@ -8,6 +8,7 @@ import { pathToFileURL } from 'node:url'
  * @property {string} title
  * @property {string} locale
  * @property {string} [slug]
+ * @property {string} [folder]
  * @property {string} [date]
  * @property {string} [summary]
  * @property {string[]} [categories]
@@ -20,6 +21,17 @@ import { pathToFileURL } from 'node:url'
 
 const VALID_LOCALES = ['zh', 'en']
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
+const MARKDOWN_SLUG_EXTENSION = /(?:\.(?:md|mdx))+$/i
+const RESERVED_FOLDER_SEGMENTS = new Set(['categories', 'tags', 'search'])
+
+/**
+ * Strip a trailing Markdown filename extension from a slug or basename.
+ * @param {string} value
+ * @returns {string}
+ */
+export function stripMarkdownSlugExtension(value) {
+  return String(value).replace(MARKDOWN_SLUG_EXTENSION, '')
+}
 
 /**
  * Check if a string contains CJK characters.
@@ -48,6 +60,8 @@ export function resolveSlug(slug, title) {
       .trim()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
+  } else {
+    slug = stripMarkdownSlugExtension(String(slug).trim())
   }
 
   if (!SLUG_PATTERN.test(slug)) {
@@ -57,6 +71,44 @@ export function resolveSlug(slug, title) {
   }
 
   return slug
+}
+
+/**
+ * Validate topic folder segments for nested blog paths.
+ * @param {string | undefined} folder
+ * @returns {string}
+ */
+export function resolveFolder(folder) {
+  if (!folder) {
+    return ''
+  }
+
+  const segments = String(folder)
+    .split('/')
+    .map((segment) => segment.trim())
+    .filter(Boolean)
+
+  if (segments.length === 0) {
+    return ''
+  }
+
+  for (const segment of segments) {
+    if (segment === '.' || segment === '..') {
+      throw new Error(`folder 不能包含相对路径段: "${segment}"`)
+    }
+
+    if (RESERVED_FOLDER_SEGMENTS.has(segment)) {
+      throw new Error(`folder 不能使用保留路径段: "${segment}"`)
+    }
+
+    if (!SLUG_PATTERN.test(segment)) {
+      throw new Error(
+        `folder 段格式不合法: "${segment}"，只允许小写字母、数字、连字符，且不以连字符开头或结尾`
+      )
+    }
+  }
+
+  return segments.join('/')
 }
 
 /**
@@ -221,7 +273,8 @@ export function createBlogPost(options) {
   }
 
   const slug = resolveSlug(options.slug, title)
-  const filePath = path.join('content', 'blog', locale, `${slug}.md`)
+  const folder = resolveFolder(options.folder)
+  const filePath = path.join('content', 'blog', locale, folder, `${slug}.md`)
 
   if (fs.existsSync(filePath)) {
     throw new Error(`文件已存在: ${filePath}`)
@@ -243,6 +296,7 @@ function runCreate(args) {
   const locale = String(args.locale || 'zh')
   const title = String(args.title || '')
   const slug = args.slug ? String(args.slug) : undefined
+  const folder = args.folder ? String(args.folder) : undefined
   const date = String(args.date || new Date().toISOString().split('T')[0])
   const summary = args.summary ? String(args.summary) : undefined
   const categories = parseList(args.categories ? String(args.categories) : undefined)
@@ -256,6 +310,7 @@ function runCreate(args) {
     title,
     locale,
     slug,
+    folder,
     date,
     summary,
     categories,
@@ -280,6 +335,7 @@ function printUsage() {
   --title          文章标题（必填）
   --locale         语言，zh 或 en（必填）
   --slug           URL slug；中文标题必须显式提供
+  --folder         主题子目录，kebab-case 段，可用 / 嵌套
   --date           发布日期，默认今天（YYYY-MM-DD）
   --summary        摘要
   --categories     分类列表，逗号分隔

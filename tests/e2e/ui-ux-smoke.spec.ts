@@ -1,6 +1,7 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-const ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
+// Rendered href attributes keep the raw (decoded) non-ASCII folder name.
+const ARTICLE_HREF = '/zh/折腾/xiaomi-book-pro-14/'
 
 async function expectTouchTarget(locator: Locator, minSize = 44) {
   const box = await locator.boundingBox()
@@ -153,7 +154,7 @@ test('search exposes a stable status region and busy result updates', async ({ p
 
   releasePagefind()
 
-  await expect(page.locator(`a[data-blog-post-link][href="${ARTICLE_PATH}"]`)).toBeVisible()
+  await expect(page.locator(`a[data-blog-post-link][href="${ARTICLE_HREF}"]`)).toBeVisible()
   await expect(status).toContainText('找到')
   await expect(resultsRegion).toHaveAttribute('aria-busy', 'false')
 

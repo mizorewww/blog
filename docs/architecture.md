@@ -33,13 +33,14 @@ docs/         架构决策与维护文档
 
 ## 内容管线
 
-文章位于 `content/blog/zh/` 和 `content/blog/en/`。Contentlayer 在构建时读取 MDX frontmatter 与正文，生成 `.contentlayer/generated`。生产构建先生成内容数据，再运行 `next build`；页面运行时不读取文件系统。
+文章位于 `content/blog/zh/` 和 `content/blog/en/`，可按主题再嵌套一层目录。Contentlayer 在构建时读取 MDX frontmatter 与正文，生成 `.contentlayer/generated`。生产构建先生成内容数据，再运行 `next build`；页面运行时不读取文件系统。公开 URL 是 `/{locale}/{topic}/{basename}/`；旧的平铺文章 URL 由 `public/_redirects` 永久跳转。
 
 核心边界如下：
 
 - `lib/content/posts.ts` 是文章和作者数据的查询入口。
 - `lib/content/terms.ts` 负责分类、标签的 slug、展示 label、计数、过滤和静态参数。
 - `lib/listPosts.ts` 把完整文章投影为可序列化的卡片数据。
+- `lib/content/contentTree.ts` 把同一 locale 的 `sourcePosts` 投影为只有 title/path/slug 的文件夹树；分类/标签列表也必须用完整 locale 集合，不能用过滤后的 term 列表。
 - `lib/toc.ts` 从 Markdown 标题生成目录数据。
 - `components/MDXServerRenderer.tsx` 只在文章路由的服务端边界渲染生成的 MDX 模块。
 - `lib/i18n.ts` 负责语言配置、路径本地化和界面文案。
@@ -66,7 +67,7 @@ docs/         架构决策与维护文档
 
 ### 文章路由
 
-文章 RSC 必须只查询并渲染当前文章、作者信息、目录数据以及上一篇/下一篇的精简导航数据。页面首屏从返回控制、文章标题和当前文章元信息开始，不得在当前文章之前渲染其他列表卡片。
+文章 RSC 必须只查询并渲染当前文章、作者信息、目录数据、上一篇/下一篇的精简导航数据，以及同一 locale 的紧凑内容树（title/path/slug）。页面首屏从返回控制、文章标题和当前文章元信息开始，不得在当前文章之前渲染其他列表卡片。内容树不得携带 `body` 或 `mdxModulePath`。
 
 当前文章正文必须通过构建期生成的 MDX 模块和 `MDXServerRenderer` 进入静态 HTML并默认可见。刷新、直接访问、新标签页和禁用 JavaScript时都必须得到同一篇可读正文。
 
@@ -86,13 +87,13 @@ TOC、阅读进度、代码复制、主题、第三方 widget 和经过验证的
 
 surface、cover、title、Git 信息、summary、published date 与 primary tag 是持久元素。它们在快照终点与文章共享头部中必须保持相同的元素顺序、字体、字重、行高、换行约束和目标 geometry，并按 child 分别执行 layout projection；不得用 opacity crossfade 遮掩两套标题或元信息渲染。Git 相对时间在捕获时冻结，避免过渡中因时钟或 hydration 改变文案。read-more 只属于来源卡片，在 inert 快照中保留 layout space 后平滑淡出，返回接近来源卡片时再恢复；它不会成为文章页上的可聚焦自链接。该合同是规范性目标，不能仅凭本段文档推断实现已完成。
 
-转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`640–1023px` 下目标面为居中 shell（`min(viewport - 30px, 1440px)`）、`top: 120px`、radius 为 `8px`；`1024px` 及以上目标面为同一居中 shell 减去左侧 TOC `256px` 与间距 `36px` 后的右侧栏，`top: 120px`、radius 为 `8px`。打开使用 `380 ms`，经验证的返回使用 `340 ms`，二者 easing 均为 `[0.32, 0.72, 0, 1]`。
+转场覆盖层为 `z-index: 40`，Header 为 `z-index: 50`。`320px` 与 `390px` 下目标面宽度为 viewport 全宽、`top: 72px`、radius 为 `0`；`640–1023px` 下目标面为居中 shell（`min(viewport - 30px, 1440px)`）、`top: 120px`、radius 为 `8px`；`1024px` 及以上目标面为同一居中 shell 减去 `584px`（TOC `256` + 间距 `36` + 间距 `36` + 内容树 `256`）后的中间栏，`top: 120px`、radius 为 `8px`。卡片意图先用页面色 underlay 以 `160 ms` / `easeOut` 盖住当前页背景（Phase A），卡片保持来源或文章 destination；再移动卡片（Phase B：打开 `380 ms`，经验证的返回 `340 ms`，easing `[0.32, 0.72, 0, 1]`）。打开没有额外的 underlay 淡出；返回在卡片回到列表目标后再把 underlay 以 `160 ms` 淡出（Phase C）。列表右侧内容树到文章右栏的位移是 ADR-0008 的 chrome companion：Phase A 保持来源/destination rectangle，Phase B 与卡片共用同一时钟，结构化 React 快照，不用 `cloneNode()`。树 overlay 只拥有 rail 尺寸的 fixed 面，用同一 easing 把来源 sidebar rectangle 滑到文章 rail rectangle，不得使用 `layout`、`layoutRoot` 或 scale projection；卡片 overlay 是唯一的 Motion layout 所有者。companion 返回滑动为 `340 ms`，且不得在卡片 Phase C 结束前自行卸载。快照冻结来源 chrome 和当前展开文件夹，飞行中不切换 chrome、不重播折叠面板入场。`<1024px` 时树 destination 为 `null`，只播卡片序列。文章到文章只允许阅读面上的 paint-only veil（`180–220 ms`），不得把正文或祖先写成 `opacity: 0`，也不得用 `AnimatePresence` 保留旧 MDX。
 
 转场不等待路由，路由也不等待转场。普通文章 Link 立即导航；返回控制立即执行已验证的 Back 或本地化 fallback Link。返回折叠只有在列表提交后能找到匹配的完整卡片和有效 rectangle 时才继续，否则立即移除覆盖层；它不能滚动列表来制造目标。缺数据、无效矩形、storage 失败、route mismatch、动画中断和 viewport resize 同样立即退化为无覆盖层的普通导航。
 
 覆盖层不拥有正文、焦点、history 或 scroll，不锁页面滚动，不设置 `history.scrollRestoration`，不合成 `popstate`，不保存或矫正 `scrollY`。`AnimatePresence` 只能短暂保留 inert 快照，不能保留旧路由、旧卡片树或文章正文。
 
-只有经过完整 `PostCard` 校验的打开流程，才允许在目标 pathname 提交后于卡片快照背后加入 fixed、inert、opaque 的页面 underlay。它持续到 route 与 card motion 两个 ready signal 都满足，用于阻止目标封面和目标页新增控件提前成为 topmost pixels；目标 DOM 始终挂载并保持原有语义、静态布局、focus、history 与 scroll 行为。destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可以在打开期间 `opacity: 0`，并在 handoff 后用 `180 ms` 显示。正文及其所有祖先不属于该标记合同，始终在视觉层下保持静态可见；共享 cover、title 和卡片字段禁止 opacity crossfade。直达、失败、退化、返回均不使用 underlay。reduced motion 只保留极短 snapshot 提示，随后立即显示目标 presentation，不等待 underlay 或分阶段 reveal。
+只有经过完整 `PostCard` 校验的卡片意图，才允许在 inert 快照背后加入页面色 underlay：打开从第 0 帧以 `160 ms` 淡入，返回在 `return-waiting` / `returning` 同样淡入，并在卡片回到列表目标后再淡出。目标 pathname 提交后、`destinationStage === 'opening'` 期间仍保留一层不透明 commit barrier，防止文章像素从半透明 underlay 漏出；barrier 不启动 morph。目标 DOM 始终挂载并保持原有语义、静态布局、focus、history 与 scroll 行为。destination-only presentation 仅限显式标记的有界文章头部控件和文章专有 metadata；只有这些头部元素可以在打开期间 `opacity: 0`，并在 handoff 后用 `180 ms` 显示。正文及其所有祖先不属于该标记合同，始终在视觉层下保持静态可见；共享 cover、title 和卡片字段禁止 opacity crossfade。直达、失败和退化路径不使用 underlay。reduced motion 只保留极短 snapshot 提示，随后立即显示目标 presentation，不等待 underlay 或分阶段 reveal。
 
 ## 动画边界
 
@@ -105,7 +106,7 @@ Motion 和 `components/animata/` 只负责有界面的视觉反馈，不负责�
 - 一次交互最多有一个主要动画。已提交且没有状态变化的内容不重播入场。
 - 应用级 Motion 配置使用 `reducedMotion="user"`。减弱动态效果时取消非必要位移、stagger、smooth scroll 和等待 timer，不改变内容或焦点结果。
 
-ADR-0008 的单个卡片转场是 timing 与 displacement 的唯一例外：其 inert overlay 可使用 `380/340 ms` 和大于 `8px` 的 transform，打开 handoff 后可对显式标记的 destination-only 文章头部元素使用 `180 ms` reveal，但不能让正文 DOM、route commit、focus、scroll 或 history traversal 等待。其他控件继续使用 fast/standard 两档。
+ADR-0008 的单个卡片转场是 timing 与 displacement 的唯一 layout 例外：其 inert overlay 可先用 `160 ms` underlay 淡入，再使用 `380/340 ms` 和大于 `8px` 的 transform，打开 handoff 后可对显式标记的 destination-only 文章头部元素使用 `180 ms` reveal，但不能让正文 DOM、route commit、focus、scroll 或 history traversal 等待。内容树 companion 先在 Phase A 保持 rectangle，再在 Phase B 共用同一时钟，但只 tween 显式 `top` / `left` / `width` / `height`，不得再声明 `layout` 或 `layoutRoot`。其他控件继续使用 fast/standard 两档。
 
 通用页面转场不得掩盖路由提交、延迟可读正文或与文章返回竞争。实验性 View Transition API 和新动画依赖不属于当前架构。
 
@@ -115,13 +116,13 @@ Loading UI 是可选的渐进增强，必须匹配目标页面几何，不能成
 
 本地化祖先、文章路由以及分类/标签的 index 和 detail 路由都不设置 `loading.tsx`。当前 Next.js 静态导出中的 streaming fallback 会把最终内容放在隐藏的 `S:0` segment，并依赖 JavaScript 把它替换到 `B:0` boundary；禁用 JavaScript 时客户端会停留在 loading shell。这与静态内容必须直接可见的契约冲突，因此这些路由的直达、刷新、新标签页和无脚本请求直接使用预渲染的最终 HTML。
 
-从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。ADR-0008 要求 `AppShell` 把完整 `PostCard` 来源显示为结构化卡片快照；只有搜索或侧栏等缺少完整卡片数据与几何的来源才使用单篇阅读 skeleton。覆盖层可跨 pathname commit 完成自身的有界退出；完整卡片打开时可在 commit 后短暂增加 opaque underlay，直到 route 与 motion 都 ready。两者都不阻止 Link、不替代导航、也不控制正文 DOM 可见性。修改键点击和新标签页不会触发该覆盖层。
+从列表、搜索结果或侧栏文章链接进行普通主键导航时，`BlogListNavigationRecorder` 只记录来源并通知 `AppShell`。ADR-0008 要求 `AppShell` 把完整 `PostCard` 来源显示为结构化卡片快照，并在桌面并行播放内容树 chrome overlay；此时取消阅读面 veil，卡片 overlay 独占 `layout` / `layoutRoot`。列表内容树点击使用树 overlay 加阅读面 veil，不用卡片 morph；缺少树几何时改为普通导航，不用 skeleton。文章树点击只盖阅读面 veil。只有搜索或最近文章等既没有完整卡片也没有树几何的来源才使用单篇阅读 skeleton。覆盖层可跨 pathname commit 完成自身的有界退出；完整卡片意图从第 0 帧淡入页面色 underlay，commit 后另加 opaque barrier 直到 route 与 motion 都 ready，返回路径同样使用 underlay。两者都不阻止 Link、不替代导航、也不控制正文 DOM 可见性。修改键点击和新标签页不会触发该覆盖层。
 
 分类和标签的 index/detail 页面不依赖骨架显示标题、term chip 或文章卡片。搜索没有 route loading 骨架，输入后的等待状态只显示在已经渲染的结果区域。当前实现不声称每个路由都有 loading skeleton；任何新增边界都必须先验证目标几何、原始静态 HTML 和禁用 JavaScript 行为。
 
 ## 性能与安全边界
 
-列表页只序列化卡片需要的字段，文章页只导入当前 MDX 模块。上一篇/下一篇和 TOC 数据保持精简，避免把完整文章集合传给 client islands。转场状态只能重复当前选中卡片已经拥有的最小展示字段和数值 geometry；不得为动画把正文、完整文章集合、DOM HTML 或 MDX code 带入 App Shell。
+列表页只序列化卡片需要的字段，文章页只导入当前 MDX 模块。上一篇/下一篇和 TOC 数据保持精简，避免把完整文章集合传给 client islands。转场状态只能重复当前选中卡片已经拥有的最小展示字段和数值 geometry，以及页面上已有的紧凑内容树（title/path/slug + rectangle + 来源 chrome + 当前展开文件夹）；不得为动画把正文、完整文章集合、DOM HTML 或 MDX code 带入 App Shell。
 
 静态导出模式下，Next.js 不在运行时优化图片。主图和头像应在提交前压缩并提供稳定尺寸或宽高比，以控制 LCP 与 CLS。第三方脚本默认不进入首屏；接入时需要验证 CSP、静态构建产物和交互性能。
 
@@ -134,6 +135,7 @@ Cloudflare Pages CSP 不为文章渲染开放 eval。`public/_headers`、生成�
 ```text
 /{locale}
 /{locale}/{slug}
+/{locale}/{topic}/{slug}
 /{locale}/search
 /{locale}/tags
 /{locale}/tags/{tag}

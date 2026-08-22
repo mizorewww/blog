@@ -1,5 +1,6 @@
 import ProfileSidebar from '@/components/ProfileSidebar'
 import UtilitySidebar from '@/components/UtilitySidebar'
+import type { ContentTreeNode } from '@/lib/content/contentTree'
 import type { CountMap } from '@/lib/content/terms'
 import type { Locale } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
@@ -7,6 +8,7 @@ import type { ReactNode } from 'react'
 
 export default function BlogFrame({
   posts,
+  contentTree,
   categoryCounts,
   tagCounts,
   locale,
@@ -14,6 +16,7 @@ export default function BlogFrame({
   children,
 }: {
   posts: BlogListPost[]
+  contentTree: ContentTreeNode[]
   categoryCounts: CountMap
   tagCounts: CountMap
   locale: Locale
@@ -29,7 +32,12 @@ export default function BlogFrame({
         tagCounts={tagCounts}
         locale={locale}
       />
-      <UtilitySidebar posts={posts} dateLocale={dateLocale} locale={locale} />
+      <UtilitySidebar
+        posts={posts}
+        contentTree={contentTree}
+        dateLocale={dateLocale}
+        locale={locale}
+      />
     </div>
   )
 }

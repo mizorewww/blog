@@ -56,6 +56,17 @@ export default function ArticleRouteSkeleton() {
           <Skeleton className="h-4 w-5/6" />
           <Skeleton className="h-4 w-4/5" />
         </aside>
+
+        <aside
+          data-article-skeleton-content-tree
+          className="article-content-tree hidden space-y-3 lg:block"
+        >
+          <Skeleton className="h-5 w-24" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-5/6" />
+          <Skeleton className="h-4 w-4/5" />
+          <Skeleton className="h-4 w-2/3" />
+        </aside>
       </div>
     </div>
   )

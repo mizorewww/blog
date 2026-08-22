@@ -47,7 +47,7 @@ describe('article transition geometry', () => {
     ],
     [
       { width: 1440, height: 900 },
-      { top: 120, left: 307, width: 1118, height: 780, radius: 8 },
+      { top: 120, left: 307, width: 826, height: 780, radius: 8 },
     ],
   ])('creates the reading-surface destination for %o', (input, expected) => {
     expect(getArticleTransitionDestination(input)).toEqual(expected)

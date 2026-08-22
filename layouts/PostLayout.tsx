@@ -6,6 +6,7 @@ import ArticleLicenseNotice from '@/components/ArticleLicenseNotice'
 import ArticleReader from '@/components/ArticleReader'
 import ArticleReturnLink from '@/components/ArticleReturnLink'
 import ArticleTableOfContents from '@/components/ArticleTableOfContents'
+import ContentTree from '@/components/ContentTree'
 import Icon from '@/components/Icon'
 import Link from '@/components/Link'
 import MDXServerRenderer from '@/components/MDXServerRenderer'
@@ -16,9 +17,9 @@ import siteMetadata from '@/data/siteMetadata'
 import {
   ARTICLE_DESKTOP_TOC_BREAKPOINT,
   ARTICLE_SHELL_MAX_WIDTH,
-  ARTICLE_TOC_GAP,
-  ARTICLE_TOC_WIDTH,
+  ARTICLE_SURFACE_CHROME_DEDUCTION,
 } from '@/lib/articleLayout'
+import type { ContentTreeNode } from '@/lib/content/contentTree'
 import { formatDate } from '@/lib/formatDate'
 import { localizePath, localeConfig, type Locale, ui } from '@/lib/i18n'
 import { toListPost, type PostNavItem } from '@/lib/listPosts'
@@ -31,6 +32,7 @@ export default function PostLayout({
   previousPost,
   nextPost,
   toc,
+  contentTree,
   locale,
 }: {
   post: Blog
@@ -38,6 +40,7 @@ export default function PostLayout({
   previousPost: PostNavItem | null
   nextPost: PostNavItem | null
   toc: TocHeading[]
+  contentTree: ContentTreeNode[]
   locale: Locale
 }) {
   const labels = ui[locale]
@@ -48,7 +51,7 @@ export default function PostLayout({
   const secondaryTags = post.tags.slice(1)
   const hasArticleDetails =
     authorNames.length > 0 || secondaryTags.length > 0 || post.gitCommits.length > 0
-  const coverSizes = `(min-width: ${ARTICLE_DESKTOP_TOC_BREAKPOINT}px) calc(min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px) - ${ARTICLE_TOC_WIDTH + ARTICLE_TOC_GAP}px), (min-width: 640px) min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px), 100vw`
+  const coverSizes = `(min-width: ${ARTICLE_DESKTOP_TOC_BREAKPOINT}px) calc(min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px) - ${ARTICLE_SURFACE_CHROME_DEDUCTION}px), (min-width: 640px) min(100vw - 30px, ${ARTICLE_SHELL_MAX_WIDTH}px), 100vw`
 
   return (
     <div className="article-shell mx-auto w-full pb-16 sm:pt-6">
@@ -175,6 +178,9 @@ export default function PostLayout({
         </div>
 
         <ArticleTableOfContents headings={toc} locale={locale} variant="desktop" />
+        <aside className="article-content-tree hidden lg:block" data-article-content-tree>
+          <ContentTree chrome="rail" currentSlug={post.slug} locale={locale} nodes={contentTree} />
+        </aside>
       </ArticleReader>
     </div>
   )

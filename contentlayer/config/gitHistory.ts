@@ -63,11 +63,10 @@ function getCommitUrl(hash: string) {
 }
 
 export function getFileUrl(filePath: string, ref = 'HEAD') {
-  const legacyFilePath = getLegacyRepoSourceFilePath(filePath)
   const filePathAtRef =
-    legacyFilePath && !gitCommandSucceeds(['cat-file', '-e', `${ref}:${filePath}`])
-      ? legacyFilePath
-      : filePath
+    getRepoSourceFilePathCandidates(filePath).find((candidate) =>
+      gitCommandSucceeds(['cat-file', '-e', `${ref}:${candidate}`])
+    ) || filePath
 
   return siteRepo ? `${siteRepo}/blob/${ref}/${encodeGitHubPath(filePathAtRef)}` : ''
 }
@@ -89,8 +88,24 @@ function getLegacyRepoSourceFilePath(filePath: string) {
   return ''
 }
 
-function getRepoSourceFilePathCandidates(filePath: string) {
-  return [...new Set([filePath, getLegacyRepoSourceFilePath(filePath)].filter(Boolean))]
+function getFlatBlogSourceFilePath(filePath: string) {
+  const match = filePath.match(/^(content\/blog\/[^/]+)\/(?:.+\/)+([^/]+\.mdx?)$/)
+  return match ? `${match[1]}/${match[2]}` : ''
+}
+
+export function getRepoSourceFilePathCandidates(filePath: string) {
+  const flatFilePath = getFlatBlogSourceFilePath(filePath)
+
+  return [
+    ...new Set(
+      [
+        filePath,
+        flatFilePath,
+        getLegacyRepoSourceFilePath(filePath),
+        getLegacyRepoSourceFilePath(flatFilePath),
+      ].filter(Boolean)
+    ),
+  ]
 }
 
 function longestHistory(histories: PostGitCommit[][]) {

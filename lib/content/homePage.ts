@@ -5,10 +5,11 @@ import { createPostCollectionJsonLd } from '@/lib/structuredData'
 import { absoluteSiteUrl } from '@/lib/urls'
 
 export function buildHomePageData(locale: Locale, canonicalPath = localizePath('/', locale)) {
-  const { posts } = getBlogListData(locale)
+  const { posts, contentTree } = getBlogListData(locale)
 
   return {
     posts,
+    contentTree,
     title: ui[locale].home,
     jsonLd: createPostCollectionJsonLd({
       title: ui[locale].latest,

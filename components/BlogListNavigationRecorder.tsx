@@ -7,6 +7,9 @@ import {
   type ArticleNavigationIntent,
   type ArticleTransitionRect,
 } from '@/lib/articleTransition'
+import { isBlogPostPath } from '@/lib/blogRouteState'
+import { parseContentTreeNodes } from '@/lib/content/contentTree'
+import { createContentTreeSnapshot } from '@/lib/contentTreeTransition'
 
 function isPlainPrimaryClick(event: MouseEvent) {
   return event.button === 0 && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
@@ -55,22 +58,93 @@ export default function BlogListNavigationRecorder({
         createdAt: Date.now(),
       })
 
-      if (!marker) {
+      if (marker) {
+        try {
+          window.sessionStorage.setItem(ARTICLE_RETURN_MARKER_KEY, JSON.stringify(marker))
+        } catch {
+          clearMarker()
+          onArticleNavigation?.({ kind: 'cancel' })
+          return
+        }
+      } else {
         clearMarker()
-        onArticleNavigation?.({ kind: 'cancel' })
-        return
-      }
-
-      try {
-        window.sessionStorage.setItem(ARTICLE_RETURN_MARKER_KEY, JSON.stringify(marker))
-      } catch {
-        clearMarker()
-        onArticleNavigation?.({ kind: 'cancel' })
-        return
       }
 
       const targetUrl = new URL(link.href)
+      const viewport = { width: window.innerWidth, height: window.innerHeight }
+      const toRect = (rect: DOMRect): ArticleTransitionRect => ({
+        top: rect.top,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height,
+      })
+      const treeRoot = link.closest<HTMLElement>('[data-content-tree]')
       const card = link.closest<HTMLElement>('[data-article-transition-card]')
+      const sourceIsArticle = isBlogPostPath(window.location.pathname)
+      const targetIsArticle = isBlogPostPath(targetUrl.pathname)
+
+      const readTreeSnapshot = (root: HTMLElement) => {
+        let nodes: ReturnType<typeof parseContentTreeNodes> = null
+
+        try {
+          nodes = parseContentTreeNodes(JSON.parse(root.dataset.contentTreePayload || 'null'))
+        } catch {
+          nodes = null
+        }
+
+        const chrome =
+          root.dataset.contentTreeChrome === 'rail' || root.dataset.contentTreeChrome === 'sidebar'
+            ? root.dataset.contentTreeChrome
+            : undefined
+        // Measure the visible card container (the sidebar widget card / the
+        // article rail box), not the bare nav, so the overlay's background
+        // rectangle lands exactly on the real one.
+        const container =
+          chrome === 'rail'
+            ? root.closest<HTMLElement>('[data-article-content-tree]')
+            : root.closest<HTMLElement>('section')
+        const openFolderPaths = Array.from(
+          root.querySelectorAll<HTMLElement>('[data-content-tree-open="true"]')
+        )
+          .map((folder) => folder.dataset.contentTreeFolder)
+          .filter((path): path is string => typeof path === 'string' && path.length > 0)
+
+        return createContentTreeSnapshot(
+          {
+            sourcePath: window.location.pathname,
+            targetPath: targetUrl.pathname,
+            nodes: nodes ?? undefined,
+            sourceRect: toRect((container ?? root).getBoundingClientRect()),
+            chrome,
+            openFolderPaths,
+          },
+          viewport
+        )
+      }
+
+      if (treeRoot && sourceIsArticle && targetIsArticle) {
+        const surface = document.querySelector<HTMLElement>('[data-article-surface]')
+
+        onArticleNavigation?.(
+          surface
+            ? {
+                kind: 'article-switch',
+                targetPath: targetUrl.pathname,
+                surfaceRect: toRect(surface.getBoundingClientRect()),
+              }
+            : { kind: 'cancel' }
+        )
+        return
+      }
+
+      if (treeRoot && targetIsArticle) {
+        const tree = readTreeSnapshot(treeRoot)
+
+        onArticleNavigation?.(
+          tree ? { kind: 'tree-open', tree, targetPath: targetUrl.pathname } : { kind: 'cancel' }
+        )
+        return
+      }
 
       if (!card) {
         onArticleNavigation?.({ kind: 'fallback', targetPath: targetUrl.pathname })
@@ -86,12 +160,6 @@ export default function BlogListNavigationRecorder({
       const publishedDate = card.querySelector<HTMLElement>('[data-article-transition-date]')
       const primaryTag = card.querySelector<HTMLElement>('[data-article-transition-primary-tag]')
       const readMore = card.querySelector<HTMLElement>('[data-article-transition-read-more]')
-      const toRect = (rect: DOMRect): ArticleTransitionRect => ({
-        top: rect.top,
-        left: rect.left,
-        width: rect.width,
-        height: rect.height,
-      })
       const snapshot = createArticleCardSnapshot(
         {
           key: card.dataset.articleTransitionKey,
@@ -109,10 +177,14 @@ export default function BlogListNavigationRecorder({
           coverRect: cover ? toRect(cover.getBoundingClientRect()) : undefined,
           radius: Number.parseFloat(getComputedStyle(card).borderTopLeftRadius),
         },
-        { width: window.innerWidth, height: window.innerHeight }
+        viewport
       )
+      const visibleTree = document.querySelector<HTMLElement>('[data-content-tree]')
+      const tree = visibleTree ? readTreeSnapshot(visibleTree) : null
 
-      onArticleNavigation?.(snapshot ? { kind: 'card', snapshot } : { kind: 'cancel' })
+      onArticleNavigation?.(
+        snapshot ? { kind: 'card', snapshot, tree: tree ?? undefined } : { kind: 'cancel' }
+      )
     }
 
     document.addEventListener('click', recordArticleNavigation, true)

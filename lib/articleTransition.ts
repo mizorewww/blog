@@ -1,16 +1,21 @@
 import {
   ARTICLE_DESKTOP_TOC_BREAKPOINT,
   ARTICLE_SHELL_MAX_WIDTH,
+  ARTICLE_SURFACE_CHROME_DEDUCTION,
   ARTICLE_TOC_GAP,
   ARTICLE_TOC_WIDTH,
 } from '@/lib/articleLayout'
 import { normalizePathname } from '@/lib/blogRouteState'
+import type { ContentTreeSnapshot } from '@/lib/contentTreeTransition'
 
 export const ARTICLE_TRANSITION_OPEN_DURATION_SECONDS = 0.38
 export const ARTICLE_TRANSITION_RETURN_DURATION_SECONDS = 0.34
+export const ARTICLE_TRANSITION_BACKGROUND_DURATION_SECONDS = 0.16
 export const ARTICLE_TRANSITION_REDUCED_DURATION_SECONDS = 0.08
 export const ARTICLE_TRANSITION_EXIT_DURATION_SECONDS = 0
 export const ARTICLE_TRANSITION_EASE = [0.32, 0.72, 0, 1] as const
+
+export type ArticleTransitionSequence = 'background' | 'morph' | 'settle'
 
 const MAX_KEY_LENGTH = 240
 const MAX_PATH_LENGTH = 512
@@ -59,7 +64,9 @@ export type ArticleTransitionTarget = {
 }
 
 export type ArticleNavigationIntent =
-  | { kind: 'card'; snapshot: ArticleCardSnapshot }
+  | { kind: 'card'; snapshot: ArticleCardSnapshot; tree?: ContentTreeSnapshot }
+  | { kind: 'tree-open'; tree: ContentTreeSnapshot; targetPath: string }
+  | { kind: 'article-switch'; targetPath: string; surfaceRect: ArticleTransitionRect }
   | { kind: 'fallback'; targetPath: string }
   | { kind: 'cancel' }
 
@@ -332,7 +339,7 @@ export function getArticleTransitionDestination(
   const shellWidth = mobile
     ? viewport.width
     : Math.min(ARTICLE_SHELL_MAX_WIDTH, viewport.width - 30)
-  const width = desktop ? shellWidth - ARTICLE_TOC_WIDTH - ARTICLE_TOC_GAP : shellWidth
+  const width = desktop ? shellWidth - ARTICLE_SURFACE_CHROME_DEDUCTION : shellWidth
   const left = desktop
     ? (viewport.width - shellWidth) / 2 + ARTICLE_TOC_WIDTH + ARTICLE_TOC_GAP
     : (viewport.width - width) / 2

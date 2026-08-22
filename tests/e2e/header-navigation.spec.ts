@@ -1,6 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
-const ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
+const ARTICLE_PATH = encodeURI('/zh/折腾/xiaomi-book-pro-14/')
 
 async function expectNoHorizontalOverflow(page: Page) {
   await expect

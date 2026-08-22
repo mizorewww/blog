@@ -11,7 +11,7 @@ import {
 const now = 1_800_000
 const baseMarker: ArticleReturnMarker = {
   sourceUrl: 'https://mizore.blog/zh/',
-  targetUrl: 'https://mizore.blog/zh/xiaomi-book-pro-14/',
+  targetUrl: 'https://mizore.blog/zh/hardware/xiaomi-book-pro-14/',
   createdAt: now,
 }
 
@@ -75,7 +75,7 @@ describe('article return marker creation', () => {
   it.each([
     'https://mizore.blog/zh/tags/',
     'https://mizore.blog/zh/categories/',
-    'https://mizore.blog/zh/xiaomi-book-pro-14/',
+    'https://mizore.blog/zh/hardware/xiaomi-book-pro-14/',
   ])('rejects a non-list source: %s', (sourceUrl) => {
     expect(createArticleReturnMarker({ ...baseMarker, sourceUrl })).toBeNull()
   })
@@ -84,13 +84,13 @@ describe('article return marker creation', () => {
     expect(
       createArticleReturnMarker({
         ...baseMarker,
-        targetUrl: 'https://example.com/zh/xiaomi-book-pro-14/',
+        targetUrl: 'https://example.com/zh/hardware/xiaomi-book-pro-14/',
       })
     ).toBeNull()
     expect(
       createArticleReturnMarker({
         ...baseMarker,
-        targetUrl: 'https://mizore.blog/en/xiaomi-book-pro-14/',
+        targetUrl: 'https://mizore.blog/en/hardware/xiaomi-book-pro-14/',
       })
     ).toBeNull()
   })

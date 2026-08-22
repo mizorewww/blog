@@ -40,7 +40,7 @@ export default async function Page(props: { params: Promise<{ locale: string }> 
   return (
     <>
       <JsonLd data={data.jsonLd} />
-      <Main posts={data.posts} locale={params.locale} />
+      <Main posts={data.posts} contentTree={data.contentTree} locale={params.locale} />
     </>
   )
 }

@@ -120,7 +120,7 @@ export default function CodeBlock({
   return (
     <div className="code-block-shell">
       <div
-        className="code-header flex min-h-12 items-center justify-between gap-3 px-3 py-2 sm:px-4"
+        className="code-header flex items-center justify-between gap-3 px-3 py-1 sm:px-4"
         data-code-header
       >
         <span className="flex min-w-0 items-center gap-1.5">

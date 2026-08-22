@@ -8,12 +8,14 @@ import Icon from '@/components/Icon'
 import { MetaIcon, metaItemClass } from '@/components/PostMeta'
 import { imageOutlineClass, skyLink } from '@/components/ui/styles'
 import {
+  ARTICLE_TRANSITION_BACKGROUND_DURATION_SECONDS,
   ARTICLE_TRANSITION_EASE,
   ARTICLE_TRANSITION_EXIT_DURATION_SECONDS,
   ARTICLE_TRANSITION_OPEN_DURATION_SECONDS,
   ARTICLE_TRANSITION_REDUCED_DURATION_SECONDS,
   ARTICLE_TRANSITION_RETURN_DURATION_SECONDS,
   type ArticleTransitionGeometry,
+  type ArticleTransitionSequence,
   type ArticleTransitionState,
 } from '@/lib/articleTransition'
 
@@ -35,12 +37,16 @@ function visibleState(state: ArticleTransitionState): VisibleTransitionState | n
 }
 
 function TransitionSurface({
+  sequence,
   state,
   onOpenMotionComplete,
+  onReturnMorphComplete,
   onReturnMotionComplete,
 }: {
+  sequence: ArticleTransitionSequence
   state: VisibleTransitionState
   onOpenMotionComplete: () => void
+  onReturnMorphComplete: () => void
   onReturnMotionComplete: () => void
 }) {
   const [layoutMode, setLayoutMode] = useState<LayoutMode>(() =>
@@ -48,16 +54,26 @@ function TransitionSurface({
   )
 
   useEffect(() => {
-    if (state.phase === 'opening' && !state.reducedMotion && layoutMode === 'source') {
+    if (state.reducedMotion) {
+      return
+    }
+
+    if (state.phase === 'opening' && sequence === 'morph' && layoutMode === 'source') {
       const frame = window.requestAnimationFrame(() => setLayoutMode('destination'))
 
       return () => window.cancelAnimationFrame(frame)
     }
 
-    if (state.phase === 'returning' && !state.reducedMotion) {
-      setLayoutMode('return-target')
+    if (state.phase === 'returning' && sequence === 'morph' && layoutMode !== 'return-target') {
+      const frame = window.requestAnimationFrame(() => setLayoutMode('return-target'))
+
+      return () => window.cancelAnimationFrame(frame)
     }
-  }, [layoutMode, state.phase, state.reducedMotion])
+
+    if (state.phase === 'return-waiting' && layoutMode === 'return-target') {
+      setLayoutMode('destination')
+    }
+  }, [layoutMode, sequence, state.phase, state.reducedMotion])
 
   const geometry =
     layoutMode === 'source'
@@ -120,7 +136,7 @@ function TransitionSurface({
           state.phase === 'returning' &&
           layoutMode === 'return-target'
         ) {
-          onReturnMotionComplete()
+          onReturnMorphComplete()
         }
       }}
       onAnimationComplete={() => {
@@ -274,47 +290,141 @@ function TransitionSurface({
   )
 }
 
+function OverlayRoot({
+  concealDestination,
+  state,
+  onOpenMotionComplete,
+  onReturnMotionComplete,
+  onSequenceChange,
+}: {
+  concealDestination: boolean
+  state: VisibleTransitionState
+  onOpenMotionComplete: () => void
+  onReturnMotionComplete: () => void
+  onSequenceChange?: (sequence: ArticleTransitionSequence | null) => void
+}) {
+  const [sequence, setSequence] = useState<ArticleTransitionSequence>('background')
+  const [backgroundReady, setBackgroundReady] = useState(state.reducedMotion)
+
+  useEffect(() => {
+    onSequenceChange?.(state.reducedMotion ? null : sequence)
+  }, [onSequenceChange, sequence, state.reducedMotion])
+
+  useEffect(() => {
+    return () => onSequenceChange?.(null)
+  }, [onSequenceChange])
+
+  useEffect(() => {
+    if (state.reducedMotion) {
+      return
+    }
+
+    if (state.phase === 'return-waiting') {
+      setSequence('background')
+    }
+  }, [state.phase, state.reducedMotion])
+
+  useEffect(() => {
+    if (state.reducedMotion || !backgroundReady || sequence !== 'background') {
+      return
+    }
+
+    if (state.phase === 'opening' || state.phase === 'returning') {
+      setSequence('morph')
+    }
+  }, [backgroundReady, sequence, state.phase, state.reducedMotion])
+
+  const handleUnderlayAnimationComplete = () => {
+    if (state.reducedMotion) {
+      return
+    }
+
+    if (sequence === 'settle' && state.phase === 'returning') {
+      onReturnMotionComplete()
+      return
+    }
+
+    if (sequence === 'background') {
+      setBackgroundReady(true)
+    }
+  }
+
+  const handleReturnMorphComplete = () => {
+    setSequence('settle')
+  }
+
+  return (
+    <motion.div
+      layoutRoot
+      data-article-transition-overlay
+      data-article-transition-phase={state.phase}
+      data-article-transition-reduced={state.reducedMotion ? 'true' : 'false'}
+      data-article-transition-sequence={state.reducedMotion ? undefined : sequence}
+      aria-hidden="true"
+      className="pointer-events-none fixed inset-0 z-40"
+      initial={false}
+      exit={{ opacity: 0 }}
+      transition={{ duration: ARTICLE_TRANSITION_EXIT_DURATION_SECONDS }}
+    >
+      {!state.reducedMotion && (
+        <motion.div
+          data-article-transition-underlay
+          data-article-transition-underlay-fade
+          className="dark:bg-surface-page-dark bg-surface-page absolute inset-0 z-0"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: sequence === 'settle' ? 0 : 1 }}
+          transition={{
+            duration: ARTICLE_TRANSITION_BACKGROUND_DURATION_SECONDS,
+            ease: 'easeOut',
+          }}
+          onAnimationComplete={handleUnderlayAnimationComplete}
+        />
+      )}
+      {concealDestination && (
+        <div
+          data-article-transition-underlay
+          data-article-transition-commit-barrier
+          className="dark:bg-surface-page-dark bg-surface-page absolute inset-0 z-0"
+        />
+      )}
+      <TransitionSurface
+        key={state.snapshot.key}
+        sequence={sequence}
+        state={state}
+        onOpenMotionComplete={onOpenMotionComplete}
+        onReturnMorphComplete={handleReturnMorphComplete}
+        onReturnMotionComplete={onReturnMotionComplete}
+      />
+    </motion.div>
+  )
+}
+
 export default function ArticleCardTransitionOverlay({
   state,
   concealDestination,
   onOpenMotionComplete,
   onReturnMotionComplete,
+  onSequenceChange,
 }: {
   state: ArticleTransitionState
   concealDestination: boolean
   onOpenMotionComplete: () => void
   onReturnMotionComplete: () => void
+  onSequenceChange?: (sequence: ArticleTransitionSequence | null) => void
 }) {
   const visible = visibleState(state)
 
   return (
     <AnimatePresence>
       {visible && (
-        <motion.div
-          layoutRoot
+        <OverlayRoot
           key="article-card-transition"
-          data-article-transition-overlay
-          data-article-transition-phase={visible.phase}
-          data-article-transition-reduced={visible.reducedMotion ? 'true' : 'false'}
-          aria-hidden="true"
-          className="pointer-events-none fixed inset-0 z-40"
-          initial={false}
-          exit={{ opacity: 0 }}
-          transition={{ duration: ARTICLE_TRANSITION_EXIT_DURATION_SECONDS }}
-        >
-          {concealDestination && (
-            <div
-              data-article-transition-underlay
-              className="dark:bg-surface-page-dark bg-surface-page absolute inset-0 z-0"
-            />
-          )}
-          <TransitionSurface
-            key={visible.snapshot.key}
-            state={visible}
-            onOpenMotionComplete={onOpenMotionComplete}
-            onReturnMotionComplete={onReturnMotionComplete}
-          />
-        </motion.div>
+          concealDestination={concealDestination}
+          state={visible}
+          onOpenMotionComplete={onOpenMotionComplete}
+          onReturnMotionComplete={onReturnMotionComplete}
+          onSequenceChange={onSequenceChange}
+        />
       )}
     </AnimatePresence>
   )

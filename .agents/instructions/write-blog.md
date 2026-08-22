@@ -18,7 +18,8 @@
    - 必填：`--title`、`--locale`。
    - 中文标题必须显式提供 `--slug`（脚本不会自动生成拼音 slug）。
    - slug 只允许小写字母、数字、连字符，且不以连字符开头或结尾。
-   - 可选字段：`--summary`、`--categories`、`--tags`、`--translationKey`、`--authors`、`--image`、`--draft`、`--date`。
+   - 可选字段：`--summary`、`--categories`、`--tags`、`--translationKey`、`--authors`、`--image`、`--draft`、`--date`、`--folder`。
+   - `--folder` 写入主题子目录（kebab-case，可用 `/` 嵌套），拒绝 `..` 以及 `categories`/`tags`/`search`。
    - 默认作者为 `default`，默认日期为当天。
 
 3. **撰写正文**

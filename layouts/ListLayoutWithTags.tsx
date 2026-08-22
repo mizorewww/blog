@@ -5,6 +5,7 @@ import { useReducedMotion } from 'motion/react'
 import BackToTop from '@/components/BackToTop'
 import BlogFrame from '@/components/BlogFrame'
 import PostCard from '@/components/PostCard'
+import type { ContentTreeNode } from '@/lib/content/contentTree'
 import { getCategoryCounts, getTagCounts, type CountMap } from '@/lib/content/terms'
 import { defaultLocale, localeConfig, type Locale, ui } from '@/lib/i18n'
 import type { BlogListPost } from '@/lib/listPosts'
@@ -13,6 +14,7 @@ const POSTS_PER_BATCH = 5
 
 interface ListLayoutProps {
   posts: BlogListPost[]
+  contentTree: ContentTreeNode[]
   title: string
   visibleTitle?: string
   locale?: Locale
@@ -22,6 +24,7 @@ interface ListLayoutProps {
 
 export default function ListLayoutWithTags({
   posts,
+  contentTree,
   title,
   visibleTitle,
   locale = defaultLocale,
@@ -71,6 +74,7 @@ export default function ListLayoutWithTags({
   return (
     <BlogFrame
       posts={posts}
+      contentTree={contentTree}
       categoryCounts={categoryCounts}
       tagCounts={tagCounts}
       locale={locale}

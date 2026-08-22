@@ -131,7 +131,11 @@ export async function renderTermPage(field: TermField, props: RawTermParams) {
   }
 
   const termMeta = buildTermPageMeta(params.locale, field, params.term)
-  const { posts, categoryCounts, tagCounts } = getListData(params.locale, field, termMeta.slug)
+  const { posts, contentTree, categoryCounts, tagCounts } = getListData(
+    params.locale,
+    field,
+    termMeta.slug
+  )
   const visibleTitle =
     field === 'categories'
       ? ui[params.locale].categoryDetailTitle(termMeta.term)
@@ -149,6 +153,7 @@ export async function renderTermPage(field: TermField, props: RawTermParams) {
       <JsonLd data={jsonLd} />
       <ListLayout
         posts={posts}
+        contentTree={contentTree}
         title={termMeta.title}
         visibleTitle={visibleTitle}
         locale={params.locale}

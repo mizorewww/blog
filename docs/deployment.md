@@ -108,3 +108,7 @@ public/_headers
 ```
 
 这里维护 CSP、HSTS、Referrer Policy、Frame Policy 等响应头。
+
+## 重定向
+
+`public/_redirects` 是无语言前缀历史 URL 和旧平铺文章 URL 的权威规则。主题目录迁移后的字面 301（例如 `/zh/xiaomi-book-pro-14` → `/zh/折腾/xiaomi-book-pro-14/`）也写在同一文件；开发服务器、静态 preview 和 Cloudflare Pages 共用这份清单。

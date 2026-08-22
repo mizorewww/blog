@@ -95,7 +95,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
     return notFound()
   }
 
-  const { post, authorDetails, previousPost, nextPost, toc } = pageData
+  const { post, authorDetails, previousPost, nextPost, toc, contentTree } = pageData
   const jsonLd = createArticleJsonLd({
     post,
     locale: params.locale,
@@ -111,6 +111,7 @@ export default async function Page(props: { params: Promise<{ locale: string; sl
         previousPost={previousPost}
         nextPost={nextPost}
         toc={toc}
+        contentTree={contentTree}
         locale={params.locale}
       />
     </>

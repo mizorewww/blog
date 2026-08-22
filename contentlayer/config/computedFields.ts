@@ -34,6 +34,12 @@ export const computedFields: ComputedFields = {
   mdxModulePath: { type: 'string', resolve: writeMdxModule },
 }
 
+const MARKDOWN_SLUG_EXTENSION = /(?:\.(?:md|mdx))+$/i
+
+export function stripMarkdownSlugExtension(slug: string) {
+  return slug.replace(MARKDOWN_SLUG_EXTENSION, '')
+}
+
 const rawBlogSlug = (doc: ContentlayerDoc) => doc._raw.flattenedPath.replace(/^.+?(\/)/, '')
 
 const blogLocale = (doc: ContentlayerDoc) => {
@@ -54,12 +60,9 @@ const blogLocale = (doc: ContentlayerDoc) => {
 const blogSlug = (doc: ContentlayerDoc) => {
   const rawSlug = rawBlogSlug(doc)
   const [firstSegment, ...rest] = rawSlug.split('/')
+  const nested = isLocale(firstSegment) && rest.length > 0 ? rest.join('/') : rawSlug
 
-  if (isLocale(firstSegment) && rest.length > 0) {
-    return rest.join('/')
-  }
-
-  return rawSlug
+  return stripMarkdownSlugExtension(nested)
 }
 
 const blogPath = (doc: ContentlayerDoc) => `${blogLocale(doc)}/${blogSlug(doc)}`

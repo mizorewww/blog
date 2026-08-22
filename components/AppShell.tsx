@@ -11,6 +11,8 @@ import Header from './Header'
 import { ArticleTransitionProvider } from './ArticleTransitionContext'
 import ArticleCardTransitionOverlay from './animata/ArticleCardTransitionOverlay'
 import ArticleRouteSkeleton from './animata/ArticleRouteSkeleton'
+import ArticleSurfaceVeil from './animata/ArticleSurfaceVeil'
+import ContentTreeTransitionOverlay from './animata/ContentTreeTransitionOverlay'
 import {
   articleTransitionReducer,
   createArticleTransitionTarget,
@@ -20,9 +22,22 @@ import {
   type ArticleCardSnapshot,
   type ArticleNavigationIntent,
   type ArticleTransitionRect,
+  type ArticleTransitionSequence,
   type ArticleTransitionState,
 } from '@/lib/articleTransition'
 import { isBlogPostPath, normalizePathname } from '@/lib/blogRouteState'
+import {
+  articleSurfaceVeilReducer,
+  contentTreeTransitionReducer,
+  createContentTreeReturnTarget,
+  deriveContentTreeReturnStage,
+  deriveContentTreeTransitionStage,
+  getArticleSurfaceVeilRect,
+  getContentTreeSlideDuration,
+  idleArticleSurfaceVeilState,
+  idleContentTreeTransitionState,
+  type ContentTreeTransitionState,
+} from '@/lib/contentTreeTransition'
 import { getLocaleFromPathname, ui } from '@/lib/i18n'
 
 const HEADER_HIDE_SCROLL_Y = 80
@@ -91,77 +106,196 @@ export default function AppShell({ children }: { children: ReactNode }) {
     articleTransitionReducer,
     idleArticleTransitionState
   )
+  const [treeTransitionState, dispatchTreeTransition] = useReducer(
+    contentTreeTransitionReducer,
+    idleContentTreeTransitionState
+  )
+  const [veilState, dispatchVeil] = useReducer(
+    articleSurfaceVeilReducer,
+    idleArticleSurfaceVeilState
+  )
+  const [cardSequence, setCardSequence] = useState<ArticleTransitionSequence | null>(null)
   const [hideHeaderOnMobile, setHideHeaderOnMobile] = useState(false)
   const previousScrollYRef = useRef(0)
   const mainRef = useRef<HTMLElement>(null)
   const routeFocusReadyRef = useRef(false)
   const transitionStateRef = useRef<ArticleTransitionState>(transitionState)
+  const treeTransitionStateRef = useRef<ContentTreeTransitionState>(treeTransitionState)
   const isReadingPost = isBlogPostPath(pathname)
   const shouldReduceMotion = useReducedMotion()
   const { resolvedTheme } = useTheme()
   transitionStateRef.current = transitionState
+  treeTransitionStateRef.current = treeTransitionState
   const destinationStage = deriveArticleTransitionDestinationStage(transitionState, pathname)
+  const treeDestinationStage = deriveContentTreeTransitionStage(treeTransitionState, pathname)
+  const treeReturnStage = deriveContentTreeReturnStage(treeTransitionState, pathname)
+  const cardTransitionActive = transitionState.phase !== 'idle'
+  const cardCompanionTreeProps = cardTransitionActive
+    ? {
+        holdMotion:
+          Boolean(!shouldReduceMotion) && cardSequence !== 'morph' && cardSequence !== 'settle',
+        slideDuration: getContentTreeSlideDuration({
+          phase: treeTransitionState.phase,
+          companion: true,
+          reducedMotion: Boolean(shouldReduceMotion),
+        }),
+        completePolicy: 'card-sequence' as const,
+      }
+    : {}
 
   const handleArticleNavigation = useCallback(
     (intent: ArticleNavigationIntent) => {
+      const viewport = { width: window.innerWidth, height: window.innerHeight }
+      const reducedMotion = Boolean(shouldReduceMotion)
+
       if (intent.kind === 'cancel') {
         setFallbackTargetPath(null)
         dispatchTransition({ type: 'cancelled' })
+        dispatchTreeTransition({ type: 'cancelled' })
+        dispatchVeil({ type: 'cancelled' })
         return
       }
 
       if (intent.kind === 'fallback') {
         dispatchTransition({ type: 'cancelled' })
+        dispatchTreeTransition({ type: 'cancelled' })
+        dispatchVeil({ type: 'cancelled' })
         setFallbackTargetPath(normalizePathname(intent.targetPath))
         return
       }
 
       setFallbackTargetPath(null)
+
+      if (intent.kind === 'article-switch') {
+        dispatchTransition({ type: 'cancelled' })
+        dispatchTreeTransition({ type: 'cancelled' })
+        dispatchVeil({
+          type: 'cover-started',
+          targetPath: intent.targetPath,
+          rect: intent.surfaceRect,
+          reducedMotion,
+        })
+        return
+      }
+
+      if (intent.kind === 'tree-open') {
+        dispatchTransition({ type: 'cancelled' })
+        dispatchTreeTransition({
+          type: 'open-started',
+          snapshot: intent.tree,
+          viewport,
+          reducedMotion,
+        })
+        const veilRect = getArticleSurfaceVeilRect(viewport)
+        if (veilRect) {
+          dispatchVeil({
+            type: 'cover-started',
+            targetPath: intent.targetPath,
+            rect: veilRect,
+            reducedMotion,
+          })
+        } else {
+          dispatchVeil({ type: 'cancelled' })
+        }
+        return
+      }
+
+      dispatchVeil({ type: 'cancelled' })
       dispatchTransition({
         type: 'open-started',
         snapshot: intent.snapshot,
-        viewport: { width: window.innerWidth, height: window.innerHeight },
-        reducedMotion: Boolean(shouldReduceMotion),
+        viewport,
+        reducedMotion,
       })
+      if (intent.tree) {
+        dispatchTreeTransition({
+          type: 'open-started',
+          snapshot: intent.tree,
+          viewport,
+          reducedMotion,
+        })
+      } else {
+        dispatchTreeTransition({ type: 'cancelled' })
+      }
     },
     [shouldReduceMotion]
   )
 
   const requestReturnTransition = useCallback(() => {
     const current = transitionStateRef.current
+    const treeCurrent = treeTransitionStateRef.current
+    const onTargetArticle =
+      current.phase !== 'idle' &&
+      normalizePathname(window.location.pathname) === current.snapshot.targetPath
+    const onTreeTargetArticle =
+      treeCurrent.phase !== 'idle' &&
+      normalizePathname(window.location.pathname) === treeCurrent.snapshot.targetPath
 
     if (
-      (current.phase !== 'retained' && current.phase !== 'opening') ||
-      normalizePathname(window.location.pathname) !== current.snapshot.targetPath ||
-      !articleHeroIntersectsViewport()
+      (current.phase === 'retained' || current.phase === 'opening') &&
+      onTargetArticle &&
+      articleHeroIntersectsViewport()
     ) {
+      setFallbackTargetPath(null)
+      dispatchTransition({ type: 'return-requested' })
+      dispatchTreeTransition({ type: 'return-requested' })
+      return true
+    }
+
+    if (
+      (treeCurrent.phase === 'retained' || treeCurrent.phase === 'opening') &&
+      onTreeTargetArticle
+    ) {
+      setFallbackTargetPath(null)
+      dispatchTreeTransition({ type: 'return-requested' })
+      return true
+    }
+
+    return false
+  }, [])
+
+  const requestTreeReturnTransition = useCallback(() => {
+    const current = treeTransitionStateRef.current
+
+    if (current.phase !== 'retained' && current.phase !== 'opening') {
       return false
     }
 
     setFallbackTargetPath(null)
-    dispatchTransition({ type: 'return-requested' })
+    dispatchTreeTransition({ type: 'return-requested' })
     return true
   }, [])
 
   const requestPopStateReturnTransition = useCallback(() => {
     const current = transitionStateRef.current
+    const treeCurrent = treeTransitionStateRef.current
 
     if (
-      (current.phase !== 'retained' && current.phase !== 'opening') ||
-      normalizePathname(window.location.pathname) !== current.snapshot.sourcePath ||
-      !articleHeroIntersectsViewport()
+      (current.phase === 'retained' || current.phase === 'opening') &&
+      normalizePathname(window.location.pathname) === current.snapshot.sourcePath &&
+      articleHeroIntersectsViewport()
     ) {
-      return false
+      setFallbackTargetPath(null)
+      dispatchTransition({ type: 'return-requested' })
+      dispatchTreeTransition({ type: 'return-requested' })
+      return true
     }
 
-    setFallbackTargetPath(null)
-    dispatchTransition({ type: 'return-requested' })
-    return true
-  }, [])
+    if (
+      (treeCurrent.phase === 'retained' || treeCurrent.phase === 'opening') &&
+      normalizePathname(window.location.pathname) === treeCurrent.snapshot.sourcePath
+    ) {
+      return requestTreeReturnTransition()
+    }
+
+    return false
+  }, [requestTreeReturnTransition])
 
   useEffect(() => {
     setFallbackTargetPath(null)
     dispatchTransition({ type: 'route-committed', pathname })
+    dispatchTreeTransition({ type: 'route-committed', pathname })
+    dispatchVeil({ type: 'route-committed', pathname })
   }, [pathname])
 
   useEffect(() => {
@@ -187,6 +321,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
     const cancelForViewportChange = () => {
       setFallbackTargetPath(null)
       dispatchTransition({ type: 'viewport-changed' })
+      dispatchTreeTransition({ type: 'viewport-changed' })
+      dispatchVeil({ type: 'cancelled' })
     }
 
     window.addEventListener('resize', cancelForViewportChange)
@@ -306,6 +442,115 @@ export default function AppShell({ children }: { children: ReactNode }) {
   }, [pathname, transitionState])
 
   useEffect(() => {
+    if (
+      treeTransitionState.phase !== 'return-waiting' ||
+      normalizePathname(pathname) !== treeTransitionState.snapshot.sourcePath
+    ) {
+      return
+    }
+
+    // Mirror the card return sampling: the list page may still be laying out or
+    // restoring its scroll position when it first mounts, so a single sample can
+    // capture a transient rect. Wait until the target is stable across two
+    // consecutive frames (and re-sample on scroll/mutation/resize) so the overlay
+    // glides to the exact settled position of the real sidebar card.
+    let animationFrame = 0
+    let cancelled = false
+    let previous: { scrollY: number; rect: ArticleTransitionRect } | undefined
+    let stableComparisons = 0
+    let missingMeasurements = 0
+    let resizeObserver: ResizeObserver | undefined
+    const mutationObserver = new MutationObserver(() => scheduleSample())
+
+    const cancel = () => {
+      if (!cancelled) {
+        dispatchTreeTransition({ type: 'cancelled' })
+      }
+    }
+
+    const sample = () => {
+      animationFrame = 0
+
+      if (cancelled) {
+        return
+      }
+
+      const tree = mainRef.current?.querySelector<HTMLElement>('[data-content-tree]') ?? null
+      const container = tree?.closest<HTMLElement>('section') ?? tree
+      const target = container
+        ? createContentTreeReturnTarget(toTransitionRect(container.getBoundingClientRect()), {
+            width: window.innerWidth,
+            height: window.innerHeight,
+          })
+        : null
+
+      if (!target || !container) {
+        missingMeasurements += 1
+
+        if (missingMeasurements < 2) {
+          animationFrame = window.requestAnimationFrame(sample)
+        } else {
+          cancel()
+        }
+        return
+      }
+
+      missingMeasurements = 0
+
+      if (!resizeObserver) {
+        resizeObserver = new ResizeObserver(() => scheduleSample())
+        resizeObserver.observe(container)
+      }
+
+      const current = { scrollY: window.scrollY, rect: target }
+
+      if (
+        previous &&
+        Math.abs(previous.scrollY - current.scrollY) <= RETURN_STABILITY_TOLERANCE &&
+        rectDelta(previous.rect, current.rect) <= RETURN_STABILITY_TOLERANCE
+      ) {
+        stableComparisons += 1
+      } else {
+        stableComparisons = 0
+      }
+
+      previous = current
+
+      if (stableComparisons >= 1) {
+        dispatchTreeTransition({
+          type: 'return-target-resolved',
+          pathname,
+          target,
+        })
+        return
+      }
+
+      animationFrame = window.requestAnimationFrame(sample)
+    }
+
+    function scheduleSample() {
+      if (!cancelled && animationFrame === 0) {
+        animationFrame = window.requestAnimationFrame(sample)
+      }
+    }
+
+    mutationObserver.observe(document.body, { childList: true, subtree: true })
+    window.addEventListener('scroll', scheduleSample, { passive: true })
+    scheduleSample()
+
+    return () => {
+      cancelled = true
+      mutationObserver.disconnect()
+      resizeObserver?.disconnect()
+      window.removeEventListener('scroll', scheduleSample)
+
+      if (animationFrame !== 0) {
+        window.cancelAnimationFrame(animationFrame)
+      }
+    }
+  }, [pathname, treeTransitionState])
+
+  useEffect(() => {
     previousScrollYRef.current = window.scrollY
     setHideHeaderOnMobile(false)
 
@@ -347,8 +592,26 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <ArticleCardTransitionOverlay
           state={transitionState}
           concealDestination={destinationStage === 'opening'}
-          onOpenMotionComplete={() => dispatchTransition({ type: 'open-motion-completed' })}
-          onReturnMotionComplete={() => dispatchTransition({ type: 'return-motion-completed' })}
+          onSequenceChange={setCardSequence}
+          onOpenMotionComplete={() => {
+            dispatchTransition({ type: 'open-motion-completed' })
+            dispatchTreeTransition({ type: 'open-motion-completed' })
+          }}
+          onReturnMotionComplete={() => {
+            dispatchTransition({ type: 'return-motion-completed' })
+            dispatchTreeTransition({ type: 'return-motion-completed' })
+          }}
+        />
+        <ContentTreeTransitionOverlay
+          state={treeTransitionState}
+          concealDestination={treeDestinationStage === 'opening'}
+          {...cardCompanionTreeProps}
+          onOpenMotionComplete={() => dispatchTreeTransition({ type: 'open-motion-completed' })}
+          onReturnMotionComplete={() => dispatchTreeTransition({ type: 'return-motion-completed' })}
+        />
+        <ArticleSurfaceVeil
+          state={veilState}
+          onRevealComplete={() => dispatchVeil({ type: 'reveal-completed' })}
         />
         {fallbackTargetPath && (
           <div
@@ -364,6 +627,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
           tabIndex={-1}
           className="flex-1 pt-[72px] lg:pt-[96px]"
           data-article-transition-destination={destinationStage ?? undefined}
+          data-content-tree-transition={treeDestinationStage ?? undefined}
+          data-content-tree-transition-return={treeReturnStage ?? undefined}
         >
           {children}
         </main>

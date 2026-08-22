@@ -4,16 +4,31 @@
 
 ## 文章位置
 
-中文文章：
+中文文章按主题子目录存放，文件名仍是 slug 的最后一段：
 
 ```text
-content/blog/zh/my-post.mdx
+content/blog/zh/折腾/xiaomi-book-pro-14.md
+content/blog/zh/技术/making-memoh-cheaper-on-telegram.md
 ```
 
-英文文章：
+英文文章同样嵌套：
 
 ```text
-content/blog/en/my-post.mdx
+content/blog/en/折腾/xiaomi-book-pro-14.md
+```
+
+根目录平铺文件仍然可用，但新文章应放进主题文件夹。`yarn write-blog create --folder 折腾` 会写入 `content/blog/{locale}/{folder}/{slug}.md`。
+
+Obsidian 通过仓库外的 vault 符号链接编辑同一棵目录，不把 vault 文件提交进 Git：
+
+```bash
+ln -sfn /Users/aac6fef/Developer/blog/content/blog "/Users/aac6fef/Documents/Obsidian Vault/06_Blog"
+```
+
+Templater 模板在 vault 的 `99_Resources/Templater/Blog.md`。slug 只使用不含扩展名的 basename：`yarn write-blog`、Templater 和 Contentlayer `blogSlug` 都会去掉末尾误带的 `.md` / `.mdx`，Templater 创建笔记时不得再把 `.md` 写进文件名，以免生成 `post.md.md`。已存在的双后缀文件仍映射到不含扩展名的公开 URL，不要靠改文件名来“修复”未提交草稿。可选的本机插件符号链接：
+
+```bash
+ln -sfn /Users/aac6fef/Developer/obsidian-plugin-myblog "/Users/aac6fef/Documents/Obsidian Vault/.obsidian/plugins/myblog"
 ```
 
 作者信息：
@@ -68,28 +83,42 @@ draft: false
 对于文件：
 
 ```text
-content/blog/zh/example.mdx
+content/blog/zh/折腾/xiaomi-book-pro-14.md
 ```
 
 生成路径：
 
 ```text
-/zh/example
+/zh/折腾/xiaomi-book-pro-14
 ```
+
+公开 slug 不含文件扩展名。若 flattenedPath 因双后缀文件变成 `折腾/use-grok-bot.md`，`blogSlug` 仍会收成 `折腾/use-grok-bot`。
 
 对于文件：
 
 ```text
-content/blog/en/example.mdx
+content/blog/en/折腾/xiaomi-book-pro-14.md
 ```
 
 生成路径：
 
 ```text
-/en/example
+/en/折腾/xiaomi-book-pro-14
 ```
 
-默认语言是 `zh`。无语言前缀的历史路径由 Cloudflare Pages redirects 跳转到 `/zh/...`。
+默认语言是 `zh`。无语言前缀的历史路径由 Cloudflare Pages redirects 跳转到 `/zh/...`。旧的平铺文章 URL 再 301 到主题路径，例如 `/zh/xiaomi-book-pro-14` → `/zh/折腾/xiaomi-book-pro-14/`。`/blog/xiaomi-book-pro-14` 先经现有 splat 到 `/zh/xiaomi-book-pro-14`，再跳到新路径。
+
+没有 `/{locale}/folders/...` 列表路由。文件夹只出现在右侧内容树里，行本身只负责展开/折叠，文章叶子是普通 `Link`。
+
+| 旧 URL                                  | 新 URL                                       |
+| --------------------------------------- | -------------------------------------------- |
+| `/zh/blog-git-metadata-and-icons/`      | `/zh/技术/blog-git-metadata-and-icons/`      |
+| `/zh/kde-plasma-obsdian-web-clipper/`   | `/zh/折腾/kde-plasma-obsdian-web-clipper/`   |
+| `/zh/making-memoh-cheaper-on-telegram/` | `/zh/技术/making-memoh-cheaper-on-telegram/` |
+| `/zh/xiaomi-book-pro-14/`               | `/zh/折腾/xiaomi-book-pro-14/`               |
+| `/en/xiaomi-book-pro-14/`               | `/en/折腾/xiaomi-book-pro-14/`               |
+
+文章移进主题目录后，Git 元数据仍要跟到平铺旧路径：`git log --follow` 看当前文件，候选路径再补 `content/blog/{locale}/{slug}.md` 和更早的 `data/blog/` 位置。这样相关提交在 rename 提交前后都还能列出来。
 
 分类和标签的路由片段由原始 term 生成 slug，例如 `Next.js` 生成 `nextjs`。页面展示、aria 文案、metadata 和 JSON-LD 保留 frontmatter 中的原始 term。
 
@@ -114,7 +143,7 @@ content/blog/en/example.mdx
 
 文章正文由 `article-prose` 作用域统一承载。文章页正文相关外边缘按层走同一条阅读 rail：文字类 block（标题、段落、列表、引用、details、脚注、license notice、文章详情和上下篇导航）与 `article-content-rail` 对齐，在 `1024px` 及以上左缘为 surface 左缘加 gutter；`pre`、Shiki figure、图片 figure 和行间 MathJax 在 surface 内 breakout 到 `calc(100% - 2 * gutter)`；表格使用 `fit-content` 紧凑尺寸并左对齐，仅在超出 breakout 上限时容器内横向滚动。普通段落、标题、列表、引用、脚注、details、kbd、abbr、mark、sub/sup 等 inline 和 block family 必须保持页面级无横向滚动；真正二维的代码块、表格和行间 MathJax 只能在自身容器内横向滚动，并需要保留可见横向滚动边缘提示。
 
-`1024px` 及以上的桌面文章页以 `article-reading-surface` 和正文 rail 作为主视觉中心：正文 rail 在 surface 内贴左对齐（左缘 = surface 左缘 + gutter），surface 填满居中 `article-shell` 的右侧栏。左侧 TOC 是辅助导航，保持 `256px` 列宽、低权重和固定 surface 间距，不参与 rail 对齐计算。`1023px` 及以下继续使用单列阅读布局和折叠 TOC。
+`1024px` 及以上的桌面文章页是三列：`TOC | surface | tree`。正文 rail 在 surface 内贴左对齐（左缘 = surface 左缘 + gutter），surface 占据居中 `article-shell` 减去两侧各 `256px + 36px` 后的中间栏。左侧 TOC 和右侧内容树都是辅助 chrome，不参与 rail 对齐计算。`1023px` 及以下继续使用单列阅读布局和折叠 TOC，文章树隐藏。
 
 正文阅读宽度按语言调节：英文文章使用较窄的长文 measure，rail 上限 `49rem`；中文文章略宽，rail 上限 `56rem`，避免英文桌面行长过长或中文桌面断行过碎。普通正文在移动端不低于 16px，并用紧凑但可读的行高；标题层级按 h2-h6 递减，不用孤立装饰替代结构。
 
@@ -218,7 +247,7 @@ echo "hello"
 />
 ```
 
-可运行的示例见文章 `content/blog/zh/blog-git-metadata-and-icons.md` 的「代码块直接渲染 ECharts」一节。
+可运行的示例见文章 `content/blog/zh/技术/blog-git-metadata-and-icons.md` 的「代码块直接渲染 ECharts」一节。
 
 ## 数学公式
 

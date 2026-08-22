@@ -187,10 +187,7 @@
         figure[data-rehype-pretty-code-figure],
         mjx-container[jax='SVG'][display='true']
       ) {
-      --article-breakout-width: min(
-        100%,
-        calc(100% - (var(--article-gutter, 1.25rem) * 2))
-      );
+      --article-breakout-width: min(100%, calc(100% - (var(--article-gutter, 1.25rem) * 2)));
       box-sizing: border-box;
       width: var(--article-breakout-width);
       max-width: var(--article-breakout-width);
@@ -198,10 +195,7 @@
     }
 
     & > :where(.article-table-scroll) {
-      --article-breakout-width: min(
-        100%,
-        calc(100% - (var(--article-gutter, 1.25rem) * 2))
-      );
+      --article-breakout-width: min(100%, calc(100% - (var(--article-gutter, 1.25rem) * 2)));
       box-sizing: border-box;
       width: fit-content;
       max-width: var(--article-breakout-width);
@@ -798,7 +792,8 @@
   }
 
   @media (min-width: 1024px) {
-    .article-prose.prose > :where(
+    .article-prose.prose
+      > :where(
         h1,
         h2,
         h3,
@@ -822,10 +817,6 @@
     .article-prose.prose :where(h1, h2, h3, h4, h5, h6) {
       margin-left: var(--article-gutter, 1.25rem);
       margin-right: auto;
-    }
-
-    .article-prose.prose :where(.article-figure figcaption) {
-      margin-inline: 0 auto;
     }
 
     .article-prose.prose > :where(.article-table-scroll) {
@@ -911,6 +902,8 @@
     --article-shell-max: 1440px;
     --article-toc-width: 256px;
     --article-toc-gap: 36px;
+    --article-tree-width: 256px;
+    --article-tree-gap: 36px;
     --article-toc-breakpoint: 1024px;
     --article-rail-max-en: 49rem;
     --article-rail-max-zh: 56rem;
@@ -960,6 +953,29 @@
     transition: opacity 180ms ease-out;
   }
 
+  main[data-content-tree-transition='opening'] [data-article-content-tree],
+  main[data-content-tree-transition='opening'] [data-content-tree] {
+    opacity: 0;
+    visibility: hidden;
+  }
+
+  main[data-content-tree-transition='revealed'] [data-article-content-tree],
+  main[data-content-tree-transition='revealed'] [data-content-tree] {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 180ms ease-out;
+  }
+
+  /* While the overlay flies the tree back to the sidebar, hide the real sidebar
+     tree so the two never appear at once. The overlay lands pixel-aligned and
+     fades out on top of the real tree, so the instant reveal underneath is
+     masked by the overlay's own exit fade. Layout is preserved (opacity, not
+     display), so the return target can still be measured from the real tree. */
+  main[data-content-tree-transition-return='returning'] [data-content-tree] {
+    opacity: 0;
+    visibility: hidden;
+  }
+
   @media (prefers-reduced-motion: reduce) {
     main[data-article-transition-destination] [data-article-transition-destination-only] {
       opacity: 1;
@@ -980,7 +996,7 @@
   @media (min-width: 1024px) {
     .article-surface-layout {
       position: relative;
-      grid-template-columns: var(--article-toc-width) minmax(0, 1fr);
+      grid-template-columns: var(--article-toc-width) minmax(0, 1fr) var(--article-tree-width);
       column-gap: var(--article-toc-gap);
       align-items: start;
       justify-content: stretch;
@@ -1005,6 +1021,17 @@
       grid-row: 1;
       justify-self: stretch;
       width: 100%;
+    }
+
+    .article-surface-layout > .article-content-tree {
+      grid-column: 3;
+      grid-row: 1;
+      position: sticky;
+      top: 112px;
+      justify-self: stretch;
+      width: var(--article-tree-width);
+      max-height: calc(100vh - 136px);
+      overflow-y: auto;
     }
 
     .article-toc-desktop :where(h2) {

@@ -7,6 +7,7 @@ import {
   formatYamlStringArray,
   parseArgs,
   parseList,
+  resolveFolder,
   resolveSlug,
 } from '@/scripts/write-blog.mjs'
 
@@ -46,6 +47,31 @@ describe('write-blog helpers', () => {
       expect(() => resolveSlug('hello_world', 'title')).toThrow(/slug 格式不合法/)
       expect(() => resolveSlug('hello.world', 'title')).toThrow(/slug 格式不合法/)
       expect(() => resolveSlug('UPPER', 'title')).toThrow(/slug 格式不合法/)
+    })
+
+    it('strips trailing markdown extensions before validating', () => {
+      expect(resolveSlug('use-grok-bot.md', 'title')).toBe('use-grok-bot')
+      expect(resolveSlug('use-grok-bot.mdx', 'title')).toBe('use-grok-bot')
+      expect(resolveSlug('use-grok-bot.md.md', 'title')).toBe('use-grok-bot')
+      expect(resolveSlug('  kde-plasma-obsdian-web-clipper.MD  ', 'title')).toBe(
+        'kde-plasma-obsdian-web-clipper'
+      )
+    })
+  })
+
+  describe('resolveFolder', () => {
+    it('normalizes kebab-case segments and nested paths', () => {
+      expect(resolveFolder(undefined)).toBe('')
+      expect(resolveFolder('hardware')).toBe('hardware')
+      expect(resolveFolder('desktop/kde')).toBe('desktop/kde')
+    })
+
+    it('rejects relative and reserved segments', () => {
+      expect(() => resolveFolder('..')).toThrow(/相对路径/)
+      expect(() => resolveFolder('categories')).toThrow(/保留路径段/)
+      expect(() => resolveFolder('tags')).toThrow(/保留路径段/)
+      expect(() => resolveFolder('search')).toThrow(/保留路径段/)
+      expect(() => resolveFolder('Hardware')).toThrow(/folder 段格式不合法/)
     })
   })
 

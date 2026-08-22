@@ -80,7 +80,7 @@
 
 ## ADR-0008 App Store 风格文章卡片转场
 
-日期：2026-07-10，2026-07-11 修订（修正 ADR-0007 的覆盖层形态、时长/位移上限和打开交接期的像素可见性条款）
+日期：2026-07-10，2026-07-11 修订（修正 ADR-0007 的覆盖层形态、时长/位移上限和打开交接期的像素可见性条款），2026-08-21 修订（卡片意图先淡入页面色 underlay 再 morph；返回同样使用 underlay，并在卡片回位后淡出）
 
 **背景**：ADR-0007 解决了内容所有权，但打开文章时的 skeleton 无法保持"所选卡片"与"目标文章"之间的视觉连续性。目标是在不恢复列表内展开的前提下，提供 iOS App Store 式的卡片 morph 引导。
 
@@ -88,7 +88,7 @@
 
 - 快照是 fixed、`aria-hidden`、`pointer-events: none` 的结构化 React 元素，由最小卡片字段和实测矩形重建，不 `cloneNode()`、不复制正文；打开 380ms、验证返回 340ms，easing `[0.32, 0.72, 0, 1]`。
 - `PostCard`、快照与 `PostLayout` 共享头部消费同一展示合同：surface、cover、title、Git 更新时间、源码入口、summary、date、primary tag、read-more 分别建模、逐 child 投影，禁止 opacity crossfade 交接。
-- 已验证的完整卡片打开可在目标提交后于快照背后加 fixed/inert/opaque underlay，直到路由与卡片动画同时 ready；destination-only 头部元素可在交接后以 180ms reveal。正文及其祖先不属于该标记合同，始终静态可见。
+- 已验证的完整卡片意图从第 0 帧在快照背后淡入 fixed/inert 页面色 underlay（160ms / easeOut），卡片保持来源矩形；underlay 不透明后再 morph。目标提交后另加一层不透明 commit barrier，直到路由与卡片动画同时 ready，但不提前启动 morph。返回在 waiting/returning 同样淡入 underlay，卡片回位后再淡出。destination-only 头部元素可在交接后以 180ms reveal。正文及其祖先不属于该标记合同，始终静态可见。
 - 导航不等动画：Link 立即执行，返回立即执行；缺数据、无效矩形、resize、中断等一律立即退化为普通导航。reduced motion 只保留极短提示。
 
 **后果**：完整卡片有连贯的视觉引导，直达/刷新/无脚本路径完全不受影响；搜索和侧栏来源使用单篇 skeleton 快照。转场合同细节见 [architecture.md](./architecture.md#文章卡片转场)。
@@ -230,4 +230,23 @@
 - 表格、行间 MathJax、plain pre 和 Shiki pre 使用相同的 local/scroll gradient 边缘提示，明暗色由 article surface 变量控制。
 - test-only fixture 覆盖 fixture embed、plain pre 和脚注 backref；`ui:probe` 的顶层 `readingAlignment` 节点输出 edge delta、rail delta、surface/text center offset、text left inset（textLeftInset）、页面 overflow、TOC 宽度/间距/左侧边距、TOC label overflow、200% 文本缩放和 scroll affordance failure summary。
 
-**后果**：文章阅读页只有一条正文 rail，宽屏时正文 rail 贴左对齐、视觉重心稳定，TOC 保持可见但从属于正文。后续新增文章内数据组件时，若它是正文语义块，应加入 `article-data-block` 或 `article-content-rail`；若它是二维内容，必须保留内部滚动和边缘提示。
+**后果**：文章阅读页只有一条正文 rail，宽屏时正文 rail 贴左对齐、视觉重心稳定，TOC 保持可见但从属于正文。后续新增文章内数据组件时，若它是正文语义块，应加入 `article-data-block` 或 `article-content-rail`；若它是二维内容，必须保留内部滚动和边缘提示。`≥1024px` 的 surface 扣除随后由 [ADR-0017](#adr-0017-obsidian-主题目录与内容树-chrome) 修订为 `584px`，以容纳右侧内容树。
+
+## ADR-0017 Obsidian 主题目录与内容树 chrome
+
+日期：2026-08-17，2026-08-17 修订（树 overlay 放弃 layout、快照冻结 chrome/展开态、slug 去掉误带的 `.md`），2026-08-21 修订（companion 先保持来源矩形，再与卡片共享 Phase B 时钟；companion 返回为 340ms）
+
+**背景**：文章已在 git 中维护，但写作入口在 Obsidian。需要把现有平铺文章迁到主题子目录，并在列表/文章页提供可展开的内容树，同时不能复活已被否决的 `/{locale}/folders/...` 产品页或可见「文件夹」文案。卡片转场已有 ADR-0008 overlay 合同；内容树位移和文章切换淡入淡出必须停在同一所有权边界内。
+
+**决策**：
+
+- Obsidian vault 的 `06_Blog` 是指向 `content/blog` 的符号链接，git 仍是内容权威。Templater `Blog.md` 和可选插件符号链接只记录在 `docs/content.md`，不提交 vault 文件。
+- 公开 URL 使用嵌套 slug：`/{locale}/{topic}/{basename}/`。basename 不含 `.md` / `.mdx`。`yarn write-blog`、Templater 和 Contentlayer `blogSlug` 都会去掉 slug 或 flattenedPath 末尾误带的扩展名，避免 `post.md.md` 泄漏进 URL。旧平铺 URL 在 `public/_redirects` 写字面 301（含无斜杠与有斜杠）。不增加 folder listing 路由。
+- 内容树是未加标题的 chrome：列表右侧栏在最近文章之上，文章页 `≥1024px` 成为 `TOC | surface | tree`。文件夹行只展开/折叠，文章叶子是普通 `Link`。无障碍名称只有 sr-only 的「文章导航」/ `Article navigation`。
+- 文章 RSC 可以携带紧凑树（title/path/slug），必须从 locale `sourcePosts` 构建，不能从过滤后的 term 列表构建。
+- 三列几何：TOC `256` + 间距 `36` + surface + 间距 `36` + tree `256`。桌面卡片目标面宽度为 `shell − 584`，left 仍从 shell 左缘加上 TOC 列。
+- 列表→文章的树位移是 ADR-0008 的 chrome companion：Phase A 保持来源或文章 destination rectangle，Phase B 与卡片共享同一时钟（打开 `380 ms`，companion 返回 `340 ms`，easing `[0.32, 0.72, 0, 1]`），结构化 React 快照，禁止 `cloneNode()`。快照必须冻结来源 chrome（`sidebar` / `rail`）、来源 rectangle、节点和当前展开文件夹；飞行中不得切换 chrome，也不得重播 `CollapsiblePanel` 入场。树 overlay 是 rail 尺寸的 fixed 面，只 tween 显式 `top` / `left` / `width` / `height`，不得使用 Motion `layout`、`layoutRoot` 或 scale projection。卡片 overlay 仍是唯一的 `layout` / `layoutRoot` 所有者。companion 返回不得在卡片 Phase C 结束前自行完成。`<1024px` 时树 destination 为 `null`，树 overlay 保持 idle，只播卡片序列。树点击的 solo 路径仍是双向 `380 ms`，不做背景 hold。
+- 意图分流：`card` = 卡片 overlay + 树 companion，取消 veil；`tree-open` = 树 overlay + 阅读面 veil，无卡片 overlay；`article-switch` = 仅 veil。文章→文章只允许覆盖阅读面的 paint-only veil（`180–220 ms`），静态 HTML 里正文及其祖先保持 `opacity: 1`。无 JS 和直达不走 overlay。
+- 代码块工具行去掉 `min-h-12`，复制/源码控件保持 `min-h-11`（44px）。
+
+**后果**：主题目录同时服务 Obsidian 和站点导航，而不引入第二套内容产品。后续改文章几何、内容树或代码工具行时，必须同步 `lib/articleLayout.ts`、e2e 目标宽度和 `public/_redirects`。树转场不能再引入第二个 layoutRoot，以免和 ADR-0008 卡片 morph 抢投影。
