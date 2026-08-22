@@ -19,3 +19,14 @@
 /en/blog /en/ 301
 /en/blog/ /en/ 301
 /en/blog/* /en/:splat 301
+
+/zh/blog-git-metadata-and-icons /zh/%E6%8A%80%E6%9C%AF/blog-git-metadata-and-icons/ 301
+/zh/blog-git-metadata-and-icons/ /zh/%E6%8A%80%E6%9C%AF/blog-git-metadata-and-icons/ 301
+/zh/kde-plasma-obsdian-web-clipper /zh/%E6%8A%98%E8%85%BE/kde-plasma-obsdian-web-clipper/ 301
+/zh/kde-plasma-obsdian-web-clipper/ /zh/%E6%8A%98%E8%85%BE/kde-plasma-obsdian-web-clipper/ 301
+/zh/making-memoh-cheaper-on-telegram /zh/%E6%8A%80%E6%9C%AF/making-memoh-cheaper-on-telegram/ 301
+/zh/making-memoh-cheaper-on-telegram/ /zh/%E6%8A%80%E6%9C%AF/making-memoh-cheaper-on-telegram/ 301
+/zh/xiaomi-book-pro-14 /zh/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/ 301
+/zh/xiaomi-book-pro-14/ /zh/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/ 301
+/en/xiaomi-book-pro-14 /en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/ 301
+/en/xiaomi-book-pro-14/ /en/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/ 301

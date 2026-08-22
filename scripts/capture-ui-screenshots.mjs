@@ -18,7 +18,7 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 const agentRecordsRoot = path.join(projectRoot, 'docs', 'agent-records')
 const defaultBaseUrl = 'http://127.0.0.1:3001'
 const defaultLocale = 'zh'
-const defaultArticleSlug = 'xiaomi-book-pro-14'
+const defaultArticleSlug = '折腾/xiaomi-book-pro-14'
 const defaultPageKeys = /** @type {PageKey[]} */ ([
   'home',
   'article',

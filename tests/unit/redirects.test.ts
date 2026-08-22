@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
@@ -12,6 +13,21 @@ import {
 import { writeCaddyfile } from '../../scripts/preview-static/caddy.mjs'
 
 describe('redirect helpers', () => {
+  it('maps retired flat article URLs onto topic folders', () => {
+    const redirects = parseRedirects(readFileSync('public/_redirects', 'utf8'))
+
+    expect(redirects).toContainEqual({
+      source: '/zh/xiaomi-book-pro-14',
+      destination: '/zh/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/',
+      statusCode: 301,
+    })
+    expect(redirects).toContainEqual({
+      source: '/zh/xiaomi-book-pro-14/',
+      destination: '/zh/%E6%8A%98%E8%85%BE/xiaomi-book-pro-14/',
+      statusCode: 301,
+    })
+  })
+
   it('uses shared redirects only in development and preserves production export', async () => {
     const developmentConfig = await nextConfig(PHASE_DEVELOPMENT_SERVER)
     const productionConfig = await nextConfig(PHASE_PRODUCTION_BUILD)

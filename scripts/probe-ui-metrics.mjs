@@ -954,7 +954,7 @@ function alignmentFailures(row) {
       })
     }
     if (
-      row.route === '/zh/making-memoh-cheaper-on-telegram/' &&
+      row.route === '/zh/技术/making-memoh-cheaper-on-telegram/' &&
       !row.fixture &&
       viewport.width >= ARTICLE_DESKTOP_TOC_BREAKPOINT &&
       row.textScale === 100
@@ -1752,7 +1752,7 @@ async function probeOverflowMatrix(browser, baseUrl) {
     '/zh/search/',
     '/zh/categories/',
     '/zh/tags/',
-    '/zh/xiaomi-book-pro-14/',
+    '/zh/折腾/xiaomi-book-pro-14/',
   ]
   const viewports = /** @type {ViewportName[]} */ ([
     'compact',
@@ -1790,8 +1790,8 @@ async function probeOverflowMatrix(browser, baseUrl) {
  */
 async function probeReadingArticleTop(browser, baseUrl) {
   const routes = [
-    { language: 'zh', path: '/zh/xiaomi-book-pro-14/' },
-    { language: 'en', path: '/en/xiaomi-book-pro-14/' },
+    { language: 'zh', path: '/zh/折腾/xiaomi-book-pro-14/' },
+    { language: 'en', path: '/en/折腾/xiaomi-book-pro-14/' },
   ]
   const viewports = /** @type {ViewportName[]} */ ([
     'compact',
@@ -1856,7 +1856,7 @@ async function probeReadingFixture(browser, baseUrl) {
           baseUrl,
           theme,
           viewportName,
-          '/zh/xiaomi-book-pro-14/',
+          '/zh/折腾/xiaomi-book-pro-14/',
           async (page, viewport) => {
             await injectReadingFixture(page)
 
@@ -1898,10 +1898,10 @@ async function probeReadingCoverage(browser, baseUrl) {
   const result = /** @type {Record<string, unknown>} */ ({})
 
   for (const [key, route] of [
-    ['zh', '/zh/xiaomi-book-pro-14/'],
-    ['en', '/en/xiaomi-book-pro-14/'],
-    ['rich', '/zh/making-memoh-cheaper-on-telegram/'],
-    ['feature', '/zh/blog-git-metadata-and-icons/'],
+    ['zh', '/zh/折腾/xiaomi-book-pro-14/'],
+    ['en', '/en/折腾/xiaomi-book-pro-14/'],
+    ['rich', '/zh/技术/making-memoh-cheaper-on-telegram/'],
+    ['feature', '/zh/技术/blog-git-metadata-and-icons/'],
   ]) {
     result[key] = await withPage(browser, baseUrl, 'dark', 'desktop', route, (page) =>
       articleCoverage(page)
@@ -1913,7 +1913,7 @@ async function probeReadingCoverage(browser, baseUrl) {
     baseUrl,
     'dark',
     'desktop',
-    '/zh/xiaomi-book-pro-14/',
+    '/zh/折腾/xiaomi-book-pro-14/',
     async (page) => {
       await injectReadingFixture(page)
       return articleCoverage(page)
@@ -1958,7 +1958,7 @@ async function probeReadingRichContent(browser, baseUrl) {
         baseUrl,
         /** @type {ThemeName} */ (scenario.theme),
         /** @type {ViewportName} */ (scenario.viewportName),
-        '/zh/making-memoh-cheaper-on-telegram/',
+        '/zh/技术/making-memoh-cheaper-on-telegram/',
         async (page, viewport) => ({
           name: scenario.name,
           theme: scenario.theme,
@@ -1980,9 +1980,9 @@ async function probeReadingRichContent(browser, baseUrl) {
  */
 async function probeReadingTextScale200(browser, baseUrl) {
   const routes = [
-    '/zh/xiaomi-book-pro-14/',
-    '/en/xiaomi-book-pro-14/',
-    '/zh/making-memoh-cheaper-on-telegram/',
+    '/zh/折腾/xiaomi-book-pro-14/',
+    '/en/折腾/xiaomi-book-pro-14/',
+    '/zh/技术/making-memoh-cheaper-on-telegram/',
   ]
   const rows = []
 
@@ -2030,11 +2030,11 @@ async function probeReadingTextScale200(browser, baseUrl) {
  */
 async function probeReadingAlignment(browser, baseUrl) {
   const routes = [
-    '/zh/xiaomi-book-pro-14/',
-    '/en/xiaomi-book-pro-14/',
-    '/zh/making-memoh-cheaper-on-telegram/',
-    '/zh/kde-plasma-obsdian-web-clipper/',
-    '/zh/blog-git-metadata-and-icons/',
+    '/zh/折腾/xiaomi-book-pro-14/',
+    '/en/折腾/xiaomi-book-pro-14/',
+    '/zh/技术/making-memoh-cheaper-on-telegram/',
+    '/zh/折腾/kde-plasma-obsdian-web-clipper/',
+    '/zh/技术/blog-git-metadata-and-icons/',
   ]
   const viewports = /** @type {ViewportName[]} */ ([
     'compact',
@@ -2074,12 +2074,12 @@ async function probeReadingAlignment(browser, baseUrl) {
           baseUrl,
           theme,
           viewportName,
-          '/zh/xiaomi-book-pro-14/',
+          '/zh/折腾/xiaomi-book-pro-14/',
           async (page, viewport) => {
             await injectReadingFixture(page)
 
             return {
-              route: '/zh/xiaomi-book-pro-14/',
+              route: '/zh/折腾/xiaomi-book-pro-14/',
               fixture: true,
               theme,
               textScale: 100,
@@ -2101,7 +2101,7 @@ async function probeReadingAlignment(browser, baseUrl) {
             baseUrl,
             theme,
             viewportName,
-            route === '__fixture__' ? '/zh/xiaomi-book-pro-14/' : route,
+            route === '__fixture__' ? '/zh/折腾/xiaomi-book-pro-14/' : route,
             async (page, viewport) => {
               const fixture = route === '__fixture__'
 
@@ -2110,7 +2110,7 @@ async function probeReadingAlignment(browser, baseUrl) {
               }
 
               return {
-                route: fixture ? '/zh/xiaomi-book-pro-14/' : route,
+                route: fixture ? '/zh/折腾/xiaomi-book-pro-14/' : route,
                 fixture,
                 theme,
                 textScale: 200,
