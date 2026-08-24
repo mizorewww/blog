@@ -23,7 +23,7 @@ export default function UtilitySidebar({
   return (
     <aside className="blog-sidebar-right space-y-5 bg-transparent lg:self-start">
       {contentTree.length > 0 && (
-        <section className={`${widgetCardClass} px-3 py-3 sm:px-4 sm:py-4`}>
+        <section data-content-tree-card className={`${widgetCardClass} px-3 py-3 sm:px-4 sm:py-4`}>
           <ContentTree chrome="sidebar" locale={locale} nodes={contentTree} />
         </section>
       )}

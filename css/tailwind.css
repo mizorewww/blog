@@ -966,12 +966,16 @@
     transition: opacity 180ms ease-out;
   }
 
-  /* While the overlay flies the tree back to the sidebar, hide the real sidebar
-     tree so the two never appear at once. The overlay lands pixel-aligned and
-     fades out on top of the real tree, so the instant reveal underneath is
-     masked by the overlay's own exit fade. Layout is preserved (opacity, not
-     display), so the return target can still be measured from the real tree. */
-  main[data-content-tree-transition-return='returning'] [data-content-tree] {
+  /* While the overlay flies the tree back to the sidebar, hide the whole real
+     sidebar card (background included), not just the tree content. Concealing
+     only the nav leaves the empty card visible for the entire return, and the
+     overlay's own card background then stacks on top of it as it fades in — a
+     visible flash. Hiding the card lets the overlay fully represent it until it
+     lands pixel-aligned and fades out on top of the real card, so the instant
+     reveal underneath is masked by the overlay's own exit fade. Layout is
+     preserved (opacity, not display), so the return target can still be
+     measured from the real card. */
+  main[data-content-tree-transition-return='returning'] [data-content-tree-card] {
     opacity: 0;
     visibility: hidden;
   }

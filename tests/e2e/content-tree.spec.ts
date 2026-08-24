@@ -5,6 +5,8 @@ const HOME_PATH = '/zh/'
 // data-* attributes keep the raw form. See article-reading.spec.ts.
 const ARTICLE_HREF = '/zh/折腾/xiaomi-book-pro-14/'
 const ARTICLE_PATH = encodeURI(ARTICLE_HREF)
+// data-post-shell stores the contentlayer path (no leading/trailing slash).
+const ARTICLE_CARD_KEY = 'zh/折腾/xiaomi-book-pro-14'
 const RICH_ARTICLE_HREF = '/zh/技术/making-memoh-cheaper-on-telegram/'
 const RICH_ARTICLE_PATH = encodeURI(RICH_ARTICLE_HREF)
 const OLD_ARTICLE_PATH = '/zh/xiaomi-book-pro-14/'
@@ -182,6 +184,61 @@ test('reduced motion skips tree translate and the surface veil', async ({ page }
   await expect(page).toHaveURL(ARTICLE_PATH)
   await expect(page.locator('[data-article-surface-veil]')).toHaveCount(0)
   await expect(page.locator('[data-article-body]')).toBeVisible()
+})
+
+test('closing an article conceals the real sidebar card until the tree overlay lands', async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto(HOME_PATH)
+
+  const cardLink = page
+    .locator(`[data-post-shell="${ARTICLE_CARD_KEY}"]`)
+    .locator(':scope > a[data-blog-post-link]')
+  await expect(cardLink).toBeVisible()
+  await cardLink.click()
+  await expect(page).toHaveURL(ARTICLE_PATH)
+  await expect(page.locator('[data-article-body]')).toBeVisible()
+  // Let the opening tree overlay fully land and exit before closing, otherwise the
+  // return starts from a mid-open tree state and never settles.
+  await expect(page.locator('[data-content-tree-transition-overlay]')).toHaveCount(0)
+
+  // Record the real sidebar card's opacity on every frame of the return flight.
+  await page.evaluate(() => {
+    const win = window as unknown as { __cardReturnLog: { ret: string; opacity: string }[] }
+    win.__cardReturnLog = []
+    const frame = () => {
+      const main = document.querySelector('main')
+      const card = document.querySelector('.blog-sidebar-right section:has([data-content-tree])')
+      win.__cardReturnLog.push({
+        ret: main?.getAttribute('data-content-tree-transition-return') || '',
+        opacity: card ? getComputedStyle(card).opacity : 'none',
+      })
+      window.requestAnimationFrame(frame)
+    }
+    window.requestAnimationFrame(frame)
+  })
+
+  const sidebarCard = page.locator('.blog-sidebar-right section:has([data-content-tree])')
+  await page.locator('a[data-article-transition-destination-only]').click()
+  await expect(page).toHaveURL(HOME_PATH)
+  // The card stays concealed for the whole return and is only revealed once the
+  // tree overlay has landed and exited, so the reveal marks the end of the return.
+  await expect(sidebarCard).toHaveCSS('opacity', '1')
+
+  const log = await page.evaluate(
+    () =>
+      (window as unknown as { __cardReturnLog: { ret: string; opacity: string }[] }).__cardReturnLog
+  )
+
+  const returningFrames = log.filter((frame) => frame.ret === 'returning')
+  expect(returningFrames.length).toBeGreaterThan(0)
+  // The real card (background included) stays hidden for the whole return so the
+  // overlay alone represents it. Concealing only the tree nav let the empty card
+  // background flash underneath the overlay's own card as it faded in.
+  expect(returningFrames.every((frame) => frame.opacity === '0')).toBe(true)
+  await expect(sidebarCard).toBeVisible()
 })
 
 test('old flat article URLs permanently redirect to topic folders', async ({ request }) => {
