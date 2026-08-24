@@ -8,6 +8,7 @@ import {
   articleSurfaceVeilReducer,
   contentTreeTransitionReducer,
   createContentTreeSnapshot,
+  findContentTreeCurrentSlug,
   getArticleSurfaceVeilRect,
   getContentTreeDestination,
   getContentTreeSlideDuration,
@@ -117,6 +118,48 @@ describe('content tree snapshots', () => {
   })
 })
 
+describe('findContentTreeCurrentSlug', () => {
+  it('finds the slug of the post the target path points at', () => {
+    expect(findContentTreeCurrentSlug(nodes, '/zh/hardware/xiaomi-book-pro-14')).toBe(
+      'hardware/xiaomi-book-pro-14'
+    )
+  })
+
+  it('tolerates trailing slashes and missing leading slashes', () => {
+    expect(findContentTreeCurrentSlug(nodes, '/zh/hardware/xiaomi-book-pro-14/')).toBe(
+      'hardware/xiaomi-book-pro-14'
+    )
+  })
+
+  it('returns undefined when the target is not in the tree', () => {
+    expect(findContentTreeCurrentSlug(nodes, '/zh/hardware/missing')).toBeUndefined()
+    expect(findContentTreeCurrentSlug(nodes, '/zh')).toBeUndefined()
+  })
+
+  it('matches percent-encoded target paths against raw node paths', () => {
+    const zhNodes = [
+      {
+        kind: 'folder' as const,
+        name: '技术',
+        path: '技术',
+        children: [
+          {
+            kind: 'post' as const,
+            title: 'Memoh',
+            slug: '技术/making-memoh-cheaper-on-telegram',
+            path: 'zh/技术/making-memoh-cheaper-on-telegram',
+          },
+        ],
+      },
+    ]
+
+    expect(
+      findContentTreeCurrentSlug(zhNodes, '/zh/%E6%8A%80%E6%9C%AF/making-memoh-cheaper-on-telegram')
+    ).toBe('技术/making-memoh-cheaper-on-telegram')
+    expect(findContentTreeCurrentSlug(zhNodes, '/zh/%E6%8A%80%E6%9C%AF/missing')).toBeUndefined()
+  })
+})
+
 describe('content tree transition reducer', () => {
   it('opens only when a desktop destination exists', () => {
     const opening = contentTreeTransitionReducer(idleContentTreeTransitionState, {
@@ -138,6 +181,86 @@ describe('content tree transition reducer', () => {
         reducedMotion: false,
       })
     ).toEqual(idleContentTreeTransitionState)
+  })
+
+  it('retargets an opening or retained session to the switched article', () => {
+    const switchedPath = '/zh/hardware/another-post/'
+    const switchedTarget = '/zh/hardware/another-post'
+    const opening = contentTreeTransitionReducer(idleContentTreeTransitionState, {
+      type: 'open-started',
+      snapshot,
+      viewport,
+      reducedMotion: false,
+    })
+
+    expect(
+      contentTreeTransitionReducer(opening, { type: 'article-switched', targetPath: switchedPath })
+    ).toMatchObject({
+      phase: 'opening',
+      snapshot: { sourcePath: snapshot.sourcePath, targetPath: switchedTarget },
+    })
+
+    const retained = contentTreeTransitionReducer(
+      contentTreeTransitionReducer(opening, {
+        type: 'route-committed',
+        pathname: snapshot.targetPath,
+      }),
+      { type: 'open-motion-completed' }
+    )
+    const retargeted = contentTreeTransitionReducer(retained, {
+      type: 'article-switched',
+      targetPath: switchedPath,
+    })
+
+    expect(retargeted).toMatchObject({
+      phase: 'retained',
+      snapshot: { sourcePath: snapshot.sourcePath, targetPath: switchedTarget },
+    })
+
+    // The retargeted session still runs the normal close sequence back to the
+    // original sidebar source.
+    const waiting = contentTreeTransitionReducer(retargeted, { type: 'return-requested' })
+    expect(waiting.phase).toBe('return-waiting')
+
+    const returning = contentTreeTransitionReducer(waiting, {
+      type: 'return-target-resolved',
+      pathname: snapshot.sourcePath,
+      target: sourceRect,
+    })
+    expect(returning.phase).toBe('returning')
+    expect(contentTreeTransitionReducer(returning, { type: 'return-motion-completed' })).toEqual(
+      idleContentTreeTransitionState
+    )
+  })
+
+  it('ignores an article switch outside the opening and retained phases or for a non-local path', () => {
+    const action = { type: 'article-switched' as const, targetPath: '/zh/hardware/another-post' }
+
+    expect(contentTreeTransitionReducer(idleContentTreeTransitionState, action)).toEqual(
+      idleContentTreeTransitionState
+    )
+
+    const retained = contentTreeTransitionReducer(
+      contentTreeTransitionReducer(
+        contentTreeTransitionReducer(idleContentTreeTransitionState, {
+          type: 'open-started',
+          snapshot,
+          viewport,
+          reducedMotion: false,
+        }),
+        { type: 'route-committed', pathname: snapshot.targetPath }
+      ),
+      { type: 'open-motion-completed' }
+    )
+    const waiting = contentTreeTransitionReducer(retained, { type: 'return-requested' })
+
+    expect(contentTreeTransitionReducer(waiting, action)).toEqual(waiting)
+    expect(
+      contentTreeTransitionReducer(retained, {
+        type: 'article-switched',
+        targetPath: 'https://example.com/zh/hardware/another-post',
+      })
+    ).toEqual(retained)
   })
 })
 

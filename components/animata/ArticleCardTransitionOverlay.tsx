@@ -291,17 +291,17 @@ function TransitionSurface({
 }
 
 function OverlayRoot({
-  concealDestination,
   state,
   onOpenMotionComplete,
   onReturnMotionComplete,
   onSequenceChange,
+  onUnderlayReady,
 }: {
-  concealDestination: boolean
   state: VisibleTransitionState
   onOpenMotionComplete: () => void
   onReturnMotionComplete: () => void
   onSequenceChange?: (sequence: ArticleTransitionSequence | null) => void
+  onUnderlayReady?: () => void
 }) {
   const [sequence, setSequence] = useState<ArticleTransitionSequence>('background')
   const [backgroundReady, setBackgroundReady] = useState(state.reducedMotion)
@@ -346,6 +346,7 @@ function OverlayRoot({
 
     if (sequence === 'background') {
       setBackgroundReady(true)
+      onUnderlayReady?.()
     }
   }
 
@@ -364,7 +365,11 @@ function OverlayRoot({
       className="pointer-events-none fixed inset-0 z-40"
       initial={false}
       exit={{ opacity: 0 }}
-      transition={{ duration: ARTICLE_TRANSITION_EXIT_DURATION_SECONDS }}
+      transition={{
+        duration: state.reducedMotion
+          ? ARTICLE_TRANSITION_REDUCED_DURATION_SECONDS
+          : ARTICLE_TRANSITION_EXIT_DURATION_SECONDS,
+      }}
     >
       {!state.reducedMotion && (
         <motion.div
@@ -378,13 +383,6 @@ function OverlayRoot({
             ease: 'easeOut',
           }}
           onAnimationComplete={handleUnderlayAnimationComplete}
-        />
-      )}
-      {concealDestination && (
-        <div
-          data-article-transition-underlay
-          data-article-transition-commit-barrier
-          className="dark:bg-surface-page-dark bg-surface-page absolute inset-0 z-0"
         />
       )}
       <TransitionSurface
@@ -401,16 +399,16 @@ function OverlayRoot({
 
 export default function ArticleCardTransitionOverlay({
   state,
-  concealDestination,
   onOpenMotionComplete,
   onReturnMotionComplete,
   onSequenceChange,
+  onUnderlayReady,
 }: {
   state: ArticleTransitionState
-  concealDestination: boolean
   onOpenMotionComplete: () => void
   onReturnMotionComplete: () => void
   onSequenceChange?: (sequence: ArticleTransitionSequence | null) => void
+  onUnderlayReady?: () => void
 }) {
   const visible = visibleState(state)
 
@@ -419,11 +417,11 @@ export default function ArticleCardTransitionOverlay({
       {visible && (
         <OverlayRoot
           key="article-card-transition"
-          concealDestination={concealDestination}
           state={visible}
           onOpenMotionComplete={onOpenMotionComplete}
           onReturnMotionComplete={onReturnMotionComplete}
           onSequenceChange={onSequenceChange}
+          onUnderlayReady={onUnderlayReady}
         />
       )}
     </AnimatePresence>

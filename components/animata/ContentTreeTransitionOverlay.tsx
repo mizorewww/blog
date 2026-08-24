@@ -6,12 +6,19 @@ import ContentTree from '@/components/ContentTree'
 import { widgetCardClass } from '@/components/ui/styles'
 import {
   CONTENT_TREE_TRANSITION_EASE,
+  findContentTreeCurrentSlug,
   getContentTreeSlideDuration,
   type ContentTreeTransitionState,
 } from '@/lib/contentTreeTransition'
 
 type ContentTreeCompletePolicy = 'self' | 'card-sequence'
 import { getLocaleFromPathname } from '@/lib/i18n'
+
+// Sidebar rows render `text-sm leading-6` (14px/24px), rail rows render
+// `text-[0.8125rem] leading-[1.45]` (13px/18.85px). Flight rows inherit both
+// from the animated wrapper instead.
+const SIDEBAR_DENSITY = { fontSize: '14px', lineHeight: '24px' }
+const RAIL_DENSITY = { fontSize: '13px', lineHeight: '18.85px' }
 
 type VisibleTreeState = Extract<
   ContentTreeTransitionState,
@@ -66,9 +73,7 @@ function TreeSurface({
   // the overlay holds itself: on open it stays at the source until the fast bg
   // fade completes (event-driven via the bg layer's onAnimationComplete, never a
   // timer), then glides; on return it stays at the rail for 'return-waiting',
-  // then glides. While held it mirrors the source chrome/padding so it matches
-  // the tree the user was just looking at; once gliding it switches to the
-  // destination chrome so it lands pixel-identical to the real tree.
+  // then glides.
   const [bgFadeComplete, setBgFadeComplete] = useState(false)
   // The solo open holds at the source until BOTH the fast bg fade has completed
   // AND the article route has committed (so the bare tree glides over as the
@@ -111,6 +116,39 @@ function TreeSurface({
   const padAnimate = held ? sourcePad : destinationPad
   const sourceChrome = opening ? state.snapshot.chrome : 'rail'
   const destinationChrome = opening ? 'rail' : state.snapshot.chrome
+  // A single flight tree morphs between the two chromes. The density (font
+  // size + line height) animates continuously with the glide — crossfading two
+  // trees compressed the size change into a visible end-of-glide shrink, and
+  // switching instantly popped at whichever end it happened. The flight rows
+  // carry no density classes; they inherit the animated values from this
+  // wrapper, so the text stays crisp at every frame.
+  const heldDensity = opening ? SIDEBAR_DENSITY : RAIL_DENSITY
+  const glideDensity = opening ? RAIL_DENSITY : SIDEBAR_DENSITY
+  // The real rail tree highlights the current article and defaults to every
+  // folder open, while the real sidebar tree keeps the snapshot's folder state
+  // (preserved across history.back). The flight tree must render the exact
+  // state of the real tree it covers at each end: source state while held,
+  // destination state once gliding. The highlight color eases via the rows'
+  // own transition-colors, so flipping the slug mid-flight is a fade, not a
+  // pop.
+  const railCurrentSlug = findContentTreeCurrentSlug(
+    state.snapshot.nodes,
+    state.snapshot.targetPath
+  )
+  const currentSlug = opening
+    ? held
+      ? undefined
+      : railCurrentSlug
+    : held
+      ? railCurrentSlug
+      : undefined
+  const openFolderPaths = opening
+    ? held
+      ? state.snapshot.openFolderPaths
+      : undefined
+    : held
+      ? undefined
+      : state.snapshot.openFolderPaths
 
   return (
     <motion.div
@@ -159,8 +197,10 @@ function TreeSurface({
       />
       <motion.div
         className="relative h-full"
-        initial={{ padding: padInitial }}
-        animate={{ padding: padAnimate }}
+        initial={{ padding: padInitial, ...heldDensity }}
+        animate={
+          held ? { padding: padAnimate, ...heldDensity } : { padding: padAnimate, ...glideDensity }
+        }
         transition={{ duration: motionDuration, ease: CONTENT_TREE_TRANSITION_EASE }}
       >
         <ContentTree
@@ -169,7 +209,8 @@ function TreeSurface({
           interactive={false}
           locale={getLocaleFromPathname(state.snapshot.targetPath)}
           nodes={state.snapshot.nodes}
-          openFolderPaths={state.snapshot.openFolderPaths}
+          currentSlug={currentSlug}
+          openFolderPaths={openFolderPaths}
         />
       </motion.div>
     </motion.div>

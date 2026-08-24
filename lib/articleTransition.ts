@@ -12,7 +12,10 @@ export const ARTICLE_TRANSITION_OPEN_DURATION_SECONDS = 0.38
 export const ARTICLE_TRANSITION_RETURN_DURATION_SECONDS = 0.34
 export const ARTICLE_TRANSITION_BACKGROUND_DURATION_SECONDS = 0.16
 export const ARTICLE_TRANSITION_REDUCED_DURATION_SECONDS = 0.08
-export const ARTICLE_TRANSITION_EXIT_DURATION_SECONDS = 0
+// The overlay exit-fades over the fully rendered destination. The destination
+// content is revealed instantly (CSS), so this fade is the only motion at the
+// handoff — a clean crossfade instead of a hard cut.
+export const ARTICLE_TRANSITION_EXIT_DURATION_SECONDS = 0.18
 export const ARTICLE_TRANSITION_EASE = [0.32, 0.72, 0, 1] as const
 
 export type ArticleTransitionSequence = 'background' | 'morph' | 'settle'
@@ -114,6 +117,7 @@ export type ArticleTransitionAction =
   | { type: 'return-requested' }
   | { type: 'return-target-resolved'; pathname: string; target: ArticleTransitionTarget }
   | { type: 'return-motion-completed' }
+  | { type: 'article-switched'; targetPath: string }
   | { type: 'cancelled' }
   | { type: 'viewport-changed' }
 
@@ -444,6 +448,21 @@ export function articleTransitionReducer(
         : idleArticleTransitionState
     case 'return-motion-completed':
       return state.phase === 'returning' ? idleArticleTransitionState : state
+    case 'article-switched': {
+      // An article→article switch keeps the session alive so the close still
+      // flies back to the originally opened card; only the target moves.
+      if (state.phase !== 'opening' && state.phase !== 'retained') {
+        return state
+      }
+
+      const targetPath = localPath(action.targetPath)
+
+      if (!targetPath) {
+        return state
+      }
+
+      return { ...state, snapshot: { ...state.snapshot, targetPath } }
+    }
     case 'cancelled':
     case 'viewport-changed':
       return idleArticleTransitionState

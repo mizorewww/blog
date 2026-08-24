@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, type MouseEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useArticleTransitionReturn } from '@/components/ArticleTransitionContext'
 import Link from '@/components/Link'
 import { consumeArticleReturnMarker } from '@/lib/articleReturn'
@@ -22,8 +22,17 @@ export default function ArticleReturnLink({
 }) {
   const [canUseHistoryBack, setCanUseHistoryBack] = useState(false)
   const requestReturnTransition = useArticleTransitionReturn()
+  // StrictMode double-runs mount effects in dev. Consuming the marker removes
+  // it from storage, so an unguarded second run reads null and flips the state
+  // back to false — the return link then falls through to plain navigation.
+  const markerConsumedRef = useRef(false)
 
   useEffect(() => {
+    if (markerConsumedRef.current) {
+      return
+    }
+
+    markerConsumedRef.current = true
     setCanUseHistoryBack(
       consumeArticleReturnMarker(window.sessionStorage, {
         currentUrl: window.location.href,
@@ -40,8 +49,13 @@ export default function ArticleReturnLink({
 
     event.preventDefault()
     setCanUseHistoryBack(false)
-    requestReturnTransition?.()
-    window.history.back()
+    // The context owns the history navigation when it accepts the return: the
+    // card path defers back() until the overlay's underlay is opaque so the
+    // list page never flashes through a half-faded layer. Only navigate here
+    // when no transition session handled the click.
+    if (!requestReturnTransition?.()) {
+      window.history.back()
+    }
   }
 
   return (

@@ -101,6 +101,7 @@ export type ContentTreeTransitionAction =
   | { type: 'return-requested' }
   | { type: 'return-target-resolved'; pathname: string; target: ArticleTransitionRect }
   | { type: 'return-motion-completed' }
+  | { type: 'article-switched'; targetPath: string }
   | { type: 'cancelled' }
   | { type: 'viewport-changed' }
 
@@ -248,6 +249,46 @@ export function getContentTreeDestination(
     height,
     radius: 8,
   }
+}
+
+// Snapshot paths come from URL.pathname (percent-encoded), while tree node
+// paths carry raw slugs (e.g. Chinese folder names). Decode before comparing.
+function decodePathname(value: string) {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+// The real rail tree (PostLayout) highlights the current article and opens
+// every folder by default. The transition overlay's rail chrome must render
+// that exact end state, otherwise the handoff to the real tree pops.
+export function findContentTreeCurrentSlug(
+  nodes: ContentTreeNode[],
+  targetPath: string
+): string | undefined {
+  const target = normalizePathname(decodePathname(targetPath))
+
+  const walk = (items: ContentTreeNode[]): string | undefined => {
+    for (const node of items) {
+      if (node.kind === 'post') {
+        if (normalizePathname(`/${node.path}`) === target) {
+          return node.slug
+        }
+      } else {
+        const found = walk(node.children)
+
+        if (found) {
+          return found
+        }
+      }
+    }
+
+    return undefined
+  }
+
+  return walk(nodes)
 }
 
 export function createContentTreeSnapshot(
@@ -418,6 +459,22 @@ export function contentTreeTransitionReducer(
         : idleContentTreeTransitionState
     case 'return-motion-completed':
       return state.phase === 'returning' ? idleContentTreeTransitionState : state
+    case 'article-switched': {
+      // Same contract as the card transition: an article→article switch keeps
+      // the session alive and only moves the target, so the return still
+      // glides the tree back to the original sidebar source.
+      if (state.phase !== 'opening' && state.phase !== 'retained') {
+        return state
+      }
+
+      const targetPath = localPath(action.targetPath)
+
+      if (!targetPath) {
+        return state
+      }
+
+      return { ...state, snapshot: { ...state.snapshot, targetPath } }
+    }
     case 'cancelled':
     case 'viewport-changed':
       return idleContentTreeTransitionState

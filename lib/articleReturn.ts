@@ -21,6 +21,10 @@ type ArticleReturnStorage = {
   removeItem(key: string): void
 }
 
+type ArticleReturnWriteStorage = {
+  setItem(key: string, value: string): void
+}
+
 function parseHttpUrl(value: string) {
   try {
     const url = new URL(value)
@@ -81,6 +85,32 @@ export function createArticleReturnMarker(input: ArticleReturnMarker): ArticleRe
   const marker = { ...input }
 
   return markerRoutesAreValid(marker) ? marker : null
+}
+
+// An article→article switch is a fresh arrival at the target article, so the
+// original list→article marker (consumed on the first article) is reissued
+// with the same list source and the new article target.
+export function reissueArticleReturnMarker(
+  storage: ArticleReturnWriteStorage,
+  input: { origin: string; sourcePath: string; targetPath: string; now: number }
+) {
+  const marker = createArticleReturnMarker({
+    sourceUrl: input.origin + input.sourcePath,
+    targetUrl: input.origin + input.targetPath,
+    createdAt: input.now,
+  })
+
+  if (!marker) {
+    return false
+  }
+
+  try {
+    storage.setItem(ARTICLE_RETURN_MARKER_KEY, JSON.stringify(marker))
+  } catch {
+    return false
+  }
+
+  return true
 }
 
 export function parseArticleReturnMarker(value: string | null): ArticleReturnMarker | null {

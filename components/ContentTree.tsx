@@ -48,7 +48,11 @@ export default function ContentTree({
 
     return open
   }, [currentSlug, nodes, openFolderPaths])
-  const [openFolders, setOpenFolders] = useState(defaultOpen)
+  const [openFoldersState, setOpenFolders] = useState(defaultOpen)
+  // Flight trees are non-interactive snapshots driven by the transition
+  // overlay: their folder state must follow the prop at every frame (the
+  // overlay switches it when the glide starts), not the mount-time state.
+  const openFolders = flight ? defaultOpen : openFoldersState
 
   const toggleFolder = (path: string) => {
     if (!interactive) {
@@ -131,6 +135,7 @@ function TreeList({
             chrome={chrome}
             currentSlug={currentSlug}
             depth={depth}
+            flight={flight}
             interactive={interactive}
             post={node}
           />
@@ -163,7 +168,13 @@ function FolderRow({
 }) {
   const shouldReduceMotion = useReducedMotion()
   const panelId = `content-tree-${folder.path.replace(/[^\w-]+/g, '-')}`
-  const density = chrome === 'rail' ? 'text-[0.8125rem] leading-[1.45]' : 'text-sm leading-6'
+  // Flight rows inherit font-size/line-height from the overlay's animated
+  // wrapper so the density morphs continuously instead of crossfading.
+  const density = flight
+    ? ''
+    : chrome === 'rail'
+      ? 'text-[0.8125rem] leading-[1.45]'
+      : 'text-sm leading-6'
   const nestedList = (
     <TreeList
       chrome={chrome}
@@ -236,18 +247,26 @@ function PostRow({
   chrome,
   currentSlug,
   depth,
+  flight,
   interactive,
   post,
 }: {
   chrome: 'sidebar' | 'rail'
   currentSlug?: string
   depth: number
+  flight: boolean
   interactive: boolean
   post: ContentTreePostNode
 }) {
   const current = currentSlug === post.slug
-  const density = chrome === 'rail' ? 'text-[0.8125rem] leading-[1.45]' : 'text-sm leading-6'
-  const className = `flex min-h-11 items-center gap-1.5 rounded-[6px] px-1.5 ${density} ${
+  const density = flight
+    ? ''
+    : chrome === 'rail'
+      ? 'text-[0.8125rem] leading-[1.45]'
+      : 'text-sm leading-6'
+  // transition-colors lets the overlay's mid-flight currentSlug flip fade the
+  // highlight in/out instead of popping it.
+  const className = `flex min-h-11 items-center gap-1.5 rounded-[6px] px-1.5 transition-colors duration-150 ${density} ${
     current
       ? 'font-medium text-sky-700 dark:text-sky-300'
       : 'text-slate-700 hover:text-sky-700 dark:text-white/75 dark:hover:text-sky-300'
@@ -270,6 +289,7 @@ function PostRow({
       {interactive ? (
         <Link
           href={`/${post.path}/`}
+          replace={chrome === 'rail'}
           data-blog-post-link
           data-content-tree-post={post.slug}
           aria-current={current ? 'page' : undefined}

@@ -207,6 +207,103 @@ describe('article transition state reducer', () => {
 
     expect(articleTransitionReducer(opening, action)).toEqual(idleArticleTransitionState)
   })
+
+  it('retargets an opening or retained session to the switched article', () => {
+    const switchedPath = '/zh/%E6%8A%80%E6%9C%AF/making-memoh-cheaper-on-telegram/'
+    const switchedTarget = '/zh/%E6%8A%80%E6%9C%AF/making-memoh-cheaper-on-telegram'
+    const opening = articleTransitionReducer(idleArticleTransitionState, {
+      type: 'open-started',
+      snapshot,
+      viewport,
+      reducedMotion: false,
+    })
+
+    const retargetedOpening = articleTransitionReducer(opening, {
+      type: 'article-switched',
+      targetPath: switchedPath,
+    })
+    expect(retargetedOpening).toMatchObject({
+      phase: 'opening',
+      snapshot: { sourcePath: snapshot.sourcePath, targetPath: switchedTarget },
+    })
+
+    const retained = articleTransitionReducer(
+      articleTransitionReducer(opening, {
+        type: 'route-committed',
+        pathname: snapshot.targetPath,
+      }),
+      { type: 'open-motion-completed' }
+    )
+    const retargetedRetained = articleTransitionReducer(retained, {
+      type: 'article-switched',
+      targetPath: switchedPath,
+    })
+    expect(retargetedRetained).toMatchObject({
+      phase: 'retained',
+      snapshot: { sourcePath: snapshot.sourcePath, targetPath: switchedTarget },
+    })
+
+    // The retargeted session still runs the normal close sequence back to the
+    // originally opened card: return-requested → return-waiting → returning.
+    const waiting = articleTransitionReducer(retargetedRetained, { type: 'return-requested' })
+    expect(waiting.phase).toBe('return-waiting')
+
+    const returning = articleTransitionReducer(waiting, {
+      type: 'return-target-resolved',
+      pathname: snapshot.sourcePath,
+      target: { cardRect, coverRect, radius: 8 },
+    })
+    expect(returning.phase).toBe('returning')
+    expect(articleTransitionReducer(returning, { type: 'return-motion-completed' })).toEqual(
+      idleArticleTransitionState
+    )
+  })
+
+  it('ignores an article switch outside the opening and retained phases', () => {
+    const action = { type: 'article-switched' as const, targetPath: '/zh/another-post' }
+
+    expect(articleTransitionReducer(idleArticleTransitionState, action)).toEqual(
+      idleArticleTransitionState
+    )
+
+    const retained = articleTransitionReducer(
+      articleTransitionReducer(
+        articleTransitionReducer(idleArticleTransitionState, {
+          type: 'open-started',
+          snapshot,
+          viewport,
+          reducedMotion: false,
+        }),
+        { type: 'route-committed', pathname: snapshot.targetPath }
+      ),
+      { type: 'open-motion-completed' }
+    )
+    const waiting = articleTransitionReducer(retained, { type: 'return-requested' })
+
+    expect(articleTransitionReducer(waiting, action)).toEqual(waiting)
+  })
+
+  it('keeps the current target when the switch path is not a local path', () => {
+    const retained = articleTransitionReducer(
+      articleTransitionReducer(
+        articleTransitionReducer(idleArticleTransitionState, {
+          type: 'open-started',
+          snapshot,
+          viewport,
+          reducedMotion: false,
+        }),
+        { type: 'route-committed', pathname: snapshot.targetPath }
+      ),
+      { type: 'open-motion-completed' }
+    )
+
+    expect(
+      articleTransitionReducer(retained, {
+        type: 'article-switched',
+        targetPath: 'https://example.com/zh/another-post',
+      })
+    ).toEqual(retained)
+  })
 })
 
 describe('article transition destination presentation', () => {

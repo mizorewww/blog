@@ -953,17 +953,19 @@
     transition: opacity 180ms ease-out;
   }
 
+  /* Conceal the destination's own content for the whole flight. The reveal is
+     instant on purpose: each overlay exit-fades on top of the already-visible
+     real element, so identical content crossfades to a constant image. A
+     fade-in here would stack with the overlay's fade-out and dip below full
+     opacity mid-handoff — the visible "blink". The concealment also covers the
+     commit window: the route can commit while the underlay is still fading in,
+     and nothing new may show through it early. */
+  main[data-article-transition-destination='opening'] [data-article-surface],
+  main[data-content-tree-transition='opening'] .article-toc-desktop,
   main[data-content-tree-transition='opening'] [data-article-content-tree],
   main[data-content-tree-transition='opening'] [data-content-tree] {
     opacity: 0;
     visibility: hidden;
-  }
-
-  main[data-content-tree-transition='revealed'] [data-article-content-tree],
-  main[data-content-tree-transition='revealed'] [data-content-tree] {
-    opacity: 1;
-    visibility: visible;
-    transition: opacity 180ms ease-out;
   }
 
   /* While the overlay flies the tree back to the sidebar, hide the whole real
@@ -971,10 +973,10 @@
      only the nav leaves the empty card visible for the entire return, and the
      overlay's own card background then stacks on top of it as it fades in — a
      visible flash. Hiding the card lets the overlay fully represent it until it
-     lands pixel-aligned and fades out on top of the real card, so the instant
-     reveal underneath is masked by the overlay's own exit fade. Layout is
-     preserved (opacity, not display), so the return target can still be
-     measured from the real card. */
+     lands pixel-aligned; the reveal is instant because the overlay exit-fades
+     on top of the already-visible card (see the open-handoff rule above).
+     Layout is preserved (opacity, not display), so the return target can still
+     be measured from the real card. */
   main[data-content-tree-transition-return='returning'] [data-content-tree-card] {
     opacity: 0;
     visibility: hidden;

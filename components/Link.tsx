@@ -13,13 +13,18 @@ function isStaticAssetPath(href: string) {
   )
 }
 
-const CustomLink = ({ className, href = '', ...rest }: AnchorHTMLAttributes<HTMLAnchorElement>) => {
+const CustomLink = ({
+  className,
+  href = '',
+  replace,
+  ...rest
+}: AnchorHTMLAttributes<HTMLAnchorElement> & { replace?: boolean }) => {
   const isInternalLink = href && href.startsWith('/')
   const isAnchorLink = href && href.startsWith('#')
   const linkClassName = cn('break-words', className)
 
   if (isInternalLink && !isStaticAssetPath(href)) {
-    return <NextLink className={linkClassName} href={href} {...rest} />
+    return <NextLink className={linkClassName} href={href} replace={replace} {...rest} />
   }
 
   if (isInternalLink || isAnchorLink) {

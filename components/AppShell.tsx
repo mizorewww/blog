@@ -25,6 +25,7 @@ import {
   type ArticleTransitionSequence,
   type ArticleTransitionState,
 } from '@/lib/articleTransition'
+import { reissueArticleReturnMarker } from '@/lib/articleReturn'
 import { isBlogPostPath, normalizePathname } from '@/lib/blogRouteState'
 import {
   articleSurfaceVeilReducer,
@@ -121,6 +122,20 @@ export default function AppShell({ children }: { children: ReactNode }) {
   const routeFocusReadyRef = useRef(false)
   const transitionStateRef = useRef<ArticleTransitionState>(transitionState)
   const treeTransitionStateRef = useRef<ContentTreeTransitionState>(treeTransitionState)
+  // When the card path accepts a return, the history navigation waits until
+  // the overlay's underlay is fully opaque (flushed via onUnderlayReady).
+  // Committing earlier let the list page flash through the half-faded underlay
+  // before the morph covered it. Any cancellation flushes the pending
+  // navigation immediately so the user's click is never swallowed.
+  const pendingReturnBackRef = useRef(false)
+  const flushPendingReturnBack = useCallback(() => {
+    if (!pendingReturnBackRef.current) {
+      return
+    }
+
+    pendingReturnBackRef.current = false
+    window.history.back()
+  }, [])
   const isReadingPost = isBlogPostPath(pathname)
   const shouldReduceMotion = useReducedMotion()
   const { resolvedTheme } = useTheme()
@@ -153,6 +168,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         dispatchTransition({ type: 'cancelled' })
         dispatchTreeTransition({ type: 'cancelled' })
         dispatchVeil({ type: 'cancelled' })
+        flushPendingReturnBack()
         return
       }
 
@@ -161,14 +177,41 @@ export default function AppShell({ children }: { children: ReactNode }) {
         dispatchTreeTransition({ type: 'cancelled' })
         dispatchVeil({ type: 'cancelled' })
         setFallbackTargetPath(normalizePathname(intent.targetPath))
+        flushPendingReturnBack()
         return
       }
 
       setFallbackTargetPath(null)
+      // A new navigation intent supersedes any pending return navigation.
+      pendingReturnBackRef.current = false
 
       if (intent.kind === 'article-switch') {
-        dispatchTransition({ type: 'cancelled' })
-        dispatchTreeTransition({ type: 'cancelled' })
+        // Keep the open session alive and retarget it to the switched article
+        // so closing still flies the card/tree back to the original list
+        // source. The recorder already cleared the now-stale list→article
+        // marker before invoking this handler, so reissue it for the new
+        // target; without a live session (direct article load) there is no
+        // list source to prove and the marker stays cleared.
+        const cardSnapshot =
+          transitionStateRef.current.phase === 'idle' ? null : transitionStateRef.current.snapshot
+        const treeSnapshot =
+          treeTransitionStateRef.current.phase === 'idle'
+            ? null
+            : treeTransitionStateRef.current.snapshot
+        const sourcePath = cardSnapshot?.sourcePath ?? treeSnapshot?.sourcePath ?? null
+
+        dispatchTransition({ type: 'article-switched', targetPath: intent.targetPath })
+        dispatchTreeTransition({ type: 'article-switched', targetPath: intent.targetPath })
+
+        if (sourcePath) {
+          reissueArticleReturnMarker(window.sessionStorage, {
+            origin: window.location.origin,
+            sourcePath,
+            targetPath: intent.targetPath,
+            now: Date.now(),
+          })
+        }
+
         dispatchVeil({
           type: 'cover-started',
           targetPath: intent.targetPath,
@@ -218,7 +261,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         dispatchTreeTransition({ type: 'cancelled' })
       }
     },
-    [shouldReduceMotion]
+    [flushPendingReturnBack, shouldReduceMotion]
   )
 
   const requestReturnTransition = useCallback(() => {
@@ -239,6 +282,14 @@ export default function AppShell({ children }: { children: ReactNode }) {
       setFallbackTargetPath(null)
       dispatchTransition({ type: 'return-requested' })
       dispatchTreeTransition({ type: 'return-requested' })
+
+      if (shouldReduceMotion) {
+        // No underlay under reduced motion, so there is nothing to wait for.
+        window.history.back()
+      } else {
+        pendingReturnBackRef.current = true
+      }
+
       return true
     }
 
@@ -248,11 +299,13 @@ export default function AppShell({ children }: { children: ReactNode }) {
     ) {
       setFallbackTargetPath(null)
       dispatchTreeTransition({ type: 'return-requested' })
+      // The tree-only return has no underlay; navigate right away.
+      window.history.back()
       return true
     }
 
     return false
-  }, [])
+  }, [shouldReduceMotion])
 
   const requestTreeReturnTransition = useCallback(() => {
     const current = treeTransitionStateRef.current
@@ -309,6 +362,9 @@ export default function AppShell({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const onPopState = () => {
+      // A real popstate IS the navigation — drop any pending back() so it
+      // cannot fire afterwards and skip an extra history entry.
+      pendingReturnBackRef.current = false
       requestPopStateReturnTransition()
     }
 
@@ -323,6 +379,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
       dispatchTransition({ type: 'viewport-changed' })
       dispatchTreeTransition({ type: 'viewport-changed' })
       dispatchVeil({ type: 'cancelled' })
+      flushPendingReturnBack()
     }
 
     window.addEventListener('resize', cancelForViewportChange)
@@ -330,7 +387,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
     return () => {
       window.removeEventListener('resize', cancelForViewportChange)
     }
-  }, [])
+  }, [flushPendingReturnBack])
 
   useEffect(() => {
     if (
@@ -591,8 +648,8 @@ export default function AppShell({ children }: { children: ReactNode }) {
         <Header hideOnMobile={isReadingPost && hideHeaderOnMobile} />
         <ArticleCardTransitionOverlay
           state={transitionState}
-          concealDestination={destinationStage === 'opening'}
           onSequenceChange={setCardSequence}
+          onUnderlayReady={flushPendingReturnBack}
           onOpenMotionComplete={() => {
             dispatchTransition({ type: 'open-motion-completed' })
             dispatchTreeTransition({ type: 'open-motion-completed' })

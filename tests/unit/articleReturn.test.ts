@@ -5,6 +5,7 @@ import {
   consumeArticleReturnMarker,
   createArticleReturnMarker,
   parseArticleReturnMarker,
+  reissueArticleReturnMarker,
   type ArticleReturnMarker,
 } from '@/lib/articleReturn'
 
@@ -154,6 +155,88 @@ describe('article return marker consumption', () => {
       })
     ).toBe(false)
     expect(memory.value).toBeNull()
+  })
+})
+
+describe('article return marker reissue', () => {
+  function createWriteStorage(fail = false) {
+    const writes: { key: string; value: string }[] = []
+
+    return {
+      storage: {
+        setItem(key: string, value: string) {
+          if (fail) {
+            throw new Error('storage full')
+          }
+
+          writes.push({ key, value })
+        },
+      },
+      writes,
+    }
+  }
+
+  it('writes a validated list→article marker that proves the new arrival', () => {
+    const { storage, writes } = createWriteStorage()
+
+    expect(
+      reissueArticleReturnMarker(storage, {
+        origin: 'https://mizore.blog',
+        sourcePath: '/zh',
+        targetPath: '/zh/hardware/xiaomi-book-pro-14/',
+        now,
+      })
+    ).toBe(true)
+    expect(writes).toEqual([
+      {
+        key: ARTICLE_RETURN_MARKER_KEY,
+        value: JSON.stringify({
+          sourceUrl: 'https://mizore.blog/zh',
+          targetUrl: 'https://mizore.blog/zh/hardware/xiaomi-book-pro-14/',
+          createdAt: now,
+        }),
+      },
+    ])
+
+    const memory = createMemoryStorage(writes[0].value)
+    expect(
+      consumeArticleReturnMarker(memory.storage, {
+        currentUrl: 'https://mizore.blog/zh/hardware/xiaomi-book-pro-14/',
+        documentStartedAt: 0,
+        now,
+      })
+    ).toBe(true)
+  })
+
+  it.each([
+    { sourcePath: '/zh/hardware/xiaomi-book-pro-14', targetPath: '/zh/hardware/another-post/' },
+    { sourcePath: '/zh', targetPath: '/zh/search/' },
+    { sourcePath: '/en', targetPath: '/zh/hardware/xiaomi-book-pro-14/' },
+  ])('rejects an invalid source/target pair without writing: %o', (input) => {
+    const { storage, writes } = createWriteStorage()
+
+    expect(
+      reissueArticleReturnMarker(storage, {
+        origin: 'https://mizore.blog',
+        now,
+        ...input,
+      })
+    ).toBe(false)
+    expect(writes).toEqual([])
+  })
+
+  it('falls back safely when the storage write fails', () => {
+    const { storage, writes } = createWriteStorage(true)
+
+    expect(
+      reissueArticleReturnMarker(storage, {
+        origin: 'https://mizore.blog',
+        sourcePath: '/zh',
+        targetPath: '/zh/hardware/xiaomi-book-pro-14/',
+        now,
+      })
+    ).toBe(false)
+    expect(writes).toEqual([])
   })
 })
 

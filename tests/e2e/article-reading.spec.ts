@@ -3161,7 +3161,9 @@ for (const scenario of [
     expectWithin(middle.height, result.source.height, target.height)
 
     expect(result.probe.maxOverlayCount).toBe(1)
-    expect(result.probe.removedAt).toBeLessThanOrEqual(750)
+    // The overlay exit-fades for 180ms over the revealed destination after the
+    // morph completes, so removal lands one fade later than the motion end.
+    expect(result.probe.removedAt).toBeLessThanOrEqual(950)
     expect(result.probe.ariaHidden).toBe('true')
     expect(result.probe.pointerEvents).toBe('none')
     expect(result.probe.position).toBe('fixed')
