@@ -114,11 +114,13 @@ README、博客文章里都必须有一张同一口径的数据卡片**，指标
   `/static/images/<post-slug>/xxx.png`。导出 dpi 提高到 150，宽度按 1180px 内
   内容区设计。
 - 正负着色与 matplotlib 一致：正 `#1e8449`，负 `#c0392b`。
-- **数学公式排版克制**：博客支持 LaTeX（remark-math + MathJax 构建期渲染成 SVG）。
-  - **严禁在正文行内把单个变量写成 `$$S$$`、`$$K$$`、`$$T$$`**！行内变量用普通斜体 `*S*`、`*K*` 或代码块 `` `S` ``。
-  - 只有完整数学等式/模型方程才用 `$$...$$` 单独起段。
-  - 单个 `$` 是字面值（ticker、货币金额不受影响）。
+- **数学公式支持**：博客支持 LaTeX（remark-math + MathJax 构建期渲染成 SVG）。
+  - 行内公式使用 `$formula$`（如 `$S_T$`、`$r = 0$`、`$\sigma$`、`$K$`）。
+  - 只有完整数学等式/模型方程才用 `$$...$$` 单独起段。严禁在行内使用 `$$...$$`。
+- **TradingView 走势短语法支持**：
+  - 独立段落输入 `$BTC`、`$ETH`、`$AAPL`、`$BINANCE:BTCUSDT` 会直接渲染为 TradingView 迷你行情走势卡片（Mini Chart）。
+  - 使用 `::tv BINANCE:BTCUSDT height=400` 可嵌入带完整指标的 TradingView 全功能交互图表。
 - **工具不限于 ECharts**：以演示清晰为最高优先级。ECharts 是默认选择；
-  静态 matplotlib PNG（`/static/images/<post-slug>/`）、自包含 SVG 等都可以，
+  静态 matplotlib PNG（`/static/images/<post-slug>/`）、自包含 SVG、TradingView 组件等都可以，
   引入新客户端库需谨慎评估 bundle 与门禁影响并在汇报中说明。
 - 表格比图更适合精确数字（如参数网格指标汇总），博客正文里图表和表格搭配用。

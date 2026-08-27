@@ -23,7 +23,7 @@ export default makeSource({
     cwd: process.cwd(),
     remarkPlugins: [
       remarkGfm,
-      [remarkMath, { singleDollarTextMath: false }],
+      [remarkMath, { singleDollarTextMath: true }],
       remarkTradingViewWidgets,
       remarkEChartsBlocks,
       remarkIconShortcodes,

@@ -261,13 +261,13 @@ C_{\mathrm{call}} = T \times P_{\mathrm{in}}
 $$
 ```
 
-行内公式把 `$$...$$` 写在同一行内：
+行内公式使用 `$formula$`（如 `$S_T$`、`$r = 0$`、`$\sigma$`）：
 
 ```mdx
-其中 $$f(h) = (1-h) + h \times r$$ 是缓存因子。
+其中 $f(h) = (1-h) + h \times r$ 是缓存因子。
 ```
 
-单个 `$` 保持字面值，不会被当作公式定界符，所以 `$AAPL` ticker shortcode 和 `$0.5` 这类货币文本不受影响。
+独立的 `$BTC`、`$AAPL`（单行开头或孤立符号）仍会被解析为 TradingView Mini Chart 组件；货币文本 `$0.5` 等不受影响。
 
 注意事项：
 
