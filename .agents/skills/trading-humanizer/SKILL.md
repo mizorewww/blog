@@ -132,7 +132,7 @@ $$
 博客原生支持 TradingView 组件短语法，量化博文中可直接调用：
 
 1. **TradingView 迷你走势卡片（Mini Chart）**：
-   - 在独立段落中输入 `$BTC`、`$ETH`、`$AAPL`、`$COIN` 或 `$BINANCE:BTCUSDT`，构建时会自动渲染为带实时走势的 TradingView 迷你行情卡片！
+   - 在独立段落中输入 `$BTC`、`$ETH`、`$SOL` 等常见加密货币代码（系统会自动映射为 `BINANCE:${symbol}USDT` 实时行情）、美股代码 `$AAPL`、`$COIN`（默认映射为 `NASDAQ:${symbol}`）或显式交易所代码 `$BINANCE:BTCUSDT`、`$NYSE:BABA`。构建时会自动渲染为带实时走势的 TradingView 迷你行情卡片！
 2. **TradingView 高级全功能图表（Advanced Chart）**：
    - 使用 `::tv BINANCE:BTCUSDT height=450` 或 `::tradingview NASDAQ:AAPL interval=D` 语法，可直接在正文中嵌入带完整指标和画线工具的交互式 TradingView 行情看板。
 
@@ -218,6 +218,76 @@ ECharts 交互图表是量化博客的门面。所有 ECharts JSON 配置必须�
 7. **波动率与市场特征图**：IV vs RV 走势、溢价分布等。
 
 > 注：能转成 ECharts 的转为 ECharts 代码块；复杂热力图或高维图表可导出为 150 DPI 高清 PNG（放入 `public/static/images/<slug>/`）通过 Markdown 图片语法嵌入。
+
+### 4.4 回测策略性能看板（`<StrategyCard />` 纯 JSON 驱动）
+
+回测策略的 performance summary 看板**严禁手工编写繁琐的 HTML/JSX**！博客已内置标准 `StrategyCard` 组件（外观采用统一的 `article-data-block` 容器样式，与 ECharts、Table 风格浑然一体）。在 MDX 中直接调用 `<StrategyCard />` 并传入纯 JSON 对象即可：
+
+```tsx
+<StrategyCard
+  title="35Δ 周末卖方策略 (Short Strangle)"
+  subtitle="Deribit 官方公开历史 · 2022-09 至 2026-08 (208 周) · 单利币本位"
+  data={{
+    BTC: {
+      totalPnl: '+1.166 BTC',
+      totalPnlPct: '+116.6%',
+      totalPnlUsd: '≈ $64,395',
+      winRate: '81.25%',
+      winCount: 169,
+      lossCount: 39,
+      profitFactor: '3.43',
+      sharpe: '3.43',
+      maxDd: '-0.105 BTC',
+      maxDdPct: '-10.5%',
+      retained: '47.1%',
+      totalPremium: '2.475 BTC',
+      avgWeekly: '+0.561%',
+      avgWin: '+0.0097 BTC',
+      avgLoss: '-0.0123 BTC',
+      bestWeek: '+0.0269 BTC',
+      worstWeek: '-0.0596 BTC',
+      fees: '0.1389 BTC',
+    },
+    ETH: {
+      totalPnl: '+1.146 ETH',
+      totalPnlPct: '+114.6%',
+      totalPnlUsd: '≈ $2,418',
+      winRate: '78.85%',
+      winCount: 164,
+      lossCount: 44,
+      profitFactor: '2.30',
+      sharpe: '2.19',
+      maxDd: '-0.111 ETH',
+      maxDdPct: '-11.1%',
+      retained: '34.3%',
+      totalPremium: '3.343 ETH',
+      avgWeekly: '+0.551%',
+      avgWin: '+0.0124 ETH',
+      avgLoss: '-0.0201 ETH',
+      bestWeek: '+0.0474 ETH',
+      worstWeek: '-0.1018 ETH',
+      fees: '0.1406 ETH',
+    },
+  }}
+/>
+```
+
+**标准 JSON Schema 字段说明**：
+
+- `totalPnl`: 净利润（币本位 / USD 本位，如 `"+1.166 BTC"`）
+- `totalPnlPct`: 净收益率（如 `"+116.6%"`）
+- `totalPnlUsd`: 美元折算价值（可选，如 `"≈ $64,395"`）
+- `winRate`: 胜率（如 `"81.25%"`）
+- `winCount` / `lossCount`: 盈利笔数 / 亏损笔数
+- `profitFactor`: 盈利因子（总盈利 / |总亏损|）
+- `sharpe`: 夏普比率（年化）
+- `maxDd` / `maxDdPct`: 最大回撤数值与百分比
+- `retained`: 权利金/收益留存率（可选）
+- `totalPremium`: 累计收取权利金（可选）
+- `avgWeekly`: 周均期望收益率（可选）
+- `avgWin` / `avgLoss`: 平均盈利 / 亏损（可选）
+- `bestWeek` / `worstWeek`: 单笔极值收益（可选）
+- `fees`: 累计手续费支出（可选）
 
 ---
 

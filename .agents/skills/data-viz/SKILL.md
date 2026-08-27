@@ -63,11 +63,11 @@ POS, NEG = "#1e8449", "#c0392b"  # 正绿负红，全项目统一
 - **单位纪律（最重要的坑）**：币本位和 USD 本位的曲线不能画在同一坐标轴；
   轴标签、图例、tooltip 必须带单位（BTC / ETH / USD / %）。
 
-## 回测数据卡片（标准模板，每个策略必备）
+## 回测数据卡片与策略看板（标准模板，每个策略必备）
 
-仿 TradingView Strategy Tester 的 performance summary。**每个回测策略在 notebook、
-README、博客文章里都必须有一张同一口径的数据卡片**，指标集固定（缺数据的写 N/A，
-不许省行），由脚本从 results CSV 生成，不手抄：
+仿 TradingView Strategy Tester 的 performance summary。**每个回测策略在 notebook、README、博客文章里都必须有一张同一口径的数据卡片**。
+
+1. **Notebook / README 标准 Markdown 表格**（由脚本从 results CSV 生成，不手抄）：
 
 ```markdown
 | 指标                               | BTC | ETH |
@@ -81,6 +81,58 @@ README、博客文章里都必须有一张同一口径的数据卡片**，指标
 | Sharpe（注明频率与年化系数）       |     |     |
 | 总手续费                           |     |     |
 | 策略特有指标                       |     |     | # 如卖方策略的权利金留存率 |
+```
+
+2. **博客 MDX 性能看板组件（`<StrategyCard />` 纯 JSON 驱动）**：
+   - 博客已内置标准 `StrategyCard` 组件（外观采用 `article-data-block` 容器样式），**严禁在 MDX 中手工编写复杂 HTML/JSX**，只需传入纯 JSON 数据：
+
+```tsx
+<StrategyCard
+  title="35Δ 周末卖方策略 (Short Strangle)"
+  subtitle="Deribit 官方公开历史 · 2022-09 至 2026-08 (208 周) · 单利币本位"
+  data={{
+    BTC: {
+      totalPnl: '+1.166 BTC',
+      totalPnlPct: '+116.6%',
+      totalPnlUsd: '≈ $64,395',
+      winRate: '81.25%',
+      winCount: 169,
+      lossCount: 39,
+      profitFactor: '3.43',
+      sharpe: '3.43',
+      maxDd: '-0.105 BTC',
+      maxDdPct: '-10.5%',
+      retained: '47.1%',
+      totalPremium: '2.475 BTC',
+      avgWeekly: '+0.561%',
+      avgWin: '+0.0097 BTC',
+      avgLoss: '-0.0123 BTC',
+      bestWeek: '+0.0269 BTC',
+      worstWeek: '-0.0596 BTC',
+      fees: '0.1389 BTC',
+    },
+    ETH: {
+      totalPnl: '+1.146 ETH',
+      totalPnlPct: '+114.6%',
+      totalPnlUsd: '≈ $2,418',
+      winRate: '78.85%',
+      winCount: 164,
+      lossCount: 44,
+      profitFactor: '2.30',
+      sharpe: '2.19',
+      maxDd: '-0.111 ETH',
+      maxDdPct: '-11.1%',
+      retained: '34.3%',
+      totalPremium: '3.343 ETH',
+      avgWeekly: '+0.551%',
+      avgWin: '+0.0124 ETH',
+      avgLoss: '-0.0201 ETH',
+      bestWeek: '+0.0474 ETH',
+      worstWeek: '-0.1018 ETH',
+      fees: '0.1406 ETH',
+    },
+  }}
+/>
 ```
 
 卡片上方一行必须写清口径：单利/复利、币本位/USD、样本窗口。
@@ -118,8 +170,9 @@ README、博客文章里都必须有一张同一口径的数据卡片**，指标
   - 行内公式使用 `$formula$`（如 `$S_T$`、`$r = 0$`、`$\sigma$`、`$K$`）。
   - 只有完整数学等式/模型方程才用 `$$...$$` 单独起段。严禁在行内使用 `$$...$$`。
 - **TradingView 走势短语法支持**：
-  - 独立段落输入 `$BTC`、`$ETH`、`$AAPL`、`$BINANCE:BTCUSDT` 会直接渲染为 TradingView 迷你行情走势卡片（Mini Chart）。
+  - 独立段落输入 `$BTC`、`$ETH`、`$SOL` 等常见加密货币代码（系统会自动映射为 `BINANCE:${symbol}USDT` 实时行情）、美股代码 `$AAPL`（默认映射为 `NASDAQ:AAPL`）或显式交易所代码 `$BINANCE:BTCUSDT` 会直接渲染为 TradingView 迷你行情走势卡片（Mini Chart）。
   - 使用 `::tv BINANCE:BTCUSDT height=400` 可嵌入带完整指标的 TradingView 全功能交互图表。
+- **策略性能看板（`<StrategyCard />`）**：在 MDX 中直接使用 `<StrategyCard data={{ ... }} />` 填入纯 JSON 字段，组件提供与 ECharts 风格统一的数据卡片与多标的 Tab 切换能力。
 - **工具不限于 ECharts**：以演示清晰为最高优先级。ECharts 是默认选择；
   静态 matplotlib PNG（`/static/images/<post-slug>/`）、自包含 SVG、TradingView 组件等都可以，
   引入新客户端库需谨慎评估 bundle 与门禁影响并在汇报中说明。
