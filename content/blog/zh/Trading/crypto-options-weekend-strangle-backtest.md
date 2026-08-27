@@ -10,6 +10,7 @@ tags:
   - 加密货币
   - Deribit
   - backtest-0001
+image: /static/images/crypto-options-weekend-strangle-backtest/options.webp
 language: zh
 authors:
   - default
@@ -133,9 +134,9 @@ $$
 基于 2022-09-02 至 2026-08-21 共 208 个周末的历史全量回测结果如下：
 
 <StrategyCard
-  title="35Δ 周末卖方策略 (Short Strangle)"
-  subtitle="Deribit 官方公开历史 · 2022-09 至 2026-08 (208 周) · 单利币本位"
-  data={{
+title="35Δ 周末卖方策略 (Short Strangle)"
+subtitle="Deribit 官方公开历史 · 2022-09 至 2026-08 (208 周) · 单利币本位"
+data={{
     BTC: {
       totalPnl: "+1.166 BTC",
       totalPnlPct: "+116.6%",
