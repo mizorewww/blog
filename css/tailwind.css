@@ -559,8 +559,15 @@
     }
 
     & :where(mjx-container:not([display='true'])) {
+      display: inline-block !important;
       max-width: 100%;
       overflow: visible;
+      vertical-align: -0.15em;
+    }
+
+    & :where(mjx-container:not([display='true']) > svg) {
+      display: inline-block !important;
+      vertical-align: -0.15em;
     }
 
     & :where(mjx-container[jax='SVG'][display='true']) {
