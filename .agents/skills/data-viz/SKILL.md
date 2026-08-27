@@ -87,18 +87,23 @@ README、博客文章里都必须有一张同一口径的数据卡片**，指标
 
 ## 输出到博客（~/Developer/blog）
 
-博客是 Next.js + MDX，支持交互式 ECharts，**优先用 ECharts，静态 PNG 是备选**。
+博客是 Next.js + MDX，支持交互式 ECharts，**优先用 ECharts，静态 PNG 是备选**。研究 Notebook 里的高价值图表必须全量导出呈现在博文中，不留遗憾。
 
-- **ECharts 通道**：把数据整理成 ECharts option JSON，正文里用 ` ```echarts `
-  代码块嵌入。折线图最小模板：
+- **ECharts 通道（排版第一优先级：清爽与无重叠）**：
+  - **`legend` 必须置于顶部**：`"legend": { "top": 10, "right": 20 }` 或 `left: "center"`，严禁放在底部与 x 轴刻度/标签/dataZoom 撞车。
+  - **`grid` 留足边距**：无 dataZoom 时 `top: 50, bottom: 40`；有 dataZoom 时 `bottom: 70`，`left: 65, right: 25`。
+  - **`dataZoom` 显式设置**：slider 必须设置 `bottom: 10, height: 20`，避免遮挡坐标轴。
+  - **`markLine` / `markPoint` 标签防撞**：标签位置设为 `"insideEndTop"` 或 `"end"`，严禁与轴刻度重叠。
+  - 把数据整理成 ECharts option JSON，正文里用 ` ```echarts ` 代码块嵌入。标准折线图模板：
 
   ```json
   {
     "tooltip": { "trigger": "axis" },
-    "grid": { "left": 70, "right": 20, "top": 40, "bottom": 60 },
+    "legend": { "top": 10, "right": 20 },
+    "grid": { "left": 65, "right": 25, "top": 50, "bottom": 70 },
     "xAxis": { "type": "category", "data": ["2024-01-05", "..."] },
     "yAxis": { "type": "value", "name": "累计 PnL (BTC)" },
-    "dataZoom": [{ "type": "inside" }, { "type": "slider" }],
+    "dataZoom": [{ "type": "inside" }, { "type": "slider", "bottom": 10, "height": 20 }],
     "series": [{ "name": "Δ0.35", "type": "line", "showSymbol": false, "data": [0.001, "..."] }]
   }
   ```
@@ -109,9 +114,10 @@ README、博客文章里都必须有一张同一口径的数据卡片**，指标
   `/static/images/<post-slug>/xxx.png`。导出 dpi 提高到 150，宽度按 1180px 内
   内容区设计。
 - 正负着色与 matplotlib 一致：正 `#1e8449`，负 `#c0392b`。
-- **数学公式**：博客支持 LaTeX（remark-math + MathJax，构建期渲染成 SVG，
-  无客户端脚本）。行间公式 `$$...$$` 单独成段，行内 `$$...$$` 写在句内；
-  单个 `$` 是字面值（ticker、货币金额不受影响）。写完目视检查渲染。
+- **数学公式排版克制**：博客支持 LaTeX（remark-math + MathJax 构建期渲染成 SVG）。
+  - **严禁在正文行内把单个变量写成 `$$S$$`、`$$K$$`、`$$T$$`**！行内变量用普通斜体 `*S*`、`*K*` 或代码块 `` `S` ``。
+  - 只有完整数学等式/模型方程才用 `$$...$$` 单独起段。
+  - 单个 `$` 是字面值（ticker、货币金额不受影响）。
 - **工具不限于 ECharts**：以演示清晰为最高优先级。ECharts 是默认选择；
   静态 matplotlib PNG（`/static/images/<post-slug>/`）、自包含 SVG 等都可以，
   引入新客户端库需谨慎评估 bundle 与门禁影响并在汇报中说明。

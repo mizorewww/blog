@@ -5,6 +5,7 @@ import Icon from './Icon'
 import Image from './Image'
 import MDXImage from './MDXImage'
 import CustomLink from './Link'
+import StrategyCard from './StrategyCard'
 import TableWrapper from './TableWrapper'
 import { TradingViewAdvancedChart, TradingViewMiniChart } from './TradingViewWidgets'
 
@@ -12,6 +13,7 @@ export const components: MDXComponents = {
   Icon,
   Image,
   ECharts,
+  StrategyCard,
   TradingViewAdvancedChart,
   TradingViewMiniChart,
   a: CustomLink,

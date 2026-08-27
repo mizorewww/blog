@@ -73,4 +73,4 @@ yarn deadcode:check
 
 ## 博客写作任务
 
-涉及新增或修改博客文章的 agent 任务，必须遵循 `.agents/instructions/write-blog.md` 定义的流程，入口 skill 为 `.agents/skills/write-blog/SKILL.md`（回测/量化类文章按其专项要求执行）。中文文章在最终定稿前，agent 必须阅读并应用 `.agents/skills/humanizer-zh/SKILL.md` 的规则对正文进行去 AI 痕迹润色，保持核心信息与技术准确性不变。
+涉及新增或修改博客文章的 agent 任务，必须遵循 `.agents/instructions/write-blog.md` 定义的流程，入口 skill 为 `.agents/skills/write-blog/SKILL.md`（回测/量化类文章按其专项要求执行，并严格应用 `.agents/skills/trading-humanizer/SKILL.md` 规范）。中文文章在最终定稿前，agent 必须阅读并应用 `.agents/skills/humanizer-zh/SKILL.md`（通用博客）或 `.agents/skills/trading-humanizer/SKILL.md`（量化/交易类博客）的规则对正文进行去 AI 痕迹与人味润色，保持核心信息与技术准确性不变。

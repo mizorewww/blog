@@ -32,7 +32,8 @@
      - 图片放在 `public/static/images/`，文章中引用 `/static/images/...`。
 
 4. **润色中文文本（仅中文文章）**
-   - 调用 `.agents/skills/humanizer-zh/SKILL.md` 的规则对正文进行去 AI 痕迹润色。
+   - 通用文章调用 `.agents/skills/humanizer-zh/SKILL.md` 的规则对正文进行去 AI 痕迹润色。
+   - 量化/交易/回测类文章调用 `.agents/skills/trading-humanizer/SKILL.md` 的规则进行人味、老交易员视角润色与结构/排版/制图规范检查。
    - 润色后保持核心信息、技术准确性和原文语气不变。
    - 英文文章如需润色，使用项目现有的英文风格指南（避免冗长连接词、被动语态和填充短语）。
 
