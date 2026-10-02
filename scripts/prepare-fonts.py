@@ -3,7 +3,7 @@
 # dependencies = ["fonttools[woff]==4.60.1", "brotli==1.1.0"]
 # ///
 """Optional asset preparation: uv run scripts/prepare-fonts.py.
-Normal blog builds only need Go. New characters load the remaining font shards.
+Fonts need no daily preprocessing. New characters load the remaining shards.
 """
 import json
 import re

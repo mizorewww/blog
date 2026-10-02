@@ -103,23 +103,31 @@ func main() {
 	}
 }
 
-func renderContent(src []byte) (template.HTML, []Heading, error) {
+func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML, []Heading, error) {
 	doc := markdown.Parser().Parse(text.NewReader(src))
 	var toc []Heading
-	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if image, ok := n.(*ast.Image); entering && ok && len(images) > 0 {
+			if err := images[0](image); err != nil {
+				return ast.WalkStop, err
+			}
+		}
 		if h, ok := n.(*ast.Heading); entering && ok && h.Level >= 2 && h.Level <= 3 {
 			id, _ := h.AttributeString("id")
 			toc = append(toc, Heading{ID: string(id.([]byte)), Title: string(h.Text(src)), Level: h.Level})
 		}
 		return ast.WalkContinue, nil
 	})
+	if err != nil {
+		return "", nil, err
+	}
 	var out bytes.Buffer
-	err := markdown.Renderer().Render(&out, src, doc)
+	err = markdown.Renderer().Render(&out, src, doc)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
 	return template.HTML(strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)), toc, err
 }
 
-func readPost(name string) (Post, error) {
+func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 	var p Post
 	src, err := os.ReadFile(name)
 	if err != nil {
@@ -143,7 +151,7 @@ func readPost(name string) (Post, error) {
 		return p, fmt.Errorf("%s: invalid date: %w", name, err)
 	}
 	p.Path = "/posts/" + p.Slug + "/"
-	p.Content, p.TOC, err = renderContent([]byte(parts[1]))
+	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
 	units := len(strings.Fields(parts[1]))
 	for _, r := range parts[1] {
 		if unicode.Is(unicode.Han, r) {
@@ -183,13 +191,19 @@ func build(base string) error {
 	if err != nil {
 		return err
 	}
+	stage, err := os.MkdirTemp(".", ".build-")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(stage)
+	images := imagePipeline{stage: stage, base: site.URL, version: version}
 	names, err := filepath.Glob("content/posts/*.md")
 	if err != nil {
 		return err
 	}
 	posts := make([]Post, 0, len(names))
 	for _, name := range names {
-		p, err := readPost(name)
+		p, err := readPost(name, images.hook(name))
 		if err != nil {
 			return err
 		}
@@ -201,11 +215,6 @@ func build(base string) error {
 		}
 		return posts[i].Date > posts[j].Date
 	})
-	stage, err := os.MkdirTemp(".", ".build-")
-	if err != nil {
-		return err
-	}
-	defer os.RemoveAll(stage)
 	write := func(name string, body []byte) error {
 		target := filepath.Join(stage, name)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
@@ -247,7 +256,7 @@ func build(base string) error {
 	if err != nil {
 		return err
 	}
-	body, _, err := renderContent(about)
+	body, _, err := renderContent(about, images.hook("content/about.md"))
 	if err != nil {
 		return err
 	}

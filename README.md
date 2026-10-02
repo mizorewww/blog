@@ -70,7 +70,29 @@ go run . new -h               # 全部参数
 - 文章页不展示分类、日期、阅读时长或作者署名；发布日期仍保留在 HTML 元数据和 RSS 中。
 - 原始 HTML 与危险链接由 Goldmark 默认规则禁用；元数据由 `html/template` 转义。
 - 阅读时长是按中英文内容粗略估算的。
-- 图片可放在 `static/`。Markdown 链接不会自动重写，使用绝对地址时请包含部署子路径；从文章页链接站内资源可使用 `../../static/your-image.webp`。
+- 本地图片在构建时自动压缩并重写地址，使用方法见下文「文章图片」。普通 Markdown 链接不重写。
+
+## 文章图片
+
+原图放在 `content/images/`，在文章里使用相对于 Markdown 文件的路径：
+
+```markdown
+![图片的内容说明](../images/photo.jpg)
+```
+
+关于页 `content/about.md` 使用 `images/photo.jpg`。保留有意义的替代文字，让屏幕阅读器与爬虫理解图片。
+
+直接运行原来的 `go run .`，无需手动压缩。首次构建含本地位图的文章需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。没有本地位图时仍然只需 Go；浏览器端不增加依赖。
+
+- JPEG、PNG、WebP、静态 GIF、AVIF：生成 WebP 候选，宽图按最大 1600 px 等比缩小，不放大小图。JPEG/WebP/AVIF 使用 quality 82；PNG/静态 GIF 使用无损编码，透明背景保留（缩小尺寸本身仍会重采样）。
+- 只采用比原图更小的结果，否则保留原文件及原始尺寸。处理照片 EXIF 方向，生成的 WebP 不携带 EXIF；保留原文件的情况下也保留原有元数据。
+- 动画与 SVG 原样保留，暂不压缩；远程 HTTP(S) 图片不下载、不压缩，若需优化请先保存到本地。
+- `content/images/` 原图不会写入发布目录，也不会被覆盖。旧的 `../../static/photo.png` 或 `/static/photo.png` 图片引用也会优化，但 `static/` 本身仍作为公共资源复制，建议将大原图迁入 `content/images/`。
+- 产物使用内容哈希文件名，进入现有一年期 immutable 缓存路径；文章与全文 RSS 自动引用带部署子路径的绝对地址。修改图片后 URL 随内容更新。
+- 本地位图自动补充 `width` / `height`，减少布局跳动；每篇正文首张图片不懒加载，后续图片用原生 `loading="lazy"`，全部设置 `decoding="async"`。SVG、外链的尺寸不会自动探测。
+- `.cache/images/` 按原图内容和处理脚本缓存，无变化时不重复编码；删除该目录即可重建。原图缺失或编码失败会中止构建，保留上次的 `public/`。
+
+编码测试：`uv run scripts/test_images.py`。日常发布仍只上传 `public/`，无需部署 Python、uv 或 Go。
 
 ## 个性化
 
@@ -83,6 +105,7 @@ go run . new -h               # 全部参数
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
 | `main.go` | 构建器与本地预览入口 |
+| `images.go` / `scripts/prepare-image.py` | 本地图片重写、压缩与构建缓存 |
 | `assets.go` / `serve.go` | 资源版本号与 HTTP 压缩、缓存 |
 | `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
 
@@ -96,9 +119,9 @@ go run . new -h               # 全部参数
 - canonical、description、Open Graph、文章日期、跳至正文链接、键盘焦点状态。
 - 标题使用 Source Han Serif（思源宋体），正文和界面使用 Source Han Sans（思源黑体），代码保持系统等宽字体。
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
-- 字体已提交到 `static/fonts/`，正常构建只需 Go；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
+- 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
 - 字体版本：Source Han Sans 2.005R / Source Han Serif 2.003R，SIL OFL 1.1 许可证保留在字体目录。
-- Go 标准库处理模板、JSON、XML、日期和文件；唯一第三方依赖为锁定版本的 Goldmark。
+- Go 标准库处理模板、JSON、XML、日期和文件；唯一 Go 第三方依赖为锁定版本的 Goldmark；含本地位图的构建另需 uv/Pillow。
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
 
@@ -119,7 +142,7 @@ go test ./...
 go vet ./...
 ```
 
-测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。另有创建模板的参数、转义和防覆盖测试，以及内容哈希、gzip、ETag/304、更新失效、HEAD、Range 和 404 缓存测试。
+测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。图片测试覆盖路径边界、符号链接、URL 编码、去重、加载属性、缺图构建失败；Python 测试覆盖透明度、方向、尺寸、动画、缓存失效及原图保留。另有创建模板的参数、转义和防覆盖测试，以及内容哈希、gzip、ETag/304、更新失效、HEAD、Range 和 404 缓存测试。
 
 本地 Lighthouse 移动端冷加载测试（2026-10-02，localhost）：
 

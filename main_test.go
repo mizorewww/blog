@@ -145,6 +145,20 @@ func TestBuild(t *testing.T) {
 		t.Fatal("single article should have no adjacent navigation")
 	}
 	before, _ := os.ReadFile("public/index.html")
+	original, _ := os.ReadFile("content/posts/less-but-better.md")
+	if err = os.WriteFile("content/posts/less-but-better.md", append(original, []byte("\n![missing](../images/missing.png)\n")...), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err = build("https://example.com/notes"); err == nil {
+		t.Fatal("missing image should fail build")
+	}
+	unchanged, _ := os.ReadFile("public/index.html")
+	if string(before) != string(unchanged) {
+		t.Fatal("missing image damaged previous output")
+	}
+	if err = os.WriteFile("content/posts/less-but-better.md", original, 0600); err != nil {
+		t.Fatal(err)
+	}
 	if err = os.WriteFile("content/posts/broken.md", []byte("invalid"), 0600); err != nil {
 		t.Fatal(err)
 	}
