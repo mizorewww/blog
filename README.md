@@ -135,6 +135,23 @@ go run . new -h               # 全部参数
 - 构建输出包含 Cloudflare Pages 的 `_headers` 文件，配置 HTML 重新验证和当前版本静态资源长期缓存，支持站点子路径。参见 [Cloudflare Pages 响应头文档](https://developers.cloudflare.com/pages/configuration/headers/)。
 - 其他静态托管平台需配置同等响应头并启用压缩；GitHub Pages 不读取 `_headers`，其缓存策略由平台控制。缓存头属于 HTTP 服务配置，不能仅靠 HTML 文件生效。
 
+## 代码高亮方案调研
+
+当前仍输出原生 `<pre><code>`，尚未启用高亮。推荐后续使用 **Goldmark highlighting v2 + Chroma v2，在构建时生成 HTML**：只对标明语言的围栏代码块高亮，未知语言/未标注语言保持纯文本；使用 `WithClasses(true)` 生成 class，再通过 `WriteCSS` 输出一份可缓存的浅色主题 CSS。仅有代码块的文章需要加载它；保留代码滚动区域的键盘可达性，不加行号、工具栏、复制按钮或浏览器脚本。
+
+| 方案 | 浏览器开销 | 对本项目的影响 |
+| --- | --- | --- |
+| 原生代码块 | 无额外资源 | 依赖最少，目前状态 |
+| Goldmark + Chroma 构建时高亮 | token HTML + 少量 CSS，0 JS | 沿用 Go，推荐 |
+| Shiki 构建时高亮 | 静态高亮 HTML，0 JS | 支持 TextMate/VS Code 主题，但需要额外 JS 构建工具链 |
+| highlight.js 浏览器高亮 | CSS + JS + 客户端执行 | 不符合默认 0 JS；改在构建时执行也需 JS 工具链 |
+
+2026-10-02 在仓库外的独立 Go 模块验证，未修改本站 `go.mod`：Goldmark 1.8.6 + goldmark-highlighting/v2 `37449abec8cc` + Chroma 2.27.0。完整 `github` 主题 CSS 4,325 B，gzip 1,024 B；测试片段（简短 Go 程序和一个未知语言代码块）的 HTML 从 239 B / gzip 186 B 变为 1,207 B / gzip 279 B。未知语言正常回退，HTML 标签被转义。这是小样本体积测量，不是 Lighthouse 结果。
+
+版本注意：项目使用 Goldmark v1，应使用 highlighting v2，不能直接照其默认分支的 v3 示例接入。此次测量的 Chroma 2.27.0 要求 Go 1.25；正式接入时需明确提高本站 Go 1.23 的最低版本，或选择并验证兼容的 Chroma 版本。新版高亮输出的 `<pre class="chroma">` 还需要专门保留 `tabindex="0"`，现有只匹配 `<pre>` 的处理不能覆盖它。
+
+参考：[Goldmark highlighting v2](https://github.com/yuin/goldmark-highlighting/tree/v2)、[Chroma HTML formatter](https://github.com/alecthomas/chroma/tree/v2.27.0/formatters/html)、[Chroma 版本要求](https://github.com/alecthomas/chroma/blob/v2.27.0/go.mod)、[Shiki 官方介绍](https://shiki.style/guide/)、[highlight.js 官方用法](https://highlightjs.org/)。
+
 ## 验证
 
 ```sh
