@@ -1,0 +1,4 @@
+/public/
+/.build-*/
+.DS_Store
+/reports/
