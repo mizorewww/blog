@@ -99,22 +99,7 @@ func main() {
 	}
 	if *serve != "" {
 		log.Printf("Preview: http://%s (re-run after editing)", *serve)
-		fs := http.FileServer(http.Dir("public"))
-		log.Fatal(http.ListenAndServe(*serve, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			p := filepath.Join("public", filepath.Clean("/"+r.URL.Path))
-			info, err := os.Stat(p)
-			if err == nil && info.IsDir() {
-				_, err = os.Stat(filepath.Join(p, "index.html"))
-			}
-			if err != nil {
-				body, _ := os.ReadFile("public/404.html")
-				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				w.WriteHeader(http.StatusNotFound)
-				_, _ = w.Write(body)
-				return
-			}
-			fs.ServeHTTP(w, r)
-		})))
+		log.Fatal(http.ListenAndServe(*serve, serveSite("public")))
 	}
 }
 
@@ -187,8 +172,13 @@ func build(base string) error {
 		return fmt.Errorf("site URL must be an absolute HTTP(S) URL without query or fragment")
 	}
 	prefix := strings.TrimRight(u.Path, "/")
+	version, err := assetVersion("static")
+	if err != nil {
+		return err
+	}
 	tmpl, err := template.New("page.html").Funcs(template.FuncMap{
 		"local": func(p string) string { return prefix + p },
+		"asset": func(p string) string { return prefix + "/static/" + version + "/" + p },
 	}).ParseGlob("templates/*.html")
 	if err != nil {
 		return err
@@ -279,7 +269,15 @@ func build(base string) error {
 	if err = write("robots.txt", []byte("User-agent: *\nAllow: /\nSitemap: "+site.URL+"/sitemap.xml\n")); err != nil {
 		return err
 	}
-	if err = os.CopyFS(filepath.Join(stage, "static"), os.DirFS("static")); err != nil {
+	if err = copyAssets(stage, version); err != nil {
+		return err
+	}
+	var headers strings.Builder
+	for _, route := range []string{"/", "/index.html", "/posts/*", "/about/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
+		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", prefix, route)
+	}
+	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n", prefix, prefix, version)
+	if err = write("_headers", []byte(headers.String())); err != nil {
 		return err
 	}
 	// Do not touch the last successful output until every page has rendered.

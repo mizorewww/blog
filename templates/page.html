@@ -13,9 +13,11 @@
 {{if .Post}}<meta property="article:published_time" content="{{.Post.Date}}">{{end}}
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
 {{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
-<link rel="icon" href="{{local "/static/favicon.svg"}}" type="image/svg+xml">
-<link rel="stylesheet" href="{{local "/static/fonts/fonts.css"}}">
-<link rel="stylesheet" href="{{local "/static/style.css"}}">
+<link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
+<link rel="preload" href="{{asset "fonts/source-han-serif-core.woff2"}}" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{asset "fonts/source-han-sans-core.woff2"}}" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{asset "fonts/fonts.css"}}">
+<link rel="stylesheet" href="{{asset "style.css"}}">
 <link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local "/feed.xml"}}">
 </head>
 <body>

@@ -14,7 +14,7 @@ go run . -url http://localhost:8080 -serve localhost:8080
 
 打开 <http://localhost:8080>。示例文章在 <http://localhost:8080/posts/less-but-better/>。
 
-预览服务器只绑定本机。修改内容后重新执行命令；没有热更新或浏览器脚本。生产部署只需要生成文件，不需要运行此服务器。
+上述预览命令只绑定本机，已启用 gzip 和 HTTP 缓存。修改内容后重新执行命令；没有热更新或浏览器脚本。生产部署只需要生成文件，不需要运行此服务器。
 
 ```sh
 go run .                         # 使用 site.json 的生产 URL
@@ -83,6 +83,7 @@ go run . new -h               # 全部参数
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
 | `main.go` | 构建器与本地预览入口 |
+| `assets.go` / `serve.go` | 资源版本号与 HTTP 压缩、缓存 |
 | `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
 
 关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
@@ -101,6 +102,16 @@ go run . new -h               # 全部参数
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
 
+## 压缩与缓存
+
+- CSS、字体和图标输出到 `/static/<内容哈希>/`。样式或资源改变后地址自动更新，使用 `Cache-Control: public, max-age=31536000, immutable`；不变的资源可直接使用浏览器缓存。
+- HTML、RSS、sitemap 和 robots 使用 `Cache-Control: no-cache` + ETag：每次重新验证，未变化返回 304，修改后返回新内容。`no-cache` 允许存储，但要求复用前验证。
+- 本地 Go 服务器会 gzip 压缩 HTML、CSS、XML、SVG 等文本响应，发送 `Vary: Accept-Encoding`，为压缩和未压缩内容生成各自的 ETag。已压缩的 WOFF2 不再重复 gzip。
+- 首屏预加载两个常用字体分片；没有 Service Worker 或客户端缓存脚本。
+- 自行放进 `static/` 的文章图片保持原路径，Go 服务器对未带版本号的资源重新验证，不使用永久缓存。
+- 构建输出包含 Cloudflare Pages 的 `_headers` 文件，配置 HTML 重新验证和当前版本静态资源长期缓存，支持站点子路径。参见 [Cloudflare Pages 响应头文档](https://developers.cloudflare.com/pages/configuration/headers/)。
+- 其他静态托管平台需配置同等响应头并启用压缩；GitHub Pages 不读取 `_headers`，其缓存策略由平台控制。缓存头属于 HTTP 服务配置，不能仅靠 HTML 文件生效。
+
 ## 验证
 
 ```sh
@@ -108,11 +119,18 @@ go test ./...
 go vet ./...
 ```
 
-测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。
+测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。另有创建模板的参数、转义和防覆盖测试，以及内容哈希、gzip、ETag/304、更新失效、HEAD、Range 和 404 缓存测试。
 
-切换思源字体前的本地 Lighthouse 移动端测试（2026-10-02，localhost）：首页和示例文章页 Performance / Accessibility / Best Practices / SEO / Agentic browsing 均为 **100**。这不是线上成绩保证；托管延迟、缓存、压缩和后续文章资源都会影响结果。
+本地 Lighthouse 移动端冷加载测试（2026-10-02，localhost）：
 
-切换为自托管思源字体后，示例文章页移动端复测：Performance **90**，其余四项 **100**。当前文章仅请求两个常用字体分片，合计约 290 KiB。
+| 页面 | Performance | Accessibility | Best Practices | SEO | Agentic browsing |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 首页 | 97 | 100 | 100 | 100 | 100 |
+| 示例文章 | 97 | 100 | 100 | 100 | 100 |
+
+思源字体上线后的性能基线为 90，本轮启用 gzip、资源版本号与字体预加载后提升到 97；文章页 FCP 从约 2.7 秒降至 0.9 秒，LCP 从约 3.0 秒降至 2.6 秒，CLS 为 0。字体 CSS 传输量从约 43 KB 降至约 5 KB。再次访问时，两个字体分片和 CSS 的网络传输量均为 0 字节。
+
+当前文章冷加载的两个字体分片合计约 290 KiB。以上是本地实测，不保证线上同分；托管延迟、平台压缩与缓存配置、文章资源会影响结果。
 
 如需复测，可临时使用 Lighthouse CLI；Node.js 仅用于可选审计，不参与站点构建：
 

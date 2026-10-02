@@ -58,8 +58,25 @@ func TestBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	if err = os.WriteFile("static/photo.svg", []byte("<svg/>"), 0644); err != nil {
+		t.Fatal(err)
+	}
 	if err = build("https://example.com/notes"); err != nil {
 		t.Fatal(err)
+	}
+	if _, err := os.Stat("public/static/photo.svg"); err != nil {
+		t.Fatal("author-linked assets must retain their path:", err)
+	}
+	version, err := assetVersion("static")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat("public/static/" + version + "/fonts/fonts.css"); err != nil {
+		t.Fatal(err)
+	}
+	headers, _ := os.ReadFile("public/_headers")
+	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") {
+		t.Fatal("deployment cache rules must include the base path and content version")
 	}
 	for _, name := range []string{"index.html", "about/index.html", "posts/less-but-better/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
@@ -67,7 +84,7 @@ func TestBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Contains(html, "<script") || !strings.Contains(html, `href="/notes/static/style.css"`) || !strings.Contains(html, `<main id="main">`) {
+		if strings.Contains(html, "<script") || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 	}
