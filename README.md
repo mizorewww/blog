@@ -47,6 +47,9 @@ go run . -url https://example.com/blog
 - 文章按日期倒序排列，同日按文件名排序。
 - 所有文章都会发布，包括未来日期；草稿放在 `content/posts/` 之外。
 - 支持常规 Markdown、表格、代码块和自动标题 ID。
+- 文章目录自动提取 `##`、`###` 标题，桌面为侧栏，手机位于正文前，可原生折叠；无标题时不显示目录。
+- 文末显示上一篇（更早）和下一篇（更新），同日按文件名顺序；首尾自动省略不存在的链接，只有一篇时不显示相邻文章导航。
+- 文章页不展示分类、日期、阅读时长或作者署名；发布日期仍保留在 HTML 元数据和 RSS 中。
 - 原始 HTML 与危险链接由 Goldmark 默认规则禁用；元数据由 `html/template` 转义。
 - 阅读时长是按中英文内容粗略估算的。
 - 图片可放在 `static/`。Markdown 链接不会自动重写，使用绝对地址时请包含部署子路径；从文章页链接站内资源可使用 `../../static/your-image.webp`。
@@ -61,7 +64,7 @@ go run . -url https://example.com/blog
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
-| `main.go` | 约 255 行的构建器与本地预览服务器 |
+| `main.go` | 约 280 行的构建器与本地预览服务器 |
 
 关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
 
@@ -83,7 +86,7 @@ go test ./...
 go vet ./...
 ```
 
-测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、旧产物清理，以及失败构建保留原有输出。
+测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。
 
 本地 Lighthouse 移动端测试（2026-10-02，localhost）：首页和示例文章页 Performance / Accessibility / Best Practices / SEO / Agentic browsing 均为 **100**。这不是线上成绩保证；托管延迟、缓存、压缩和后续文章资源都会影响结果。
 
