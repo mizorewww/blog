@@ -19,21 +19,29 @@ import (
 	"unicode"
 
 	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
 )
 
 type Site struct{ Title, Author, Description, URL, GitHub string }
+type Heading struct {
+	ID, Title string
+	Level     int
+}
 type Post struct {
 	Title, Description, Date, Tag string
 	Slug, Path                    string
 	Content                       template.HTML
 	Minutes                       int
+	TOC                           []Heading `json:"-"`
 }
 type Page struct {
 	Site                           Site
 	Title, Description, Path, Kind string
 	Post                           *Post
+	Previous, Next                 *Post
 	Posts                          []Post
 	Content                        template.HTML
 }
@@ -96,10 +104,24 @@ func main() {
 }
 
 func renderMarkdown(src []byte) (template.HTML, error) {
+	body, _, err := renderContent(src)
+	return body, err
+}
+
+func renderContent(src []byte) (template.HTML, []Heading, error) {
+	doc := markdown.Parser().Parse(text.NewReader(src))
+	var toc []Heading
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if h, ok := n.(*ast.Heading); entering && ok && h.Level >= 2 && h.Level <= 3 {
+			id, _ := h.AttributeString("id")
+			toc = append(toc, Heading{ID: string(id.([]byte)), Title: string(h.Text(src)), Level: h.Level})
+		}
+		return ast.WalkContinue, nil
+	})
 	var out bytes.Buffer
-	err := markdown.Convert(src, &out)
+	err := markdown.Renderer().Render(&out, src, doc)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
-	return template.HTML(strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)), err
+	return template.HTML(strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)), toc, err
 }
 
 func readPost(name string) (Post, error) {
@@ -126,7 +148,7 @@ func readPost(name string) (Post, error) {
 		return p, fmt.Errorf("%s: invalid date: %w", name, err)
 	}
 	p.Path = "/posts/" + p.Slug + "/"
-	p.Content, err = renderMarkdown([]byte(parts[1]))
+	p.Content, p.TOC, err = renderContent([]byte(parts[1]))
 	units := len(strings.Fields(parts[1]))
 	for _, r := range parts[1] {
 		if unicode.Is(unicode.Han, r) {
@@ -206,7 +228,14 @@ func build(base string) error {
 	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/"}, {site.URL + "/about/"}}}
 	for i := range posts {
 		p := &posts[i]
-		if err = page("posts/"+p.Slug+"/index.html", Page{Title: p.Title + " — " + site.Title, Description: p.Description, Path: p.Path, Kind: "post", Post: p}); err != nil {
+		var previous, next *Post
+		if i+1 < len(posts) {
+			previous = &posts[i+1]
+		}
+		if i > 0 {
+			next = &posts[i-1]
+		}
+		if err = page("posts/"+p.Slug+"/index.html", Page{Title: p.Title + " — " + site.Title, Description: p.Description, Path: p.Path, Kind: "post", Post: p, Previous: previous, Next: next}); err != nil {
 			return err
 		}
 		date, _ := time.Parse(time.DateOnly, p.Date)

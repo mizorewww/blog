@@ -46,7 +46,7 @@ go run . -url http://localhost:8080 -serve localhost:8080
 
 ## 对人友好，也对机器友好
 
-标题用真正的标题元素，发布时间放在 `time` 里，正文放在 `article` 里。搜索引擎和 Agent 请求一个 URL，就能直接获得完整内容。
+标题用真正的标题元素，列表中的发布时间放在 `time` 里，正文放在 `article` 里。搜索引擎和 Agent 请求一个 URL，就能直接获得完整内容。
 
 RSS 提供全文订阅，sitemap 列出页面地址。这些都是安静、成熟的协议，不会催促任何人打开通知。
 
