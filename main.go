@@ -99,7 +99,7 @@ func renderMarkdown(src []byte) (template.HTML, error) {
 	var out bytes.Buffer
 	err := markdown.Convert(src, &out)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
-	return template.HTML(out.String()), err
+	return template.HTML(strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)), err
 }
 
 func readPost(name string) (Post, error) {
