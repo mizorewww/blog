@@ -28,7 +28,25 @@ go run . -url https://example.com/blog
 
 ## 写文章
 
-在 `content/posts/` 新建文件，例如 `hello-world.md`。文件名即 URL slug，只允许小写英文字母、数字和连字符。
+在仓库根目录运行：
+
+```sh
+go run . new -slug hello-world -description "文章的一句话介绍。" -tag 随笔 "你好，世界"
+```
+
+生成 `content/posts/hello-world.md`，日期默认取本机当天。也可以只传标题：
+
+```sh
+go run . new "Hello Go"       # hello-go.md
+go run . new "一篇新的笔记"   # post-YYYYMMDD-HHMMSS.md
+go run . new -h               # 全部参数
+```
+
+所有选项放在标题前。可用 `-date YYYY-MM-DD` 指定日期，或用 `-title` 代替位置参数。文件名只允许小写英文字母、数字和连字符；重名会报错，绝不覆盖已有文章。缺省摘要和正文是待填写的占位文字，创建后编辑再构建。
+
+正文模板位于 `templates/post.md.tmpl`，可直接修改；`{{.Metadata}}` 是自动生成的 JSON 元数据，也可使用 `{{.Title}}`、`{{.Date}}`、`{{.Description}}` 和 `{{.Tag}}`。工具只创建文件，不自动构建、提交或推送。
+
+也可以手动在 `content/posts/` 新建 Markdown 文件。
 
 文件开头是 **JSON 元数据**，随后单独一行 `---`，再写 Markdown。刻意不用 YAML，避免引入新的解析依赖。
 
@@ -64,7 +82,8 @@ go run . -url https://example.com/blog
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
-| `main.go` | 构建器与本地预览服务器 |
+| `main.go` | 构建器与本地预览入口 |
+| `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
 
 关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
 

@@ -30,12 +30,18 @@ type Heading struct {
 	ID, Title string
 	Level     int
 }
+type PostMetadata struct {
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Date        string `json:"date"`
+	Tag         string `json:"tag,omitempty"`
+}
 type Post struct {
-	Title, Description, Date, Tag string
-	Slug, Path                    string
-	Content                       template.HTML
-	Minutes                       int
-	TOC                           []Heading `json:"-"`
+	PostMetadata
+	Slug, Path string
+	Content    template.HTML
+	Minutes    int
+	TOC        []Heading `json:"-"`
 }
 type Page struct {
 	Site                           Site
@@ -76,9 +82,18 @@ var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM), goldmark.Wit
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "new" {
+		if err := newPost(os.Args[2:], os.Stdout); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	serve := flag.String("serve", "", "preview address, e.g. localhost:8080")
 	base := flag.String("url", "", "override site URL (use http://localhost:8080 for preview)")
 	flag.Parse()
+	if flag.NArg() != 0 {
+		log.Fatal("unexpected arguments; use go run . new -h to create an article")
+	}
 	if err := build(*base); err != nil {
 		log.Fatal(err)
 	}
