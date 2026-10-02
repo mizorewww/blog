@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。米白纸张、细线网格、苔绿色点缀；桌面和手机都以阅读为中心。
+一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。首页只有文章列表：日期、分类、标题、摘要和阅读时长。无导航、首屏介绍、页脚或背景装饰。
 
 **静态 HTML · 默认 0 JS · 无框架 · 无 hydration · 无 bundler**
 
@@ -56,14 +56,14 @@ go run . -url https://example.com/blog
 | 文件 | 用途 |
 | --- | --- |
 | `site.json` | 站点标题、作者、描述、正式 URL、GitHub 地址 |
-| `templates/page.html` | 导航、首页文案、文章与关于页布局 |
+| `templates/page.html` | 文章列表、文章与关于页布局 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
 | `main.go` | 约 255 行的构建器与本地预览服务器 |
 
-首页主标语和标记在模板中编辑，关于页有独立的个人资料链接，也应按需修改。
+关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
 
 ## 输出与设计约束
 

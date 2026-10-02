@@ -10,6 +10,6 @@
 
 ## 保持联系
 
-你可以在 [GitHub](https://github.com/mizorewww) 找到我，也可以通过页脚的 RSS 链接订阅更新。
+你可以在 [GitHub](https://github.com/mizorewww) 找到我，也可以通过 [RSS](../feed.xml)订阅更新。
 
 慢慢来，常常写。
