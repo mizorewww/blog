@@ -25,7 +25,7 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-type Site struct{ Title, Author, Description, URL, GitHub string }
+type Site struct{ Title, Author, Description, URL string }
 type Heading struct {
 	ID, Title string
 	Level     int
@@ -101,11 +101,6 @@ func main() {
 			fs.ServeHTTP(w, r)
 		})))
 	}
-}
-
-func renderMarkdown(src []byte) (template.HTML, error) {
-	body, _, err := renderContent(src)
-	return body, err
 }
 
 func renderContent(src []byte) (template.HTML, []Heading, error) {
@@ -247,7 +242,7 @@ func build(base string) error {
 	if err != nil {
 		return err
 	}
-	body, err := renderMarkdown(about)
+	body, _, err := renderContent(about)
 	if err != nil {
 		return err
 	}

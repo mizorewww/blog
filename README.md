@@ -58,13 +58,13 @@ go run . -url https://example.com/blog
 
 | 文件 | 用途 |
 | --- | --- |
-| `site.json` | 站点标题、作者、描述、正式 URL、GitHub 地址 |
+| `site.json` | 站点标题、作者、描述和正式 URL |
 | `templates/page.html` | 文章列表、文章与关于页布局 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
 | `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
-| `main.go` | 约 280 行的构建器与本地预览服务器 |
+| `main.go` | 构建器与本地预览服务器 |
 
 关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
 
