@@ -5,6 +5,8 @@
 """Optional asset preparation: uv run scripts/prepare-fonts.py.
 Normal blog builds only need Go. New characters load the remaining font shards.
 """
+import json
+import re
 from pathlib import Path
 from urllib.request import urlretrieve
 from tempfile import TemporaryDirectory
@@ -16,6 +18,16 @@ out = root / "static/fonts"
 out.mkdir(exist_ok=True)
 corpus = "".join(p.read_text() for pattern in ("content/**/*.md", "templates/*.html", "site.json") for p in root.glob(pattern))
 core = set(range(32, 127)) | {ord(c) for c in corpus}
+# Serif is only used by titles/headings: do not preload the entire body alphabet.
+serif_text = "".join(p.read_text() for p in (root / "templates").glob("*.html"))
+serif_text += (root / "site.json").read_text()
+for p in (root / "content").rglob("*.md"):
+    source_text = p.read_text()
+    if p.parent == root / "content" / "posts":
+        serif_text += json.loads(source_text.split("\n---\n", 1)[0]).get("title", "")
+    serif_text += "".join(re.findall(r"^#{1,3} .+$", source_text, re.M))
+serif_core = set(range(32, 127)) | {ord(c) for c in serif_text}
+
 def unicode_ranges(chars):
     runs = []
     first = last = None
@@ -43,8 +55,12 @@ with TemporaryDirectory() as tmp:
             font.flavor = None
             decoded = Path(tmp) / f"{kind}.ttf"
             font.save(decoded)
-        groups = {"core": supported & core}
-        for cp in sorted(supported - core):
+        primary = core if kind == "sans" else serif_core
+        coverage = core | primary
+        groups = {"core": supported & primary}
+        if kind == "serif" and supported & (core - primary):
+            groups["text"] = supported & (core - primary)
+        for cp in sorted(supported - coverage):
             groups.setdefault(f"{cp // 1024:03x}", set()).add(cp)
         for label, chars in groups.items():
             font = TTFont(decoded)
@@ -62,7 +78,7 @@ with TemporaryDirectory() as tmp:
             name = f"source-han-{kind}-{label}.woff2"
             font.save(out / name)
             font.close()
-            ranges = unicode_ranges(chars) if label == "core" else unicode_ranges(set(range(int(label, 16)*1024, int(label, 16)*1024+1024)) - core)
+            ranges = unicode_ranges(chars) if label in ("core", "text") else unicode_ranges(set(range(int(label, 16)*1024, int(label, 16)*1024+1024)) - coverage)
             rules.append(f'@font-face{{font-family:"{family}";font-style:normal;font-weight:{weight};font-display:swap;src:url("./{name}") format("woff2");unicode-range:{ranges}}}')
         print(f"{family}: {len(groups)} shards", flush=True)
 rules.sort(key=lambda rule: "-core.woff2" in rule)

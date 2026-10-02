@@ -7,6 +7,6 @@ Self-hosted WOFF2 subsets from Adobe's official Simplified Chinese variable font
 
 Licensed under SIL OFL 1.1; see the two LICENSE files in this directory. Subset derivatives use the internal family names BlogSansSubset / BlogSerifSubset. CSS aliases retain the familiar Source Han names.
 
-`core` contains Latin and characters used by the site when prepared. Other files cover the remaining supported characters with non-overlapping CSS unicode ranges. New articles do not require font regeneration: browsers fetch additional shards as needed. Unsupported characters use system fallback fonts.
+The Sans `core` contains Latin and the site’s text characters. The Serif `core` contains Latin, titles, and headings; `source-han-serif-text.woff2` retains other text characters but is not preloaded. This avoids loading body glyphs in a font used only for headings. Other files cover the remaining supported characters with non-overlapping CSS unicode ranges. New articles do not require font regeneration: browsers fetch additional shards as needed. Unsupported characters use system fallback fonts.
 
 To refresh the optimized core after substantial content changes, run `uv run scripts/prepare-fonts.py` from the repository root. This optional asset tool downloads the pinned upstream fonts and preserves all supported characters. Ordinary builds remain Go-only.
