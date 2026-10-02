@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{.Title}}</title>
+<meta name="description" content="{{.Description}}">
+<meta name="author" content="{{.Site.Author}}">
+<meta name="color-scheme" content="light">
+{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
+<meta property="og:title" content="{{.Title}}">
+<meta property="og:description" content="{{.Description}}">
+<meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
+{{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
+<link rel="icon" href="{{local "/static/favicon.svg"}}" type="image/svg+xml">
+<link rel="stylesheet" href="{{local "/static/style.css"}}">
+<link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local "/feed.xml"}}">
+</head>
+<body>
+<a class="skip" href="#main">跳到正文</a>
+<div class="shell">
+<header class="site-header">
+<a class="brand" href="{{local "/"}}" aria-label="mizore 的博客首页"><span class="mark" aria-hidden="true">m.</span> mizore<span class="brand-note"> / notes</span></a>
+<nav aria-label="主导航"><a href="{{local "/"}}" {{if eq .Kind "home"}}aria-current="page"{{end}}>文章</a><a href="{{local "/about/"}}" {{if eq .Kind "about"}}aria-current="page"{{end}}>关于</a><a href="{{local "/feed.xml"}}">RSS <span aria-hidden="true">↗</span></a></nav>
+</header>
+<main id="main">
+{{if eq .Kind "home"}}
+<section class="intro"><p class="eyebrow"><span class="dot"></span> A SMALL CORNER OF THE INTERNET</p><h1>少一点，<span>刚刚好。</span></h1><p class="intro-copy">{{.Site.Description}}<br>在这里慢慢写，也慢慢想。</p><div class="intro-bottom"><span>文字留存，想法生长。</span><span>BY {{.Site.Author}}</span></div></section>
+<section class="writing" aria-labelledby="writing-title"><div class="section-heading"><h2 id="writing-title">写下的东西 <span>/ Writing</span></h2><span class="count">{{len .Posts}} 篇文章</span></div>
+{{range .Posts}}<article class="post-row"><div class="post-meta"><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Tag}}</span></div><div class="post-summary"><h3><a href="{{local .Path}}">{{.Title}}<span aria-hidden="true">↗</span></a></h3><p>{{.Description}}</p><span class="reading-time">{{.Minutes}} 分钟阅读</span></div></article>{{else}}<p class="empty">还没有文章。第一篇，很快见。</p>{{end}}
+</section><aside class="endnote"><span aria-hidden="true">✳</span><p>保持好奇，把复杂的事情写简单。<br><span>这里没有信息流，只有一些值得留下的文字。</span></p><a href="{{local "/about/"}}">认识一下 <span aria-hidden="true">→</span></a></aside>
+{{else if eq .Kind "post"}}
+<article class="article"><header class="article-header"><a class="back" href="{{local "/"}}">← 所有文章</a><p class="eyebrow">{{.Post.Tag}} · <time datetime="{{.Post.Date}}">{{.Post.Date}}</time> · {{.Post.Minutes}} 分钟阅读</p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p><p class="byline">文 / {{.Site.Author}}</p></header><div class="prose">{{.Post.Content}}</div><footer class="article-footer"><span>写到这里，刚刚好。</span><a href="{{local "/"}}">← 回到文章列表</a></footer></article>
+{{else if eq .Kind "about"}}
+<article class="article"><header class="article-header"><p class="eyebrow">BEHIND THE NOTES</p><h1>你好，我是 {{.Site.Author}}。</h1><p class="dek">写代码，也写一些代码之外的东西。</p></header><div class="prose">{{.Content}}</div></article>
+{{else}}<section class="intro"><p class="eyebrow">404 / NOT FOUND</p><h1>这页，还没有写。</h1><p class="intro-copy">链接可能变了，也可能从未存在。</p><a href="{{local "/"}}">← 回到首页</a></section>{{end}}
+</main>
+<footer class="site-footer"><span>© {{.Site.Author}} · 保持简单，持续书写。</span><div><a href="{{.Site.GitHub}}">GitHub ↗</a><a href="{{local "/feed.xml"}}">订阅 RSS ↗</a><a href="#main">回到顶部 ↑</a></div></footer>
+</div>
+</body>
+</html>
