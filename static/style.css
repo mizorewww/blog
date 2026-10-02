@@ -1,4 +1,4 @@
-:root{--paper:#faf9f6;--ink:#292c28;--muted:#686d64;--line:#ddded6;--green:#486043;--wash:#f0f1ea;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--paper);font-synthesis:none}
+:root{--paper:#faf9f6;--ink:#292c28;--muted:#686d64;--line:#ddded6;--green:#486043;--wash:#f0f1ea;font-family:"Source Han Sans","PingFang SC","Microsoft YaHei",sans-serif;color:var(--ink);background:var(--paper);font-synthesis:none}
 *{box-sizing:border-box}
 body{margin:0}
 a{color:inherit;text-decoration:none}
@@ -6,12 +6,12 @@ a:hover{color:var(--green)}
 a:focus-visible{outline:2px solid var(--green);outline-offset:5px}
 ::selection{background:#dce6cf}
 .shell{max-width:1120px;margin:auto}
-.eyebrow{font:11px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace;letter-spacing:1.7px;color:var(--green);display:flex;align-items:center;gap:8px}
-h1{font-family:Georgia,"Songti SC",SimSun,serif;font-weight:400;letter-spacing:-2px}
+.eyebrow{font-size:11px;line-height:1.8;letter-spacing:1.7px;color:var(--green);display:flex;align-items:center;gap:8px}
+h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti SC",SimSun,serif;font-weight:400}
 .writing{padding:64px}
 .reading-time{font-size:11px;color:var(--muted)}
 .post-row{display:grid;grid-template-columns:160px 1fr;gap:30px;padding:35px 0 32px;border-bottom:1px solid var(--line)}
-.post-meta{display:flex;flex-direction:column;gap:14px;font:12px/1.7 ui-monospace,monospace;color:var(--muted)}
+.post-meta{display:flex;flex-direction:column;gap:14px;font-size:12px;line-height:1.7;color:var(--muted)}
 .post-meta span{font-size:11px;line-height:1.6;color:var(--green)}
 .post-summary h2{font-size:22px;font-weight:500;letter-spacing:-.5px;margin:0 0 12px}
 .post-summary h2 a{display:flex;align-items:baseline;justify-content:space-between;gap:18px}

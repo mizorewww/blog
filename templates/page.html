@@ -14,6 +14,7 @@
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
 {{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
 <link rel="icon" href="{{local "/static/favicon.svg"}}" type="image/svg+xml">
+<link rel="stylesheet" href="{{local "/static/fonts/fonts.css"}}">
 <link rel="stylesheet" href="{{local "/static/style.css"}}">
 <link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local "/feed.xml"}}">
 </head>

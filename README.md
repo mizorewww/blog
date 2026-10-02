@@ -74,7 +74,10 @@ go run . -url https://example.com/blog
 - `feed.xml`：包含全文的 RSS 2.0。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
 - canonical、description、Open Graph、文章日期、跳至正文链接、键盘焦点状态。
-- 一个 CSS 文件、一个 SVG 图标，系统字体，无第三方网络请求，无分析脚本。
+- 标题使用 Source Han Serif（思源宋体），正文和界面使用 Source Han Sans（思源黑体），代码保持系统等宽字体。
+- Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
+- 字体已提交到 `static/fonts/`，正常构建只需 Go；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
+- 字体版本：Source Han Sans 2.005R / Source Han Serif 2.003R，SIL OFL 1.1 许可证保留在字体目录。
 - Go 标准库处理模板、JSON、XML、日期和文件；唯一第三方依赖为锁定版本的 Goldmark。
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
@@ -88,7 +91,9 @@ go vet ./...
 
 测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。
 
-本地 Lighthouse 移动端测试（2026-10-02，localhost）：首页和示例文章页 Performance / Accessibility / Best Practices / SEO / Agentic browsing 均为 **100**。这不是线上成绩保证；托管延迟、缓存、压缩和后续文章资源都会影响结果。
+切换思源字体前的本地 Lighthouse 移动端测试（2026-10-02，localhost）：首页和示例文章页 Performance / Accessibility / Best Practices / SEO / Agentic browsing 均为 **100**。这不是线上成绩保证；托管延迟、缓存、压缩和后续文章资源都会影响结果。
+
+切换为自托管思源字体后，示例文章页移动端复测：Performance **90**，其余四项 **100**。当前文章仅请求两个常用字体分片，合计约 290 KiB。
 
 如需复测，可临时使用 Lighthouse CLI；Node.js 仅用于可选审计，不参与站点构建：
 
