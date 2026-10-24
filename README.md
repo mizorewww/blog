@@ -62,6 +62,7 @@ go run . new -h               # 全部参数
 
 - `title`、`description`、`date` 必填；日期格式为 `YYYY-MM-DD`，非法日期会让构建失败。
 - `tag` 是可选的文字标签。
+- `aliases` 可选，列出文章的旧地址（以 `/` 开头和结尾，如 `"/zh/折腾/xiaomi-book-pro-14/"`），见下文「旧地址跳转」。
 - `updated` 可选，格式同 `date` 且不早于它；文章有实质修改时填写，用于 `dateModified`、`article:modified_time` 和 sitemap 的 `lastmod`。
 - 文章按日期倒序排列，同日按文件名排序。
 - 所有文章都会发布，包括未来日期；草稿放在 `content/posts/` 之外。
@@ -95,6 +96,16 @@ Delta | BTC  | ETH
 - 未知属性、找不到的 `bars` 列、行列数不一致都会让构建失败。
 
 普通 Markdown 表格使用相同的横线样式；用 `---:` 让数字列右对齐。如何把图表改写成表格，以及给 AI 的完整写作规范，见 `.claude/skills/write-post/SKILL.md`。
+
+## 旧地址跳转
+
+站点从旧博客（`mizore.blog/zh/<分类>/<slug>/`）迁移而来。为保住旧链接和搜索排名：
+
+- 每篇迁移文章在 `aliases` 中列出旧地址。构建时写入 Cloudflare Pages 的 `_redirects`（301，先匹配先生效）；含中文的地址同时写入编码和原文两种形式，因为 Cloudflare 未说明按哪种匹配。
+- 每个旧地址还会生成一个跳转页（`noindex`、canonical 指向新地址、0 秒 meta refresh），换到不读 `_redirects` 的托管也能跳转。
+- `aliases` 的第一项同时作为 RSS 的 `guid`，与旧 feed 一致，订阅者不会把迁移文章当成新文章重复收到。
+- 旧的分类、标签、语言首页等没有对应页面的地址，由 `site.json` 的 `redirects` 按顺序 301 到首页，`/about/` 跳到 about.mizore.blog。规则写在文章别名之后，所以 `/zh/*` 不会抢走具体文章。
+- 别名不能指向 `/`、`/posts/`、`/static/`、`/images/`，同一地址不能被两篇文章占用，否则构建失败。
 
 ## 文章图片
 

@@ -4,5 +4,58 @@
   "description": "关于代码、工具，以及把事情做简单的练习。",
   "url": "https://mizorewww.github.io/blog-new",
   "about": "https://about.mizore.blog",
-  "sameAs": ["https://github.com/mizorewww", "https://x.com/mizorewww"]
+  "sameAs": [
+    "https://github.com/mizorewww",
+    "https://x.com/mizorewww"
+  ],
+  "redirects": [
+    {
+      "from": "/about",
+      "to": "https://about.mizore.blog"
+    },
+    {
+      "from": "/about/",
+      "to": "https://about.mizore.blog"
+    },
+    {
+      "from": "/zh",
+      "to": "/"
+    },
+    {
+      "from": "/zh/*",
+      "to": "/"
+    },
+    {
+      "from": "/en",
+      "to": "/"
+    },
+    {
+      "from": "/en/*",
+      "to": "/"
+    },
+    {
+      "from": "/blog",
+      "to": "/"
+    },
+    {
+      "from": "/blog/*",
+      "to": "/"
+    },
+    {
+      "from": "/categories",
+      "to": "/"
+    },
+    {
+      "from": "/categories/*",
+      "to": "/"
+    },
+    {
+      "from": "/tags",
+      "to": "/"
+    },
+    {
+      "from": "/tags/*",
+      "to": "/"
+    }
+  ]
 }

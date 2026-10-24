@@ -335,3 +335,29 @@ func TestFirstImage(t *testing.T) {
 		t.Fatalf("unexpected share image: %+v", share)
 	}
 }
+
+func TestRedirects(t *testing.T) {
+	files := map[string]string{}
+	write := func(name string, body []byte) error { files[filepath.ToSlash(name)] = string(body); return nil }
+	site := Site{URL: "https://example.com/notes", Redirects: []Redirect{{"/zh/*", "/"}, {"/about/", "https://about.example.com"}}}
+	posts := []Post{{PostMetadata: PostMetadata{Title: "T", Aliases: []string{"/zh/技术/x/"}}, Slug: "x", Path: "/posts/x/"}}
+	if err := writeRedirects(site, "/notes", posts, write); err != nil {
+		t.Fatal(err)
+	}
+	want := "/notes/zh/%E6%8A%80%E6%9C%AF/x/ /notes/posts/x/ 301\n/notes/zh/%E6%8A%80%E6%9C%AF/x /notes/posts/x/ 301\n" +
+		"/notes/zh/技术/x/ /notes/posts/x/ 301\n/notes/zh/技术/x /notes/posts/x/ 301\n" +
+		"/notes/zh/* /notes/ 301\n/notes/about/ https://about.example.com 301\n"
+	if files["_redirects"] != want {
+		t.Fatalf("unexpected _redirects:\n%s", files["_redirects"])
+	}
+	if page := files["zh/技术/x/index.html"]; !strings.Contains(page, `content="0; url=https://example.com/notes/posts/x/"`) || !strings.Contains(page, `rel="canonical" href="https://example.com/notes/posts/x/"`) || !strings.Contains(page, "noindex") {
+		t.Fatalf("missing fallback page: %q", page)
+	}
+	for _, bad := range [][]string{{"zh/x/"}, {"/zh/x"}, {"/zh/../x/"}, {"/posts/y/"}, {"/"}, {"/a/", "/a/"}} {
+		p := posts[0]
+		p.Aliases = bad
+		if err := writeRedirects(site, "", []Post{p}, write); err == nil {
+			t.Fatalf("alias %v must be rejected", bad)
+		}
+	}
+}

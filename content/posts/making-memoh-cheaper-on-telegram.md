@@ -1,4 +1,4 @@
-{"title":"给 Memoh 动了一场省钱手术：Telegram 特化改造记录","description":"把通用 agent 框架 Memoh 特化成 Telegram 群聊机器人：少调用、少读、多命中缓存，LLM 成本降到原来的五分之一以下。","date":"2026-08-03","tag":"技术"}
+{"title":"给 Memoh 动了一场省钱手术：Telegram 特化改造记录","description":"把通用 agent 框架 Memoh 特化成 Telegram 群聊机器人：少调用、少读、多命中缓存，LLM 成本降到原来的五分之一以下。","date":"2026-08-03","tag":"技术","aliases":["/zh/技术/making-memoh-cheaper-on-telegram/","/zh/making-memoh-cheaper-on-telegram/"]}
 ---
 
 前段时间我把 [Memoh](https://github.com/memohai/memoh) 部署成了几个 Telegram 群聊机器人,主要是为了消耗我用不完的ollama的(有一个蠢蛋一下订了一年的ollama).

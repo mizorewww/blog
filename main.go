@@ -30,17 +30,19 @@ import (
 type Site struct {
 	Title, Author, Description, URL, About string
 	SameAs                                 []string
+	Redirects                              []Redirect
 }
 type Heading struct {
 	ID, Title string
 	Level     int
 }
 type PostMetadata struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Date        string `json:"date"`
-	Tag         string `json:"tag,omitempty"`
-	Updated     string `json:"updated,omitempty"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Date        string   `json:"date"`
+	Tag         string   `json:"tag,omitempty"`
+	Updated     string   `json:"updated,omitempty"`
+	Aliases     []string `json:"aliases,omitempty"`
 }
 type Post struct {
 	PostMetadata
@@ -376,7 +378,11 @@ func build(base string) error {
 		}
 		date, _ := time.Parse(time.DateOnly, p.Date)
 		link := site.URL + p.Path
-		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: link})
+		guid := link
+		if len(p.Aliases) > 0 {
+			guid = site.URL + escapePath(p.Aliases[0]) // keeps feed readers from re-announcing moved posts
+		}
+		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
 		sitemap.URLs = append(sitemap.URLs, Location{link, p.Modified()})
 	}
 	if err = page("404.html", Page{Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}); err != nil {
@@ -392,6 +398,9 @@ func build(base string) error {
 		}
 	}
 	if err = write("robots.txt", []byte("User-agent: *\nAllow: /\nSitemap: "+site.URL+"/sitemap.xml\n")); err != nil {
+		return err
+	}
+	if err = writeRedirects(site, prefix, posts, write); err != nil {
 		return err
 	}
 	if err = copyAssets(stage, version); err != nil {
