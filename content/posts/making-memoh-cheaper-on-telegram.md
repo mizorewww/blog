@@ -29,9 +29,7 @@
 
 我的做法是给 provider 包了一层装饰器(`internal/agent/runtime/native/terminal_send.go`):send 成功投递到当前会话后,模型"下一次"被调用时,装饰器直接在本地返回一个 `FinishReasonStop`,根本不发网络请求:
 
-[`internal/agent/runtime/native/terminal_send.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/terminal_send.go#L76-L103)：投递成功后本地结束本轮
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/terminal_send.go#L76-L103" title="投递成功后本地结束本轮"
 type terminalSendProvider struct {
 	sdk.Provider
 	state *terminalSendState
@@ -64,9 +62,7 @@ func (p *terminalSendProvider) DoStream(ctx context.Context, params sdk.Generate
 
 当然,tool call 和 tool result 在协议上必须配对,所以不能真的"不返回状态",否则历史里会出现悬空的工具调用。实际做的是把 result 压缩到极致:当前会话发送成功只回 `{"ok": true}`,跨会话发送才附带 target 信息;失败则返回结构化的可重试错误(`error_code` + `retryable` + `guidance`),让模型有机会自己修正,而不是直接抛 Go error 断掉循环:
 
-[`internal/agent/tool/message.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/tool/message.go#L311-L324)：极简的 send 结果
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/tool/message.go#L311-L324" title="极简的 send 结果"
 func (p *MessageProvider) execSend(ctx context.Context, session SessionContext, toolCallID string, args map[string]any) (any, error) {
 	if session.SessionType == sessionmode.Discuss {
 		sendResult, err := p.exec.SendDirectForTool(ctx, toMessagingSession(session), "", toolCallID, args)
@@ -85,9 +81,7 @@ func (p *MessageProvider) execSend(ctx context.Context, session SessionContext, 
 
 还有一层在历史投影里。未来的轮次再读历史时,成功的 send 调用被折叠成只含 `text / reply_to / sticker_id / attachments / message` 五个观众可见字段的最小 call/result 对,投递细节(bot_id、platform、message_id 之类)不再出现在上下文里。注意这是投影层的折叠,持久化的 canonical 历史并不改写,排障时完整数据还在:
 
-[`internal/agent/application/service_messages.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/service_messages.go#L232-L246)：历史投影里的最小 send 调用
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/service_messages.go#L232-L246" title="历史投影里的最小 send 调用"
 func minimalDiscussSendCall(call sdk.ToolCallPart) sdk.ToolCallPart {
 	input := normalizeToolInputMap(call.Input)
 	minimal := make(map[string]any, 5)
@@ -119,9 +113,7 @@ send(text[optional], reply_to[optional], sticker_id[optional])
 
 二是我之前为了发sticker写了个MCP,但发现调用MCP会大幅增加LLM读的次数,现在折进 send 的 `sticker_id` 参数。
 
-[`internal/agent/runtime/native/telegram_sticker.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/telegram_sticker.go#L14-L31)：sticker MCP 变成 send 的内部后端
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/telegram_sticker.go#L14-L31" title="sticker MCP 变成 send 的内部后端"
 	"github.com/memohai/memoh/internal/delivery"
 )
 
@@ -152,9 +144,7 @@ type telegramStickerSchemaEntry struct {
 
 公平地说,上游的默认行为在日常轮次里缓存并不算糟:消息历史永远追加在末尾,DeepSeek 这类自动前缀缓存能兜住大部分。真正的漏洞是 system prompt 中间埋了一个频繁重写的东西:上游把 MEMORY.md 放在 AGENTS.md 和 PROFILES.md 之间,而 MEMORY.md 是记忆系统动不动就重写的内容,它一动,排在它后面的一切缓存全废。我的修改只有一个函数:
 
-[`internal/agent/runtime/native/fs.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/fs.go#L66-L71)：MEMORY.md 挪到 system prompt 尾部
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/fs.go#L66-L71" title="MEMORY.md 挪到 system prompt 尾部"
 // systemFileLoadOrder keeps the frequently changing memory summary at the
 // tail of the system prompt. Stable instruction/profile content therefore
 // remains in the reusable prefix when MEMORY.md changes between turns.
@@ -167,9 +157,7 @@ func systemFileLoadOrder() []string {
 
 - 记忆写作手册(约 2.6 KB)改成只在配置了 memory provider 时才注入,选 None 就整段不出现:
 
-[`internal/agent/application/service.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/service.go#L710)：没配 memory provider 就不注入手册
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/service.go#L710" title="没配 memory provider 就不注入手册"
 MemoryInstructions:    strings.TrimSpace(botSettings.MemoryProviderID) != "",
 ```
 
@@ -181,9 +169,7 @@ MemoryInstructions:    strings.TrimSpace(botSettings.MemoryProviderID) != "",
 
 请求小一点,每次读的成本就低一点。这块是几个小动作叠加,全部做成了 Telegram 渠道级的可配置策略(存在 bot metadata 里):
 
-[`internal/agent/channelpolicy/policy.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/channelpolicy/policy.go#L21-L24)：四个 Telegram 策略键
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/channelpolicy/policy.go#L21-L24" title="四个 Telegram 策略键"
 TelegramToolCallsEnabledMetadataKey = "telegram_tool_calls_enabled"
 TelegramEnabledToolsMetadataKey     = "telegram_enabled_tools"
 TelegramSkillsEnabledMetadataKey    = "telegram_skills_enabled"
@@ -192,9 +178,7 @@ TelegramMessageMetadataModeKey      = "telegram_message_metadata_mode"
 
 - `telegram_tool_calls_enabled` 是工具总开关,`telegram_enabled_tools` 是逐项白名单(显式空数组等于全关),`telegram_skills_enabled` 控制 skills。聊天机器人不需要 shell、不需要文件编辑,我线上两个 bot 只开了 `send`,**关掉了 37 个工具**。关键在过滤发生的时机:白名单在 schema 生成之前就生效,关掉的工具连一个字符都不会进请求:
 
-[`internal/agent/runtime/native/agent.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/agent.go#L990-L997)：schema 生成前过滤工具
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/runtime/native/agent.go#L990-L997" title="schema 生成前过滤工具"
 }
 filtered := make([]sdk.Tool, 0, len(providerTools))
 for _, tool := range providerTools {
@@ -209,9 +193,7 @@ providerTools = filtered
 
 - `telegram_message_metadata_mode` 控制消息元数据投影,Telegram 默认 `compact`。上游发给模型的每条消息都带完整元数据头:`<message id="..." sender="..." t="..." channel="telegram" conversation="..." type="..." target="...">`。库存储的 canonical 格式不变,但发给模型的瞬时投影会去掉逐条重复的时间戳、平台、会话名,群聊保留发言人归属:
 
-[`internal/agent/turn/user_header.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/turn/user_header.go#L165-L183)：compact 模式的消息头投影
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/turn/user_header.go#L165-L183" title="compact 模式的消息头投影"
 func ProjectUserMessageHeader(content, mode string) string {
 	if strings.ToLower(strings.TrimSpace(mode)) != "compact" || !strings.HasPrefix(strings.TrimSpace(content), "<message") {
 		return content
@@ -239,9 +221,7 @@ func ProjectUserMessageHeader(content, mode string) string {
 
 我跑的主模型里有不带视觉能力的(比如 DeepSeek V4 Flash),但群聊里天天有人发图。我给 agent 加了一个辅助视觉模型机制:主模型声明不支持图片、而本轮确实有图片附件时,先用一个便宜的小视觉模型把图片描述出来:
 
-[`internal/agent/application/auxiliary_vision.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/auxiliary_vision.go#L183-L196)：主模型无视觉能力时才触发
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/auxiliary_vision.go#L183-L196" title="主模型无视觉能力时才触发"
 func (s *Service) describeImagesWithAuxiliaryVision(
 	ctx context.Context,
 	req ChatRequest,
@@ -260,9 +240,7 @@ func (s *Service) describeImagePartsWithAuxiliaryVision(
 
 描述文本以 `<auxiliary_vision_description>` 块追加到**最后一条 user message 的尾部**,还是不碰前缀的思路:
 
-[`internal/agent/application/auxiliary_vision.go`](https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/auxiliary_vision.go#L454-L467)：描述追加到最后一条用户消息尾部
-
-```go
+```go src="https://github.com/mizorewww/Memoh/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/internal/agent/application/auxiliary_vision.go#L454-L467" title="描述追加到最后一条用户消息尾部"
 func appendAuxiliaryVisionToLastUserMessage(messages []sdk.Message, visionContext string) []sdk.Message {
 	visionContext = strings.TrimSpace(visionContext)
 	if visionContext == "" {

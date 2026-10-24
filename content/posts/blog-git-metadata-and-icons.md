@@ -1,7 +1,7 @@
 {"title":"博客新功能：语言图标、源码引用、行情与图表","description":"旧博客（Next.js + MDX）时期加的写作功能：代码块语言图标、GitHub 源码与 diff 引用、TradingView 行情短语法和 ECharts 图表，以及它们在构建时的实现。","date":"2026-06-22","tag":"折腾","aliases":["/zh/技术/blog-git-metadata-and-icons/","/zh/blog-git-metadata-and-icons/"]}
 ---
 
-> 这篇写于旧博客（Next.js + MDX）时期。迁移到现在的静态站后，需要浏览器脚本的演示（TradingView、ECharts）改成了链接和数据表格，源码引用改成固定 commit 的代码片段，语言图标和复制按钮没有保留。
+> 这篇写于旧博客（Next.js + MDX）时期。迁移到现在的静态站后，这些功能都在构建时完成、不再运行浏览器脚本：TradingView 变成行情卡片，ECharts 变成静态 SVG 图表，源码引用是带行号的固定 commit 片段，语言图标换成了代码块角落的语言名。
 
 这次主要把博客的写作体验继续往前推了一步：代码块更容易扫读，代码引用能直接指向 GitHub，金融类内容可以用很短的语法插入 TradingView 图表。
 
@@ -31,9 +31,7 @@ console.log(feature, theme)
 
 渲染出来就是带 Shiki 高亮、语言图标和 GitHub 链接的代码块：
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L251-L253)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L251-L253"
 const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
 const tradingViewMiniPattern = /^\$([A-Za-z0-9._:-]+)$/
 const tradingViewAdvancedPattern = /^::(?:tv|tv-advanced|tradingview)\s+(.+)$/
@@ -78,7 +76,11 @@ $AAPL
 $BINANCE:BTCUSDT.P
 ```
 
-旧站上这两行会各变成一张 Mini Chart。现在的静态站不加载 TradingView 脚本，只保留链接：[AAPL](https://www.tradingview.com/symbols/NASDAQ-AAPL/)、[BINANCE:BTCUSDT.P](https://www.tradingview.com/symbols/BTCUSDT.P/?exchange=BINANCE)。
+旧站上这两行会各变成一张 Mini Chart。现在的静态站不加载 TradingView 脚本，改成一张链到 TradingView 的行情卡片：
+
+::tv NASDAQ:AAPL 苹果公司
+
+::tv BINANCE:BTCUSDT.P 比特币 / USDT 永续合约
 
 ### Advanced Chart 也有短语法
 
@@ -88,7 +90,7 @@ $BINANCE:BTCUSDT.P
 ::tv AAPL interval=60 height=460
 ```
 
-旧站上这里是一张可交互的 Advanced Chart，现在改为链接：[在 TradingView 打开 AAPL 1 小时图](https://www.tradingview.com/chart/?symbol=NASDAQ%3AAAPL&interval=60)。
+旧站上这里是一张可交互的 Advanced Chart，现在同样是一张行情卡片。
 
 ### 代码块直接渲染 ECharts
 
@@ -116,9 +118,9 @@ $BINANCE:BTCUSDT.P
 ```
 ````
 
-旧站上这里是两张 ECharts 图。现在的站点不运行图表脚本，同样的数据写成 `data` 表格：
+旧站上这里是两张 ECharts 图。现在的站点在构建时把同样的数据画成静态 SVG；饼图没有对应的图表类型，写成 `data` 表格：
 
-```data title="每周访问量" bars="访问量"
+```chart area title="每周访问量"
 日期 | 访问量
 周一 | 120
 周二 | 200
@@ -145,9 +147,7 @@ JSON 不合法时会回退成普通代码块，不会把构建搞挂。需要函
 
 这两个正则负责识别行情图表写法。`$AAPL` 是 Mini Chart，`::tv AAPL` 是 Advanced Chart。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L251-L253)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L251-L253"
 const githubEmbedPattern = /^::github-(code|diff)\s+(.+)$/
 const tradingViewMiniPattern = /^\$([A-Za-z0-9._:-]+)$/
 const tradingViewAdvancedPattern = /^::(?:tv|tv-advanced|tradingview)\s+(.+)$/
@@ -155,9 +155,7 @@ const tradingViewAdvancedPattern = /^::(?:tv|tv-advanced|tradingview)\s+(.+)$/
 
 Mini Chart 的转换很克制：只有整段内容就是一个 ticker 时才会替换，避免正文里随手提到 `$AAPL` 就插入一个大图表。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L288-L295)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L288-L295"
 function createTradingViewMiniNode(symbol: string): MdastNode | null {
   if (!isTradingViewTicker(symbol)) {
     return null
@@ -170,9 +168,7 @@ function createTradingViewMiniNode(symbol: string): MdastNode | null {
 
 Advanced Chart 多一步解析参数。比如 `height=460`、`interval=60` 会作为 JSX attribute 传给组件。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L298-L313)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L298-L313"
 function createTradingViewAdvancedNode(source: string): MdastNode | null {
   const [rawSymbol, ...attrParts] = source.trim().split(/\s+/)
 
@@ -193,9 +189,7 @@ function createTradingViewAdvancedNode(source: string): MdastNode | null {
 
 最后把插件挂进 Contentlayer 的 remark 链路里。这样短语法发生在 MDX 编译前，浏览器里不会再扫字符串。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L1063-L1069)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L1063-L1069"
 export default makeSource({
   contentDirPath: 'data',
   documentTypes: [Blog, Authors],
@@ -209,9 +203,7 @@ export default makeSource({
 
 TradingView 官方 widget 需要插入外部 script，所以组件保持为 client component。渲染时先清空容器，再放入 widget 容器和配置 script；主题或参数变化时重新生成。
 
-[`components/TradingViewWidgets.tsx`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/components/TradingViewWidgets.tsx#L83-L101)
-
-```tsx
+```tsx src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/components/TradingViewWidgets.tsx#L83-L101"
 useEffect(() => {
   const container = containerRef.current
 
@@ -235,9 +227,7 @@ useEffect(() => {
 
 股票代码会先规范化。`AAPL` 默认映射成 `NASDAQ:AAPL`，如果你写 `NYSE:IBM` 这种完整 symbol，就不会改动。
 
-[`lib/tradingview.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/lib/tradingview.ts#L4-L20)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/lib/tradingview.ts#L4-L20"
 export function normalizeTradingViewSymbol(value: string, defaultExchange = 'NASDAQ') {
   const symbol = value.trim().replace(/^\$/, '').toUpperCase()
 
@@ -261,9 +251,7 @@ export function normalizeTradingViewSymbol(value: string, defaultExchange = 'NAS
 
 代码块语言图标没有在每篇文章里手写，而是在 rehype 阶段统一补。它会先找到 Shiki 生成的 `figure`，再保证有一个标题栏。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L850-L868)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L850-L868"
 function enhanceCodeTitle(node: HastNode) {
   if (
     node.tagName !== 'figure' ||
@@ -287,9 +275,7 @@ function enhanceCodeTitle(node: HastNode) {
 
 标题栏左侧由语言图标和标题文本组成。没有显式 title 时，就回退到语言名，比如 `TypeScript`、`Diff`、`Markdown`。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L787-L799)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L787-L799"
 function createCodeTitleNode(titleText: string, language: string): HastNode {
   return {
     type: 'element',
@@ -307,9 +293,7 @@ function createCodeTitleNode(titleText: string, language: string): HastNode {
 
 视觉上 logo 直接来自 simple-icons 的品牌图标，按需 tree-shake，不会把首屏 JavaScript 变重；没有品牌图标的语言才回退到简短的文字标注。
 
-[`css/prism.css`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/css/prism.css#L11-L17)
-
-```css
+```css src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/css/prism.css#L11-L17"
 figure[data-rehype-pretty-code-figure] .code-title-main {
   @apply inline-flex min-w-0 items-center gap-2;
 }
@@ -323,9 +307,7 @@ figure[data-rehype-pretty-code-figure] .code-language-icon {
 
 inline code 这次改成了低对比度、有边界的 token。它仍然能被识别为代码，但不会像按钮一样跳出来。
 
-[`css/tailwind.css`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/css/tailwind.css#L110-L124)
-
-```css
+```css src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/css/tailwind.css#L110-L124"
 & :where(code):not(pre code) {
   border: 1px solid color-mix(in oklab, var(--color-slate-300) 72%, transparent);
   border-radius: 6px;
@@ -347,9 +329,7 @@ inline code 这次改成了低对比度、有边界的 token。它仍然能被�
 
 `::github-code` 和 `::github-diff` 在构建时会拉取真实代码或 diff，再生成普通 code node。也就是说它们不需要特殊渲染器，最后仍然交给 Shiki 高亮。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L543-L552)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L543-L552"
 if (kind === 'code') {
   const value = selectCodeLines(await getGitHubFile(attrs), attrs.lines)
   const title =
@@ -364,9 +344,7 @@ if (kind === 'code') {
 
 diff 的路径也一样，只是数据源换成 patch，语言固定成 `diff`。
 
-[`contentlayer.config.ts`](https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L555-L563)
-
-```ts
+```ts src="https://github.com/mizorewww/blog/blob/c067042276d4b4b384c66c0c61fcd4f6716eb599/contentlayer.config.ts#L555-L563"
 const value = selectCodeLines(await getGitHubDiff(attrs), attrs.lines)
 const title =
   attrs.title ||
