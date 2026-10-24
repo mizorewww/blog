@@ -20,7 +20,7 @@ type imageInfo struct {
 }
 
 type imagePipeline struct {
-	stage, base, version string
+	stage, base string
 	processed            map[string]imageInfo
 }
 
@@ -99,7 +99,7 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 				return err
 			}
 			name := fmt.Sprintf("%x%s", sha256.Sum256(data), strings.ToLower(filepath.Ext(info.Path)))
-			relative := "/static/" + p.version + "/images/" + name
+			relative := "/images/" + name // content-hashed, so it never needs the CSS version
 			target := filepath.Join(p.stage, filepath.FromSlash(relative[1:]))
 			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err

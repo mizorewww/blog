@@ -15,7 +15,7 @@ import (
 	"strings"
 )
 
-var versionedAsset = regexp.MustCompile(`^/static/[0-9a-f]{16}/`)
+var versionedAsset = regexp.MustCompile(`^/(static/[0-9a-f]{16}/|images/[0-9a-f]{64}\.)`)
 
 func serveSite(root string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -29,16 +29,16 @@ func TestImagePipeline(t *testing.T) {
 	if err := os.Symlink(filepath.Join(dir, "secret.svg"), "content/images/escape.svg"); err != nil {
 		t.Fatal(err)
 	}
-	pipeline := imagePipeline{stage: "output", base: "https://example.com/notes", version: "1234567890abcdef"}
+	pipeline := imagePipeline{stage: "output", base: "https://example.com/notes"}
 	body, _, err := renderContent([]byte("![first](../images/%E5%9B%BE.svg)\n\n![again](../images/%E5%9B%BE.svg)\n\n![remote](https://cdn.example.com/a.jpg)"), pipeline.hook("content/posts/a.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
 	html := string(body)
-	if strings.Count(html, `src="https://example.com/notes/static/1234567890abcdef/images/`) != 2 || strings.Count(html, `loading="lazy"`) != 2 || !strings.Contains(html, `src="https://cdn.example.com/a.jpg"`) {
+	if strings.Count(html, `src="https://example.com/notes/images/`) != 2 || strings.Count(html, `loading="lazy"`) != 2 || !strings.Contains(html, `src="https://cdn.example.com/a.jpg"`) {
 		t.Fatal(html)
 	}
-	files, _ := filepath.Glob("output/static/*/images/*")
+	files, _ := filepath.Glob("output/images/*")
 	if len(files) != 1 {
 		t.Fatalf("expected deduplicated image: %v", files)
 	}

@@ -245,7 +245,7 @@ func build(base string) error {
 		return err
 	}
 	defer os.RemoveAll(stage)
-	images := imagePipeline{stage: stage, base: site.URL, version: version}
+	images := imagePipeline{stage: stage, base: site.URL}
 	names, err := filepath.Glob("content/posts/*.md")
 	if err != nil {
 		return err
@@ -334,7 +334,7 @@ func build(base string) error {
 	for _, route := range []string{"/", "/index.html", "/posts/*", "/about/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
 		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", prefix, route)
 	}
-	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n", prefix, prefix, version)
+	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n", prefix, prefix, version, prefix)
 	if err = write("_headers", []byte(headers.String())); err != nil {
 		return err
 	}

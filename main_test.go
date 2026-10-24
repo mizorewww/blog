@@ -90,7 +90,7 @@ func TestBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	headers, _ := os.ReadFile("public/_headers")
-	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") {
+	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
 	for _, name := range []string{"index.html", "about/index.html", "posts/beta/index.html", "404.html"} {
