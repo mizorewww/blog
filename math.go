@@ -105,7 +105,11 @@ func (mathBlockParser) Continue(node ast.Node, reader text.Reader, _ parser.Cont
 func (mathRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(kindMath, func(w util.BufWriter, _ []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if entering {
-			return ast.WalkSkipChildren, writeMath(w, string(n.(*mathInline).TeX), false)
+			// A <math> box never wraps; the span lets long formulas scroll on phones.
+			_, _ = w.WriteString(`<span class="math-inline">`)
+			err := writeMath(w, string(n.(*mathInline).TeX), false)
+			_, _ = w.WriteString("</span>")
+			return ast.WalkSkipChildren, err
 		}
 		return ast.WalkContinue, nil
 	})

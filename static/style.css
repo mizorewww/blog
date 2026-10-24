@@ -116,6 +116,7 @@ main::after{bottom:0}
 .post-article>.article-header{padding:28px 20px}
 .post-article>.article-header h1{font-size:30px}
 .article-body{padding:28px 20px 40px}
+.prose .math-inline{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;vertical-align:middle}
 .post-pagination{padding:24px 20px;gap:20px;font-size:13px}
 .post-row::after,.post-article>.article-header::after{left:-4px;right:-4px;background-position:0 50%,0 50%,100% 50%,100% 50%}
 }

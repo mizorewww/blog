@@ -233,7 +233,7 @@ func TestMath(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := string(body)
-	for _, want := range []string{`display="inline"`, `<div class="math" tabindex="0"><math`, `display="block"`, "<mfrac>", "价格 $0.0028/$0.14，$5 和 $10，<code>$x$</code>，$y$。"} {
+	for _, want := range []string{`<span class="math-inline"><math`, `display="inline"`, `<div class="math" tabindex="0"><math`, `display="block"`, "<mfrac>", "价格 $0.0028/$0.14，$5 和 $10，<code>$x$</code>，$y$。"} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %q in %s", want, html)
 		}
