@@ -279,3 +279,9 @@ func TestDataTable(t *testing.T) {
 		}
 	}
 }
+
+func TestReadingUnits(t *testing.T) {
+	if n := readingUnits("中文字 and English words\n\n```go\nfunc ignored() {}\n```\n\n2026 年"); n != 3+3+1+1 {
+		t.Fatalf("got %d units", n)
+	}
+}

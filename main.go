@@ -201,14 +201,42 @@ func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 	}
 	p.Path = "/posts/" + p.Slug + "/"
 	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
-	units := len(strings.Fields(parts[1]))
-	for _, r := range parts[1] {
-		if unicode.Is(unicode.Han, r) {
-			units++
+	p.Minutes = max(1, (readingUnits(parts[1])+299)/300)
+	return p, err
+}
+
+// readingUnits counts each Han character and each other word once, skipping
+// fenced code and data blocks, which readers scan rather than read.
+func readingUnits(src string) int {
+	units, fence, inWord := 0, "", false
+	for _, line := range strings.Split(src, "\n") {
+		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
+			if fence == "" {
+				fence = trimmed[:3]
+			} else if strings.HasPrefix(trimmed, fence) {
+				fence = ""
+			}
+			continue
+		}
+		if fence != "" {
+			continue
+		}
+		for _, r := range line + " " {
+			switch {
+			case unicode.Is(unicode.Han, r):
+				units++
+				inWord = false
+			case unicode.IsLetter(r) || unicode.IsDigit(r):
+				if !inWord {
+					units++
+				}
+				inWord = true
+			default:
+				inWord = false
+			}
 		}
 	}
-	p.Minutes = max(1, (units+299)/300)
-	return p, err
+	return units
 }
 
 func build(base string) error {
