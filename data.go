@@ -18,7 +18,7 @@ import (
 )
 
 // A ```data fence is a captioned table whose chosen columns carry thin
-// inline bars, standing in for charts without images or JavaScript.
+// inline bars. ```chart and ```stats fences share the same table syntax.
 type dataExtension struct{}
 
 var (
@@ -31,7 +31,13 @@ var (
 
 type dataBlock struct {
 	ast.BaseBlock
-	Info string
+	Lang, Info string
+}
+
+var dataRenderers = map[string]func(info string, lines []string) (string, error){
+	"data":  renderData,
+	"chart": renderChart,
+	"stats": renderStats,
 }
 
 type dataTransformer struct{}
@@ -49,13 +55,13 @@ func (dataExtension) Extend(m goldmark.Markdown) {
 func (dataTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
 	var fences []*ast.FencedCodeBlock
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if fence, ok := n.(*ast.FencedCodeBlock); entering && ok && string(fence.Language(reader.Source())) == "data" {
+		if fence, ok := n.(*ast.FencedCodeBlock); entering && ok && dataRenderers[string(fence.Language(reader.Source()))] != nil {
 			fences = append(fences, fence)
 		}
 		return ast.WalkContinue, nil
 	})
 	for _, fence := range fences {
-		block := &dataBlock{Info: string(fence.Info.Segment.Value(reader.Source()))}
+		block := &dataBlock{Lang: string(fence.Language(reader.Source())), Info: string(fence.Info.Segment.Value(reader.Source()))}
 		block.SetLines(fence.Lines())
 		fence.Parent().ReplaceChild(fence.Parent(), fence, block)
 	}
@@ -71,9 +77,10 @@ func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			line := n.Lines().At(i)
 			lines = append(lines, string(line.Value(source)))
 		}
-		table, err := renderData(n.(*dataBlock).Info, lines)
+		block := n.(*dataBlock)
+		table, err := dataRenderers[block.Lang](block.Info, lines)
 		if err != nil {
-			return ast.WalkStop, fmt.Errorf("data table %q: %w", n.(*dataBlock).Info, err)
+			return ast.WalkStop, fmt.Errorf("%s block %q: %w", block.Lang, block.Info, err)
 		}
 		_, err = w.WriteString(table)
 		return ast.WalkSkipChildren, err
@@ -99,17 +106,20 @@ func dataValue(cell string) (float64, bool) {
 	return value, err == nil
 }
 
-func renderData(info string, lines []string) (string, error) {
+// blockAttributes reads key="value" pairs; allowed lists the keys a block accepts.
+func blockAttributes(info string, allowed []string) (map[string]string, error) {
 	attrs := map[string]string{}
 	for _, m := range dataAttribute.FindAllStringSubmatch(info, -1) {
-		if !slices.Contains(dataAttributes, m[1]) {
-			return "", fmt.Errorf("unknown attribute %q (use %s)", m[1], strings.Join(dataAttributes, ", "))
+		if !slices.Contains(allowed, m[1]) {
+			return nil, fmt.Errorf("unknown attribute %q (use %s)", m[1], strings.Join(allowed, ", "))
 		}
 		attrs[m[1]] = m[2]
 	}
-	if scale := attrs["scale"]; scale != "" && scale != "shared" && scale != "column" {
-		return "", fmt.Errorf(`scale must be "shared" or "column"`)
-	}
+	return attrs, nil
+}
+
+// blockRows splits pipe rows, skipping blank and separator lines, and checks they align with the header.
+func blockRows(lines []string) ([][]string, error) {
 	var rows [][]string
 	for _, line := range lines {
 		if strings.TrimSpace(line) != "" && !dataSeparator.MatchString(line) {
@@ -117,14 +127,29 @@ func renderData(info string, lines []string) (string, error) {
 		}
 	}
 	if len(rows) < 2 {
-		return "", fmt.Errorf("need a header row and at least one data row")
+		return nil, fmt.Errorf("need a header row and at least one data row")
 	}
-	header := rows[0]
 	for i, row := range rows {
-		if len(row) != len(header) {
-			return "", fmt.Errorf("row %d has %d cells, header has %d", i+1, len(row), len(header))
+		if len(row) != len(rows[0]) {
+			return nil, fmt.Errorf("row %d has %d cells, header has %d", i+1, len(row), len(rows[0]))
 		}
 	}
+	return rows, nil
+}
+
+func renderData(info string, lines []string) (string, error) {
+	attrs, err := blockAttributes(info, dataAttributes)
+	if err != nil {
+		return "", err
+	}
+	if scale := attrs["scale"]; scale != "" && scale != "shared" && scale != "column" {
+		return "", fmt.Errorf(`scale must be "shared" or "column"`)
+	}
+	rows, err := blockRows(lines)
+	if err != nil {
+		return "", err
+	}
+	header := rows[0]
 	bars := make([]bool, len(header))
 	if attrs["bars"] != "" {
 		for _, name := range strings.Split(attrs["bars"], ",") {

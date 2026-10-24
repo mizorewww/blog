@@ -18,9 +18,7 @@ import (
 	"time"
 	"unicode"
 
-	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
-	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -107,8 +105,7 @@ type Location struct {
 	LastMod string `xml:"lastmod,omitempty"`
 }
 
-// Code is highlighted at build time with classes styled in style.css; unknown languages stay plain.
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, highlighting.NewHighlighting(highlighting.WithFormatOptions(chromahtml.WithClasses(true)))), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func main() {
@@ -199,7 +196,7 @@ func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML,
 	var out bytes.Buffer
 	err = markdown.Renderer().Render(&out, src, doc)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
-	html := strings.NewReplacer("<pre>", `<pre tabindex="0">`, `<pre class="chroma">`, `<pre tabindex="0" class="chroma">`).Replace(out.String())
+	html := strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)
 	return template.HTML(html), toc, err
 }
 
@@ -296,10 +293,29 @@ func build(base string) error {
 	if err != nil {
 		return err
 	}
+	css, err := pageCSS(prefix + "/static/" + version)
+	if err != nil {
+		return err
+	}
 	tmpl, err := template.New("page.html").Funcs(template.FuncMap{
+		"css":    func() template.CSS { return css },
 		"local":  func(p string) string { return prefix + p },
 		"jsonld": structuredData,
 		"asset":  func(p string) string { return prefix + "/static/" + version + "/" + p },
+		"year":   func() int { return time.Now().Year() },
+		"profile": func(link string) string {
+			u, err := url.Parse(link)
+			if err != nil {
+				return link
+			}
+			switch strings.TrimPrefix(u.Hostname(), "www.") {
+			case "github.com":
+				return "GitHub"
+			case "x.com", "twitter.com":
+				return "X"
+			}
+			return u.Hostname()
+		},
 	}).ParseGlob("templates/*.html")
 	if err != nil {
 		return err
@@ -309,6 +325,10 @@ func build(base string) error {
 		return err
 	}
 	defer os.RemoveAll(stage)
+	fonts, err := newFontSubsetter(filepath.Join(stage, "static", version, "fonts"), prefix+"/static/"+version+"/fonts")
+	if err != nil {
+		return err
+	}
 	images := imagePipeline{stage: stage, base: site.URL}
 	names, err := filepath.Glob("content/posts/*.md")
 	if err != nil {
@@ -347,7 +367,11 @@ func build(base string) error {
 		if err := tmpl.Execute(&out, p); err != nil {
 			return err
 		}
-		return write(name, out.Bytes())
+		faces, err := fonts.css(out.String())
+		if err != nil {
+			return fmt.Errorf("%s: fonts: %w", name, err)
+		}
+		return write(name, []byte(strings.Replace(out.String(), pageFontsMarker, faces, 1)))
 	}
 	if err = page("index.html", Page{Title: site.Title, Description: site.Description, Path: "/", Kind: "home", Posts: posts}); err != nil {
 		return err

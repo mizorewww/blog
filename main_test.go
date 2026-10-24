@@ -42,7 +42,7 @@ func TestPostValidation(t *testing.T) {
 func TestBuild(t *testing.T) {
 	// Work in a disposable fixture; do not replace local preview output.
 	dir := t.TempDir()
-	for _, name := range []string{"templates", "static"} {
+	for _, name := range []string{"templates", "static", "fonts"} {
 		if err := os.CopyFS(filepath.Join(dir, name), os.DirFS(name)); err != nil {
 			t.Fatal(err)
 		}
@@ -89,8 +89,9 @@ func TestBuild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat("public/static/" + version + "/fonts/fonts.css"); err != nil {
-		t.Fatal(err)
+	lateFonts, _ := filepath.Glob("public/static/" + version + "/fonts/sans-400-*.woff2")
+	if len(lateFonts) == 0 {
+		t.Fatal("pages need their late font subsets")
 	}
 	headers, _ := os.ReadFile("public/_headers")
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
@@ -102,7 +103,7 @@ func TestBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Count(html, "<script") != strings.Count(html, `<script type="application/ld+json">`) || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
+		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+1 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 	}
@@ -124,8 +125,8 @@ func TestBuild(t *testing.T) {
 				t.Fatalf("missing %s on %s", rel, tc.slug)
 			}
 		}
-		if strings.Contains(html, `class="byline"`) || strings.Contains(html, "分钟阅读") {
-			t.Fatal("article has redundant metadata")
+		if !strings.Contains(html, `<p class="article-meta">`) || !strings.Contains(html, "分钟阅读") || strings.Count(html, `aria-label="文章目录"`) > 2 {
+			t.Fatalf("article metadata is missing on %s", tc.slug)
 		}
 	}
 	var rss Feed
@@ -170,7 +171,7 @@ func TestBuild(t *testing.T) {
 		t.Fatal(err)
 	}
 	single, _ := os.ReadFile("public/posts/beta/index.html")
-	if strings.Contains(string(single), "post-pagination") {
+	if strings.Contains(string(single), `class="post-pagination"`) {
 		t.Fatal("single article should have no adjacent navigation")
 	}
 	before, _ := os.ReadFile("public/index.html")
@@ -236,8 +237,42 @@ func TestCodeHighlighting(t *testing.T) {
 	if !strings.Contains(html, `<pre tabindex="0" class="chroma">`) || !strings.Contains(html, `<span class="kd">func</span>`) {
 		t.Fatalf("known languages must be highlighted with classes and stay focusable: %s", html)
 	}
-	if strings.Contains(html, "style=") || !strings.Contains(html, `<pre tabindex="0"><code class="language-nosuchlang">&lt;b&gt;`) {
-		t.Fatalf("unknown languages must stay plain and escaped: %s", html)
+	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) {
+		t.Fatalf("unknown languages must stay plain and escaped, with the language named: %s", html)
+	}
+	body, _, err = renderContent([]byte("```go src=\"https://github.com/o/r/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/a/b.go#L76-L77\" title=\"T\"\nx := 1\ny := 2\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if html = string(body); !strings.Contains(html, `<b>a/b.go</b><span>T</span>`) || !strings.Contains(html, `L76–77 · ad8012c ↗`) || !strings.Contains(html, `>77</span>`) || strings.Contains(html, `class="lang"`) {
+		t.Fatalf("source quotes need a path header and their own line numbers: %s", html)
+	}
+	if _, _, err = renderContent([]byte("```go src=\"https://example.com/a.go\"\nx\n```\n")); err == nil {
+		t.Fatal("src must be a GitHub permalink")
+	}
+}
+
+func TestBlocks(t *testing.T) {
+	src := "```chart line title=\"累计\"\n周五 | BTC | ETH\n2023-12-29 | 0.1 | -0.2\n2024-01-05 | 0.3 | 0.1\n```\n\n" +
+		"```chart bar mirror=\"true\"\n区间 | A | B\n0 | 3 | 1\n1 | 5 | 2\n```\n\n" +
+		"```chart scatter diag=\"true\" mark=\"p\"\n点 | x | y\np | -0.05 | -0.09\nq | 0.01 | 0.01\n```\n\n" +
+		"```stats title=\"S\"\n## BTC 单利\n总收益 | +1.1 | 说明\n回撤 | -0.1\n```\n\n::tv BINANCE:BTCUSDT 比特币 height=420\n"
+	body, _, err := renderContent([]byte(src))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, want := range []string{`<svg viewBox="0 0 664`, `role="img" aria-label="累计"`, `>2024</span>`, `BTC 0.3</span>`, `ETH 0.1</span>`, `A ↑</span>`, `>p</span>`,
+		`<p class="stats-group"><b>BTC</b>单利</p>`, `<dd class="up">+1.1</dd><dd class="s">说明</dd>`, `<dd>−0.1</dd>`,
+		`<a class="ticker" href="https://www.tradingview.com/symbols/BINANCE-BTCUSDT/"><span><b>BINANCE:BTCUSDT</b><span class="ticker-label">比特币</span>`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %s in %s", want, html)
+		}
+	}
+	for _, bad := range []string{"```chart pie\nx | y\n1 | 2\n```\n", "```chart line\nx\n1\n```\n", "```chart scatter\n点 | x | y\np | a | 1\n```\n", "```stats\n## A\n```\n"} {
+		if _, _, err := renderContent([]byte(bad)); err == nil {
+			t.Fatalf("expected an error for %q", bad)
+		}
 	}
 }
 
