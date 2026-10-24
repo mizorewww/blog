@@ -21,7 +21,7 @@ type imageInfo struct {
 
 type imagePipeline struct {
 	stage, base string
-	processed            map[string]imageInfo
+	processed   map[string]imageInfo
 }
 
 // Image paths are relative to the Markdown source, or rooted at /static/.
