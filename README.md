@@ -24,7 +24,7 @@ go run . -url https://example.com/blog
 
 将 `public/` 的内容上传到任意静态托管服务。配置目录 URL 对应 `index.html`，不存在的地址返回 `404.html` 并保持 HTTP 404。域名根目录部署时，`robots.txt` 可被标准爬虫直接发现；子路径部署时由域名根站点管理 robots.txt。
 
-当前仓库为私有，尚未启用 GitHub Pages；配置中的 `https://mizorewww.github.io/blog-new` 是预设发布地址，不代表已经上线。发布到其他域名时务必修改 `site.json` 或传入 `-url`，以生成正确的 canonical、RSS 和 sitemap URL。
+正式地址是 `https://mizore.blog`，接替原来的 Next.js 博客，按旧站方式部署在 Cloudflare Pages（会读取构建产物里的 `_headers` 与 `_redirects`）。发布到其他域名时务必修改 `site.json` 或传入 `-url`，以生成正确的 canonical、RSS、sitemap 与 `og:image` URL。上线后在 Google Search Console 和 Bing Webmaster Tools 提交 `https://mizore.blog/sitemap.xml`。
 
 ## 写文章
 
