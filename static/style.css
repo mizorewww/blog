@@ -39,7 +39,7 @@ h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti S
 .chroma .gi{color:var(--green)}
 .prose img{max-width:100%;height:auto}
 .prose .math{overflow-x:auto;margin:1.6em 0;padding:4px 0}
-.prose table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;font-size:14px;line-height:1.7;font-variant-numeric:tabular-nums;margin:1.8em 0}
+.prose table{display:block;max-width:100%;overflow:auto;overflow-wrap:normal;border-collapse:collapse;font-size:14px;line-height:1.7;font-variant-numeric:tabular-nums;margin:1.8em 0}
 .prose td,.prose th{border-bottom:1px solid var(--line);padding:9px 20px 9px 0;text-align:left;vertical-align:top}
 .prose th{font-size:12px;font-weight:500;color:var(--muted);border-color:var(--muted);white-space:nowrap}
 .prose :is(td,th):last-child{padding-right:0}
