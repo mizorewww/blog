@@ -189,6 +189,9 @@ func TestTableOfContents(t *testing.T) {
 	if toc[1].Title != "A bold code heading" || toc[1].Level != 3 {
 		t.Fatalf("invalid inline heading: %+v", toc[1])
 	}
+	if toc[0].ID != "中文标题" || toc[1].ID != "a-bold-code-heading" || toc[2].ID != "中文标题-1" {
+		t.Fatalf("anchors must stay readable: %+v", toc)
+	}
 	_, toc, err = renderContent([]byte("Just a paragraph."))
 	if err != nil || len(toc) != 0 {
 		t.Fatal("heading-free content should have no TOC")

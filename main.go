@@ -103,8 +103,53 @@ func main() {
 	}
 }
 
+// headingIDs keeps CJK and other letters so anchors stay readable, e.g. #问题一屏幕花屏.
+type headingIDs map[string]bool
+
+func (ids headingIDs) Generate(value []byte, _ ast.NodeKind) []byte {
+	var b strings.Builder
+	for _, r := range strings.ToLower(string(value)) {
+		switch {
+		case unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r) || r == '_':
+			b.WriteRune(r)
+		case unicode.IsSpace(r) || r == '-':
+			b.WriteByte('-')
+		}
+	}
+	id := strings.Trim(b.String(), "-")
+	if id == "" {
+		id = "section"
+	}
+	for i, base := 1, id; ids[id]; i++ {
+		id = fmt.Sprintf("%s-%d", base, i)
+	}
+	ids[id] = true
+	return []byte(id)
+}
+
+func (ids headingIDs) Put(value []byte) { ids[string(value)] = true }
+
+func plainText(n ast.Node, src []byte) string {
+	var b strings.Builder
+	_ = ast.Walk(n, func(c ast.Node, entering bool) (ast.WalkStatus, error) {
+		switch t := c.(type) {
+		case *ast.Text:
+			if entering {
+				b.Write(t.Segment.Value(src))
+			}
+		case *ast.String:
+			if entering {
+				b.Write(t.Value)
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+	return b.String()
+}
+
 func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML, []Heading, error) {
-	doc := markdown.Parser().Parse(text.NewReader(src))
+	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
+	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var toc []Heading
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if image, ok := n.(*ast.Image); entering && ok && len(images) > 0 {
@@ -114,7 +159,7 @@ func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML,
 		}
 		if h, ok := n.(*ast.Heading); entering && ok && h.Level >= 2 && h.Level <= 3 {
 			id, _ := h.AttributeString("id")
-			toc = append(toc, Heading{ID: string(id.([]byte)), Title: string(h.Text(src)), Level: h.Level})
+			toc = append(toc, Heading{ID: string(id.([]byte)), Title: plainText(h, src), Level: h.Level})
 		}
 		return ast.WalkContinue, nil
 	})
