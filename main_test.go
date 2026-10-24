@@ -197,3 +197,17 @@ func TestTableOfContents(t *testing.T) {
 		t.Fatal("heading-free content should have no TOC")
 	}
 }
+
+func TestCodeHighlighting(t *testing.T) {
+	body, _, err := renderContent([]byte("```go\nfunc main() { return }\n```\n\n```nosuchlang\n<b>x</b>\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	if !strings.Contains(html, `<pre tabindex="0" class="chroma">`) || !strings.Contains(html, `<span class="kd">func</span>`) {
+		t.Fatalf("known languages must be highlighted with classes and stay focusable: %s", html)
+	}
+	if strings.Contains(html, "style=") || !strings.Contains(html, `<pre tabindex="0"><code class="language-nosuchlang">&lt;b&gt;`) {
+		t.Fatalf("unknown languages must stay plain and escaped: %s", html)
+	}
+}

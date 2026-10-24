@@ -18,7 +18,9 @@ import (
 	"time"
 	"unicode"
 
+	chromahtml "github.com/alecthomas/chroma/v2/formatters/html"
 	"github.com/yuin/goldmark"
+	highlighting "github.com/yuin/goldmark-highlighting/v2"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
@@ -78,7 +80,8 @@ type Location struct {
 	URL string `xml:"loc"`
 }
 
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+// Code is highlighted at build time with classes styled in style.css; unknown languages stay plain.
+var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, highlighting.NewHighlighting(highlighting.WithFormatOptions(chromahtml.WithClasses(true)))), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func main() {
@@ -169,7 +172,8 @@ func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML,
 	var out bytes.Buffer
 	err = markdown.Renderer().Render(&out, src, doc)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
-	return template.HTML(strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)), toc, err
+	html := strings.NewReplacer("<pre>", `<pre tabindex="0">`, `<pre class="chroma">`, `<pre tabindex="0" class="chroma">`).Replace(out.String())
+	return template.HTML(html), toc, err
 }
 
 func readPost(name string, images ...func(*ast.Image) error) (Post, error) {

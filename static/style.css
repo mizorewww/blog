@@ -31,6 +31,12 @@ h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti S
 .prose pre{overflow:auto;padding:22px;background:var(--wash);border:1px solid var(--line);font-size:13px;line-height:1.8}
 .prose code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 .prose :not(pre)>code{background:var(--wash);padding:2px 5px;font-size:.87em}
+.chroma :is(.k,.kc,.kd,.kn,.kp,.kr,.kt,.nt,.nb,.bp,.ow){color:var(--green)}
+.chroma :is(.s,.sa,.sb,.sc,.dl,.sd,.s1,.s2,.se,.sh,.si,.sx,.sr,.ss,.m,.mb,.mf,.mh,.mi,.il,.mo){color:#8a4f2a}
+.chroma :is(.nf,.fm,.nc,.na,.nv,.vc,.vg,.vi){color:#3e5878}
+.chroma :is(.c,.ch,.cm,.c1,.cs,.cp,.cpf){color:var(--muted);font-style:italic}
+.chroma .gd{color:#9b3b2e}
+.chroma .gi{color:var(--green)}
 .prose img{max-width:100%;height:auto}
 .prose table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;font-size:14px}
 .prose td,.prose th{border:1px solid var(--line);padding:8px 14px;text-align:left}

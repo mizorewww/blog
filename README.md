@@ -6,7 +6,7 @@
 
 ## 本地运行
 
-需要 Go 1.23 或更新版本（测试环境：Go 1.27.1）。
+需要 Go 1.25 或更新版本（测试环境：Go 1.27.3）。
 
 ```sh
 go run . -url http://localhost:8080 -serve localhost:8080
@@ -121,7 +121,7 @@ go run . new -h               # 全部参数
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
 - 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
 - 字体版本：Source Han Sans 2.005R / Source Han Serif 2.003R，SIL OFL 1.1 许可证保留在字体目录。
-- Go 标准库处理模板、JSON、XML、日期和文件；唯一 Go 第三方依赖为锁定版本的 Goldmark；含本地位图的构建另需 uv/Pillow。
+- Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark 与代码高亮（goldmark-highlighting + Chroma）；含本地位图的构建另需 uv/Pillow。
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
 
@@ -135,45 +135,16 @@ go run . new -h               # 全部参数
 - 构建输出包含 Cloudflare Pages 的 `_headers` 文件，配置 HTML 重新验证和当前版本静态资源长期缓存，支持站点子路径。参见 [Cloudflare Pages 响应头文档](https://developers.cloudflare.com/pages/configuration/headers/)。
 - 其他静态托管平台需配置同等响应头并启用压缩；GitHub Pages 不读取 `_headers`，其缓存策略由平台控制。缓存头属于 HTTP 服务配置，不能仅靠 HTML 文件生效。
 
-## 代码高亮方案调研
+## 代码高亮
 
-当前仍输出原生 `<pre><code>`，尚未启用高亮。推荐后续使用 **Goldmark highlighting v2 + Chroma v2，在构建时生成 HTML**：只对标明语言的围栏代码块高亮，未知语言/未标注语言保持纯文本；使用 `WithClasses(true)` 生成 class，再通过 `WriteCSS` 输出一份可缓存的浅色主题 CSS。仅有代码块的文章需要加载它；保留代码滚动区域的键盘可达性，不加行号、工具栏、复制按钮或浏览器脚本。
+围栏代码块标明语言时，构建时由 [Goldmark highlighting v2](https://github.com/yuin/goldmark-highlighting) + [Chroma v2](https://github.com/alecthomas/chroma) 生成带 class 的 HTML，颜色写在 `static/style.css` 末尾的几行规则里，与站点配色一致：关键字绿色、字符串与数字棕色、函数与变量蓝灰、注释灰色斜体。浏览器端 0 JS，不加行号、工具栏或复制按钮。
 
-| 方案 | 浏览器开销 | 对本项目的影响 |
-| --- | --- | --- |
-| 原生代码块 | 无额外资源 | 依赖最少，目前状态 |
-| Goldmark + Chroma 构建时高亮 | token HTML + 少量 CSS，0 JS | 沿用 Go，推荐 |
-| Shiki 构建时高亮 | 静态高亮 HTML，0 JS | 支持 TextMate/VS Code 主题，但需要额外 JS 构建工具链 |
-| highlight.js 浏览器高亮 | CSS + JS + 客户端执行 | 不符合默认 0 JS；改在构建时执行也需 JS 工具链 |
-
-2026-10-02 在仓库外的独立 Go 模块验证，未修改本站 `go.mod`：Goldmark 1.8.6 + goldmark-highlighting/v2 `37449abec8cc` + Chroma 2.27.0。完整 `github` 主题 CSS 4,325 B，gzip 1,024 B；测试片段（简短 Go 程序和一个未知语言代码块）的 HTML 从 239 B / gzip 186 B 变为 1,207 B / gzip 279 B。未知语言正常回退，HTML 标签被转义。这是小样本体积测量，不是 Lighthouse 结果。
-
-版本注意：项目使用 Goldmark v1，应使用 highlighting v2，不能直接照其默认分支的 v3 示例接入。此次测量的 Chroma 2.27.0 要求 Go 1.25；正式接入时需明确提高本站 Go 1.23 的最低版本，或选择并验证兼容的 Chroma 版本。新版高亮输出的 `<pre class="chroma">` 还需要专门保留 `tabindex="0"`，现有只匹配 `<pre>` 的处理不能覆盖它。
-
-参考：[Goldmark highlighting v2](https://github.com/yuin/goldmark-highlighting/tree/v2)、[Chroma HTML formatter](https://github.com/alecthomas/chroma/tree/v2.27.0/formatters/html)、[Chroma 版本要求](https://github.com/alecthomas/chroma/blob/v2.27.0/go.mod)、[Shiki 官方介绍](https://shiki.style/guide/)、[highlight.js 官方用法](https://highlightjs.org/)。
-
-## 验证
-
-```sh
-go test ./...
-go vet ./...
+````markdown
+```go
+func main() {}
 ```
+````
 
-测试覆盖非法元数据与日期、危险 HTML、子路径链接、全文 RSS、sitemap、中文及重复标题目录、相邻文章首尾边界、旧产物清理，以及失败构建保留原有输出。图片测试覆盖路径边界、符号链接、URL 编码、去重、加载属性、缺图构建失败；Python 测试覆盖透明度、方向、尺寸、动画、缓存失效及原图保留。另有创建模板的参数、转义和防覆盖测试，以及内容哈希、gzip、ETag/304、更新失效、HEAD、Range 和 404 缓存测试。
+未标注或 Chroma 不认识的语言保持纯文本。代码区域可用键盘聚焦并横向滚动。
 
-本地 Lighthouse 移动端冷加载测试（2026-10-02，localhost）：
-
-| 页面 | Performance | Accessibility | Best Practices | SEO | Agentic browsing |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| 首页 | 99 | 100 | 100 | 100 | 100 |
-| 示例文章 | 99 | 100 | 100 | 100 | 100 |
-
-思源字体上线后的性能基线为 90；启用 gzip、资源版本号和预加载后为 97，冷加载 LCP 仍约 2.6 秒。进一步将宋体常用分片限制为标题及小标题字符后，性能为 99、冷加载 LCP 约 2.1 秒，FCP 约 0.9 秒、CLS 为 0。首页及文章页均已复测，文章页多轮清空缓存测试结果一致。字体 CSS gzip 后约 5 KB；再次访问时字体与 CSS 可使用浏览器缓存，但缓存不是冷加载提速的依据。
-
-宋体首屏分片由约 163 KiB 缩减为 61 KiB；当前文章冷加载的两个字体分片合计约 188 KiB（原约 290 KiB）。原有字符及字重全部保留，其他宋体字符通过备用分片按需加载。以上是本地实测，不保证线上同分；托管延迟、平台压缩与缓存配置、文章资源会影响结果。
-
-如需复测，可临时使用 Lighthouse CLI；Node.js 仅用于可选审计，不参与站点构建：
-
-```sh
-npx --yes lighthouse http://localhost:8080 --chrome-flags='--headless' --view
-```
+选型时（2026-10-02）比较过 Shiki 与 highlight.js：前者需要额外的 JS 构建工具链，后者需要在浏览器执行脚本，都不符合本站约束。
