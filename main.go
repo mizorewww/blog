@@ -74,15 +74,24 @@ type Feed struct {
 	Channel Channel  `xml:"channel"`
 }
 type Channel struct {
-	Title       string `xml:"title"`
-	Link        string `xml:"link"`
-	Description string `xml:"description"`
-	Items       []Item `xml:"item"`
+	Title       string   `xml:"title"`
+	Link        string   `xml:"link"`
+	Self        AtomLink `xml:"http://www.w3.org/2005/Atom link"`
+	Description string   `xml:"description"`
+	Language    string   `xml:"language"`
+	BuildDate   string   `xml:"lastBuildDate,omitempty"`
+	Items       []Item   `xml:"item"`
+}
+type AtomLink struct {
+	Href string `xml:"href,attr"`
+	Rel  string `xml:"rel,attr"`
+	Type string `xml:"type,attr"`
 }
 type Item struct {
 	Title       string `xml:"title"`
 	Link        string `xml:"link"`
 	Description string `xml:"description"`
+	Category    string `xml:"category,omitempty"`
 	Date        string `xml:"pubDate"`
 	GUID        string `xml:"guid"`
 }
@@ -92,7 +101,8 @@ type Sitemap struct {
 	URLs    []Location `xml:"url"`
 }
 type Location struct {
-	URL string `xml:"loc"`
+	URL     string `xml:"loc"`
+	LastMod string `xml:"lastmod,omitempty"`
 }
 
 // Code is highlighted at build time with classes styled in style.css; unknown languages stay plain.
@@ -340,8 +350,18 @@ func build(base string) error {
 	if err = page("index.html", Page{Title: site.Title, Description: site.Description, Path: "/", Kind: "home", Posts: posts}); err != nil {
 		return err
 	}
-	feed := Feed{Version: "2.0", Channel: Channel{Title: site.Title, Link: site.URL + "/", Description: site.Description}}
-	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/"}}}
+	feed := Feed{Version: "2.0", Channel: Channel{Title: site.Title, Link: site.URL + "/", Description: site.Description, Language: "zh-CN",
+		Self: AtomLink{Href: site.URL + "/feed.xml", Rel: "self", Type: "application/rss+xml"}}}
+	// Dates come from content, not the clock, so unchanged content builds identical files.
+	newest := ""
+	for _, p := range posts {
+		newest = max(newest, p.Modified())
+	}
+	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/", newest}}}
+	if newest != "" {
+		updated, _ := time.Parse(time.DateOnly, newest)
+		feed.Channel.BuildDate = updated.Format(time.RFC1123Z)
+	}
 	for i := range posts {
 		p := &posts[i]
 		var previous, next *Post
@@ -356,8 +376,8 @@ func build(base string) error {
 		}
 		date, _ := time.Parse(time.DateOnly, p.Date)
 		link := site.URL + p.Path
-		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Date: date.Format(time.RFC1123Z), GUID: link})
-		sitemap.URLs = append(sitemap.URLs, Location{link})
+		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: link})
+		sitemap.URLs = append(sitemap.URLs, Location{link, p.Modified()})
 	}
 	if err = page("404.html", Page{Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}); err != nil {
 		return err

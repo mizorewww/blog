@@ -138,7 +138,8 @@ Delta | BTC  | ETH
 ## 输出与设计约束
 
 - 首页、文章页、404：完整语义化 HTML，HTTP 响应包含全部正文。
-- `feed.xml`：包含全文的 RSS 2.0。
+- `feed.xml`：包含全文的 RSS 2.0，带 `atom:link rel="self"`、语言、分类和 `lastBuildDate`。
+- `sitemap.xml` 的 `lastmod` 取文章的 `updated` 或 `date`，首页取最新一篇；日期只来自内容，内容不变时构建结果完全一致。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
 - canonical、description、跳至正文链接、键盘焦点状态。
 - 分享与搜索：Open Graph 与 Twitter 大图卡片，`og:image` 取文章第一张本地图片（带宽高与替代文字），没有图片时用 `static/og.png`（1200×630，站点名与描述）；文章页输出发布、修改日期、作者与标签。

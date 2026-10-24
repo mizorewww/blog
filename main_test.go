@@ -133,6 +133,12 @@ func TestBuild(t *testing.T) {
 	if err = xml.Unmarshal(b, &rss); err != nil || len(rss.Channel.Items) != 3 {
 		t.Fatalf("invalid RSS: %v", err)
 	}
+	// encoding/xml lets the Atom <link> shadow the RSS one when decoding, so check the text.
+	for _, want := range []string{"<link>https://example.com/notes/</link>", `<link xmlns="http://www.w3.org/2005/Atom" href="https://example.com/notes/feed.xml" rel="self" type="application/rss+xml"></link>`, "<language>zh-CN</language>"} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("RSS channel lacks %s", want)
+		}
+	}
 	if !strings.Contains(rss.Channel.Items[0].Description, "<h2") {
 		t.Fatal("RSS must include full content")
 	}
@@ -140,6 +146,11 @@ func TestBuild(t *testing.T) {
 	b, _ = os.ReadFile("public/sitemap.xml")
 	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 4 {
 		t.Fatalf("invalid sitemap: %v", err)
+	}
+	for _, u := range sitemap.URLs {
+		if u.LastMod != "2026-10-02" && u.LastMod != "2026-09-28" {
+			t.Fatalf("sitemap lastmod must come from post dates: %+v", u)
+		}
 	}
 	if err = os.WriteFile("public/stale.html", []byte("old"), 0600); err != nil {
 		t.Fatal(err)
