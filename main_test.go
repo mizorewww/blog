@@ -230,3 +230,37 @@ func TestMath(t *testing.T) {
 		t.Fatal("unsupported LaTeX must fail the build")
 	}
 }
+
+func TestDataTable(t *testing.T) {
+	body, _, err := renderContent([]byte("```data title=\"Sharpe <x>\" bars=\"BTC\" mark=\"Δ0.35\" note=\"周频\"\nDelta | BTC | 说明\n--- | ---: | ---\nΔ0.05 | −1.00 | <b>\nΔ0.35 | 3.00 | —\n```\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, want := range []string{
+		`<figcaption>Sharpe &lt;x&gt;</figcaption>`,
+		`<th class="num">BTC</th><th>说明</th>`,
+		`<td class="num bar neg" style="--a:0.0%;--b:25.0%;--z:25.0%">−1.00</td><td>&lt;b&gt;</td>`,
+		`<tr class="mark"><td>Δ0.35</td><td class="num bar" style="--a:25.0%;--b:100.0%;--z:25.0%">3.00</td>`,
+		`<p class="data-note">周频</p>`,
+	} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %q in %s", want, html)
+		}
+	}
+	shared, _, _ := renderContent([]byte("```data bars=\"A,B\"\nx | A | B\na | 1 | 4\n```\n"))
+	column, _, _ := renderContent([]byte("```data bars=\"A,B\" scale=\"column\"\nx | A | B\na | 1 | 4\n```\n"))
+	if !strings.Contains(string(shared), `--b:25.0%">1</td>`) || !strings.Contains(string(column), `--b:100.0%">1</td>`) {
+		t.Fatalf("bars must share a scale unless scale=column: %s %s", shared, column)
+	}
+	for _, bad := range []string{
+		"```data colour=\"red\"\na | b\n1 | 2\n```",
+		"```data bars=\"C\"\na | b\n1 | 2\n```",
+		"```data\na | b\n1\n```",
+		"```data\na | b\n```",
+	} {
+		if _, _, err := renderContent([]byte(bad)); err == nil {
+			t.Fatalf("invalid data table must fail the build: %s", bad)
+		}
+	}
+}

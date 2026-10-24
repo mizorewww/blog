@@ -81,7 +81,7 @@ type Location struct {
 }
 
 // Code is highlighted at build time with classes styled in style.css; unknown languages stay plain.
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, highlighting.NewHighlighting(highlighting.WithFormatOptions(chromahtml.WithClasses(true)))), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, highlighting.NewHighlighting(highlighting.WithFormatOptions(chromahtml.WithClasses(true)))), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 func main() {
