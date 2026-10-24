@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。首页只有文章列表：日期、分类、标题、摘要和阅读时长。无导航、首屏介绍或页脚；使用贯穿页面的横线、两侧纵线和交点标记组织页面。
+一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。页眉只有站名、「关于」和 RSS 三个链接，首页只有文章列表：日期、分类、标题、摘要和阅读时长。无首屏介绍或页脚；使用贯穿页面的横线、两侧纵线和交点标记组织页面。
 
 **静态 HTML · 默认 0 JS · 无框架 · 无 hydration · 无 bundler**
 
@@ -103,7 +103,7 @@ Delta | BTC  | ETH
 ![图片的内容说明](../images/photo.jpg)
 ```
 
-关于页 `content/about.md` 使用 `images/photo.jpg`。保留有意义的替代文字，让屏幕阅读器与爬虫理解图片。
+保留有意义的替代文字，让屏幕阅读器与爬虫理解图片。
 
 直接运行原来的 `go run .`，无需手动压缩。首次构建含本地位图的文章需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。没有本地位图时仍然只需 Go；浏览器端不增加依赖。
 
@@ -121,22 +121,21 @@ Delta | BTC  | ETH
 
 | 文件 | 用途 |
 | --- | --- |
-| `site.json` | 站点标题、作者、描述和正式 URL |
-| `templates/page.html` | 文章列表、文章与关于页布局 |
+| `site.json` | 站点标题、作者、描述、正式 URL 和页眉「关于」链接（`about`） |
+| `templates/page.html` | 页眉、文章列表与文章布局 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
-| `content/about.md` | 个人介绍 |
 | `content/posts/*.md` | 文章 |
 | `main.go` | 构建器与本地预览入口 |
 | `images.go` / `scripts/prepare-image.py` | 本地图片重写、压缩与构建缓存 |
 | `assets.go` / `serve.go` | 资源版本号与 HTTP 压缩、缓存 |
 | `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
 
-关于页有独立的个人资料链接，也应按需修改；RSS 仍通过 HTML head 提供自动发现。
+个人介绍不放在本站：页眉的「关于」指向 `site.json` 的 `about`（目前是 about.mizore.blog）。RSS 同时出现在页眉和 HTML head 的自动发现中。
 
 ## 输出与设计约束
 
-- 首页、文章页、关于页、404：完整语义化 HTML，HTTP 响应包含全部正文。
+- 首页、文章页、404：完整语义化 HTML，HTTP 响应包含全部正文。
 - `feed.xml`：包含全文的 RSS 2.0。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
 - canonical、description、Open Graph、文章日期、跳至正文链接、键盘焦点状态。

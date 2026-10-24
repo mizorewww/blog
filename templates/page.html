@@ -23,6 +23,7 @@
 <body>
 <a class="skip" href="#main">跳到正文</a>
 <div class="shell">
+<header class="site-header"><a class="brand" href="{{local "/"}}"{{if eq .Kind "home"}} aria-current="page"{{end}}>{{.Site.Title}}</a><nav aria-label="站点"><a href="{{.Site.About}}" rel="me">关于<span aria-hidden="true">↗</span></a><a href="{{local "/feed.xml"}}">RSS</a></nav></header>
 <main id="main">
 {{if eq .Kind "home"}}
 <section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}} — 文章</h1>
@@ -40,8 +41,6 @@
 {{with .Next}}<a class="next" rel="next" href="{{local .Path}}"><span>下一篇 →</span>{{.Title}}</a>{{end}}
 </nav>{{end}}
 </article>
-{{else if eq .Kind "about"}}
-<article class="article"><header class="article-header"><p class="eyebrow">BEHIND THE NOTES</p><h1>你好，我是 {{.Site.Author}}。</h1><p class="dek">写代码，也写一些代码之外的东西。</p></header><div class="prose">{{.Content}}</div></article>
 {{else}}<section class="article"><p class="eyebrow">404 / NOT FOUND</p><h1>这页，还没有写。</h1><p class="dek">链接可能变了，也可能从未存在。</p><a href="{{local "/"}}">← 回到首页</a></section>{{end}}
 </main>
 

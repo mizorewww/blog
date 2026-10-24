@@ -45,7 +45,6 @@ func TestBuild(t *testing.T) {
 	}
 	// Fixture posts keep the test independent of real articles and their images.
 	fixtures := map[string]string{
-		"content/about.md":       "关于。\n",
 		"content/posts/alpha.md": "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\"}\n---\n## 第一节\n\n正文。\n",
 		"content/posts/beta.md":  "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
 		"content/posts/gamma.md": "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",
@@ -93,13 +92,13 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
-	for _, name := range []string{"index.html", "about/index.html", "posts/beta/index.html", "404.html"} {
+	for _, name := range []string{"index.html", "posts/beta/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
 		if err != nil {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Contains(html, "<script") || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) {
+		if strings.Contains(html, "<script") || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 	}
@@ -135,7 +134,7 @@ func TestBuild(t *testing.T) {
 	}
 	var sitemap Sitemap
 	b, _ = os.ReadFile("public/sitemap.xml")
-	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 5 {
+	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 4 {
 		t.Fatalf("invalid sitemap: %v", err)
 	}
 	if err = os.WriteFile("public/stale.html", []byte("old"), 0600); err != nil {

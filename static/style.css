@@ -9,6 +9,10 @@ a:focus-visible{outline:2px solid var(--green);outline-offset:5px}
 .eyebrow{font-size:11px;line-height:1.8;letter-spacing:1.7px;color:var(--green);display:flex;align-items:center;gap:8px}
 h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti SC",SimSun,serif;font-weight:400}
 .writing{padding:0}
+.site-header{display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding:22px 48px 20px;position:relative;font-size:13px;line-height:1.6}
+.brand{font-family:"Source Han Serif","Songti SC",SimSun,serif;font-size:17px;letter-spacing:-.2px}
+.site-header nav{display:flex;gap:28px;color:var(--muted)}
+.site-header nav span{margin-left:3px;font-size:11px}
 .reading-time{font-size:11px;color:var(--muted)}
 .post-row{display:grid;grid-template-columns:160px 1fr;gap:32px;padding:36px 48px;position:relative;border:0}
 .post-meta{display:flex;flex-direction:column;gap:14px;font-size:12px;line-height:1.7;color:var(--muted);padding-right:24px}
@@ -78,11 +82,12 @@ h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti S
 .shell::before,.shell::after{content:"";position:absolute;top:-48px;bottom:-48px;border-inline:1px solid var(--line);pointer-events:none}
 .shell::before{left:-25px;right:-25px}
 .shell::after{left:-1px;right:-1px}
-main::before,main::after,.post-row::before,.post-article>.article-header::before,.post-pagination::before{content:"";position:absolute;left:calc(50% - 50vw);width:100vw;height:1px;background:var(--line);pointer-events:none}
-main::before{top:0}
+main::before,main::after,.site-header::before,.post-row::before,.post-article>.article-header::before,.post-pagination::before{content:"";position:absolute;left:calc(50% - 50vw);width:100vw;height:1px;background:var(--line);pointer-events:none}
+main::before,.site-header::before{top:0}
+main{position:relative;display:block}
 main::after{bottom:0}
 .post-row::before,.post-article>.article-header::before{bottom:0}
-.post-row::after,.post-article>.article-header::after{content:"";position:absolute;left:-28px;right:-28px;bottom:-3px;height:7px;background:radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 0 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 24px 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) calc(100% - 24px) 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 100% 50%/7px 7px no-repeat;pointer-events:none;z-index:1}
+.site-header::after,.post-row::after,.post-article>.article-header::after{content:"";position:absolute;left:-28px;right:-28px;bottom:-3px;height:7px;background:radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 0 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 24px 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) calc(100% - 24px) 50%/7px 7px no-repeat,radial-gradient(circle,#9ba393 0 1.5px,var(--paper) 1.5px 3px,transparent 3px) 100% 50%/7px 7px no-repeat;pointer-events:none;z-index:1}
 .post-article>.article-header h1,.post-article>.article-header .dek{max-width:704px}
 .post-article>.article-header .back{margin-bottom:24px}
 .article-body>.prose>:first-child{margin-top:0}
@@ -99,6 +104,7 @@ main::after{bottom:0}
 .post-article>.article-header{padding:32px}
 .post-pagination{padding:28px 32px}
 .post-row{padding:32px}
+.site-header{padding:20px 32px 18px}
 }
 @media(max-width:640px){
 .shell{min-height:calc(100vh - 32px);margin:16px 12px}
@@ -118,5 +124,8 @@ main::after{bottom:0}
 .article-body{padding:28px 20px 40px}
 .prose .math-inline{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;vertical-align:middle}
 .post-pagination{padding:24px 20px;gap:20px;font-size:13px}
-.post-row::after,.post-article>.article-header::after{left:-4px;right:-4px;background-position:0 50%,0 50%,100% 50%,100% 50%}
+.site-header{padding:16px 20px 14px}
+.brand{font-size:16px}
+.site-header nav{gap:20px}
+.site-header::after,.post-row::after,.post-article>.article-header::after{left:-4px;right:-4px;background-position:0 50%,0 50%,100% 50%,100% 50%}
 }

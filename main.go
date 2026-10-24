@@ -27,7 +27,7 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-type Site struct{ Title, Author, Description, URL string }
+type Site struct{ Title, Author, Description, URL, About string }
 type Heading struct {
 	ID, Title string
 	Level     int
@@ -311,7 +311,7 @@ func build(base string) error {
 		return err
 	}
 	feed := Feed{Version: "2.0", Channel: Channel{Title: site.Title, Link: site.URL + "/", Description: site.Description}}
-	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/"}, {site.URL + "/about/"}}}
+	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/"}}}
 	for i := range posts {
 		p := &posts[i]
 		var previous, next *Post
@@ -328,17 +328,6 @@ func build(base string) error {
 		link := site.URL + p.Path
 		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Date: date.Format(time.RFC1123Z), GUID: link})
 		sitemap.URLs = append(sitemap.URLs, Location{link})
-	}
-	about, err := os.ReadFile("content/about.md")
-	if err != nil {
-		return err
-	}
-	body, _, err := renderContent(about, images.hook("content/about.md"))
-	if err != nil {
-		return err
-	}
-	if err = page("about/index.html", Page{Title: "关于 — " + site.Title, Description: site.Description, Path: "/about/", Kind: "about", Content: body}); err != nil {
-		return err
 	}
 	if err = page("404.html", Page{Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}); err != nil {
 		return err
@@ -359,7 +348,7 @@ func build(base string) error {
 		return err
 	}
 	var headers strings.Builder
-	for _, route := range []string{"/", "/index.html", "/posts/*", "/about/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
+	for _, route := range []string{"/", "/index.html", "/posts/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
 		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", prefix, route)
 	}
 	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n", prefix, prefix, version, prefix)
