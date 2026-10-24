@@ -1,12 +1,13 @@
-# Source Han web fonts
+# Fonts
 
-Self-hosted WOFF2 subsets from Adobe's official Simplified Chinese variable fonts:
+The CJK faces are not served from here: the build subsets them per page from
+`fonts/*.woff2` (see `fonts.go`) and writes each page's late subset into this
+directory of the output. `uv run scripts/prepare-fonts.py` rebuilds those
+sources from Adobe's static OTFs — Source Han Sans 2.005R (Regular, Medium) and
+Source Han Serif 2.003R (Regular, Medium, SemiBold) — trimmed to GB2312 plus
+every character the site uses, with TrueType outlines and renamed per the SIL
+OFL 1.1 (licenses in this directory).
 
-- [Source Han Sans 2.005R](https://github.com/adobe-fonts/source-han-sans/tree/2.005R), `Variable/WOFF2/TTF/Subset/SourceHanSansCN-VF.ttf.woff2`
-- [Source Han Serif 2.003R](https://github.com/adobe-fonts/source-han-serif/tree/2.003R), `Variable/WOFF2/TTF/Subset/SourceHanSerifCN-VF.ttf.woff2`
-
-Licensed under SIL OFL 1.1; see the two LICENSE files in this directory. Subset derivatives use the internal family names BlogSansSubset / BlogSerifSubset. CSS aliases retain the familiar Source Han names.
-
-The Sans `core` contains Latin and the site’s text characters. The Serif `core` contains Latin, titles, and headings; `source-han-serif-text.woff2` retains other text characters but is not preloaded. This avoids loading body glyphs in a font used only for headings. Other files cover the remaining supported characters with non-overlapping CSS unicode ranges. New articles do not require font regeneration: browsers fetch additional shards as needed. Unsupported characters use system fallback fonts.
-
-To refresh the optimized core after substantial content changes, run `uv run scripts/prepare-fonts.py` from the repository root. This optional asset tool downloads the pinned upstream fonts and preserves all supported characters. Ordinary builds remain Go-only.
+Maple Mono 7.9 (`maple-mono-*.woff2`) is a Latin subset without ligatures,
+rebuilt by `uv run scripts/prepare-maple.py`. The build inlines the 400 and 500
+faces into each page's CSS; the italic stays a file.
