@@ -17,6 +17,10 @@ import (
 type imageInfo struct {
 	Path          string
 	Width, Height int
+	Small         *struct {
+		Path  string
+		Width int
+	}
 }
 
 type imagePipeline struct {
@@ -65,6 +69,21 @@ func imageSource(document, destination string) (string, error) {
 	return "", fmt.Errorf("image must be inside content/ or static/: %s", destination)
 }
 
+// publish copies a file to /images/ under its content hash, so it never needs
+// the CSS version, and returns its absolute URL, which also works in the RSS feed.
+func (p *imagePipeline) publish(path string) (string, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	relative := fmt.Sprintf("/images/%x%s", sha256.Sum256(data), strings.ToLower(filepath.Ext(path)))
+	target := filepath.Join(p.stage, filepath.FromSlash(relative[1:]))
+	if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
+		return "", err
+	}
+	return p.base + relative, os.WriteFile(target, data, 0644)
+}
+
 func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 	count := 0
 	return func(node *ast.Image) error {
@@ -97,20 +116,14 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 					return err
 				}
 			}
-			data, err := os.ReadFile(info.Path)
-			if err != nil {
+			if info.Path, err = p.publish(info.Path); err != nil {
 				return err
 			}
-			name := fmt.Sprintf("%x%s", sha256.Sum256(data), strings.ToLower(filepath.Ext(info.Path)))
-			relative := "/images/" + name // content-hashed, so it never needs the CSS version
-			target := filepath.Join(p.stage, filepath.FromSlash(relative[1:]))
-			if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
-				return err
+			if info.Small != nil {
+				if info.Small.Path, err = p.publish(info.Small.Path); err != nil {
+					return err
+				}
 			}
-			if err := os.WriteFile(target, data, 0644); err != nil {
-				return err
-			}
-			info.Path = p.base + relative // Absolute URLs also work in the full-content RSS feed.
 			if p.processed == nil {
 				p.processed = make(map[string]imageInfo)
 			}
@@ -124,6 +137,10 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 		if info.Width > 0 && info.Height > 0 {
 			node.SetAttributeString("width", strconv.Itoa(info.Width))
 			node.SetAttributeString("height", strconv.Itoa(info.Height))
+		}
+		if info.Small != nil {
+			node.SetAttributeString("srcset", fmt.Sprintf("%s %dw, %s %dw", info.Small.Path, info.Small.Width, info.Path, info.Width))
+			node.SetAttributeString("sizes", "(max-width: 760px) calc(100vw - 64px), 704px")
 		}
 		return nil
 	}

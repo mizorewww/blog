@@ -22,6 +22,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
 	"github.com/yuin/goldmark/parser"
+	gmhtml "github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
 )
 
@@ -103,6 +104,11 @@ type Sitemap struct {
 type Location struct {
 	URL     string `xml:"loc"`
 	LastMod string `xml:"lastmod,omitempty"`
+}
+
+func init() {
+	// Goldmark drops image attributes it does not know; images.go sets this one.
+	gmhtml.ImageAttributeFilter = gmhtml.ImageAttributeFilter.Extend([]byte("fetchpriority"))
 }
 
 var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))

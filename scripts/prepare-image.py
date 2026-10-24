@@ -46,6 +46,17 @@ def prepare(source, cache):
     target = cache / (key + extension)
     target.write_bytes(data)
     result = {"path": str(target.resolve()), "width": width, "height": height}
+    # Phones get a 720px lossy copy through srcset; the full image stays for wide screens.
+    if width > 800 and not getattr(image, "is_animated", False):
+        with Image.open(target) as full:
+            small = full.copy()
+        small.thumbnail((720, round(height * 720 / width)), Image.Resampling.LANCZOS)
+        output = io.BytesIO()
+        small.convert("RGBA" if "A" in small.getbands() else "RGB").save(output, "WEBP", quality=80, method=6)
+        if len(output.getvalue()) < len(data):
+            small_target = cache / (key + ".720.webp")
+            small_target.write_bytes(output.getvalue())
+            result["small"] = {"path": str(small_target.resolve()), "width": small.width}
     manifest.write_text(json.dumps(result))
     print(f"image: {source}: {len(original)} -> {len(data)} bytes", file=sys.stderr)
     return result
