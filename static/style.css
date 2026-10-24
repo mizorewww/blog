@@ -38,6 +38,7 @@ h1,.post-summary h2,.prose h2,.prose h3{font-family:"Source Han Serif","Songti S
 .chroma .gd{color:#9b3b2e}
 .chroma .gi{color:var(--green)}
 .prose img{max-width:100%;height:auto}
+.prose .math{overflow-x:auto;margin:1.6em 0;padding:4px 0}
 .prose table{display:block;max-width:100%;overflow:auto;border-collapse:collapse;font-size:14px}
 .prose td,.prose th{border:1px solid var(--line);padding:8px 14px;text-align:left}
 .prose hr{border:0;border-top:1px solid var(--line);margin:35px 0}

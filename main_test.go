@@ -211,3 +211,22 @@ func TestCodeHighlighting(t *testing.T) {
 		t.Fatalf("unknown languages must stay plain and escaped: %s", html)
 	}
 }
+
+func TestMath(t *testing.T) {
+	body, _, err := renderContent([]byte("面积 $\\pi r^2$ 与 $$f(h) = (1-h)$$。\n\n$$\n\\frac{a}{b}\n$$\n\n价格 $0.0028/$0.14，$5 和 $10，`$x$`，\\$y$。\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, want := range []string{`display="inline"`, `<div class="math" tabindex="0"><math`, `display="block"`, "<mfrac>", "价格 $0.0028/$0.14，$5 和 $10，<code>$x$</code>，$y$。"} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %q in %s", want, html)
+		}
+	}
+	if strings.Count(html, "<math") != 3 || strings.Contains(html, "\n  ") {
+		t.Fatalf("expected three compact formulas: %s", html)
+	}
+	if _, _, err = renderContent([]byte("$\\arg x$")); err == nil {
+		t.Fatal("unsupported LaTeX must fail the build")
+	}
+}

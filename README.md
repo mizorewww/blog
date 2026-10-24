@@ -69,6 +69,7 @@ go run . new -h               # 全部参数
 - 文末显示上一篇（更早）和下一篇（更新），同日按文件名顺序；首尾自动省略不存在的链接，只有一篇时不显示相邻文章导航。
 - 文章页不展示分类、日期、阅读时长或作者署名；发布日期仍保留在 HTML 元数据和 RSS 中。
 - 原始 HTML 与危险链接由 Goldmark 默认规则禁用；元数据由 `html/template` 转义。
+- 数学公式写 LaTeX：行内 `$E = mc^2$`，独立公式把 `$$` 各放一行。构建时由 [treeblood](https://github.com/wyatt915/treeblood) 转为浏览器原生 MathML，0 JS、无额外字体；不支持的命令（如 `\arg`）让构建失败并指出公式，可改写为 `\mathrm{arg}`。为了不误伤价格，`$` 后紧跟空格、结束 `$` 前有空格或后接数字时都不算公式，`$5 和 $10` 保持原样；确需字面量时写 `\$`。
 - 阅读时长是按中英文内容粗略估算的。
 - 本地图片在构建时自动压缩并重写地址，使用方法见下文「文章图片」。普通 Markdown 链接不重写。
 
@@ -121,7 +122,7 @@ go run . new -h               # 全部参数
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
 - 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
 - 字体版本：Source Han Sans 2.005R / Source Han Serif 2.003R，SIL OFL 1.1 许可证保留在字体目录。
-- Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark 与代码高亮（goldmark-highlighting + Chroma）；含本地位图的构建另需 uv/Pillow。
+- Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark、代码高亮（goldmark-highlighting + Chroma）与公式转换（treeblood）；含本地位图的构建另需 uv/Pillow。
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
 
