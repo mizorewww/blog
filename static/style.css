@@ -28,7 +28,7 @@ h1,.post-summary h2,.prose h2,.prose h3,.intro,.post-pagination a{font-family:va
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]) .theme svg{transform:rotate(180deg)}}
 .intro-block,.page-head{position:relative;padding:56px 48px 48px}
 .intro{margin:0;font-size:22px;line-height:1.7}
-.profile{display:flex;flex-wrap:wrap;gap:8px 28px;margin:22px 0 0;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted)}
+.profile{display:flex;flex-direction:column;gap:8px;margin:22px 0 0;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted)}
 .cats{display:flex;flex-wrap:wrap;gap:4px 16px}
 .cats a{color:var(--green)}
 .cats sup,.term-list span,.term-cloud span{margin-left:3px;font-family:var(--mono);font-size:10px;color:var(--faint)}
@@ -36,18 +36,22 @@ h1,.post-summary h2,.prose h2,.prose h3,.intro,.post-pagination a{font-family:va
 .page-head .eyebrow{margin:0 0 12px}
 :is(.page-head,.eyebrow) a{color:var(--green)}
 .intro span{display:block;max-width:560px}
-.reading-time{font-family:var(--mono);font-size:11px;color:var(--muted)}
 .post-row{display:grid;grid-template-columns:160px 1fr;gap:32px;padding:36px 48px;position:relative;border:0}
-.post-meta{display:flex;flex-direction:column;gap:10px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted);padding-right:24px}
-.post-meta a{font-size:11px;line-height:1.6;color:var(--green)}
+.post-meta{display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px 8px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted);padding-right:24px}
+.post-meta time{flex-basis:100%}
+.post-meta :is(a,span){font-size:11px;line-height:1.6}
+.post-meta a{color:var(--green)}
+.post-meta a+span::before{content:"·";margin-right:8px;color:var(--faint)}
 .post-summary h2{font-size:22px;font-weight:500;letter-spacing:-.5px;margin:0 0 12px}
 .post-summary h2 a{display:flex;align-items:baseline;justify-content:space-between;gap:18px}
 .post-summary h2 a span{font-size:17px;color:var(--faint)}
 .post-summary h2 a:hover span{color:var(--green)}
 .post-summary p{font-size:14px;color:var(--muted);line-height:1.9;margin:0 0 14px;max-width:610px}
-.post-summary .row-foot{display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;font-family:var(--mono);font-size:11px;line-height:1.6}
-.row-foot a{color:var(--muted)}
-.row-foot a:hover{color:var(--green)}
+.tags{display:flex;flex-wrap:wrap;gap:6px 8px;margin:0;font-family:var(--mono);font-size:11px;line-height:1.5}
+.tags a{padding:1px 7px;border:1px solid var(--line);color:var(--muted);transition:color .2s,border-color .2s}
+.tags a:hover{color:var(--green);border-color:var(--green)}
+.post-summary .tags{margin:0;font-size:11px;line-height:1.5}
+.article-header .tags{margin-top:22px}
 .post-summary .snippet{font-family:var(--cjk),"Blog Search","PingFang SC",sans-serif;font-size:13px;color:var(--body);padding-left:12px;border-left:2px solid var(--line)}
 mark{background:var(--sel);color:inherit}
 .search-form{display:flex;flex-direction:column;gap:10px;max-width:560px;margin-top:22px}
@@ -206,7 +210,6 @@ mark{background:var(--sel);color:inherit}
 .colophon dd>a,.page-head .dek a{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
 .colophon a{color:var(--green)}
 .colophon a:hover{color:var(--ink)}
-.colophon .tags{display:flex;flex-wrap:wrap;gap:2px 14px;font-family:var(--mono);font-size:12px;line-height:2}
 .colophon summary{cursor:pointer;width:fit-content}
 .colophon summary:hover{color:var(--ink)}
 .colophon ol{list-style:none;margin:10px 0 4px;padding:0 0 0 14px;border-left:1px solid var(--line)}
@@ -268,7 +271,8 @@ main::after{bottom:0}
 .shell::after{top:-16px;bottom:-16px}
 .eyebrow{font-size:9px;letter-spacing:1px}
 .post-row{grid-template-columns:1fr;gap:14px;padding:26px 20px}
-.post-meta{flex-direction:row;gap:16px;font-size:11px;padding:0}
+.post-meta{gap:8px;font-size:11px;padding:0}
+.post-meta time{flex-basis:auto;margin-right:8px}
 .post-summary h2{font-size:20px}
 .article{padding:35px 24px 50px}
 .article-header h1{font-size:32px}

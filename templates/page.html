@@ -52,13 +52,12 @@
 </section>
 {{else if eq .Kind "post"}}
 <article class="article post-article">
-<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1 style="view-transition-name:t-{{.Post.Slug}}">{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p></header>
+<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1 style="view-transition-name:t-{{.Post.Slug}}">{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p>{{with .Post.Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}</header>
 {{if .Post.TOC}}<details class="toc-mobile"><summary>{{.UI.TOC}}</summary>{{template "toc" .}}</details>{{end}}
 <div class="article-body">
 {{if .Post.TOC}}<aside class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</aside>{{end}}
 <div class="prose">{{anchors .Post.Content}}</div>
 <footer class="colophon"><dl>
-{{with .Post.Terms}}<div><dt>{{$.UI.Tags}}</dt><dd class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</dd></div>{{end}}
 {{with .Post.History}}<div><dt>{{$.UI.History}}</dt><dd><details><summary>{{printf $.UI.Commits (len .) (index . 0).Date}}</summary><ol>{{range .}}<li><a href="{{$.Site.Repo}}/commit/{{.Hash}}"><code>{{.Short}}</code><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Subject}}</span></a></li>{{end}}</ol></details></dd></div>{{end}}
 {{with .Post.Source}}<div><dt>{{$.UI.Source}}</dt><dd><a href="{{.}}">{{$.Post.File}} ↗</a></dd></div>{{end}}
 <div><dt>{{.UI.License}}</dt><dd>{{.UI.LicenseText}}<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/{{if eq .Lang.Code "zh"}}deed.zh-hans{{end}}" rel="license">CC BY-NC-SA 4.0</a>{{.UI.LicenseNote}}</dd></div>
@@ -99,5 +98,5 @@ q.addEventListener("input",run);q.addEventListener("focus",load,{once:true});f.a
 </body>
 </html>
 {{define "toc"}}<nav aria-label="{{.UI.TOC}}"><ol>{{range .Post.TOC}}<li class="level-{{.Level}}"><a href="#{{.ID}}">{{.Title}}</a></li>{{end}}</ol></nav>{{end}}
-{{define "row"}}<article class="post-row" data-path="{{.Path}}"><div class="post-meta"><time datetime="{{.Date}}">{{.Date}}</time>{{with .Category}}<a href="{{local .Path}}">{{.Name}}</a>{{end}}</div><div class="post-summary"><h2><a href="{{local .Path}}" style="view-transition-name:t-{{.Slug}}">{{.Title}}<span aria-hidden="true">↗</span></a></h2><p>{{.Description}}</p><p class="snippet" hidden></p><p class="row-foot"><span class="reading-time">{{printf .Lang.UI.Minutes .Minutes}}</span>{{range .Terms}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p></div></article>
+{{define "row"}}<article class="post-row" data-path="{{.Path}}"><div class="post-meta"><time datetime="{{.Date}}">{{.Date}}</time>{{with .Category}}<a href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .Lang.UI.Minutes .Minutes}}</span></div><div class="post-summary"><h2><a href="{{local .Path}}" style="view-transition-name:t-{{.Slug}}">{{.Title}}<span aria-hidden="true">↗</span></a></h2><p>{{.Description}}</p><p class="snippet" hidden></p>{{with .Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}</div></article>
 {{end}}
