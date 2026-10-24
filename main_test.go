@@ -38,8 +38,23 @@ func TestPostValidation(t *testing.T) {
 func TestBuild(t *testing.T) {
 	// Work in a disposable fixture; do not replace local preview output.
 	dir := t.TempDir()
-	for _, name := range []string{"templates", "static", "content"} {
+	for _, name := range []string{"templates", "static"} {
 		if err := os.CopyFS(filepath.Join(dir, name), os.DirFS(name)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// Fixture posts keep the test independent of real articles and their images.
+	fixtures := map[string]string{
+		"content/about.md":       "关于。\n",
+		"content/posts/alpha.md": "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\"}\n---\n## 第一节\n\n正文。\n",
+		"content/posts/beta.md":  "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
+		"content/posts/gamma.md": "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",
+	}
+	for name, body := range fixtures {
+		if err := os.MkdirAll(filepath.Join(dir, filepath.Dir(name)), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, name), []byte(body), 0600); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -78,7 +93,7 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
-	for _, name := range []string{"index.html", "about/index.html", "posts/less-but-better/index.html", "404.html"} {
+	for _, name := range []string{"index.html", "about/index.html", "posts/beta/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
 		if err != nil {
 			t.Fatal(err)
@@ -89,9 +104,9 @@ func TestBuild(t *testing.T) {
 		}
 	}
 	for _, tc := range []struct{ slug, previous, next string }{
-		{"a-few-links", "/notes/posts/less-but-better/", ""},
-		{"less-but-better", "/notes/posts/plain-text-first/", "/notes/posts/a-few-links/"},
-		{"plain-text-first", "", "/notes/posts/less-but-better/"},
+		{"alpha", "/notes/posts/beta/", ""},
+		{"beta", "/notes/posts/gamma/", "/notes/posts/alpha/"},
+		{"gamma", "", "/notes/posts/beta/"},
 	} {
 		b, err := os.ReadFile("public/posts/" + tc.slug + "/index.html")
 		if err != nil {
@@ -132,7 +147,7 @@ func TestBuild(t *testing.T) {
 	if _, err = os.Stat("public/stale.html"); !os.IsNotExist(err) {
 		t.Fatal("stale output survived rebuild")
 	}
-	for _, slug := range []string{"a-few-links", "plain-text-first"} {
+	for _, slug := range []string{"alpha", "gamma"} {
 		if err = os.Remove("content/posts/" + slug + ".md"); err != nil {
 			t.Fatal(err)
 		}
@@ -140,13 +155,13 @@ func TestBuild(t *testing.T) {
 	if err = build("https://example.com/notes"); err != nil {
 		t.Fatal(err)
 	}
-	single, _ := os.ReadFile("public/posts/less-but-better/index.html")
+	single, _ := os.ReadFile("public/posts/beta/index.html")
 	if strings.Contains(string(single), "post-pagination") {
 		t.Fatal("single article should have no adjacent navigation")
 	}
 	before, _ := os.ReadFile("public/index.html")
-	original, _ := os.ReadFile("content/posts/less-but-better.md")
-	if err = os.WriteFile("content/posts/less-but-better.md", append(original, []byte("\n![missing](../images/missing.png)\n")...), 0600); err != nil {
+	original, _ := os.ReadFile("content/posts/beta.md")
+	if err = os.WriteFile("content/posts/beta.md", append(original, []byte("\n![missing](../images/missing.png)\n")...), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err = build("https://example.com/notes"); err == nil {
@@ -156,7 +171,7 @@ func TestBuild(t *testing.T) {
 	if string(before) != string(unchanged) {
 		t.Fatal("missing image damaged previous output")
 	}
-	if err = os.WriteFile("content/posts/less-but-better.md", original, 0600); err != nil {
+	if err = os.WriteFile("content/posts/beta.md", original, 0600); err != nil {
 		t.Fatal(err)
 	}
 	if err = os.WriteFile("content/posts/broken.md", []byte("invalid"), 0600); err != nil {

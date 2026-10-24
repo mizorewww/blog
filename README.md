@@ -12,7 +12,7 @@
 go run . -url http://localhost:8080 -serve localhost:8080
 ```
 
-打开 <http://localhost:8080>。示例文章在 <http://localhost:8080/posts/less-but-better/>。
+打开 <http://localhost:8080>。
 
 上述预览命令只绑定本机，已启用 gzip 和 HTTP 缓存。修改内容后重新执行命令；没有热更新或浏览器脚本。生产部署只需要生成文件，不需要运行此服务器。
 
