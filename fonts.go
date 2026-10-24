@@ -90,10 +90,31 @@ func (f *fontSubsetter) subset(face int, chars map[rune]bool) ([]byte, error) {
 	return sub.WriteWOFF2()
 }
 
-// css returns the @font-face rules for one rendered page.
-func (f *fontSubsetter) css(page string) (string, error) {
+// css returns the @font-face rules for one rendered page. extra is text the
+// page shows only after a script runs (search snippets); its glyphs get a
+// "Blog Search" face that browsers fetch only once such text appears.
+func (f *fontSubsetter) css(page, extra string) (string, error) {
 	first, rest := pageText(page)
 	var b strings.Builder
+	if extra != "" {
+		chars := map[rune]bool{}
+		for _, r := range extra {
+			if r > ' ' && !first[sans400][r] {
+				chars[r] = true
+			}
+		}
+		sub, err := f.subset(sans400, chars)
+		if err != nil {
+			return "", err
+		}
+		if sub != nil {
+			url, err := f.file("search", sub)
+			if err != nil {
+				return "", err
+			}
+			fmt.Fprintf(&b, `@font-face{font-family:"Blog Search";font-weight:400;font-display:swap;src:url("%s") format("woff2")}`, url)
+		}
+	}
 	for i, face := range pageFaces {
 		for r := range first[i] {
 			delete(rest[i], r)
@@ -111,21 +132,30 @@ func (f *fontSubsetter) css(page string) (string, error) {
 			return "", fmt.Errorf("%s: %w", face.file, err)
 		}
 		if late != nil {
-			sum := sha256.Sum256(late)
-			name := fmt.Sprintf("%s-%x.woff2", face.file, sum[:6])
-			if !f.lateFonts[name] {
-				if err = os.MkdirAll(f.dir, 0755); err != nil {
-					return "", err
-				}
-				if err = os.WriteFile(filepath.Join(f.dir, name), late, 0644); err != nil {
-					return "", err
-				}
-				f.lateFonts[name] = true
+			url, err := f.file(face.file, late)
+			if err != nil {
+				return "", err
 			}
-			fmt.Fprintf(&b, `@font-face{font-family:"%s Late";font-weight:%d;font-display:swap;src:url("%s/%s") format("woff2")}`, face.family, face.weight, f.base, name)
+			fmt.Fprintf(&b, `@font-face{font-family:"%s Late";font-weight:%d;font-display:swap;src:url("%s") format("woff2")}`, face.family, face.weight, url)
 		}
 	}
 	return b.String(), nil
+}
+
+// file writes a late subset once under its content hash and returns its URL.
+func (f *fontSubsetter) file(name string, font []byte) (string, error) {
+	sum := sha256.Sum256(font)
+	name = fmt.Sprintf("%s-%x.woff2", name, sum[:6])
+	if !f.lateFonts[name] {
+		if err := os.MkdirAll(f.dir, 0755); err != nil {
+			return "", err
+		}
+		if err := os.WriteFile(filepath.Join(f.dir, name), font, 0644); err != nil {
+			return "", err
+		}
+		f.lateFonts[name] = true
+	}
+	return f.base + "/" + name, nil
 }
 
 type textElement struct {

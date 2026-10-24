@@ -1,4 +1,4 @@
-{"title":"解决 KDE Plasma Wayland 下 Obsidian Web Clipper 无法使用的问题","description":"Obsidian 已经打开时，Web Clipper 新建的笔记是空的。原因是 KDE 不让后台的 Obsidian 获得焦点，加一条窗口规则就能解决。","date":"2026-05-10","tag":"折腾","aliases":["/zh/折腾/kde-plasma-obsdian-web-clipper/","/zh/kde-plasma-obsdian-web-clipper/"]}
+{"title":"解决 KDE Plasma Wayland 下 Obsidian Web Clipper 无法使用的问题","description":"Obsidian 已经打开时，Web Clipper 新建的笔记是空的。原因是 KDE 不让后台的 Obsidian 获得焦点，加一条窗口规则就能解决。","date":"2026-05-10","tag":"折腾","tags":["Linux","Obsidian"],"image":"../images/obsidian-cover.png","aliases":["/zh/折腾/kde-plasma-obsdian-web-clipper/","/zh/kde-plasma-obsdian-web-clipper/"]}
 ---
 我在 Plasma Wayland 上用 Obsidian 时发现：Obsidian 已经打开的情况下，在 Chrome 里点 **Obsidian Web Clipper** 的“添加到 Obsidian”，创建出来的页面是空的。
 

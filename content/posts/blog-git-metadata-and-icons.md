@@ -1,7 +1,7 @@
-{"title":"博客新功能：语言图标、源码引用、行情与图表","description":"旧博客（Next.js + MDX）时期加的写作功能：代码块语言图标、GitHub 源码与 diff 引用、TradingView 行情短语法和 ECharts 图表，以及它们在构建时的实现。","date":"2026-06-22","tag":"折腾","aliases":["/zh/技术/blog-git-metadata-and-icons/","/zh/blog-git-metadata-and-icons/"]}
+{"title":"博客新功能：语言图标、源码引用、行情与图表","description":"旧博客（Next.js + MDX）时期加的写作功能：代码块语言图标、GitHub 源码与 diff 引用、TradingView 行情短语法和 ECharts 图表，以及它们在构建时的实现。","date":"2026-06-22","tag":"折腾","tags":["Blog","Next.js","MDX","ECharts"],"aliases":["/zh/技术/blog-git-metadata-and-icons/","/zh/blog-git-metadata-and-icons/"]}
 ---
 
-> 这篇写于旧博客（Next.js + MDX）时期。迁移到现在的静态站后，这些功能都在构建时完成、不再运行浏览器脚本：TradingView 变成行情卡片，ECharts 变成静态 SVG 图表，源码引用是带行号的固定 commit 片段，语言图标换成了代码块角落的语言名。
+> 这篇写于旧博客（Next.js + MDX）时期。迁移到现在的静态站后，这些功能都在构建时完成：TradingView 变成行情卡片，点「实时图表」才加载实时行情；ECharts 变成静态 SVG 图表，悬停显示数值，源码引用是带行号的固定 commit 片段，语言图标换成了代码块角落的语言名。
 
 这次主要把博客的写作体验继续往前推了一步：代码块更容易扫读，代码引用能直接指向 GitHub，金融类内容可以用很短的语法插入 TradingView 图表。
 

@@ -1,18 +1,20 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="{{.Lang.HTML}}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{.Title}}</title>
 <meta name="description" content="{{.Description}}">
 <meta name="author" content="{{.Site.Author}}">
-<meta name="color-scheme" content="light">
-<meta name="theme-color" content="#faf9f6">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#151714" media="(prefers-color-scheme: dark)">
 {{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<meta name="robots" content="max-image-preview:large">
 <link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
-<link rel="author" href="{{.Site.About}}">
+{{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{$.Site.URL}}{{.Path}}">
+{{end}}<link rel="author" href="{{.Site.About}}">
 <meta property="og:site_name" content="{{.Site.Title}}">
-<meta property="og:locale" content="zh_CN">
+<meta property="og:locale" content="{{.Lang.OG}}">
 <meta property="og:title" content="{{if .Post}}{{.Post.Title}}{{else}}{{.Title}}{{end}}">
 <meta property="og:description" content="{{.Description}}">
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
@@ -25,44 +27,77 @@
 {{with .Post}}<meta property="article:published_time" content="{{.Date}}">
 <meta property="article:modified_time" content="{{.Modified}}">
 <meta property="article:author" content="{{$.Site.About}}">
-{{if .Tag}}<meta property="article:tag" content="{{.Tag}}">{{end}}{{end}}
+{{if .Tag}}<meta property="article:section" content="{{.Tag}}">{{end}}{{range .Tags}}<meta property="article:tag" content="{{.}}">{{end}}{{end}}
 {{with jsonld .}}<script type="application/ld+json">{{.}}</script>{{end}}
 <link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
 <link rel="apple-touch-icon" href="{{local "/apple-touch-icon.png"}}">
+<script>try{const t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 <style>{{css}}</style>
 <noscript><style>:root{--cjk:"Blog Sans","Blog Sans Late";--cjk-serif:"Blog Serif","Blog Serif Late"}</style></noscript>
-<link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local "/feed.xml"}}">
+<link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local .Lang.Base}}/feed.xml">
+{{if eq .Kind "term"}}<link rel="alternate" type="application/rss+xml" title="{{.Term.Name}} — {{.Site.Title}}" href="{{local .Term.Path}}feed.xml">
+{{end}}<script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"{{local "/*"}}"},{"not":{"href_matches":"{{local "/*.xml"}}"}},{"not":{"href_matches":"{{local "/*.json"}}"}}]},"eagerness":"moderate"}]}</script>
 </head>
-<body>
-<a class="skip" href="#main">跳到正文</a>
-<div class="shell">
-<header class="site-header"><a class="brand" href="{{local "/"}}"{{if eq .Kind "home"}} aria-current="page"{{end}}><img src="{{local "/static/avatar.webp"}}" alt="" width="24" height="24">{{.Site.Title}}</a><nav aria-label="站点"><a href="{{.Site.About}}" rel="me">关于<span aria-hidden="true">↗</span></a><a href="{{local "/feed.xml"}}">RSS</a></nav></header>
+<body id="top">
+<a class="skip" href="#main">{{.UI.Skip}}</a>
+{{if eq .Kind "post"}}<div class="progress" aria-hidden="true"></div>
+{{end}}<div class="shell">
+<header class="site-header"><a class="brand" href="{{local .Lang.Base}}/"{{if eq .Kind "home"}} aria-current="page"{{end}}><img src="{{local "/static/avatar.webp"}}" alt="" width="24" height="24">{{.Site.Title}}</a><nav aria-label="{{.UI.Nav}}"><a href="{{local .Lang.Base}}/tags/"{{if or (eq .Kind "tags") (eq .Kind "term")}} aria-current="page"{{end}}>{{.UI.Tags}}</a><a href="{{local .Lang.Base}}/search/"{{if eq .Kind "search"}} aria-current="page"{{end}}>{{.UI.Search}}</a><a href="{{.Site.About}}" rel="me">{{.UI.About}}<span aria-hidden="true">↗</span></a>{{with .Switch}}<a href="{{local .Path}}" hreflang="{{.Lang}}" lang="{{.Lang}}">{{.Label}}</a>{{end}}<button class="theme" type="button" aria-label="{{.UI.Theme}}"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button></nav></header>
 <main id="main">
 {{if eq .Kind "home"}}
-<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}} — 文章</h1>
-<p class="intro"><span>{{.Site.Description}}</span></p>
-{{range .Posts}}<article class="post-row"><div class="post-meta"><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Tag}}</span></div><div class="post-summary"><h2><a href="{{local .Path}}">{{.Title}}<span aria-hidden="true">↗</span></a></h2><p>{{.Description}}</p><span class="reading-time">{{.Minutes}} 分钟</span></div></article>{{else}}<p class="empty">还没有文章。第一篇，很快见。</p>{{end}}
+<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}}</h1>
+<div class="intro-block"><p class="intro"><span>{{.UI.Description}}</span></p>
+{{if .Posts}}<p class="profile"><span>{{.Stats}}</span>{{if .Categories}}<span class="cats">{{range .Categories}}<a href="{{local .Path}}">{{.Name}}<sup>{{len .Posts}}</sup></a>{{end}}</span>{{end}}</p>{{end}}</div>
+{{range .Posts}}{{template "row" .}}{{else}}<p class="empty">{{.UI.Empty}}</p>{{end}}
 </section>
 {{else if eq .Kind "post"}}
 <article class="article post-article">
-<header class="article-header"><p class="article-meta"><a class="back" href="{{local "/"}}">← 所有文章</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Tag}}<span class="tag">{{.}}</span>{{end}}<span>{{.Post.Minutes}} 分钟阅读</span></p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p></header>
-{{if .Post.TOC}}<details class="toc-mobile"><summary>目录</summary>{{template "toc" .Post.TOC}}</details>{{end}}
+<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1 style="view-transition-name:t-{{.Post.Slug}}">{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p></header>
+{{if .Post.TOC}}<details class="toc-mobile"><summary>{{.UI.TOC}}</summary>{{template "toc" .}}</details>{{end}}
 <div class="article-body">
-{{if .Post.TOC}}<aside class="toc"><p>目录</p>{{template "toc" .Post.TOC}}</aside>{{end}}
-<div class="prose">{{.Post.Content}}</div>
+{{if .Post.TOC}}<aside class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</aside>{{end}}
+<div class="prose">{{anchors .Post.Content}}</div>
+<footer class="colophon"><dl>
+{{with .Post.Terms}}<div><dt>{{$.UI.Tags}}</dt><dd class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</dd></div>{{end}}
+{{with .Post.History}}<div><dt>{{$.UI.History}}</dt><dd><details><summary>{{printf $.UI.Commits (len .) (index . 0).Date}}</summary><ol>{{range .}}<li><a href="{{$.Site.Repo}}/commit/{{.Hash}}"><code>{{.Short}}</code><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Subject}}</span></a></li>{{end}}</ol></details></dd></div>{{end}}
+{{with .Post.Source}}<div><dt>{{$.UI.Source}}</dt><dd><a href="{{.}}">{{$.Post.File}} ↗</a></dd></div>{{end}}
+<div><dt>{{.UI.License}}</dt><dd>{{.UI.LicenseText}}<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/{{if eq .Lang.Code "zh"}}deed.zh-hans{{end}}" rel="license">CC BY-NC-SA 4.0</a>{{.UI.LicenseNote}}</dd></div>
+</dl></footer>
 </div>
-{{if or .Previous .Next}}<nav class="post-pagination" aria-label="相邻文章">
-{{with .Previous}}<a class="previous" rel="prev" href="{{local .Path}}"><span>← 上一篇</span>{{.Title}}</a>{{end}}
-{{with .Next}}<a class="next" rel="next" href="{{local .Path}}"><span>下一篇 →</span>{{.Title}}</a>{{end}}
+{{if or .Previous .Next}}<nav class="post-pagination" aria-label="{{.UI.Adjacent}}">
+{{with .Previous}}<a class="previous" rel="prev" href="{{local .Path}}"><span>{{$.UI.Previous}}</span>{{.Title}}</a>{{end}}
+{{with .Next}}<a class="next" rel="next" href="{{local .Path}}"><span>{{$.UI.Next}}</span>{{.Title}}</a>{{end}}
 </nav>{{end}}
 </article>
-
-{{else}}<section class="article"><p class="eyebrow">404 / NOT FOUND</p><h1>这页，还没有写。</h1><p class="dek">链接可能变了，也可能从未存在。</p><a href="{{local "/"}}">← 回到首页</a></section>{{end}}
+<a class="to-top" href="#top" aria-label="{{.UI.Top}}"><span aria-hidden="true">↑</span></a>
+{{else if eq .Kind "tags"}}
+<section class="writing">
+<header class="page-head"><h1>{{.UI.TagsTitle}}</h1><p class="dek">{{.Description}}</p></header>
+<div class="terms"><h2>{{.UI.Categories}}</h2><ul class="term-list">{{range .Categories}}<li><a href="{{local .Path}}">{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>
+{{if .Tags}}<h2>{{.UI.Tags}}</h2><ul class="term-cloud">{{range .Tags}}<li><a href="{{local .Path}}">#{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>{{end}}</div>
+</section>
+{{else if eq .Kind "term"}}
+<section class="writing">
+<header class="page-head"><p class="eyebrow"><a href="{{local .Lang.Base}}/tags/">{{.TermKind}}</a></p><h1>{{if eq .TermKind .UI.Tag}}#{{end}}{{.Term.Name}}</h1><p class="dek">{{printf .UI.Count (len .Posts)}} · <a href="{{local .Term.Path}}feed.xml">RSS</a></p></header>
+{{range .Posts}}{{template "row" .}}{{end}}
+</section>
+{{else if eq .Kind "search"}}
+<section class="writing">
+<header class="page-head"><h1>{{.UI.Search}}</h1><form class="search-form" role="search" data-index="{{local .Lang.Base}}/search.json" data-found="{{.UI.SearchFound}}" data-none="{{.UI.SearchNone}}"><label for="q">{{.UI.SearchLabel}}</label><input id="q" name="q" type="search" autocomplete="off" spellcheck="false"></form><p class="search-status" aria-live="polite"></p></header>
+{{range .Posts}}{{template "row" .}}{{end}}
+</section>
+{{else}}<section class="article"><p class="eyebrow">404 / NOT FOUND</p><h1>{{.UI.NotFound}}</h1><p class="dek">{{.UI.NotFoundDek}}</p><a href="{{local "/"}}">{{.UI.BackHome}}</a></section>{{end}}
 </main>
-<footer class="site-footer"><span>© {{year}} {{.Site.Author}}</span><nav aria-label="其他地方">{{range .Site.SameAs}}<a href="{{.}}" rel="me">{{profile .}}</a>{{end}}<a href="{{local "/feed.xml"}}">RSS</a></nav></footer>
-
+<footer class="site-footer"><span>© {{year}} {{.Site.Author}}{{with .Site.Commit}} · <a href="{{$.Site.Repo}}/commit/{{.}}">{{slice . 0 7}}</a>{{end}}</span><nav aria-label="{{.UI.Elsewhere}}">{{range .Site.SameAs}}<a href="{{.}}" rel="me">{{profile .}}</a>{{end}}{{with .Site.Email}}<a href="mailto:{{.}}">Email</a>{{end}}<a href="{{local .Lang.Base}}/feed.xml">RSS</a></nav></footer>
 </div>
-<script>{const late=()=>document.documentElement.classList.add("late");addEventListener("scroll",late,{once:true,passive:true});addEventListener("load",()=>setTimeout(late,matchMedia("(min-width:901px)").matches?0:1500))}{{if and .Post .Post.TOC}}{const links=new Map([...document.querySelectorAll(".toc a")].map(a=>[decodeURIComponent(a.hash.slice(1)),a]));let current;const spy=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){current?.removeAttribute("aria-current");current=links.get(e.target.id);current?.setAttribute("aria-current","location")}},{rootMargin:"0px 0px -70% 0px"});document.querySelectorAll(".prose :is(h2,h3)[id]").forEach(h=>spy.observe(h))}{{end}}</script>
+<script>{const root=document.documentElement,late=()=>root.classList.add("late");addEventListener("scroll",late,{once:true,passive:true});addEventListener("load",()=>setTimeout(late,matchMedia("(min-width:901px)").matches?0:1500));const dark=()=>(root.dataset.theme||(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"))=="dark";document.addEventListener("click",async e=>{const t=e.target.closest("button");if(!t)return;if(t.matches(".theme")){root.dataset.theme=dark()?"light":"dark";try{localStorage.setItem("theme",root.dataset.theme)}catch{}}else if(t.matches(".copy")){const pre=t.closest(".code").querySelector("pre").cloneNode(true);pre.querySelectorAll(".ln").forEach(n=>n.remove());try{await navigator.clipboard.writeText(pre.textContent);t.textContent="copied"}catch{t.textContent="failed"}setTimeout(()=>t.textContent="copy",1600)}else if(t.closest(".ticker")){const card=t.closest(".ticker"),box=document.createElement("div"),s=document.createElement("script");box.className="tv tradingview-widget-container";box.style.height=(card.dataset.height||420)+"px";box.innerHTML='<div class="tradingview-widget-container__widget"></div>';s.src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";s.async=true;s.textContent=JSON.stringify({symbol:card.dataset.symbol,interval:card.dataset.interval||"D",timezone:"Etc/UTC",theme:dark()?"dark":"light",style:"1",locale:root.lang=="en"?"en":"zh_CN",allow_symbol_change:false,hide_side_toolbar:true,autosize:true});box.append(s);card.after(box);t.remove()}});
+let tip;document.addEventListener("pointermove",e=>{const plot=e.target.closest?.(".plot[data-tip]");if(!plot){tip?.remove();tip=null;return}const d=plot._tip??=JSON.parse(plot.dataset.tip),r=plot.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*100;let i=0;d.x.forEach((v,j)=>{if(Math.abs(v-x)<Math.abs(d.x[i]-x))i=j});if(!tip||tip.parentNode!=plot){tip?.remove();tip=document.createElement("div");tip.className="tip";tip.innerHTML="<i></i><div></div>";plot.append(tip)}tip.style.left=d.x[i]+"%";tip.classList.toggle("flip",d.x[i]>60);tip.lastChild.innerHTML="<b></b>"+d.s.filter(s=>s.v[i]).map(()=>"<span><i></i><em></em></span>").join("");tip.lastChild.firstChild.textContent=d.l[i];d.s.filter(s=>s.v[i]).forEach((s,k)=>{const row=tip.lastChild.children[k+1];row.firstChild.style.background=s.c;row.lastChild.textContent=(d.s.length>1?s.n+" ":"")+s.v[i]})},{passive:true})}
+{{if and .Post .Post.TOC}}{const links=new Map([...document.querySelectorAll(".toc a")].map(a=>[decodeURIComponent(a.hash.slice(1)),a]));let current;const spy=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting){current?.removeAttribute("aria-current");current=links.get(e.target.id);current?.setAttribute("aria-current","location")}},{rootMargin:"0px 0px -70% 0px"});document.querySelectorAll(".prose :is(h2,h3)[id]").forEach(h=>spy.observe(h))}{{end}}
+{{if eq .Kind "search"}}{const f=document.querySelector(".search-form"),q=f.q,status=document.querySelector(".search-status"),rows=[...document.querySelectorAll(".post-row")];let index;const esc=s=>s.replace(/[&<>"]/g,c=>"&#"+c.charCodeAt(0)+";"),load=()=>index??=fetch(f.dataset.index).then(r=>r.json());
+async function run(){const terms=q.value.toLowerCase().split(/\s+/).filter(Boolean);history.replaceState(null,"",terms.length?"?q="+encodeURIComponent(q.value):location.pathname);if(!terms.length){rows.forEach(r=>{r.hidden=false;r.querySelector(".snippet").hidden=true});status.textContent="";return}const data=await load(),pattern=new RegExp(terms.map(t=>esc(t).replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("|"),"gi");let n=0;for(const r of rows){const d=data[r.dataset.path],text=d.x,lower=(d.t+" "+text).toLowerCase(),ok=terms.every(t=>lower.includes(t)),s=r.querySelector(".snippet");r.hidden=!ok;if(!ok)continue;n++;const at=text.toLowerCase().indexOf(terms[0]);s.hidden=at<0;if(at>=0){const from=Math.max(0,at-48);s.innerHTML=(from?"…":"")+esc(text.slice(from,at+96)).replace(pattern,"<mark>$&</mark>")+"…"}}status.textContent=n?f.dataset.found.replace("%d",n):f.dataset.none}
+q.addEventListener("input",run);q.addEventListener("focus",load,{once:true});f.addEventListener("submit",e=>{e.preventDefault();run()});const initial=new URLSearchParams(location.search).get("q");if(initial){q.value=initial;run()}}{{end}}</script>
 </body>
 </html>
-{{define "toc"}}<nav aria-label="文章目录"><ol>{{range .}}<li class="level-{{.Level}}"><a href="#{{.ID}}">{{.Title}}</a></li>{{end}}</ol></nav>{{end}}
+{{define "toc"}}<nav aria-label="{{.UI.TOC}}"><ol>{{range .Post.TOC}}<li class="level-{{.Level}}"><a href="#{{.ID}}">{{.Title}}</a></li>{{end}}</ol></nav>{{end}}
+{{define "row"}}<article class="post-row" data-path="{{.Path}}"><div class="post-meta"><time datetime="{{.Date}}">{{.Date}}</time>{{with .Category}}<a href="{{local .Path}}">{{.Name}}</a>{{end}}</div><div class="post-summary"><h2><a href="{{local .Path}}" style="view-transition-name:t-{{.Slug}}">{{.Title}}<span aria-hidden="true">↗</span></a></h2><p>{{.Description}}</p><p class="snippet" hidden></p><p class="row-foot"><span class="reading-time">{{printf .Lang.UI.Minutes .Minutes}}</span>{{range .Terms}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p></div></article>
+{{end}}

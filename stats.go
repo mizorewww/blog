@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html"
 	"net/url"
+	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -79,15 +81,16 @@ func renderStats(info string, lines []string) (string, error) {
 	return b.String(), nil
 }
 
-// A paragraph "::tv EXCHANGE:SYMBOL description" becomes a TradingView link
-// card; live widgets need scripts, so the static site links out instead.
+// A paragraph "::tv EXCHANGE:SYMBOL description interval=W height=480", or
+// just "$BTC", becomes a TradingView card. The live chart loads only when the
+// reader asks for it, so the page itself stays script-free until then.
 type tickerExtension struct{}
 
 var kindTicker = ast.NewNodeKind("Ticker")
 
 type tickerBlock struct {
 	ast.BaseBlock
-	Symbol, Label string
+	Symbol, Label, Interval, Height string
 }
 
 func (n *tickerBlock) Kind() ast.NodeKind            { return kindTicker }
@@ -95,6 +98,19 @@ func (n *tickerBlock) Dump(source []byte, level int) { ast.DumpHelper(n, source,
 
 type tickerTransformer struct{}
 type tickerRenderer struct{}
+
+var (
+	shortTicker = regexp.MustCompile(`^\$([A-Z][A-Z0-9._]{0,15}|[A-Z0-9._-]+:[A-Z0-9._-]+)$`)
+	// Bare crypto symbols mean their Binance USDT pair, as on the old blog.
+	cryptoSymbols = strings.Fields("BTC ETH SOL BNB XRP DOGE ADA TRX TON AVAX LINK DOT LTC BCH SUI APT ARB OP NEAR ATOM UNI AAVE PEPE SHIB FIL ETC INJ TIA SEI WLD ENA")
+)
+
+func tickerSymbol(s string) string {
+	if !strings.Contains(s, ":") && slices.Contains(cryptoSymbols, s) {
+		return "BINANCE:" + s + "USDT"
+	}
+	return s
+}
 
 func (tickerExtension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(tickerTransformer{}, 100)))
@@ -104,22 +120,36 @@ func (tickerExtension) Extend(m goldmark.Markdown) {
 func (tickerTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
 	var found []*ast.Paragraph
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if p, ok := n.(*ast.Paragraph); entering && ok && p.Lines().Len() == 1 && strings.HasPrefix(paragraphText(p, reader.Source()), "::tv ") {
-			found = append(found, p)
+		if p, ok := n.(*ast.Paragraph); entering && ok && p.Lines().Len() == 1 {
+			if text := strings.TrimSpace(paragraphText(p, reader.Source())); strings.HasPrefix(text, "::tv ") || shortTicker.MatchString(text) {
+				found = append(found, p)
+			}
 		}
 		return ast.WalkContinue, nil
 	})
 	for _, p := range found {
-		var words []string
-		for _, word := range strings.Fields(paragraphText(p, reader.Source())[5:]) {
-			if !strings.Contains(word, "=") {
-				words = append(words, word)
+		text := strings.TrimSpace(paragraphText(p, reader.Source()))
+		t := &tickerBlock{}
+		if m := shortTicker.FindStringSubmatch(text); m != nil {
+			t.Symbol = tickerSymbol(m[1])
+		} else {
+			var words []string
+			for _, word := range strings.Fields(text[5:]) {
+				switch key, value, _ := strings.Cut(word, "="); {
+				case key == "interval" && value != "":
+					t.Interval = value
+				case key == "height" && value != "":
+					t.Height = value
+				case !strings.Contains(word, "="):
+					words = append(words, word)
+				}
 			}
+			if len(words) == 0 {
+				continue
+			}
+			t.Symbol, t.Label = tickerSymbol(words[0]), strings.Join(words[1:], " ")
 		}
-		if len(words) == 0 {
-			continue
-		}
-		p.Parent().ReplaceChild(p.Parent(), p, &tickerBlock{Symbol: words[0], Label: strings.Join(words[1:], " ")})
+		p.Parent().ReplaceChild(p.Parent(), p, t)
 	}
 }
 
@@ -139,7 +169,8 @@ func (tickerRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		if t.Label != "" {
 			label = `<span class="ticker-label">` + html.EscapeString(t.Label) + `</span>`
 		}
-		_, err := fmt.Fprintf(w, `<a class="ticker" href="https://www.tradingview.com/symbols/%s/"><span><b>%s</b>%s</span><span class="ticker-go">在 TradingView 查看 ↗</span></a>`+"\n", url.PathEscape(path), html.EscapeString(t.Symbol), label)
+		_, err := fmt.Fprintf(w, `<div class="ticker" data-symbol="%s" data-interval="%s" data-height="%s"><span><b>%s</b>%s</span><span class="ticker-go"><button type="button">实时图表</button><a href="https://www.tradingview.com/symbols/%s/">TradingView ↗</a></span></div>`+"\n",
+			html.EscapeString(t.Symbol), html.EscapeString(t.Interval), html.EscapeString(t.Height), html.EscapeString(t.Symbol), label, url.PathEscape(path))
 		return ast.WalkSkipChildren, err
 	})
 }

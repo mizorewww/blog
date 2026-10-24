@@ -16,12 +16,15 @@ import (
 )
 
 // Fenced code is highlighted at build time with classes styled in style.css.
-// The fence names its language in a corner; src="<GitHub blob permalink>#L1-L9"
+// The fence names its language in a corner beside a copy button; src="<GitHub blob permalink>#L1-L9"
 // turns it into a source quote with a path header and real line numbers:
 //
 //	```go src="https://github.com/o/r/blob/<sha>/main.go#L76-L103" title="…"
 type codeExtension struct{}
 type codeRenderer struct{}
+
+// copyButton is wired up by the page script; without scripts it does nothing.
+const copyButton = `<button class="copy" type="button">copy</button>`
 
 var githubBlob = regexp.MustCompile(`^https://github\.com/[^/]+/[^/]+/blob/([0-9a-f]{7,40})/([^#]+)(?:#L(\d+)(?:-L(\d+))?)?$`)
 
@@ -120,7 +123,7 @@ func (codeRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			if attrs["title"] != "" {
 				title = "<span>" + html.EscapeString(attrs["title"]) + "</span>"
 			}
-			header = fmt.Sprintf(`<figcaption><span class="code-path"><b>%s</b>%s</span><a href="%s">%s%s ↗</a></figcaption>`, html.EscapeString(m[2]), title, html.EscapeString(src), lines, m[1][:7])
+			header = fmt.Sprintf(`<figcaption><span class="code-path"><b>%s</b>%s</span><span class="code-tools"><a href="%s">%s%s ↗</a>%s</span></figcaption>`, html.EscapeString(m[2]), title, html.EscapeString(src), lines, m[1][:7], copyButton)
 		}
 		lexer := lexers.Get(lang)
 		if lexer == nil {
@@ -132,8 +135,12 @@ func (codeRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		}
 		fmt.Fprintf(w, `<figure class="code">%s`, header)
 		highlight(w, tokens.Tokens(), first)
-		if header == "" && lang != "" && lang != "text" {
-			fmt.Fprintf(w, `<span class="lang">%s</span>`, html.EscapeString(lang))
+		if header == "" {
+			name := ""
+			if lang != "" && lang != "text" {
+				name = `<span class="lang">` + html.EscapeString(lang) + `</span>`
+			}
+			fmt.Fprintf(w, `<span class="code-tools">%s%s</span>`, name, copyButton)
 		}
 		_, err = w.WriteString("</figure>\n")
 		return ast.WalkSkipChildren, err

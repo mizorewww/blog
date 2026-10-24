@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"net/url"
 	"path/filepath"
+	"slices"
 	"strings"
 )
 
@@ -30,12 +31,14 @@ func escapePath(path string) string {
 	return strings.Join(segments, "/")
 }
 
+var generatedPrefixes = []string{"/posts/", "/en/posts/", "/tags/", "/en/tags/", "/categories/", "/en/categories/", "/search/", "/en/search/", "/static/", "/images/"}
+
 func validAlias(alias string) error {
 	clean := filepath.ToSlash(filepath.Clean(alias)) + "/"
 	switch {
 	case !strings.HasPrefix(alias, "/") || !strings.HasSuffix(alias, "/") || clean != alias:
 		return fmt.Errorf("alias %q must be a clean path that starts and ends with /", alias)
-	case alias == "/" || strings.HasPrefix(alias, "/posts/") || strings.HasPrefix(alias, "/static/") || strings.HasPrefix(alias, "/images/"):
+	case alias == "/" || alias == "/en/" || slices.ContainsFunc(generatedPrefixes, func(p string) bool { return strings.HasPrefix(alias, p) }):
 		return fmt.Errorf("alias %q would replace a generated page", alias)
 	}
 	return nil
@@ -43,7 +46,7 @@ func validAlias(alias string) error {
 
 // writeRedirects emits Cloudflare Pages _redirects (real 301s, first match wins)
 // and an HTML redirect at every alias so moved posts also survive other hosts.
-func writeRedirects(site Site, prefix string, posts []Post, write func(string, []byte) error) error {
+func writeRedirects(site Site, prefix string, posts []*Post, write func(string, []byte) error) error {
 	var rules strings.Builder
 	seen := map[string]string{}
 	for _, p := range posts {
@@ -76,7 +79,7 @@ func writeRedirects(site Site, prefix string, posts []Post, write func(string, [
 	for _, r := range site.Redirects {
 		to := r.To
 		if strings.HasPrefix(to, "/") {
-			to = prefix + to
+			to = prefix + escapePath(to)
 		}
 		fmt.Fprintf(&rules, "%s %s 301\n", prefix+escapePath(r.From), to)
 	}

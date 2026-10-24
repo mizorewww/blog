@@ -12,12 +12,12 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 `content/posts/<slug>.md`，slug 只用小写字母、数字和单个连字符，并作为 URL `/posts/<slug>/`。用 `go run . new -slug <slug> -description "…" -tag <分类> "标题"` 创建，或手写：
 
 ```markdown
-{"title":"标题","description":"一句话摘要，出现在首页、RSS 和 meta description。","date":"2026-10-24","tag":"折腾"}
+{"title":"标题","description":"一句话摘要，出现在首页、RSS 和 meta description。","date":"2026-10-24","tag":"折腾","tags":["Linux","Laptop"]}
 ---
 正文第一段。
 ```
 
-- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 只有一个。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
+- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 是分类，只有一个；`tags` 是标签列表，各自生成 `/categories/…/` 和 `/tags/…/` 页面与 RSS。`"image":"../images/x.png"` 指定分享图（默认用正文第一张图）；`"draft":true` 不发布（`go run . -drafts` 预览）。英文版放在 `content/posts/en/` 下、用同一个文件名，两边会互相链接。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
 - 正文不要再写 `# 标题`：页面已用 `title` 作 h1。正文从 `##` 开始，`##` / `###` 自动进入目录。
 - 改 slug 或迁移旧文章时，把旧地址写进 `"aliases":["/旧/路径/"]`，第一项也是 RSS guid，已有的别名不要删。
 - 没有草稿：`content/posts/` 下的文件都会发布。未完成的文章放在仓库外。
@@ -37,9 +37,9 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 | 图表 | ```` ```chart line/area/bar/scatter ```` （见下文），构建时画成静态 SVG |
 | 指标卡 | ```` ```stats ```` （见下文） |
 | 源码引用 | 代码块加 `src="<GitHub blob 永久链接>#L76-L103"`，可加 `title="…"`；显示路径、行号和 commit |
-| 行情 | 单独一段 `::tv EXCHANGE:SYMBOL 说明文字`，生成链到 TradingView 的卡片 |
+| 行情 | 单独一段 `::tv EXCHANGE:SYMBOL 说明文字 interval=W height=480`，或只写 `$BTC`（常见币种自动对应 Binance USDT 交易对）；生成行情卡片，读者点「实时图表」才加载 TradingView |
 
-不可用：原始 HTML（`<br>`、`<details>`、`<img>` 都会被丢弃）、MDX/JSX 组件、脚注、`[!NOTE]` 提示块、除 `::tv` 以外的 `::directive`、Obsidian 的 `![[…]]` 嵌入、需要脚本的图表或行情小组件。
+不可用：原始 HTML（`<br>`、`<details>`、`<img>` 都会被丢弃）、MDX/JSX 组件、脚注、`[!NOTE]` 提示块、除 `::tv` 以外的 `::directive`、Obsidian 的 `![[…]]` 嵌入、ECharts 之类需要脚本的图表（用 ```chart，悬停会显示数值）。
 
 ## 数据表格
 

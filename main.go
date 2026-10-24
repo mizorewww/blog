@@ -13,7 +13,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -27,9 +29,10 @@ import (
 )
 
 type Site struct {
-	Title, Author, Description, URL, About string
-	SameAs                                 []string
-	Redirects                              []Redirect
+	Title, Author, Description, URL, About, Repo, Email string
+	SameAs                                              []string
+	Redirects                                           []Redirect
+	Commit                                              string `json:"-"`
 }
 type Heading struct {
 	ID, Title string
@@ -39,17 +42,26 @@ type PostMetadata struct {
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Date        string   `json:"date"`
-	Tag         string   `json:"tag,omitempty"`
+	Tag         string   `json:"tag,omitempty"` // the category
+	Tags        []string `json:"tags,omitempty"`
 	Updated     string   `json:"updated,omitempty"`
+	Cover       string   `json:"image,omitempty"` // share image; defaults to the first image
+	Draft       bool     `json:"draft,omitempty"`
 	Aliases     []string `json:"aliases,omitempty"`
 }
 type Post struct {
 	PostMetadata
-	Slug, Path string
-	Content    template.HTML
-	Minutes    int
-	TOC        []Heading  `json:"-"`
-	Image      ShareImage `json:"-"`
+	Slug, Path, File string
+	Lang             *Lang
+	Content          template.HTML
+	Minutes, Units   int
+	TOC              []Heading
+	Image            ShareImage
+	Category         *Term
+	Terms            []*Term
+	History          []Commit
+	Source           string
+	Translation      *Post
 }
 
 // Modified is the last substantive edit, for dateModified and sitemap lastmod.
@@ -60,13 +72,22 @@ func (p Post) Modified() string {
 	return p.Date
 }
 
+// Link points at the same page in another edition.
+type Link struct{ Lang, Path, Label string }
+
 type Page struct {
 	Site                           Site
+	Lang                           *Lang
+	UI                             UI
 	Title, Description, Path, Kind string
 	Post                           *Post
 	Previous, Next                 *Post
-	Posts                          []Post
-	Content                        template.HTML
+	Posts                          []*Post
+	Term                           *Term
+	TermKind, Stats                string
+	Categories, Tags               []*Term
+	Switch                         *Link
+	Alternates                     []Link
 	Image                          ShareImage
 }
 type Feed struct {
@@ -114,6 +135,9 @@ func init() {
 var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
+// includeDrafts builds posts marked "draft": true, for previews only.
+var includeDrafts bool
+
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "new" {
 		if err := newPost(os.Args[2:], os.Stdout); err != nil {
@@ -123,6 +147,7 @@ func main() {
 	}
 	serve := flag.String("serve", "", "preview address, e.g. localhost:8080")
 	base := flag.String("url", "", "override site URL (use http://localhost:8080 for preview)")
+	flag.BoolVar(&includeDrafts, "drafts", false, "also build draft posts")
 	flag.Parse()
 	if flag.NArg() != 0 {
 		log.Fatal("unexpected arguments; use go run . new -h to create an article")
@@ -206,6 +231,13 @@ func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML,
 	return template.HTML(html), toc, err
 }
 
+var sectionHeading = regexp.MustCompile(`<h([23]) id="([^"]+)">`)
+
+// withAnchors adds a hover link to each section heading; feeds keep the plain HTML.
+func withAnchors(content template.HTML) template.HTML {
+	return template.HTML(sectionHeading.ReplaceAllString(string(content), `<h$1 id="$2"><a class="anchor" href="#$2" aria-hidden="true" tabindex="-1">#</a>`))
+}
+
 func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 	var p Post
 	src, err := os.ReadFile(name)
@@ -239,7 +271,8 @@ func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 		images = []func(*ast.Image) error{firstImage(images[0], []byte(parts[1]), &p.Image)}
 	}
 	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
-	p.Minutes = max(1, (readingUnits(parts[1])+299)/300)
+	p.Units = readingUnits(parts[1])
+	p.Minutes = max(1, (p.Units+299)/300)
 	return p, err
 }
 
@@ -290,6 +323,7 @@ func build(base string) error {
 		site.URL = base
 	}
 	site.URL = strings.TrimRight(site.URL, "/")
+	site.Commit = gitHead()
 	u, err := url.Parse(site.URL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" {
 		return fmt.Errorf("site URL must be an absolute HTTP(S) URL without query or fragment")
@@ -304,11 +338,12 @@ func build(base string) error {
 		return err
 	}
 	tmpl, err := template.New("page.html").Funcs(template.FuncMap{
-		"css":    func() template.CSS { return css },
-		"local":  func(p string) string { return prefix + p },
-		"jsonld": structuredData,
-		"asset":  func(p string) string { return prefix + "/static/" + version + "/" + p },
-		"year":   func() int { return time.Now().Year() },
+		"css":     func() template.CSS { return css },
+		"local":   func(p string) string { return prefix + p },
+		"jsonld":  structuredData,
+		"asset":   func(p string) string { return prefix + "/static/" + version + "/" + p },
+		"year":    func() int { return time.Now().Year() },
+		"anchors": withAnchors,
 		"profile": func(link string) string {
 			u, err := url.Parse(link)
 			if err != nil {
@@ -319,6 +354,8 @@ func build(base string) error {
 				return "GitHub"
 			case "x.com", "twitter.com":
 				return "X"
+			case "t.me":
+				return "Telegram"
 			}
 			return u.Hostname()
 		},
@@ -336,24 +373,61 @@ func build(base string) error {
 		return err
 	}
 	images := imagePipeline{stage: stage, base: site.URL}
-	names, err := filepath.Glob("content/posts/*.md")
-	if err != nil {
-		return err
-	}
-	posts := make([]Post, 0, len(names))
-	for _, name := range names {
-		p, err := readPost(name, images.hook(name))
+
+	// Read every edition first, so translations can link to each other.
+	editions := make([][]*Post, len(languages))
+	for li := range languages {
+		lang := &languages[li]
+		if lang.Base == "" {
+			lang.UI.Description = site.Description
+		}
+		dir := filepath.Join("content", "posts", lang.Code)
+		if lang.Base == "" {
+			dir = filepath.Join("content", "posts")
+		}
+		names, err := filepath.Glob(filepath.Join(dir, "*.md"))
 		if err != nil {
 			return err
 		}
-		posts = append(posts, p)
-	}
-	sort.Slice(posts, func(i, j int) bool {
-		if posts[i].Date == posts[j].Date {
-			return posts[i].Slug < posts[j].Slug
+		for _, name := range names {
+			p, err := readPost(name, images.hook(name))
+			if err != nil {
+				return err
+			}
+			if p.Draft && !includeDrafts {
+				continue
+			}
+			p.File, p.Lang, p.Path = name, lang, lang.Base+p.Path
+			if p.Cover != "" {
+				if p.Image, err = images.cover(name, p.Cover, p.Title); err != nil {
+					return err
+				}
+			}
+			if p.History = gitHistory(name); len(p.History) > 0 && site.Repo != "" {
+				p.Source = site.Repo + "/blob/main/" + filepath.ToSlash(name)
+			}
+			editions[li] = append(editions[li], &p)
 		}
-		return posts[i].Date > posts[j].Date
-	})
+		posts := editions[li]
+		sort.Slice(posts, func(i, j int) bool {
+			if posts[i].Date == posts[j].Date {
+				return posts[i].Slug < posts[j].Slug
+			}
+			return posts[i].Date > posts[j].Date
+		})
+	}
+	for li := range editions {
+		for _, p := range editions[li] {
+			for lj := range editions {
+				for _, q := range editions[lj] {
+					if lj != li && q.Slug == p.Slug {
+						p.Translation = q
+					}
+				}
+			}
+		}
+	}
+
 	write := func(name string, body []byte) error {
 		target := filepath.Join(stage, name)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
@@ -361,65 +435,174 @@ func build(base string) error {
 		}
 		return os.WriteFile(target, body, 0644)
 	}
-	page := func(name string, p Page) error {
-		p.Site = site
+	page := func(name string, p Page, extra string) error {
+		p.Site, p.UI = site, p.Lang.UI
 		if p.Image.URL == "" && p.Post != nil {
 			p.Image = p.Post.Image
 		}
 		if p.Image.URL == "" {
 			p.Image = defaultShareImage(site)
 		}
+		if p.Switch != nil {
+			p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
+		}
 		var out bytes.Buffer
 		if err := tmpl.Execute(&out, p); err != nil {
 			return err
 		}
-		faces, err := fonts.css(out.String())
+		faces, err := fonts.css(out.String(), extra)
 		if err != nil {
 			return fmt.Errorf("%s: fonts: %w", name, err)
 		}
 		return write(name, []byte(strings.Replace(out.String(), pageFontsMarker, faces, 1)))
 	}
-	if err = page("index.html", Page{Title: site.Title, Description: site.Description, Path: "/", Kind: "home", Posts: posts}); err != nil {
-		return err
-	}
-	feed := Feed{Version: "2.0", Channel: Channel{Title: site.Title, Link: site.URL + "/", Description: site.Description, Language: "zh-CN",
-		Self: AtomLink{Href: site.URL + "/feed.xml", Rel: "self", Type: "application/rss+xml"}}}
+	file := func(path string) string { return strings.TrimPrefix(path, "/") + "index.html" }
 	// Dates come from content, not the clock, so unchanged content builds identical files.
-	newest := ""
-	for _, p := range posts {
-		newest = max(newest, p.Modified())
-	}
-	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9", URLs: []Location{{site.URL + "/", newest}}}
-	if newest != "" {
-		updated, _ := time.Parse(time.DateOnly, newest)
-		feed.Channel.BuildDate = updated.Format(time.RFC1123Z)
-	}
-	for i := range posts {
-		p := &posts[i]
-		var previous, next *Post
-		if i+1 < len(posts) {
-			previous = &posts[i+1]
+	newestOf := func(posts []*Post) string {
+		newest := ""
+		for _, p := range posts {
+			newest = max(newest, p.Modified())
 		}
-		if i > 0 {
-			next = &posts[i-1]
+		return newest
+	}
+	sitemap := Sitemap{NS: "http://www.sitemaps.org/schemas/sitemap/0.9"}
+	feeds := map[string]Feed{}
+	var all []*Post
+
+	for li := range languages {
+		lang, posts := &languages[li], editions[li]
+		if lang.Base != "" && len(posts) == 0 {
+			continue
 		}
-		if err = page("posts/"+p.Slug+"/index.html", Page{Title: p.Title + " — " + site.Title, Description: p.Description, Path: p.Path, Kind: "post", Post: p, Previous: previous, Next: next}); err != nil {
+		all = append(all, posts...)
+		other := func(path string) *Link {
+			for lj := range languages {
+				if lj != li && (languages[lj].Base == "" || len(editions[lj]) > 0) {
+					return &Link{languages[lj].HTML, languages[lj].Base + path, lang.UI.Switch}
+				}
+			}
+			return nil
+		}
+		categories := collectTerms(posts, lang.Base, "categories", func(p *Post) []string { return []string{p.Tag} })
+		tags := collectTerms(posts, lang.Base, "tags", func(p *Post) []string { return p.Tags })
+		units := 0
+		for _, p := range posts {
+			units += p.Units
+			for _, c := range categories {
+				if c.Slug == termSlug(p.Tag) {
+					p.Category = c
+				}
+			}
+			for _, name := range p.Tags {
+				for _, t := range tags {
+					if t.Slug == termSlug(name) && !slices.Contains(p.Terms, t) {
+						p.Terms = append(p.Terms, t)
+					}
+				}
+			}
+		}
+		words := strconv.Itoa(units)
+		switch {
+		case lang.Code == "zh" && units >= 10000:
+			words = strconv.FormatFloat(float64(units)/10000, 'f', 1, 64) + " 万"
+		case lang.Code != "zh" && units >= 1000:
+			words = strconv.FormatFloat(float64(units)/1000, 'f', 1, 64) + "k"
+		}
+		stats := fmt.Sprintf(lang.UI.Stats, len(posts), len(categories), len(tags), words)
+		home := lang.Base + "/"
+		if err = page(file(home), Page{Lang: lang, Title: site.Title, Description: lang.UI.Description, Path: home, Kind: "home", Posts: posts, Categories: categories, Tags: tags, Stats: stats, Switch: other("/")}, ""); err != nil {
 			return err
 		}
-		date, _ := time.Parse(time.DateOnly, p.Date)
-		link := site.URL + p.Path
-		guid := link
-		if len(p.Aliases) > 0 {
-			guid = site.URL + escapePath(p.Aliases[0]) // keeps feed readers from re-announcing moved posts
+		sitemap.URLs = append(sitemap.URLs, Location{site.URL + home, newestOf(posts)})
+
+		feed := func(path, title, description string, posts []*Post) {
+			f := Feed{Version: "2.0", Channel: Channel{Title: title, Link: site.URL + strings.TrimSuffix(path, "feed.xml"), Description: description, Language: lang.HTML,
+				Self: AtomLink{Href: site.URL + path, Rel: "self", Type: "application/rss+xml"}}}
+			if newest := newestOf(posts); newest != "" {
+				updated, _ := time.Parse(time.DateOnly, newest)
+				f.Channel.BuildDate = updated.Format(time.RFC1123Z)
+			}
+			for _, p := range posts {
+				date, _ := time.Parse(time.DateOnly, p.Date)
+				link := site.URL + p.Path
+				guid := link
+				if len(p.Aliases) > 0 {
+					guid = site.URL + escapePath(p.Aliases[0]) // keeps feed readers from re-announcing moved posts
+				}
+				f.Channel.Items = append(f.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
+			}
+			feeds[strings.TrimPrefix(path, "/")] = f
 		}
-		feed.Channel.Items = append(feed.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
-		sitemap.URLs = append(sitemap.URLs, Location{link, p.Modified()})
+		feed(lang.Base+"/feed.xml", site.Title, lang.UI.Description, posts)
+
+		for i, p := range posts {
+			var previous, next *Post
+			if i+1 < len(posts) {
+				previous = posts[i+1]
+			}
+			if i > 0 {
+				next = posts[i-1]
+			}
+			var sw *Link
+			if p.Translation != nil {
+				sw = &Link{p.Translation.Lang.HTML, p.Translation.Path, lang.UI.Switch}
+			}
+			if err = page(file(p.Path), Page{Lang: lang, Title: p.Title + " — " + site.Title, Description: p.Description, Path: p.Path, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, ""); err != nil {
+				return err
+			}
+			sitemap.URLs = append(sitemap.URLs, Location{site.URL + p.Path, p.Modified()})
+		}
+
+		if len(posts) > 0 {
+			path := lang.Base + "/tags/"
+			if err = page(file(path), Page{Lang: lang, Title: lang.UI.TagsTitle + " — " + site.Title, Description: stats, Path: path, Kind: "tags", Categories: categories, Tags: tags, Switch: other("/tags/")}, ""); err != nil {
+				return err
+			}
+			for kind, terms := range map[string][]*Term{lang.UI.Category: categories, lang.UI.Tag: tags} {
+				for _, t := range terms {
+					description := fmt.Sprintf(lang.UI.Count, len(t.Posts))
+					if err = page(file(t.Path), Page{Lang: lang, Title: t.Name + " — " + site.Title, Description: kind + " · " + t.Name + " · " + description, Path: t.Path, Kind: "term", TermKind: kind, Term: t, Posts: t.Posts, Switch: other("/tags/")}, ""); err != nil {
+						return err
+					}
+					feed(t.Path+"feed.xml", t.Name+" — "+site.Title, description, t.Posts)
+					sitemap.URLs = append(sitemap.URLs, Location{site.URL + t.Path, newestOf(t.Posts)})
+				}
+			}
+
+			// Search filters the listed posts with an index of their text, fetched on first use.
+			type entry struct {
+				Title string `json:"t"`
+				Text  string `json:"x"`
+			}
+			index := map[string]entry{}
+			var corpus strings.Builder
+			for _, p := range posts {
+				words := []string{p.Title, p.Description, p.Tag}
+				words = append(words, p.Tags...)
+				text := contentText(string(p.Content))
+				index[p.Path] = entry{strings.Join(words, " "), text}
+				corpus.WriteString(text)
+			}
+			corpus.WriteString(lang.UI.SearchFound + lang.UI.SearchNone)
+			b, err := json.Marshal(index)
+			if err != nil {
+				return err
+			}
+			if err = write(strings.TrimPrefix(lang.Base+"/search.json", "/"), b); err != nil {
+				return err
+			}
+			path = lang.Base + "/search/"
+			if err = page(file(path), Page{Lang: lang, Title: lang.UI.Search + " — " + site.Title, Description: lang.UI.SearchLabel, Path: path, Kind: "search", Posts: posts, Switch: other("/search/")}, corpus.String()); err != nil {
+				return err
+			}
+		}
 	}
-	if err = page("404.html", Page{Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}); err != nil {
+
+	if err = page("404.html", Page{Lang: &languages[0], Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}, ""); err != nil {
 		return err
 	}
-	for name, v := range map[string]any{"feed.xml": feed, "sitemap.xml": sitemap} {
-		b, err := xml.MarshalIndent(v, "", "  ")
+	for name, f := range feeds {
+		b, err := xml.MarshalIndent(f, "", "  ")
 		if err != nil {
 			return err
 		}
@@ -427,17 +610,24 @@ func build(base string) error {
 			return err
 		}
 	}
+	b, err := xml.MarshalIndent(sitemap, "", "  ")
+	if err != nil {
+		return err
+	}
+	if err = write("sitemap.xml", append([]byte(xml.Header), b...)); err != nil {
+		return err
+	}
 	if err = write("robots.txt", []byte("User-agent: *\nAllow: /\nSitemap: "+site.URL+"/sitemap.xml\n")); err != nil {
 		return err
 	}
-	if err = writeRedirects(site, prefix, posts, write); err != nil {
+	if err = writeRedirects(site, prefix, all, write); err != nil {
 		return err
 	}
 	if err = copyAssets(stage, version); err != nil {
 		return err
 	}
 	var headers strings.Builder
-	for _, route := range []string{"/", "/index.html", "/posts/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
+	for _, route := range []string{"/", "/index.html", "/posts/*", "/tags/*", "/categories/*", "/search/*", "/search.json", "/en/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
 		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", prefix, route)
 	}
 	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n", prefix, prefix, version, prefix)
@@ -451,6 +641,6 @@ func build(base string) error {
 	if err = os.Rename(stage, "public"); err != nil {
 		return err
 	}
-	fmt.Printf("Built %d posts → public/\n", len(posts))
+	fmt.Printf("Built %d posts → public/\n", len(all))
 	return nil
 }

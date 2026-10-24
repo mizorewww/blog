@@ -4,9 +4,12 @@
   "description": "关于代码、工具，以及把事情做简单的练习。",
   "url": "https://mizore.blog",
   "about": "https://about.mizore.blog",
+  "repo": "https://github.com/mizorewww/blog",
+  "email": "www@mizore.blog",
   "sameAs": [
     "https://github.com/mizorewww",
-    "https://x.com/mizorewww"
+    "https://x.com/mizorewww",
+    "https://t.me/aac6fef"
   ],
   "redirects": [
     {
@@ -18,6 +21,30 @@
       "to": "https://about.mizore.blog"
     },
     {
+      "from": "/zh/search",
+      "to": "/search/"
+    },
+    {
+      "from": "/zh/tags",
+      "to": "/tags/"
+    },
+    {
+      "from": "/zh/tags/*",
+      "to": "/tags/:splat"
+    },
+    {
+      "from": "/zh/categories",
+      "to": "/tags/"
+    },
+    {
+      "from": "/zh/categories/trading",
+      "to": "/categories/交易/"
+    },
+    {
+      "from": "/zh/categories/*",
+      "to": "/categories/:splat"
+    },
+    {
       "from": "/zh",
       "to": "/"
     },
@@ -26,12 +53,12 @@
       "to": "/"
     },
     {
-      "from": "/en",
-      "to": "/"
+      "from": "/en/categories",
+      "to": "/en/tags/"
     },
     {
-      "from": "/en/*",
-      "to": "/"
+      "from": "/en/categories/trading",
+      "to": "/en/tags/"
     },
     {
       "from": "/blog",
@@ -42,20 +69,20 @@
       "to": "/"
     },
     {
+      "from": "/categories/trading",
+      "to": "/categories/交易/"
+    },
+    {
       "from": "/categories",
-      "to": "/"
+      "to": "/tags/"
     },
     {
-      "from": "/categories/*",
-      "to": "/"
+      "from": "/categories/",
+      "to": "/tags/"
     },
     {
-      "from": "/tags",
-      "to": "/"
-    },
-    {
-      "from": "/tags/*",
-      "to": "/"
+      "from": "/en/categories/",
+      "to": "/en/tags/"
     }
   ]
 }

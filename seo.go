@@ -9,7 +9,7 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-// ShareImage is the og:image of a page: a post's first image, else static/og.png.
+// ShareImage is the og:image of a page: a post's "image", else its first image, else static/og.png.
 type ShareImage struct {
 	URL, Alt      string
 	Width, Height int
@@ -46,13 +46,17 @@ func structuredData(p Page) template.JS {
 	if len(p.Site.SameAs) > 0 {
 		author["sameAs"] = p.Site.SameAs
 	}
-	data := map[string]any{"@context": "https://schema.org", "inLanguage": "zh-CN"}
+	lang := "zh-CN"
+	if p.Lang != nil {
+		lang = p.Lang.HTML
+	}
+	data := map[string]any{"@context": "https://schema.org", "inLanguage": lang}
 	switch p.Kind {
 	case "home":
 		data["@type"] = "WebSite"
 		data["name"] = p.Site.Title
 		data["url"] = p.Site.URL + "/"
-		data["description"] = p.Site.Description
+		data["description"] = p.Description
 		data["author"] = author
 	case "post":
 		url := p.Site.URL + p.Post.Path
@@ -66,8 +70,11 @@ func structuredData(p Page) template.JS {
 		data["author"] = author
 		data["publisher"] = author
 		data["image"] = p.Image.URL
-		if p.Post.Tag != "" {
-			data["keywords"] = p.Post.Tag
+		if keywords := append([]string{p.Post.Tag}, p.Post.Tags...); strings.Join(keywords, "") != "" {
+			data["keywords"] = strings.Trim(strings.Join(keywords, ", "), ", ")
+		}
+		if p.Post.Category != nil {
+			data["articleSection"] = p.Post.Category.Name
 		}
 	default:
 		return ""

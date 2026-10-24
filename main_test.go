@@ -49,9 +49,11 @@ func TestBuild(t *testing.T) {
 	}
 	// Fixture posts keep the test independent of real articles and their images.
 	fixtures := map[string]string{
-		"content/posts/alpha.md": "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\"}\n---\n## 第一节\n\n正文。\n",
-		"content/posts/beta.md":  "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
-		"content/posts/gamma.md": "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",
+		"content/posts/alpha.md":    "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tag\":\"技术\",\"tags\":[\"Next.js\",\"Linux\"]}\n---\n## 第一节\n\n正文。\n",
+		"content/posts/draft.md":    "{\"title\":\"Draft\",\"description\":\"D\",\"date\":\"2026-10-03\",\"draft\":true}\n---\n草稿。\n",
+		"content/posts/en/alpha.md": "{\"title\":\"Alpha EN\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tags\":[\"Linux\"]}\n---\nText.\n",
+		"content/posts/beta.md":     "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
+		"content/posts/gamma.md":    "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",
 	}
 	for name, body := range fixtures {
 		if err := os.MkdirAll(filepath.Join(dir, filepath.Dir(name)), 0755); err != nil {
@@ -103,7 +105,7 @@ func TestBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+1 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
+		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+3 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 	}
@@ -129,8 +131,35 @@ func TestBuild(t *testing.T) {
 			t.Fatalf("article metadata is missing on %s", tc.slug)
 		}
 	}
+	alpha, _ := os.ReadFile("public/posts/alpha/index.html")
+	for _, want := range []string{`href="/notes/categories/%e6%8a%80%e6%9c%af/"`, `href="/notes/tags/nextjs/">#Next.js`, `hreflang="en" href="https://example.com/notes/en/posts/alpha/"`, `class="anchor" href="#第一节"`, `rel="license"`, `class="progress"`} {
+		if !strings.Contains(string(alpha), want) {
+			t.Fatalf("post lacks %s", want)
+		}
+	}
+	for _, name := range []string{"tags/index.html", "tags/linux/index.html", "tags/linux/feed.xml", "categories/技术/index.html", "search/index.html", "search.json", "en/index.html", "en/posts/alpha/index.html", "en/tags/linux/index.html"} {
+		if _, err := os.Stat(filepath.Join("public", name)); err != nil {
+			t.Fatalf("missing %s: %v", name, err)
+		}
+	}
+	if _, err := os.Stat("public/posts/draft/index.html"); err == nil {
+		t.Fatal("drafts must not be published")
+	}
+	en, _ := os.ReadFile("public/en/posts/alpha/index.html")
+	if !strings.Contains(string(en), `<html lang="en">`) || !strings.Contains(string(en), "1 min read") || !strings.Contains(string(en), `href="/notes/posts/alpha/" hreflang="zh-CN"`) {
+		t.Fatal("English edition must use its own language and link its translation")
+	}
+	var index map[string]struct{ T, X string }
+	b, _ := os.ReadFile("public/search.json")
+	if err = json.Unmarshal(b, &index); err != nil || !strings.Contains(index["/posts/alpha/"].T, "Next.js") || !strings.Contains(index["/posts/alpha/"].X, "正文") {
+		t.Fatalf("invalid search index: %v %v", err, index)
+	}
+	search, _ := os.ReadFile("public/search/index.html")
+	if !strings.Contains(string(search), `font-family:"Blog Search"`) {
+		t.Fatal("search snippets need their font")
+	}
 	var rss Feed
-	b, _ := os.ReadFile("public/feed.xml")
+	b, _ = os.ReadFile("public/feed.xml")
 	if err = xml.Unmarshal(b, &rss); err != nil || len(rss.Channel.Items) != 3 {
 		t.Fatalf("invalid RSS: %v", err)
 	}
@@ -145,7 +174,7 @@ func TestBuild(t *testing.T) {
 	}
 	var sitemap Sitemap
 	b, _ = os.ReadFile("public/sitemap.xml")
-	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 4 {
+	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 10 {
 		t.Fatalf("invalid sitemap: %v", err)
 	}
 	for _, u := range sitemap.URLs {
@@ -162,7 +191,7 @@ func TestBuild(t *testing.T) {
 	if _, err = os.Stat("public/stale.html"); !os.IsNotExist(err) {
 		t.Fatal("stale output survived rebuild")
 	}
-	for _, slug := range []string{"alpha", "gamma"} {
+	for _, slug := range []string{"alpha", "gamma", "en/alpha"} {
 		if err = os.Remove("content/posts/" + slug + ".md"); err != nil {
 			t.Fatal(err)
 		}
@@ -264,7 +293,7 @@ func TestBlocks(t *testing.T) {
 	html := string(body)
 	for _, want := range []string{`<svg viewBox="0 0 664`, `role="img" aria-label="累计"`, `>2024</span>`, `BTC 0.3</span>`, `ETH 0.1</span>`, `A ↑</span>`, `>p</span>`,
 		`<p class="stats-group"><b>BTC</b>单利</p>`, `<dd class="up">+1.1</dd><dd class="s">说明</dd>`, `<dd>−0.1</dd>`,
-		`<a class="ticker" href="https://www.tradingview.com/symbols/BINANCE-BTCUSDT/"><span><b>BINANCE:BTCUSDT</b><span class="ticker-label">比特币</span>`} {
+		`<div class="ticker" data-symbol="BINANCE:BTCUSDT" data-interval="" data-height="420"><span><b>BINANCE:BTCUSDT</b><span class="ticker-label">比特币</span>`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
@@ -375,7 +404,7 @@ func TestRedirects(t *testing.T) {
 	files := map[string]string{}
 	write := func(name string, body []byte) error { files[filepath.ToSlash(name)] = string(body); return nil }
 	site := Site{URL: "https://example.com/notes", Redirects: []Redirect{{"/zh/*", "/"}, {"/about/", "https://about.example.com"}}}
-	posts := []Post{{PostMetadata: PostMetadata{Title: "T", Aliases: []string{"/zh/技术/x/"}}, Slug: "x", Path: "/posts/x/"}}
+	posts := []*Post{{PostMetadata: PostMetadata{Title: "T", Aliases: []string{"/zh/技术/x/"}}, Slug: "x", Path: "/posts/x/"}}
 	if err := writeRedirects(site, "/notes", posts, write); err != nil {
 		t.Fatal(err)
 	}
@@ -389,9 +418,9 @@ func TestRedirects(t *testing.T) {
 		t.Fatalf("missing fallback page: %q", page)
 	}
 	for _, bad := range [][]string{{"zh/x/"}, {"/zh/x"}, {"/zh/../x/"}, {"/posts/y/"}, {"/"}, {"/a/", "/a/"}} {
-		p := posts[0]
+		p := *posts[0]
 		p.Aliases = bad
-		if err := writeRedirects(site, "", []Post{p}, write); err == nil {
+		if err := writeRedirects(site, "", []*Post{&p}, write); err == nil {
 			t.Fatalf("alias %v must be rejected", bad)
 		}
 	}

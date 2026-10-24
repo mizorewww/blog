@@ -84,6 +84,52 @@ func (p *imagePipeline) publish(path string) (string, error) {
 	return p.base + relative, os.WriteFile(target, data, 0644)
 }
 
+// process optimizes and publishes one source image once per build.
+func (p *imagePipeline) process(source string) (imageInfo, error) {
+	if info, ok := p.processed[source]; ok {
+		return info, nil
+	}
+	info := imageInfo{Path: source}
+	if !strings.EqualFold(filepath.Ext(source), ".svg") {
+		cmd := exec.Command("uv", "run", "--script", "scripts/prepare-image.py", source, ".cache/images")
+		cmd.Stderr = os.Stderr
+		output, err := cmd.Output()
+		if err != nil {
+			return info, fmt.Errorf("%s: optimize image (requires uv): %w", source, err)
+		}
+		if err := json.Unmarshal(output, &info); err != nil {
+			return info, err
+		}
+	}
+	var err error
+	if info.Path, err = p.publish(info.Path); err != nil {
+		return info, err
+	}
+	if info.Small != nil {
+		if info.Small.Path, err = p.publish(info.Small.Path); err != nil {
+			return info, err
+		}
+	}
+	if p.processed == nil {
+		p.processed = make(map[string]imageInfo)
+	}
+	p.processed[source] = info
+	return info, nil
+}
+
+// cover is a post's "image": its share image, resolved like a Markdown image.
+func (p *imagePipeline) cover(document, destination, alt string) (ShareImage, error) {
+	source, err := imageSource(document, destination)
+	if err != nil {
+		return ShareImage{}, fmt.Errorf("%s: image %q: %w", document, destination, err)
+	}
+	if source == "" {
+		return ShareImage{URL: destination, Alt: alt}, nil
+	}
+	info, err := p.process(source)
+	return ShareImage{URL: info.Path, Alt: alt, Width: info.Width, Height: info.Height}, err
+}
+
 func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 	count := 0
 	return func(node *ast.Image) error {
@@ -102,32 +148,9 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 		if source == "" {
 			return nil
 		} // Remote images stay remote; no build-time downloads.
-		info, ok := p.processed[source]
-		if !ok {
-			info.Path = source
-			if !strings.EqualFold(filepath.Ext(source), ".svg") {
-				cmd := exec.Command("uv", "run", "--script", "scripts/prepare-image.py", source, ".cache/images")
-				cmd.Stderr = os.Stderr
-				output, err := cmd.Output()
-				if err != nil {
-					return fmt.Errorf("%s: optimize image (requires uv): %w", source, err)
-				}
-				if err := json.Unmarshal(output, &info); err != nil {
-					return err
-				}
-			}
-			if info.Path, err = p.publish(info.Path); err != nil {
-				return err
-			}
-			if info.Small != nil {
-				if info.Small.Path, err = p.publish(info.Small.Path); err != nil {
-					return err
-				}
-			}
-			if p.processed == nil {
-				p.processed = make(map[string]imageInfo)
-			}
-			p.processed[source] = info
+		info, err := p.process(source)
+		if err != nil {
+			return err
 		}
 		destination := info.Path
 		if original, err := url.Parse(string(node.Destination)); err == nil && original.Fragment != "" {

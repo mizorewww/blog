@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"html"
 	"math"
@@ -28,20 +29,21 @@ import (
 var (
 	chartAttributes = []string{"title", "note", "panels", "mirror", "diag", "ref", "mark", "xfmt", "xscale", "yfmt"}
 	chartType       = regexp.MustCompile(`^chart\s+(\w+)`)
-	chartPalette    = []string{"#486043", "#8a4f2a", "#a3a79a"}
+	chartPalette    = []string{"var(--green)", "var(--c2)", "var(--c3)"}
 )
 
 const (
-	chartW     = 664.0
-	chartLeft  = 52.0
-	chartTop   = 10.0
-	chartFoot  = 24.0
-	chartGap   = 30.0
-	chartRed   = "#b4553f"
-	chartGrid  = "#ebece5"
-	chartZero  = "#9ba393"
-	chartMuted = "#686d64"
-	chartInk   = "#292c28"
+	chartW    = 664.0
+	chartLeft = 52.0
+	chartTop  = 10.0
+	chartFoot = 24.0
+	chartGap  = 30.0
+	// Colors are CSS custom properties so charts follow the color scheme.
+	chartRed   = "var(--red)"
+	chartGrid  = "var(--grid)"
+	chartZero  = "var(--faint)"
+	chartMuted = "var(--muted)"
+	chartInk   = "var(--ink)"
 )
 
 type chartSeries struct {
@@ -125,10 +127,23 @@ type chartCanvas struct {
 	labels strings.Builder
 }
 
+var svgPaint = regexp.MustCompile(`\b(stroke|fill)="(var\([^)]*\))"`)
+
+// path draws d; presentation attributes cannot hold var(), so colors move to style.
 func (c *chartCanvas) path(d, attrs string) {
-	if d != "" {
-		fmt.Fprintf(&c.svg, `<path d="%s" %s vector-effect="non-scaling-stroke"/>`, d, attrs)
+	if d == "" {
+		return
 	}
+	var style []string
+	attrs = svgPaint.ReplaceAllStringFunc(attrs, func(m string) string {
+		parts := svgPaint.FindStringSubmatch(m)
+		style = append(style, parts[1]+":"+parts[2])
+		return ""
+	})
+	if len(style) > 0 {
+		attrs += ` style="` + strings.Join(style, ";") + `"`
+	}
+	fmt.Fprintf(&c.svg, `<path d="%s" %s vector-effect="non-scaling-stroke"/>`, d, strings.Join(strings.Fields(attrs), " "))
 }
 
 // label places text at an SVG point; class picks the anchor (yl, xl, dl).
@@ -530,7 +545,7 @@ func renderChart(info string, lines []string) (string, error) {
 					c.path(fmt.Sprintf("M%s %sL%s %s", f1(xpx(lo)), f1(p.y(lo)), f1(xpx(hi)), f1(p.y(hi))), `stroke="`+chartMuted+`" stroke-dasharray="3 3" fill="none"`)
 					c.path(drops.String(), `stroke="`+chartRed+`" stroke-opacity="0.6" fill="none"`)
 				}
-				c.path(dots.String(), `stroke="#fff" stroke-width="12" stroke-linecap="round"`)
+				c.path(dots.String(), `stroke="var(--card)" stroke-width="12" stroke-linecap="round"`)
 				c.path(dots.String(), `stroke="`+color+`" stroke-width="9" stroke-linecap="round"`)
 			}
 		}
@@ -630,8 +645,43 @@ func renderChart(info string, lines []string) (string, error) {
 	if label == "" {
 		label = strings.Join(header[first:], "、")
 	}
+	// Hovering a line, area or bar chart reads its values (see templates/page.html).
+	tip := ""
+	if kind != "scatter" {
+		type tipSeries struct {
+			Name  string   `json:"n"`
+			Color string   `json:"c"`
+			Text  []string `json:"v"`
+		}
+		data := struct {
+			X      []float64   `json:"x"`
+			Label  []string    `json:"l"`
+			Series []tipSeries `json:"s"`
+		}{Label: xText}
+		for i := range xs {
+			data.X = append(data.X, math.Round(xpx(xs[i])/chartW*10000)/100)
+		}
+		for si, s := range series {
+			color := chartPalette[si%len(chartPalette)]
+			if panels && kind == "bar" {
+				color = chartPalette[0]
+			}
+			text := make([]string, len(s.text))
+			for i := range s.text {
+				if s.ok[i] {
+					text[i] = minus.Replace(s.text[i])
+				}
+			}
+			data.Series = append(data.Series, tipSeries{s.name, color, text})
+		}
+		j, err := json.Marshal(data)
+		if err != nil {
+			return "", err
+		}
+		tip = ` data-tip="` + html.EscapeString(string(j)) + `"`
+	}
 	// The svg may stretch vertically on phones (see style.css); strokes keep their width.
-	fmt.Fprintf(&b, `<div class="plot" style="--h:%s"><svg viewBox="0 0 %s %s" preserveAspectRatio="none" role="img" aria-label="%s">%s</svg>%s</div>`, f1(c.h), f1(chartW), f1(c.h), html.EscapeString(label), c.svg.String(), c.labels.String())
+	fmt.Fprintf(&b, `<div class="plot"%s style="--h:%s"><svg viewBox="0 0 %s %s" preserveAspectRatio="none" role="img" aria-label="%s">%s</svg>%s</div>`, tip, f1(c.h), f1(chartW), f1(c.h), html.EscapeString(label), c.svg.String(), c.labels.String())
 	if attrs["note"] != "" {
 		fmt.Fprintf(&b, `<p class="data-note">%s</p>`, html.EscapeString(attrs["note"]))
 	}

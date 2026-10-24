@@ -1,4 +1,4 @@
-{"title":"小米 Book Pro 14 Linux 使用体验","description":"在 Xiaomi Book Pro 14 上装 Arch Linux：解决花屏和键盘失灵的内核参数，以及让 sudo、Polkit、KWallet 用上指纹时踩过的 PAM 坑。","date":"2026-05-10","tag":"折腾","aliases":["/zh/折腾/xiaomi-book-pro-14/","/en/折腾/xiaomi-book-pro-14/","/zh/xiaomi-book-pro-14/","/en/xiaomi-book-pro-14/"]}
+{"title":"小米 Book Pro 14 Linux 使用体验","description":"在 Xiaomi Book Pro 14 上装 Arch Linux：解决花屏和键盘失灵的内核参数，以及让 sudo、Polkit、KWallet 用上指纹时踩过的 PAM 坑。","date":"2026-05-10","tag":"折腾","tags":["Linux","Laptop"],"aliases":["/zh/折腾/xiaomi-book-pro-14/","/zh/xiaomi-book-pro-14/"]}
 ---
 
 入手这台 Xiaomi Book Pro 14 的理由其实挺简单：我已经有一台 MacBook Pro 了，日常用着很顺手，但总有些事是 Mac 干不了、或者干起来别扭的。我需要一台 x86 的轻薄本，来补上那些“只有 x86 才好办”的活儿。
