@@ -4,6 +4,8 @@
 :root{color-scheme:light;--paper:#faf9f6;--card:#fff;--ink:#292c28;--body:#3d403b;--muted:#686d64;--faint:#9ba393;--line:#ddded6;--bar:#cfd1c7;--green:#486043;--wash:#f0f1ea;--sel:#dce6cf;--red:#b4553f;--grid:#ebece5;--c2:#8a4f2a;--c3:#a3a79a;--fn:#3e5878;--del:#9b3b2e;--cjk:"Blog Sans";--cjk-serif:"Blog Serif";--sans:var(--cjk),"PingFang SC","Microsoft YaHei",sans-serif;--serif:var(--cjk-serif),"Songti SC",SimSun,serif;--mono:"Maple Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,var(--cjk),monospace;font-family:var(--sans);color:var(--ink);background:var(--paper);font-synthesis:none}
 @media(prefers-color-scheme:dark){:root:not([data-theme=light]){color-scheme:dark;--paper:#151714;--card:#1b1e1a;--ink:#e4e6dd;--body:#c4c7bc;--muted:#979c90;--faint:#5f655b;--line:#2c302a;--bar:#3b4038;--green:#9fc191;--wash:#20241f;--sel:#34462f;--red:#e3846d;--grid:#242822;--c2:#d6a072;--c3:#727869;--fn:#97b5d6;--del:#e88c74}}
 :root[data-theme=dark]{color-scheme:dark;--paper:#151714;--card:#1b1e1a;--ink:#e4e6dd;--body:#c4c7bc;--muted:#979c90;--faint:#5f655b;--line:#2c302a;--bar:#3b4038;--green:#9fc191;--wash:#20241f;--sel:#34462f;--red:#e3846d;--grid:#242822;--c2:#d6a072;--c3:#727869;--fn:#97b5d6;--del:#e88c74}
+html{scroll-behavior:smooth}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 button{font:inherit;color:inherit}
@@ -48,7 +50,7 @@ h1,.post-summary h2,.prose h2,.prose h3,.intro,.post-pagination a{font-family:va
 .post-summary h2 a:hover span{color:var(--green)}
 .post-summary p{font-size:14px;color:var(--muted);line-height:1.9;margin:0 0 14px;max-width:610px}
 .tags{display:flex;flex-wrap:wrap;gap:6px 8px;margin:0;font-family:var(--mono);font-size:11px;line-height:1.5}
-.tags a{padding:1px 7px;border:1px solid var(--line);color:var(--muted);transition:color .2s,border-color .2s}
+.tags a{padding:1px 7px;border:1px solid var(--line);color:var(--muted)}
 .tags a:hover{color:var(--green);border-color:var(--green)}
 .post-summary .tags{margin:0;font-size:11px;line-height:1.5}
 .article-header .tags{margin-top:22px}
@@ -75,7 +77,7 @@ mark{background:var(--sel);color:inherit}
 .dek{color:var(--muted);font-size:16px;line-height:1.9;margin:0}
 .prose{font-size:16px;line-height:2;color:var(--body);overflow-wrap:anywhere}
 .prose :is(h2,h3){position:relative;color:var(--ink);font-weight:600;line-height:1.5}
-.prose a.anchor{position:absolute;right:100%;padding-right:.35em;color:var(--faint);text-decoration:none;opacity:0;transition:opacity .2s}
+.prose a.anchor{position:absolute;right:100%;padding-right:.35em;color:var(--faint);text-decoration:none;opacity:0}
 .prose :is(h2,h3):hover .anchor{opacity:1}
 @media(hover:none){.prose a.anchor{display:none}}
 .prose h2{font-size:24px;margin:2.2em 0 .65em}
@@ -196,7 +198,6 @@ mark{background:var(--sel);color:inherit}
 :is(.toc,.toc-mobile) .level-2 a::before{content:counter(toc,decimal-leading-zero);flex:none;color:var(--faint)}
 :is(.toc,.toc-mobile) .level-2 a:hover::before,.toc a[aria-current]::before{color:var(--green)}
 .toc a[aria-current]{color:var(--ink)}
-.toc a{transition:color .2s}
 :is(.toc,.toc-mobile) .level-3 a{padding-left:calc(2ch + 10px)}
 .prose :is(h2,h3){scroll-margin-top:32px}
 /* Each page inlines the glyphs it shows first; .late adds the rest of its glyphs once the page has loaded. */
@@ -222,13 +223,10 @@ mark{background:var(--sel);color:inherit}
 .to-top:hover{color:var(--green);border-color:var(--green)}
 @supports(animation-timeline:scroll()){
 .progress{animation:progress linear both;animation-timeline:scroll(root)}
-.to-top{animation:reveal linear both;animation-timeline:scroll(root);animation-range:240px 360px}
+.to-top{animation:reveal step-end both;animation-timeline:scroll(root);animation-range:0 320px}
 }
 @keyframes progress{to{transform:scaleX(1)}}
 @keyframes reveal{to{opacity:1;visibility:visible}}
-@view-transition{navigation:auto}
-::view-transition-group(*){animation-duration:.28s;animation-timing-function:cubic-bezier(.32,.72,0,1)}
-@media(prefers-reduced-motion:reduce){@view-transition{navigation:none}}
 .post-pagination{max-width:none;display:grid;grid-template-columns:1fr 1fr;gap:48px;position:relative;margin:0;padding:32px 48px;border:0}
 .post-pagination a{display:flex;flex-direction:column;gap:8px;font-size:16px;line-height:1.7}
 .post-pagination span{font-family:var(--mono);font-size:11px;color:var(--muted)}
