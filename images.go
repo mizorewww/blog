@@ -72,6 +72,9 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 		node.SetAttributeString("decoding", "async")
 		if count > 1 {
 			node.SetAttributeString("loading", "lazy")
+		} else {
+			// The first image is often the largest paint on a phone.
+			node.SetAttributeString("fetchpriority", "high")
 		}
 		source, err := imageSource(document, string(node.Destination))
 		if err != nil {

@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。页眉只有站名、「关于」和 RSS 三个链接，首页只有文章列表：日期、分类、标题、摘要和阅读时长。无首屏介绍或页脚；使用贯穿页面的横线、两侧纵线和交点标记组织页面。
+一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。页眉只有站名、「关于」和 RSS 三个链接，首页是一句站点介绍加文章列表：日期、分类、标题、摘要和阅读时长；页脚只有版权和外部链接。使用贯穿页面的横线、两侧纵线和交点标记组织页面。
 
 **静态 HTML · 默认 0 JS · 无框架 · 无 hydration · 无 bundler**
 
@@ -155,10 +155,10 @@ Delta | BTC  | ETH
 - canonical、description、跳至正文链接、键盘焦点状态。
 - 分享与搜索：Open Graph 与 Twitter 大图卡片，`og:image` 取文章第一张本地图片（带宽高与替代文字），没有图片时用 `static/og.png`（1200×630，站点名与描述）；文章页输出发布、修改日期、作者与标签。
 - 结构化数据：首页 `WebSite`、文章页 `BlogPosting` 的 JSON-LD，作者为 `site.json` 的 `author`，链接到 `about` 与 `sameAs`（GitHub、X），与 about.mizore.blog 的身份一致。这是 `application/ld+json` 数据块，不是可执行脚本。
-- 标题使用 Source Han Serif（思源宋体），正文和界面使用 Source Han Sans（思源黑体），代码保持系统等宽字体。
+- 正文用思源黑体，标题用思源宋体，日期、表格与代码用 Maple Mono，全部自托管、不依赖系统字体。构建时按页面子集化：每页首屏（第一个正文小标题之前）用到的字直接内嵌，其余的字拆成这一页自己的小文件，加载后再启用。新文章不需要重新生成字体；GB2312 以外的生僻字要先运行 `uv run scripts/prepare-fonts.py` 更新 `fonts/` 下的源字体。
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
 - 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
-- 字体版本：Source Han Sans 2.005R / Source Han Serif 2.003R，SIL OFL 1.1 许可证保留在字体目录。
+- 字体版本：Source Han Serif 2.003R / Maple Mono 7.9，SIL OFL 1.1 许可证保留在字体目录。
 - Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark、代码高亮（goldmark-highlighting + Chroma）与公式转换（treeblood）；含本地位图的构建另需 uv/Pillow。
 - 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
 - 没有评论、搜索、客户端路由、Service Worker 或动态后端。
