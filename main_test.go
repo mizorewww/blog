@@ -1,7 +1,9 @@
 package main
 
 import (
+	"encoding/json"
 	"encoding/xml"
+	"github.com/yuin/goldmark/ast"
 	"os"
 	"path/filepath"
 	"strings"
@@ -14,6 +16,8 @@ func TestPostValidation(t *testing.T) {
 		valid       bool
 	}{
 		{"valid", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n## 内容\n<script>alert(1)</script>\n[bad](javascript:alert(1))", true},
+		{"updated", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"updated\":\"2026-10-20\"}\n---\nHello", true},
+		{"updated-before-date", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"updated\":\"2026-10-01\"}\n---\nHello", false},
 		{"bad-date", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-02-30\"}\n---\nHello", false},
 		{"missing-title", "{\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\nHello", false},
 		{"bad-metadata", "not json\n---\nHello", false},
@@ -98,7 +102,7 @@ func TestBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Contains(html, "<script") || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
+		if strings.Count(html, "<script") != strings.Count(html, `<script type="application/ld+json">`) || !strings.Contains(html, `/style.css"`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 	}
@@ -282,5 +286,41 @@ func TestDataTable(t *testing.T) {
 func TestReadingUnits(t *testing.T) {
 	if n := readingUnits("中文字 and English words\n\n```go\nfunc ignored() {}\n```\n\n2026 年"); n != 3+3+1+1 {
 		t.Fatalf("got %d units", n)
+	}
+}
+
+func TestStructuredData(t *testing.T) {
+	site := Site{Title: "T", Author: "A", URL: "https://example.com", About: "https://about.example.com", SameAs: []string{"https://github.com/a"}}
+	post := &Post{PostMetadata: PostMetadata{Title: "</script><b>", Description: "D", Date: "2026-10-02", Updated: "2026-10-20", Tag: "x"}, Path: "/posts/p/"}
+	ld := string(structuredData(Page{Site: site, Kind: "post", Post: post, Image: defaultShareImage(site)}))
+	if strings.Contains(ld, "</script>") {
+		t.Fatal("JSON-LD must not close its script element")
+	}
+	var data map[string]any
+	if err := json.Unmarshal([]byte(ld), &data); err != nil {
+		t.Fatal(err)
+	}
+	if data["@type"] != "BlogPosting" || data["headline"] != "</script><b>" || data["dateModified"] != "2026-10-20" || data["image"] != "https://example.com/static/og.png" || data["author"].(map[string]any)["url"] != "https://about.example.com" {
+		t.Fatalf("unexpected JSON-LD: %v", data)
+	}
+	if structuredData(Page{Site: site, Kind: "404"}) != "" {
+		t.Fatal("404 pages carry no structured data")
+	}
+}
+
+func TestFirstImage(t *testing.T) {
+	var share ShareImage
+	src := []byte("![a **photo**](a.png)\n\n![second](b.png)\n")
+	hook := firstImage(func(n *ast.Image) error {
+		n.Destination = append([]byte("https://example.com/images/"), n.Destination...)
+		n.SetAttributeString("width", "1600")
+		n.SetAttributeString("height", "1200")
+		return nil
+	}, src, &share)
+	if _, _, err := renderContent(src, hook); err != nil {
+		t.Fatal(err)
+	}
+	if share != (ShareImage{URL: "https://example.com/images/a.png", Alt: "a photo", Width: 1600, Height: 1200}) {
+		t.Fatalf("unexpected share image: %+v", share)
 	}
 }

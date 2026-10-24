@@ -62,6 +62,7 @@ go run . new -h               # 全部参数
 
 - `title`、`description`、`date` 必填；日期格式为 `YYYY-MM-DD`，非法日期会让构建失败。
 - `tag` 是可选的文字标签。
+- `updated` 可选，格式同 `date` 且不早于它；文章有实质修改时填写，用于 `dateModified`、`article:modified_time` 和 sitemap 的 `lastmod`。
 - 文章按日期倒序排列，同日按文件名排序。
 - 所有文章都会发布，包括未来日期；草稿放在 `content/posts/` 之外。
 - 支持常规 Markdown、表格、代码块和自动标题 ID；中文标题保留可读锚点，例如 `## 问题一：屏幕花屏` 对应 `#问题一屏幕花屏`。
@@ -121,7 +122,8 @@ Delta | BTC  | ETH
 
 | 文件 | 用途 |
 | --- | --- |
-| `site.json` | 站点标题、作者、描述、正式 URL 和页眉「关于」链接（`about`） |
+| `site.json` | 站点标题、作者、描述、正式 URL、页眉「关于」链接（`about`）与结构化数据中的个人主页（`sameAs`） |
+| `static/og.png` | 没有图片的页面的分享卡片 |
 | `templates/page.html` | 页眉、文章列表与文章布局 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
@@ -138,7 +140,9 @@ Delta | BTC  | ETH
 - 首页、文章页、404：完整语义化 HTML，HTTP 响应包含全部正文。
 - `feed.xml`：包含全文的 RSS 2.0。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
-- canonical、description、Open Graph、文章日期、跳至正文链接、键盘焦点状态。
+- canonical、description、跳至正文链接、键盘焦点状态。
+- 分享与搜索：Open Graph 与 Twitter 大图卡片，`og:image` 取文章第一张本地图片（带宽高与替代文字），没有图片时用 `static/og.png`（1200×630，站点名与描述）；文章页输出发布、修改日期、作者与标签。
+- 结构化数据：首页 `WebSite`、文章页 `BlogPosting` 的 JSON-LD，作者为 `site.json` 的 `author`，链接到 `about` 与 `sameAs`（GitHub、X），与 about.mizore.blog 的身份一致。这是 `application/ld+json` 数据块，不是可执行脚本。
 - 标题使用 Source Han Serif（思源宋体），正文和界面使用 Source Han Sans（思源黑体），代码保持系统等宽字体。
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
 - 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。

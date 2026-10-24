@@ -17,10 +17,11 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 正文第一段。
 ```
 
-- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 只有一个。
+- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 只有一个。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
 - 正文不要再写 `# 标题`：页面已用 `title` 作 h1。正文从 `##` 开始，`##` / `###` 自动进入目录。
 - 没有草稿：`content/posts/` 下的文件都会发布。未完成的文章放在仓库外。
-- `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。
+- `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。它同时是搜索结果摘要和分享卡片文字。
+- 正文第一张图片会成为分享卡片的图，尽量放一张有信息量的图，并写好替代文字。
 
 ## 能用的语法
 

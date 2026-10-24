@@ -7,12 +7,26 @@
 <meta name="description" content="{{.Description}}">
 <meta name="author" content="{{.Site.Author}}">
 <meta name="color-scheme" content="light">
-{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
-<meta property="og:title" content="{{.Title}}">
+<meta name="theme-color" content="#faf9f6">
+{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<meta name="robots" content="max-image-preview:large">
+<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
+<link rel="author" href="{{.Site.About}}">
+<meta property="og:site_name" content="{{.Site.Title}}">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:title" content="{{if .Post}}{{.Post.Title}}{{else}}{{.Title}}{{end}}">
 <meta property="og:description" content="{{.Description}}">
-{{if .Post}}<meta property="article:published_time" content="{{.Post.Date}}">{{end}}
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
 {{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
+<meta property="og:image" content="{{.Image.URL}}">
+{{if .Image.Width}}<meta property="og:image:width" content="{{.Image.Width}}">
+<meta property="og:image:height" content="{{.Image.Height}}">{{end}}
+<meta property="og:image:alt" content="{{.Image.Alt}}">
+<meta name="twitter:card" content="summary_large_image">
+{{with .Post}}<meta property="article:published_time" content="{{.Date}}">
+<meta property="article:modified_time" content="{{.Modified}}">
+<meta property="article:author" content="{{$.Site.About}}">
+{{if .Tag}}<meta property="article:tag" content="{{.Tag}}">{{end}}{{end}}
+{{with jsonld .}}<script type="application/ld+json">{{.}}</script>{{end}}
 <link rel="icon" href="{{asset "favicon.svg"}}" type="image/svg+xml">
 <link rel="preload" href="{{asset "fonts/source-han-serif-core.woff2"}}" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="{{asset "fonts/source-han-sans-core.woff2"}}" as="font" type="font/woff2" crossorigin>

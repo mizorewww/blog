@@ -27,7 +27,10 @@ import (
 	"github.com/yuin/goldmark/text"
 )
 
-type Site struct{ Title, Author, Description, URL, About string }
+type Site struct {
+	Title, Author, Description, URL, About string
+	SameAs                                 []string
+}
 type Heading struct {
 	ID, Title string
 	Level     int
@@ -37,14 +40,25 @@ type PostMetadata struct {
 	Description string `json:"description"`
 	Date        string `json:"date"`
 	Tag         string `json:"tag,omitempty"`
+	Updated     string `json:"updated,omitempty"`
 }
 type Post struct {
 	PostMetadata
 	Slug, Path string
 	Content    template.HTML
 	Minutes    int
-	TOC        []Heading `json:"-"`
+	TOC        []Heading  `json:"-"`
+	Image      ShareImage `json:"-"`
 }
+
+// Modified is the last substantive edit, for dateModified and sitemap lastmod.
+func (p Post) Modified() string {
+	if p.Updated != "" {
+		return p.Updated
+	}
+	return p.Date
+}
+
 type Page struct {
 	Site                           Site
 	Title, Description, Path, Kind string
@@ -52,6 +66,7 @@ type Page struct {
 	Previous, Next                 *Post
 	Posts                          []Post
 	Content                        template.HTML
+	Image                          ShareImage
 }
 type Feed struct {
 	XMLName xml.Name `xml:"rss"`
@@ -200,6 +215,14 @@ func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 		return p, fmt.Errorf("%s: invalid date: %w", name, err)
 	}
 	p.Path = "/posts/" + p.Slug + "/"
+	if p.Updated != "" {
+		if _, err := time.Parse(time.DateOnly, p.Updated); err != nil || p.Updated < p.Date {
+			return p, fmt.Errorf("%s: updated must be a YYYY-MM-DD date on or after date", name)
+		}
+	}
+	if len(images) > 0 {
+		images = []func(*ast.Image) error{firstImage(images[0], []byte(parts[1]), &p.Image)}
+	}
 	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
 	p.Minutes = max(1, (readingUnits(parts[1])+299)/300)
 	return p, err
@@ -262,8 +285,9 @@ func build(base string) error {
 		return err
 	}
 	tmpl, err := template.New("page.html").Funcs(template.FuncMap{
-		"local": func(p string) string { return prefix + p },
-		"asset": func(p string) string { return prefix + "/static/" + version + "/" + p },
+		"local":  func(p string) string { return prefix + p },
+		"jsonld": structuredData,
+		"asset":  func(p string) string { return prefix + "/static/" + version + "/" + p },
 	}).ParseGlob("templates/*.html")
 	if err != nil {
 		return err
@@ -301,6 +325,12 @@ func build(base string) error {
 	}
 	page := func(name string, p Page) error {
 		p.Site = site
+		if p.Image.URL == "" && p.Post != nil {
+			p.Image = p.Post.Image
+		}
+		if p.Image.URL == "" {
+			p.Image = defaultShareImage(site)
+		}
 		var out bytes.Buffer
 		if err := tmpl.Execute(&out, p); err != nil {
 			return err
