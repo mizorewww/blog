@@ -1,6 +1,6 @@
 {{define "main"}}
 <article class="article post-article">
-<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p>{{with .Post.Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}</header>
+<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p>{{with .Post.Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}<i class="rule" aria-hidden="true"></i></header>
 {{if .Post.TOC}}<details class="toc-mobile"><summary>{{.UI.TOC}}</summary>{{template "toc" .}}</details>{{end}}
 <div class="article-body">
 {{if .Post.TOC}}<aside class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</aside>{{end}}
@@ -11,7 +11,7 @@
 <div><dt>{{.UI.License}}</dt><dd>{{.UI.LicenseText}}<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/{{if eq .Lang.Code "zh"}}deed.zh-hans{{end}}" rel="license">CC BY-NC-SA 4.0</a>{{.UI.LicenseNote}}</dd></div>
 </dl></footer>
 </div>
-{{if or .Previous .Next}}<nav class="post-pagination" aria-label="{{.UI.Adjacent}}">
+{{if or .Previous .Next}}<nav class="post-pagination" aria-label="{{.UI.Adjacent}}"><i class="rule top" aria-hidden="true"></i>
 {{with .Previous}}<a class="previous" rel="prev" href="{{local .Path}}"><span>{{$.UI.Previous}}</span>{{.Title}}</a>{{end}}
 {{with .Next}}<a class="next" rel="next" href="{{local .Path}}"><span>{{$.UI.Next}}</span>{{.Title}}</a>{{end}}
 </nav>{{end}}
