@@ -21,6 +21,7 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 - 正文不要再写 `# 标题`：页面已用 `title` 作 h1。正文从 `##` 开始，`##` / `###` 自动进入目录。
 - 改 slug 或迁移旧文章时，把旧地址写进 `"aliases":["/旧/路径/"]`，第一项也是 RSS guid，已有的别名不要删。
 - 没有草稿：`content/posts/` 下的文件都会发布。未完成的文章放在仓库外。
+- 元数据只能用上面列出的字段（另有 `aliases`）；拼错或多余的字段会让构建失败。
 - `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。它同时是搜索结果摘要和分享卡片文字（分享卡片没有图片）。
 
 ## 能用的语法

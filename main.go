@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -246,8 +247,14 @@ func readPost(name string, image func(*ast.Image) error) (Post, error) {
 	if len(parts) != 2 {
 		return p, fmt.Errorf("%s: expected JSON metadata followed by ---", name)
 	}
-	if err := json.Unmarshal([]byte(parts[0]), &p); err != nil {
-		return p, fmt.Errorf("%s: %w", name, err)
+	// Unknown keys fail the build, so a typo such as "udpated" is never silently dropped.
+	decoder := json.NewDecoder(strings.NewReader(parts[0]))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&p.PostMetadata); err != nil {
+		return p, fmt.Errorf("%s: metadata: %w", name, err)
+	}
+	if decoder.Decode(&struct{}{}) != io.EOF {
+		return p, fmt.Errorf("%s: metadata: unexpected data after the JSON object", name)
 	}
 	p.Slug = strings.TrimSuffix(filepath.Base(name), ".md")
 	if !slugPattern.MatchString(p.Slug) {

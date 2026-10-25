@@ -21,6 +21,9 @@ func TestPostValidation(t *testing.T) {
 		{"missing-title", "{\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\nHello", false},
 		{"bad-metadata", "not json\n---\nHello", false},
 		{"no-metadata", "Hello", false},
+		{"unknown-field", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"image\":\"a.png\"}\n---\nHello", false},
+		{"misspelled-field", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"udpated\":\"2026-10-20\"}\n---\nHello", false},
+		{"trailing-data", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\"} x\n---\nHello", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), tc.name+".md")
