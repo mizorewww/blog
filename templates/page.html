@@ -40,48 +40,7 @@
 {{end}}<div class="shell">
 <header class="site-header"><a class="brand" href="{{local .Lang.Base}}/"{{if eq .Kind "home"}} aria-current="page"{{end}}><img src="{{local "/static/avatar.webp"}}" alt="" width="24" height="24">{{.Site.Title}}</a><nav aria-label="{{.UI.Nav}}"><a href="{{local .Lang.Base}}/tags/"{{if or (eq .Kind "tags") (eq .Kind "term")}} aria-current="page"{{end}}>{{.UI.Tags}}</a><a href="{{local .Lang.Base}}/search/"{{if eq .Kind "search"}} aria-current="page"{{end}}>{{.UI.Search}}</a><a href="{{.Site.About}}" rel="me">{{.UI.About}}<span aria-hidden="true">↗</span></a>{{with .Switch}}<a href="{{local .Path}}" hreflang="{{.Lang}}" lang="{{.Lang}}">{{.Label}}</a>{{end}}<button class="theme" type="button" aria-label="{{.UI.Theme}}"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button></nav></header>
 <main id="main">
-{{if eq .Kind "home"}}
-<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}}</h1>
-<div class="intro-block"><p class="intro"><span>{{.UI.Description}}</span></p>
-{{if .Posts}}<p class="profile"><span>{{.Stats}}</span>{{if .Categories}}<span class="cats">{{range .Categories}}<a href="{{local .Path}}">{{.Name}}<sup>{{len .Posts}}</sup></a>{{end}}</span>{{end}}</p>{{end}}</div>
-{{range .Posts}}{{template "row" .}}{{else}}<p class="empty">{{.UI.Empty}}</p>{{end}}
-</section>
-{{else if eq .Kind "post"}}
-<article class="article post-article">
-<header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p>{{with .Post.Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}</header>
-{{if .Post.TOC}}<details class="toc-mobile"><summary>{{.UI.TOC}}</summary>{{template "toc" .}}</details>{{end}}
-<div class="article-body">
-{{if .Post.TOC}}<aside class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</aside>{{end}}
-<div class="prose">{{anchors .Post.Content}}</div>
-<footer class="colophon"><dl>
-{{with .Post.History}}<div><dt>{{$.UI.History}}</dt><dd><details><summary>{{printf $.UI.Commits (len .) (index . 0).Date}}</summary><ol>{{range .}}<li><a href="{{$.Site.Repo}}/commit/{{.Hash}}"><code>{{.Short}}</code><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Subject}}</span></a></li>{{end}}</ol></details></dd></div>{{end}}
-{{with .Post.Source}}<div><dt>{{$.UI.Source}}</dt><dd><a href="{{.}}">{{$.Post.File}} ↗</a></dd></div>{{end}}
-<div><dt>{{.UI.License}}</dt><dd>{{.UI.LicenseText}}<a href="https://creativecommons.org/licenses/by-nc-sa/4.0/{{if eq .Lang.Code "zh"}}deed.zh-hans{{end}}" rel="license">CC BY-NC-SA 4.0</a>{{.UI.LicenseNote}}</dd></div>
-</dl></footer>
-</div>
-{{if or .Previous .Next}}<nav class="post-pagination" aria-label="{{.UI.Adjacent}}">
-{{with .Previous}}<a class="previous" rel="prev" href="{{local .Path}}"><span>{{$.UI.Previous}}</span>{{.Title}}</a>{{end}}
-{{with .Next}}<a class="next" rel="next" href="{{local .Path}}"><span>{{$.UI.Next}}</span>{{.Title}}</a>{{end}}
-</nav>{{end}}
-</article>
-<a class="to-top" href="#top" aria-label="{{.UI.Top}}"><span aria-hidden="true">↑</span></a>
-{{else if eq .Kind "tags"}}
-<section class="writing">
-<header class="page-head"><h1>{{.UI.TagsTitle}}</h1><p class="dek">{{.Description}}</p></header>
-<div class="terms"><h2>{{.UI.Categories}}</h2><ul class="term-list">{{range .Categories}}<li><a href="{{local .Path}}">{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>
-{{if .Tags}}<h2>{{.UI.Tags}}</h2><ul class="term-cloud">{{range .Tags}}<li><a href="{{local .Path}}">#{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>{{end}}</div>
-</section>
-{{else if eq .Kind "term"}}
-<section class="writing">
-<header class="page-head"><p class="eyebrow"><a href="{{local .Lang.Base}}/tags/">{{.TermKind}}</a></p><h1>{{if eq .TermKind .UI.Tag}}#{{end}}{{.Term.Name}}</h1><p class="dek">{{printf .UI.Count (len .Posts)}} · <a href="{{local .Term.Path}}feed.xml">RSS</a></p></header>
-{{range .Posts}}{{template "row" .}}{{end}}
-</section>
-{{else if eq .Kind "search"}}
-<section class="writing">
-<header class="page-head"><h1>{{.UI.Search}}</h1><form class="search-form" role="search" data-index="{{local .Lang.Base}}/search.json" data-found="{{.UI.SearchFound}}" data-none="{{.UI.SearchNone}}"><label for="q">{{.UI.SearchLabel}}</label><input id="q" name="q" type="search" autocomplete="off" spellcheck="false"></form><p class="search-status" aria-live="polite"></p></header>
-{{range .Posts}}{{template "row" .}}{{end}}
-</section>
-{{else}}<section class="article"><p class="eyebrow">404 / NOT FOUND</p><h1>{{.UI.NotFound}}</h1><p class="dek">{{.UI.NotFoundDek}}</p><a href="{{local "/"}}">{{.UI.BackHome}}</a></section>{{end}}
+{{template "main" .}}
 </main>
 <footer class="site-footer"><span>© {{year}} {{.Site.Author}}{{with .Site.Commit}} · <a href="{{$.Site.Repo}}/commit/{{.}}">{{slice . 0 7}}</a>{{end}}</span><nav aria-label="{{.UI.Elsewhere}}">{{range .Site.SameAs}}<a href="{{.}}" rel="me">{{profile .}}</a>{{end}}{{with .Site.Email}}<a href="mailto:{{.}}">Email</a>{{end}}<a href="{{local .Lang.Base}}/feed.xml">RSS</a></nav></footer>
 </div>

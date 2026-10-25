@@ -1,0 +1,6 @@
+{{define "main"}}
+<section class="writing">
+<header class="page-head"><p class="eyebrow"><a href="{{local .Lang.Base}}/tags/">{{.TermKind}}</a></p><h1>{{if eq .TermKind .UI.Tag}}#{{end}}{{.Term.Name}}</h1><p class="dek">{{printf .UI.Count (len .Posts)}} · <a href="{{local .Term.Path}}feed.xml">RSS</a></p></header>
+{{range .Posts}}{{template "row" .}}{{end}}
+</section>
+{{end}}

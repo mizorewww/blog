@@ -39,7 +39,7 @@ type builder struct {
 	prefix   string // URL path of the site root; "" at a domain root
 	version  string // content hash of static/, the versioned asset directory
 	stage    string
-	tmpl     *template.Template
+	pages    map[string]*template.Template // the layout with each kind's "main", by Page.Kind
 	fonts    *fontSubsetter
 	images   imagePipeline
 	editions []*edition
@@ -138,7 +138,7 @@ func (b *builder) prepare() error {
 	if err != nil {
 		return err
 	}
-	b.tmpl, err = template.New("page.html").Funcs(template.FuncMap{
+	layout, err := template.New("page.html").Funcs(template.FuncMap{
 		"css":     func() template.CSS { return css },
 		"local":   func(p string) string { return b.prefix + p },
 		"jsonld":  structuredData,
@@ -147,9 +147,24 @@ func (b *builder) prepare() error {
 		"anchors": withAnchors,
 		"profile": profileName,
 		"script":  scripts.For,
-	}).ParseGlob("templates/*.html")
+	}).ParseFiles("templates/page.html")
 	if err != nil {
 		return err
+	}
+	// Each kind of page fills the layout's "main" from templates/pages/<kind>.html.
+	files, err := filepath.Glob(filepath.Join("templates", "pages", "*.html"))
+	if err != nil {
+		return err
+	}
+	b.pages = map[string]*template.Template{}
+	for _, file := range files {
+		page, err := layout.Clone()
+		if err != nil {
+			return err
+		}
+		if b.pages[strings.TrimSuffix(filepath.Base(file), ".html")], err = page.ParseFiles(file); err != nil {
+			return err
+		}
 	}
 	b.fonts, err = newFontSubsetter(filepath.Join(b.stage, "static", b.version, "fonts"), b.prefix+"/static/"+b.version+"/fonts")
 	b.images = imagePipeline{stage: b.stage, base: b.site.URL}
@@ -329,8 +344,12 @@ func (b *builder) page(path string, p Page, extra string) error {
 	if p.Switch != nil {
 		p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
 	}
+	tmpl := b.pages[p.Kind]
+	if tmpl == nil {
+		return fmt.Errorf("%s: no templates/pages/%s.html", name, p.Kind)
+	}
 	var out bytes.Buffer
-	if err := b.tmpl.Execute(&out, p); err != nil {
+	if err := tmpl.Execute(&out, p); err != nil {
 		return err
 	}
 	faces, err := b.fonts.css(out.String(), extra)

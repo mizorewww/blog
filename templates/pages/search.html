@@ -1,0 +1,6 @@
+{{define "main"}}
+<section class="writing">
+<header class="page-head"><h1>{{.UI.Search}}</h1><form class="search-form" role="search" data-index="{{local .Lang.Base}}/search.json" data-found="{{.UI.SearchFound}}" data-none="{{.UI.SearchNone}}"><label for="q">{{.UI.SearchLabel}}</label><input id="q" name="q" type="search" autocomplete="off" spellcheck="false"></form><p class="search-status" aria-live="polite"></p></header>
+{{range .Posts}}{{template "row" .}}{{end}}
+</section>
+{{end}}

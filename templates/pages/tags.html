@@ -1,0 +1,7 @@
+{{define "main"}}
+<section class="writing">
+<header class="page-head"><h1>{{.UI.TagsTitle}}</h1><p class="dek">{{.Description}}</p></header>
+<div class="terms"><h2>{{.UI.Categories}}</h2><ul class="term-list">{{range .Categories}}<li><a href="{{local .Path}}">{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>
+{{if .Tags}}<h2>{{.UI.Tags}}</h2><ul class="term-cloud">{{range .Tags}}<li><a href="{{local .Path}}">#{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul>{{end}}</div>
+</section>
+{{end}}

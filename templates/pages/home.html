@@ -1,0 +1,7 @@
+{{define "main"}}
+<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}}</h1>
+<div class="intro-block"><p class="intro"><span>{{.UI.Description}}</span></p>
+{{if .Posts}}<p class="profile"><span>{{.Stats}}</span>{{if .Categories}}<span class="cats">{{range .Categories}}<a href="{{local .Path}}">{{.Name}}<sup>{{len .Posts}}</sup></a>{{end}}</span>{{end}}</p>{{end}}</div>
+{{range .Posts}}{{template "row" .}}{{else}}<p class="empty">{{.UI.Empty}}</p>{{end}}
+</section>
+{{end}}
