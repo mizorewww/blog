@@ -24,7 +24,10 @@ func TestNewPost(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := "content/posts/hello-world.md"
-	post, err := readPost(path, nil)
+	post, err := readPost(path)
+	if err == nil {
+		err = post.render(nil)
+	}
 	if err != nil || post.Title != "你好，世界" || len(post.TOC) != 3 {
 		t.Fatalf("invalid generated article: %+v, %v", post, err)
 	}
@@ -44,7 +47,7 @@ func TestNewPost(t *testing.T) {
 	if err = newPost([]string{"Hello, Go!"}, &out); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = readPost("content/posts/hello-go.md", nil); err != nil {
+	if _, err = readPost("content/posts/hello-go.md"); err != nil {
 		t.Fatal(err)
 	}
 	if err = newPost([]string{"纯中文标题"}, &out); err != nil {

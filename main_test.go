@@ -30,7 +30,10 @@ func TestPostValidation(t *testing.T) {
 			if err := os.WriteFile(path, []byte(tc.input), 0600); err != nil {
 				t.Fatal(err)
 			}
-			p, err := readPost(path, nil)
+			p, err := readPost(path)
+			if err == nil {
+				err = p.render(nil)
+			}
 			if (err == nil) != tc.valid {
 				t.Fatalf("valid=%v, err=%v", tc.valid, err)
 			}
@@ -52,7 +55,7 @@ func TestBuild(t *testing.T) {
 	// Fixture posts keep the test independent of real articles and their images.
 	fixtures := map[string]string{
 		"content/posts/alpha.md":    "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tag\":\"技术\",\"tags\":[\"Next.js\",\"Linux\"]}\n---\n## 第一节\n\n正文。\n",
-		"content/posts/draft.md":    "{\"title\":\"Draft\",\"description\":\"D\",\"date\":\"2026-10-03\",\"draft\":true}\n---\n草稿。\n",
+		"content/posts/draft.md":    "{\"title\":\"Draft\",\"description\":\"D\",\"date\":\"2026-10-03\",\"draft\":true}\n---\n草稿。\n\n![unfinished](../images/missing.png)\n",
 		"content/posts/en/alpha.md": "{\"title\":\"Alpha EN\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tags\":[\"Linux\"]}\n---\nText.\n",
 		"content/posts/beta.md":     "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
 		"content/posts/gamma.md":    "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",

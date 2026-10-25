@@ -61,6 +61,7 @@ type Post struct {
 	History          []Commit
 	Source           string
 	Translation      *Post
+	body             []byte // Markdown after the metadata
 }
 
 // Modified is the last substantive edit, for dateModified and sitemap lastmod.
@@ -237,7 +238,8 @@ func withAnchors(content template.HTML) template.HTML {
 	return template.HTML(sectionHeading.ReplaceAllString(string(content), `<h$1 id="$2"><a class="anchor" href="#$2" aria-hidden="true" tabindex="-1">#</a>`))
 }
 
-func readPost(name string, image func(*ast.Image) error) (Post, error) {
+// readPost parses and validates a post; render turns its body into HTML.
+func readPost(name string) (Post, error) {
 	var p Post
 	src, err := os.ReadFile(name)
 	if err != nil {
@@ -272,10 +274,16 @@ func readPost(name string, image func(*ast.Image) error) (Post, error) {
 			return p, fmt.Errorf("%s: updated must be a YYYY-MM-DD date on or after date", name)
 		}
 	}
-	p.Content, p.TOC, err = renderContent([]byte(parts[1]), image)
+	p.body = []byte(parts[1])
 	p.Units = readingUnits(parts[1])
 	p.Minutes = max(1, (p.Units+299)/300)
-	return p, err
+	return p, nil
+}
+
+// render fills Content and TOC; image, when not nil, rewrites each image.
+func (p *Post) render(image func(*ast.Image) error) (err error) {
+	p.Content, p.TOC, err = renderContent(p.body, image)
+	return err
 }
 
 // readingUnits counts each Han character and each other word once, skipping
@@ -394,12 +402,16 @@ func build(base string) error {
 			return err
 		}
 		for _, name := range names {
-			p, err := readPost(name, images.hook(name))
+			p, err := readPost(name)
 			if err != nil {
 				return err
 			}
+			// Skip drafts before rendering, so their images are never published.
 			if p.Draft && !includeDrafts {
 				continue
+			}
+			if err = p.render(images.hook(name)); err != nil {
+				return err
 			}
 			p.File, p.Lang, p.Path = name, lang, lang.Base+p.Path
 			if p.History = gitHistory(name); len(p.History) > 0 && site.Repo != "" {
