@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/wyatt915/treeblood"
@@ -22,6 +23,8 @@ var (
 	kindMath      = ast.NewNodeKind("Math")
 	kindMathBlock = ast.NewNodeKind("MathBlock")
 	mathIndent    = regexp.MustCompile(`\n\s*`)
+	mathTag       = regexp.MustCompile(`<[a-z]+((?:\s+[\w:-]+="[^"]*")+)`)
+	mathAttribute = regexp.MustCompile(`[\w:-]+="[^"]*"`)
 )
 
 type mathInline struct {
@@ -142,6 +145,25 @@ func writeMath(w util.BufWriter, tex string, display bool) error {
 	if err != nil {
 		return fmt.Errorf("math %q: %w", tex, err)
 	}
-	_, err = w.WriteString(mathIndent.ReplaceAllString(strings.TrimSpace(mathML), ""))
+	_, err = w.WriteString(sortedAttributes(mathIndent.ReplaceAllString(strings.TrimSpace(mathML), "")))
 	return err
+}
+
+// sortedAttributes orders each tag's attributes and style declarations by name.
+// treeblood writes both from Go maps, so the same formula would otherwise
+// render differently on every build.
+func sortedAttributes(mathML string) string {
+	return mathTag.ReplaceAllStringFunc(mathML, func(tag string) string {
+		attrs := mathAttribute.FindAllString(tag, -1)
+		for i, a := range attrs {
+			if value, ok := strings.CutPrefix(a, `style="`); ok {
+				rules := strings.Split(strings.Trim(strings.TrimSuffix(value, `"`), ";"), ";")
+				slices.Sort(rules)
+				attrs[i] = `style="` + strings.Join(rules, ";") + `;"`
+			}
+		}
+		slices.Sort(attrs)
+		name, _, _ := strings.Cut(tag, " ")
+		return name + " " + strings.Join(attrs, " ")
+	})
 }

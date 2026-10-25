@@ -346,6 +346,12 @@ func TestMath(t *testing.T) {
 	if strings.Count(html, "<math") != 3 || strings.Contains(html, "\n  ") {
 		t.Fatalf("expected three compact formulas: %s", html)
 	}
+	first, _, _ := render([]byte("$$\n\\left( \\frac{a}{b} \\right)\n$$\n"), nil)
+	for range 20 {
+		if again, _, _ := render([]byte("$$\n\\left( \\frac{a}{b} \\right)\n$$\n"), nil); again != first {
+			t.Fatalf("MathML must be identical on every build:\n%s\n%s", first, again)
+		}
+	}
 	if _, _, err = render([]byte("$\\arg x$"), nil); err == nil {
 		t.Fatal("unsupported LaTeX must fail the build")
 	}
