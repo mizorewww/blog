@@ -102,6 +102,11 @@ jobs:
         with:
           node-version: 22
 
+      # Every phone and desktop ships a CJK font; a runner without one lays out
+      # Chinese text very differently until the web fonts arrive.
+      - name: Install CJK system fonts
+        run: sudo apt-get update -q && sudo apt-get install -y -q fonts-noto-cjk
+
       - name: Measure every post
         run: |
           go build -o blog ./src
