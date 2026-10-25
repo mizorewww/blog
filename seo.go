@@ -3,41 +3,8 @@ package main
 import (
 	"encoding/json"
 	"html/template"
-	"strconv"
 	"strings"
-
-	"github.com/yuin/goldmark/ast"
 )
-
-// ShareImage is the og:image of a page: a post's "image", else its first image, else static/og.png.
-type ShareImage struct {
-	URL, Alt      string
-	Width, Height int
-}
-
-func defaultShareImage(site Site) ShareImage {
-	return ShareImage{URL: site.URL + "/static/og.png", Alt: site.Title, Width: 1280, Height: 640}
-}
-
-// firstImage wraps an image hook and remembers the first absolute image URL it produced.
-func firstImage(hook func(*ast.Image) error, src []byte, into *ShareImage) func(*ast.Image) error {
-	return func(n *ast.Image) error {
-		if err := hook(n); err != nil || into.URL != "" {
-			return err
-		}
-		destination := string(n.Destination)
-		if !strings.HasPrefix(destination, "https://") && !strings.HasPrefix(destination, "http://") {
-			return nil
-		}
-		*into = ShareImage{URL: destination, Alt: plainText(n, src)}
-		for attr, size := range map[string]*int{"width": &into.Width, "height": &into.Height} {
-			if v, ok := n.AttributeString(attr); ok {
-				*size, _ = strconv.Atoi(v.(string))
-			}
-		}
-		return nil
-	}
-}
 
 // structuredData is the page's schema.org JSON-LD. json.Marshal escapes <, > and &,
 // so the result cannot close its <script> element.
@@ -69,7 +36,6 @@ func structuredData(p Page) template.JS {
 		data["dateModified"] = p.Post.Modified()
 		data["author"] = author
 		data["publisher"] = author
-		data["image"] = p.Image.URL
 		if keywords := append([]string{p.Post.Tag}, p.Post.Tags...); strings.Join(keywords, "") != "" {
 			data["keywords"] = strings.Trim(strings.Join(keywords, ", "), ", ")
 		}

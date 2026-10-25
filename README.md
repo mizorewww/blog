@@ -24,7 +24,7 @@ go run . -url https://example.com/blog
 
 将 `public/` 的内容上传到任意静态托管服务。配置目录 URL 对应 `index.html`，不存在的地址返回 `404.html` 并保持 HTTP 404。域名根目录部署时，`robots.txt` 可被标准爬虫直接发现；子路径部署时由域名根站点管理 robots.txt。
 
-正式地址是 `https://mizore.blog`，接替原来的 Next.js 博客，按旧站方式部署在 Cloudflare Pages（会读取构建产物里的 `_headers` 与 `_redirects`）。发布到其他域名时务必修改 `site.json` 或传入 `-url`，以生成正确的 canonical、RSS、sitemap 与 `og:image` URL。上线后在 Google Search Console 和 Bing Webmaster Tools 提交 `https://mizore.blog/sitemap.xml`。
+正式地址是 `https://mizore.blog`，接替原来的 Next.js 博客，按旧站方式部署在 Cloudflare Pages（会读取构建产物里的 `_headers` 与 `_redirects`）。发布到其他域名时务必修改 `site.json` 或传入 `-url`，以生成正确的 canonical、RSS 与 sitemap URL。上线后在 Google Search Console 和 Bing Webmaster Tools 提交 `https://mizore.blog/sitemap.xml`。
 
 ## 写文章
 
@@ -134,7 +134,6 @@ Delta | BTC  | ETH
 | 文件 | 用途 |
 | --- | --- |
 | `site.json` | 站点标题、作者、描述、正式 URL、页眉「关于」链接（`about`）与结构化数据中的个人主页（`sameAs`） |
-| `static/og.png` | 没有图片的页面的分享卡片 |
 | `templates/page.html` | 页眉、文章列表与文章布局 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
@@ -153,7 +152,7 @@ Delta | BTC  | ETH
 - `sitemap.xml` 的 `lastmod` 取文章的 `updated` 或 `date`，首页取最新一篇；日期只来自内容，内容不变时构建结果完全一致。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
 - canonical、description、跳至正文链接、键盘焦点状态。
-- 分享与搜索：Open Graph 与 Twitter 大图卡片，`og:image` 取文章第一张本地图片（带宽高与替代文字），没有图片时用 `static/og.png`（1200×630，站点名与描述）；文章页输出发布、修改日期、作者与标签。
+- 分享与搜索：Open Graph 与 Twitter `summary` 卡片只有标题和描述，刻意不输出 `og:image` 预览图；文章页输出发布、修改日期、作者与标签。
 - 结构化数据：首页 `WebSite`、文章页 `BlogPosting` 的 JSON-LD，作者为 `site.json` 的 `author`，链接到 `about` 与 `sameAs`（GitHub、X），与 about.mizore.blog 的身份一致。这是 `application/ld+json` 数据块，不是可执行脚本。
 - 正文用思源黑体，标题用思源宋体，日期、表格与代码用 Maple Mono，全部自托管、不依赖系统字体。构建时按页面子集化：每页首屏（第一个正文小标题之前）用到的字直接内嵌，其余的字拆成这一页自己的小文件，加载后再启用。新文章不需要重新生成字体；GB2312 以外的生僻字要先运行 `uv run scripts/prepare-fonts.py` 更新 `fonts/` 下的源字体。
 - Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。

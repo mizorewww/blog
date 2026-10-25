@@ -17,12 +17,11 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 正文第一段。
 ```
 
-- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 是分类，只有一个；`tags` 是标签列表，各自生成 `/categories/…/` 和 `/tags/…/` 页面与 RSS。`"image":"../images/x.png"` 指定分享图（默认用正文第一张图）；`"draft":true` 不发布（`go run . -drafts` 预览）。英文版放在 `content/posts/en/` 下、用同一个文件名，两边会互相链接。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
+- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 是分类，只有一个；`tags` 是标签列表，各自生成 `/categories/…/` 和 `/tags/…/` 页面与 RSS。`"draft":true` 不发布（`go run . -drafts` 预览）。英文版放在 `content/posts/en/` 下、用同一个文件名，两边会互相链接。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
 - 正文不要再写 `# 标题`：页面已用 `title` 作 h1。正文从 `##` 开始，`##` / `###` 自动进入目录。
 - 改 slug 或迁移旧文章时，把旧地址写进 `"aliases":["/旧/路径/"]`，第一项也是 RSS guid，已有的别名不要删。
 - 没有草稿：`content/posts/` 下的文件都会发布。未完成的文章放在仓库外。
-- `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。它同时是搜索结果摘要和分享卡片文字。
-- 正文第一张图片会成为分享卡片的图，尽量放一张有信息量的图，并写好替代文字。
+- `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。它同时是搜索结果摘要和分享卡片文字（分享卡片没有图片）。
 
 ## 能用的语法
 

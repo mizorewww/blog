@@ -45,7 +45,6 @@ type PostMetadata struct {
 	Tag         string   `json:"tag,omitempty"` // the category
 	Tags        []string `json:"tags,omitempty"`
 	Updated     string   `json:"updated,omitempty"`
-	Cover       string   `json:"image,omitempty"` // share image; defaults to the first image
 	Draft       bool     `json:"draft,omitempty"`
 	Aliases     []string `json:"aliases,omitempty"`
 }
@@ -56,7 +55,6 @@ type Post struct {
 	Content          template.HTML
 	Minutes, Units   int
 	TOC              []Heading
-	Image            ShareImage
 	Category         *Term
 	Terms            []*Term
 	History          []Commit
@@ -88,7 +86,6 @@ type Page struct {
 	Categories, Tags               []*Term
 	Switch                         *Link
 	Alternates                     []Link
-	Image                          ShareImage
 }
 type Feed struct {
 	XMLName xml.Name `xml:"rss"`
@@ -267,9 +264,6 @@ func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 			return p, fmt.Errorf("%s: updated must be a YYYY-MM-DD date on or after date", name)
 		}
 	}
-	if len(images) > 0 {
-		images = []func(*ast.Image) error{firstImage(images[0], []byte(parts[1]), &p.Image)}
-	}
 	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
 	p.Units = readingUnits(parts[1])
 	p.Minutes = max(1, (p.Units+299)/300)
@@ -398,11 +392,6 @@ func build(base string) error {
 				continue
 			}
 			p.File, p.Lang, p.Path = name, lang, lang.Base+p.Path
-			if p.Cover != "" {
-				if p.Image, err = images.cover(name, p.Cover, p.Title); err != nil {
-					return err
-				}
-			}
 			if p.History = gitHistory(name); len(p.History) > 0 && site.Repo != "" {
 				p.Source = site.Repo + "/blob/main/" + filepath.ToSlash(name)
 			}
@@ -437,12 +426,6 @@ func build(base string) error {
 	}
 	page := func(name string, p Page, extra string) error {
 		p.Site, p.UI = site, p.Lang.UI
-		if p.Image.URL == "" && p.Post != nil {
-			p.Image = p.Post.Image
-		}
-		if p.Image.URL == "" {
-			p.Image = defaultShareImage(site)
-		}
 		if p.Switch != nil {
 			p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
 		}

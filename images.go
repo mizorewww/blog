@@ -117,19 +117,6 @@ func (p *imagePipeline) process(source string) (imageInfo, error) {
 	return info, nil
 }
 
-// cover is a post's "image": its share image, resolved like a Markdown image.
-func (p *imagePipeline) cover(document, destination, alt string) (ShareImage, error) {
-	source, err := imageSource(document, destination)
-	if err != nil {
-		return ShareImage{}, fmt.Errorf("%s: image %q: %w", document, destination, err)
-	}
-	if source == "" {
-		return ShareImage{URL: destination, Alt: alt}, nil
-	}
-	info, err := p.process(source)
-	return ShareImage{URL: info.Path, Alt: alt, Width: info.Width, Height: info.Height}, err
-}
-
 func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 	count := 0
 	return func(node *ast.Image) error {

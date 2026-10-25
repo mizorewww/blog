@@ -19,11 +19,7 @@
 <meta property="og:description" content="{{.Description}}">
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
 {{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
-<meta property="og:image" content="{{.Image.URL}}">
-{{if .Image.Width}}<meta property="og:image:width" content="{{.Image.Width}}">
-<meta property="og:image:height" content="{{.Image.Height}}">{{end}}
-<meta property="og:image:alt" content="{{.Image.Alt}}">
-<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:card" content="summary">
 {{with .Post}}<meta property="article:published_time" content="{{.Date}}">
 <meta property="article:modified_time" content="{{.Modified}}">
 <meta property="article:author" content="{{$.Site.About}}">
