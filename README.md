@@ -150,7 +150,7 @@ Delta | BTC  | ETH
 | `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
 | `REVIEW.md` | 代码审查标准与重构记录 |
 
-个人介绍不放在本站：页眉的「关于」指向 `site.json` 的 `about`（目前是 about.mizore.blog）。RSS 同时出现在页眉和 HTML head 的自动发现中。
+个人介绍不放在本站：页眉的「关于」指向 `site.json` 的 `about`（目前是 about.mizore.blog）。RSS 出现在页脚和 HTML head 的自动发现中，分类和标签页另有各自的 RSS。
 
 ## 输出与设计约束
 
