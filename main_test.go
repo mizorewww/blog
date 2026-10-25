@@ -94,7 +94,7 @@ func TestBuild(t *testing.T) {
 	if err = os.WriteFile("static/photo.svg", []byte("<svg/>"), 0644); err != nil {
 		t.Fatal(err)
 	}
-	if err = build("https://example.com/notes"); err != nil {
+	if err = build(Options{URL: "https://example.com/notes"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat("public/static/photo.svg"); err != nil {
@@ -209,7 +209,7 @@ func TestBuild(t *testing.T) {
 	if err = os.WriteFile("public/stale.html", []byte("old"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err = build("https://example.com/notes"); err != nil {
+	if err = build(Options{URL: "https://example.com/notes"}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err = os.Stat("public/stale.html"); !os.IsNotExist(err) {
@@ -220,7 +220,7 @@ func TestBuild(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	if err = build("https://example.com/notes"); err != nil {
+	if err = build(Options{URL: "https://example.com/notes"}); err != nil {
 		t.Fatal(err)
 	}
 	single, _ := os.ReadFile("public/posts/beta/index.html")
@@ -232,7 +232,7 @@ func TestBuild(t *testing.T) {
 	if err = os.WriteFile("content/posts/beta.md", append(original, []byte("\n![missing](../images/missing.png)\n")...), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err = build("https://example.com/notes"); err == nil {
+	if err = build(Options{URL: "https://example.com/notes"}); err == nil {
 		t.Fatal("missing image should fail build")
 	}
 	unchanged, _ := os.ReadFile("public/index.html")
@@ -245,7 +245,7 @@ func TestBuild(t *testing.T) {
 	if err = os.WriteFile("content/posts/broken.md", []byte("invalid"), 0600); err != nil {
 		t.Fatal(err)
 	}
-	if err = build("https://example.com/notes"); err == nil {
+	if err = build(Options{URL: "https://example.com/notes"}); err == nil {
 		t.Fatal("invalid content should fail build")
 	}
 	after, _ := os.ReadFile("public/index.html")
