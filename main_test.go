@@ -405,6 +405,17 @@ func TestStructuredData(t *testing.T) {
 	}
 }
 
+func TestTermCollision(t *testing.T) {
+	posts := []*Post{{PostMetadata: PostMetadata{Tags: []string{"C++"}}, File: "a.md"}, {PostMetadata: PostMetadata{Tags: []string{"c"}}, File: "b.md"}}
+	if _, err := collectTerms(posts, "", "tags", func(p *Post) []string { return p.Tags }); err == nil {
+		t.Fatal("C++ and c must not share /tags/c/")
+	}
+	posts[1].Tags = []string{"C++"}
+	if terms, err := collectTerms(posts, "", "tags", func(p *Post) []string { return p.Tags }); err != nil || len(terms) != 1 || len(terms[0].Posts) != 2 {
+		t.Fatalf("one name must group posts: %v %v", terms, err)
+	}
+}
+
 func TestRedirects(t *testing.T) {
 	files := map[string]string{}
 	write := func(name string, body []byte) error { files[filepath.ToSlash(name)] = string(body); return nil }

@@ -493,8 +493,14 @@ func build(base string) error {
 			}
 			return nil
 		}
-		categories := collectTerms(posts, lang.Base, "categories", func(p *Post) []string { return []string{p.Tag} })
-		tags := collectTerms(posts, lang.Base, "tags", func(p *Post) []string { return p.Tags })
+		categories, err := collectTerms(posts, lang.Base, "categories", func(p *Post) []string { return []string{p.Tag} })
+		if err != nil {
+			return err
+		}
+		tags, err := collectTerms(posts, lang.Base, "tags", func(p *Post) []string { return p.Tags })
+		if err != nil {
+			return err
+		}
 		units := 0
 		for _, p := range posts {
 			units += p.Units

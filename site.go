@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os/exec"
 	"path/filepath"
 	"sort"
@@ -96,7 +97,8 @@ func termSlug(name string) string {
 }
 
 // collectTerms groups posts (newest first) by name; terms sort by post count, then name.
-func collectTerms(posts []*Post, base, kind string, names func(*Post) []string) []*Term {
+// Two different names with one slug would share a page, so they fail the build.
+func collectTerms(posts []*Post, base, kind string, names func(*Post) []string) ([]*Term, error) {
 	bySlug := map[string]*Term{}
 	var terms []*Term
 	for _, p := range posts {
@@ -110,6 +112,8 @@ func collectTerms(posts []*Post, base, kind string, names func(*Post) []string) 
 				t = &Term{Name: name, Slug: slug, Path: base + "/" + kind + "/" + slug + "/"}
 				bySlug[slug] = t
 				terms = append(terms, t)
+			} else if t.Name != name {
+				return nil, fmt.Errorf("%s: %s %q and %q share the URL %s; use one spelling", p.File, kind, name, t.Name, t.Path)
 			}
 			if len(t.Posts) == 0 || t.Posts[len(t.Posts)-1] != p {
 				t.Posts = append(t.Posts, p)
@@ -122,7 +126,7 @@ func collectTerms(posts []*Post, base, kind string, names func(*Post) []string) 
 		}
 		return terms[i].Slug < terms[j].Slug
 	})
-	return terms
+	return terms, nil
 }
 
 // Commit is one change to a post's source, newest first.
