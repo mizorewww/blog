@@ -26,7 +26,9 @@ document.addEventListener("click", async e => {
 // Page transitions (style.css): the rules on screen are named top to bottom,
 // so each slides to its place on the next page. A rule without a partner
 // merges into, or splits from, the nearest one. Switching language cross-fades.
-const rules = () => {
+// The leaving page's main is renamed so it fades where it is.
+const rules = old => {
+  document.querySelector("main").style.viewTransitionName = old ? "main-old" : "";
   const all = [...document.querySelectorAll(".rule")];
   all.forEach(r => r.style.viewTransitionName = "");
   return all.map(r => [r, r.getBoundingClientRect()]).filter(([, b]) => b.height && b.bottom > 0 && b.top < innerHeight).map(([r, b], i) => {
@@ -36,7 +38,7 @@ const rules = () => {
 };
 addEventListener("pageswap", e => {
   if (!e.viewTransition) return;
-  try { sessionStorage.setItem("rules", JSON.stringify(rules())) } catch {}
+  try { sessionStorage.setItem("rules", JSON.stringify(rules(true))) } catch {}
 });
 addEventListener("pagereveal", async e => {
   const t = e.viewTransition;
