@@ -18,6 +18,7 @@ for path in $paths; do
     npx -y lighthouse@13.5.0 "$base$path" --only-categories=performance --output=json --output-path="$report" \
       --chrome-flags="--headless=new --no-sandbox" --quiet >/dev/null
     scores="$scores $(node -e 'const r = require(process.argv[1]); console.log(Math.round(r.categories.performance.score * 100))' "$report")"
+    node -e 'const a = require(process.argv[1]).audits; console.error("  " + ["first-contentful-paint", "largest-contentful-paint", "total-blocking-time", "cumulative-layout-shift", "speed-index"].map(k => k.split("-").map(w => w[0]).join("").toUpperCase() + " " + a[k].displayValue).join("  "))' "$report"
   done
   score=$(echo $scores | tr ' ' '\n' | sort -n | sed -n "$(( (runs + 1) / 2 ))p")
   echo "$score $path (runs:$scores)"
