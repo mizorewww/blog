@@ -4,6 +4,7 @@ go 1.26.0
 
 require (
 	github.com/alecthomas/chroma/v2 v2.27.0
+	github.com/tats-u/goldmark-cjk-friendly/v2 v2.0.3
 	github.com/tdewolff/font v0.0.0-20261010204837-88a7f6b56918
 	github.com/wyatt915/treeblood v0.1.16
 	github.com/yuin/goldmark v1.8.6

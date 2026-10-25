@@ -317,6 +317,19 @@ func TestCodeHighlighting(t *testing.T) {
 	}
 }
 
+func TestCJKEmphasis(t *testing.T) {
+	body, _, err := render([]byte("用**“借 `ip` 的肉身”**完成，**「引号」**后面，~~（删）~~掉，a **b** c\n"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, want := range []string{"用<strong>“借 <code>ip</code> 的肉身”</strong>完成", "<strong>「引号」</strong>后面", "<del>（删）</del>掉", "a <strong>b</strong> c"} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("emphasis beside CJK punctuation must parse, want %q: %s", want, html)
+		}
+	}
+}
+
 func TestBlocks(t *testing.T) {
 	src := "```chart line title=\"累计\"\n周五 | BTC | ETH\n2023-12-29 | 0.1 | -0.2\n2024-01-05 | 0.3 | 0.1\n```\n\n" +
 		"```chart bar mirror=\"true\"\n区间 | A | B\n0 | 3 | 1\n1 | 5 | 2\n```\n\n" +

@@ -13,6 +13,7 @@ import (
 	"time"
 	"unicode"
 
+	cjkfriendly "github.com/tats-u/goldmark-cjk-friendly/v2"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/extension"
@@ -66,8 +67,10 @@ func init() {
 }
 
 // newMarkdown is the renderer of one edition; only the ticker button text differs.
+// CommonMark won't open or close ** between CJK punctuation and a letter, as in
+// 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
