@@ -131,7 +131,11 @@ func init() {
 	gmhtml.ImageAttributeFilter = gmhtml.ImageAttributeFilter.Extend([]byte("fetchpriority"))
 }
 
-var markdown = goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+// newMarkdown is the renderer of one edition; only the ticker button text differs.
+func newMarkdown(ui UI) goldmark.Markdown {
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, mathExtension{}, dataExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+}
+
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
 // includeDrafts builds posts marked "draft": true, for previews only.
@@ -204,8 +208,8 @@ func plainText(n ast.Node, src []byte) string {
 	return b.String()
 }
 
-// renderContent renders a post body; image, when not nil, rewrites each image node.
-func renderContent(src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
+// renderContent renders a post body with an edition's renderer; image, when not nil, rewrites each image node.
+func renderContent(markdown goldmark.Markdown, src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
 	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
 	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var toc []Heading
@@ -280,9 +284,9 @@ func readPost(name string) (Post, error) {
 	return p, nil
 }
 
-// render fills Content and TOC; image, when not nil, rewrites each image.
+// render fills Content and TOC in the post's edition; image, when not nil, rewrites each image.
 func (p *Post) render(image func(*ast.Image) error) (err error) {
-	p.Content, p.TOC, err = renderContent(p.body, image)
+	p.Content, p.TOC, err = renderContent(p.Lang.markdown(), p.body, image)
 	return err
 }
 
@@ -410,10 +414,10 @@ func build(base string) error {
 			if p.Draft && !includeDrafts {
 				continue
 			}
+			p.File, p.Lang, p.Path = name, lang, lang.Base+p.Path
 			if err = p.render(images.hook(name)); err != nil {
 				return err
 			}
-			p.File, p.Lang, p.Path = name, lang, lang.Base+p.Path
 			if p.History = gitHistory(name); len(p.History) > 0 && site.Repo != "" {
 				p.Source = site.Repo + "/blob/main/" + filepath.ToSlash(name)
 			}
@@ -604,8 +608,15 @@ func build(base string) error {
 		}
 	}
 
-	if err = page("404.html", Page{Lang: &languages[0], Title: "页面未找到 — " + site.Title, Description: "这页笔记还不存在。", Kind: "404"}, ""); err != nil {
-		return err
+	// Cloudflare Pages serves the nearest 404.html, so each edition gets its own.
+	for li := range languages {
+		lang := &languages[li]
+		if lang.Base != "" && len(editions[li]) == 0 {
+			continue
+		}
+		if err = page(strings.TrimPrefix(lang.Base+"/404.html", "/"), Page{Lang: lang, Title: lang.UI.NotFoundTitle + " — " + site.Title, Description: lang.UI.NotFoundDek, Kind: "404"}, ""); err != nil {
+			return err
+		}
 	}
 	for name, f := range feeds {
 		b, err := xml.MarshalIndent(f, "", "  ")

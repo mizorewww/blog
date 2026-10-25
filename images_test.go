@@ -30,7 +30,7 @@ func TestImagePipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	pipeline := imagePipeline{stage: "output", base: "https://example.com/notes"}
-	body, _, err := renderContent([]byte("![first](../images/%E5%9B%BE.svg)\n\n![again](../images/%E5%9B%BE.svg)\n\n![remote](https://cdn.example.com/a.jpg)"), pipeline.hook("content/posts/a.md"))
+	body, _, err := render([]byte("![first](../images/%E5%9B%BE.svg)\n\n![again](../images/%E5%9B%BE.svg)\n\n![remote](https://cdn.example.com/a.jpg)"), pipeline.hook("content/posts/a.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +47,7 @@ func TestImagePipeline(t *testing.T) {
 		t.Fatal("SVG changed")
 	}
 	for _, path := range []string{"../images/missing.png", "../../secret.svg", "../images/escape.svg", "file:///tmp/foo.jpg"} {
-		if _, _, err := renderContent([]byte("![bad]("+path+")"), pipeline.hook("content/posts/a.md")); err == nil {
+		if _, _, err := render([]byte("![bad]("+path+")"), pipeline.hook("content/posts/a.md")); err == nil {
 			t.Fatalf("accepted %s", path)
 		}
 	}
@@ -57,7 +57,7 @@ func TestImagePipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 	pipeline.processed[source] = imageInfo{Path: "https://example.com/a.webp", Width: 800, Height: 600}
-	body, _, err = renderContent([]byte("![first](../images/图.svg)"), pipeline.hook("content/posts/a.md"))
+	body, _, err = render([]byte("![first](../images/图.svg)"), pipeline.hook("content/posts/a.md"))
 	if err != nil || !strings.Contains(string(body), `width="800" height="600"`) || strings.Contains(string(body), `loading="lazy"`) {
 		t.Fatalf("%s: %v", body, err)
 	}

@@ -13,10 +13,10 @@ import (
 type Redirect struct{ From, To string }
 
 var redirectPage = template.Must(template.New("redirect").Parse(`<!doctype html>
-<html lang="zh-CN"><head><meta charset="utf-8"><title>已移动 — {{.Title}}</title>
+<html lang="{{.Lang.HTML}}"><head><meta charset="utf-8"><title>{{.Lang.UI.Moved}} — {{.Title}}</title>
 <meta name="robots" content="noindex"><link rel="canonical" href="{{.To}}">
 <meta http-equiv="refresh" content="0; url={{.To}}"></head>
-<body><p>这篇文章已移动到 <a href="{{.To}}">{{.To}}</a>。</p></body></html>
+<body><p>{{.Lang.UI.MovedTo}}<a href="{{.To}}">{{.To}}</a></p></body></html>
 `))
 
 // escapePath percent-encodes each segment, matching how browsers request
@@ -68,7 +68,11 @@ func writeRedirects(site Site, prefix string, posts []*Post, write func(string, 
 				fmt.Fprintf(&rules, "%s %s 301\n%s %s 301\n", from, prefix+p.Path, strings.TrimSuffix(from, "/"), prefix+p.Path)
 			}
 			var page strings.Builder
-			if err := redirectPage.Execute(&page, map[string]string{"Title": p.Title, "To": site.URL + p.Path}); err != nil {
+			lang := p.Lang
+			if lang == nil {
+				lang = &languages[0]
+			}
+			if err := redirectPage.Execute(&page, map[string]any{"Lang": lang, "Title": p.Title, "To": site.URL + p.Path}); err != nil {
 				return err
 			}
 			if err := write(filepath.Join(filepath.FromSlash(strings.TrimPrefix(alias, "/")), "index.html"), []byte(page.String())); err != nil {

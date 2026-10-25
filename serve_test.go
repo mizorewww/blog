@@ -14,7 +14,7 @@ import (
 func TestServeCacheAndCompression(t *testing.T) {
 	root := t.TempDir()
 	asset := "/static/0123456789abcdef/style.css"
-	for name, body := range map[string]string{"index.html": "<h1>Hello</h1>", "404.html": "missing", strings.TrimPrefix(asset, "/"): strings.Repeat("body{color:red}", 100)} {
+	for name, body := range map[string]string{"index.html": "<h1>Hello</h1>", "404.html": "missing", "en/404.html": "gone", strings.TrimPrefix(asset, "/"): strings.Repeat("body{color:red}", 100)} {
 		target := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 			t.Fatal(err)
@@ -81,6 +81,9 @@ func TestServeCacheAndCompression(t *testing.T) {
 		if missing.Code != 404 || missing.Header().Get("Cache-Control") != "no-store" {
 			t.Fatal("missing resources must not be cached")
 		}
+	}
+	if request("GET", "/en/posts/nope/", nil).Body.String() != "gone" || request("GET", "/posts/nope/", nil).Body.String() != "missing" {
+		t.Fatal("missing pages must use the nearest 404.html")
 	}
 	if request("POST", "/", nil).Code != 405 {
 		t.Fatal("unexpected method accepted")

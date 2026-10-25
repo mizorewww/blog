@@ -84,7 +84,7 @@ func renderStats(info string, lines []string) (string, error) {
 // A paragraph "::tv EXCHANGE:SYMBOL description interval=W height=480", or
 // just "$BTC", becomes a TradingView card. The live chart loads only when the
 // reader asks for it, so the page itself stays script-free until then.
-type tickerExtension struct{}
+type tickerExtension struct{ button string }
 
 var kindTicker = ast.NewNodeKind("Ticker")
 
@@ -97,7 +97,7 @@ func (n *tickerBlock) Kind() ast.NodeKind            { return kindTicker }
 func (n *tickerBlock) Dump(source []byte, level int) { ast.DumpHelper(n, source, level, nil, nil) }
 
 type tickerTransformer struct{}
-type tickerRenderer struct{}
+type tickerRenderer struct{ button string }
 
 var (
 	shortTicker = regexp.MustCompile(`^\$([A-Z][A-Z0-9._]{0,15}|[A-Z0-9._-]+:[A-Z0-9._-]+)$`)
@@ -112,9 +112,9 @@ func tickerSymbol(s string) string {
 	return s
 }
 
-func (tickerExtension) Extend(m goldmark.Markdown) {
+func (e tickerExtension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(tickerTransformer{}, 100)))
-	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(tickerRenderer{}, 100)))
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(tickerRenderer{e.button}, 100)))
 }
 
 func (tickerTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
@@ -158,7 +158,7 @@ func paragraphText(p *ast.Paragraph, source []byte) string {
 	return string(line.Value(source))
 }
 
-func (tickerRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+func (tr tickerRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(kindTicker, func(w util.BufWriter, _ []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -169,8 +169,8 @@ func (tickerRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		if t.Label != "" {
 			label = `<span class="ticker-label">` + html.EscapeString(t.Label) + `</span>`
 		}
-		_, err := fmt.Fprintf(w, `<div class="ticker" data-symbol="%s" data-interval="%s" data-height="%s"><span><b>%s</b>%s</span><span class="ticker-go"><button type="button">实时图表</button><a href="https://www.tradingview.com/symbols/%s/">TradingView ↗</a></span></div>`+"\n",
-			html.EscapeString(t.Symbol), html.EscapeString(t.Interval), html.EscapeString(t.Height), html.EscapeString(t.Symbol), label, url.PathEscape(path))
+		_, err := fmt.Fprintf(w, `<div class="ticker" data-symbol="%s" data-interval="%s" data-height="%s"><span><b>%s</b>%s</span><span class="ticker-go"><button type="button">%s</button><a href="https://www.tradingview.com/symbols/%s/">TradingView ↗</a></span></div>`+"\n",
+			html.EscapeString(t.Symbol), html.EscapeString(t.Interval), html.EscapeString(t.Height), html.EscapeString(t.Symbol), label, html.EscapeString(tr.button), url.PathEscape(path))
 		return ast.WalkSkipChildren, err
 	})
 }

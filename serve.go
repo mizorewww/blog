@@ -38,7 +38,7 @@ func serveSite(root string) http.Handler {
 			info, err = os.Stat(name)
 		}
 		if err != nil || info.IsDir() {
-			body, _ := os.ReadFile(filepath.Join(root, "404.html"))
+			body := notFoundPage(root, r.URL.Path)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusNotFound)
@@ -76,6 +76,18 @@ func serveSite(root string) http.Handler {
 		w.Header().Set("ETag", fmt.Sprintf(`"%x"`, sha256.Sum256(body)))
 		http.ServeContent(w, r, filepath.Base(name), info.ModTime(), bytes.NewReader(body))
 	})
+}
+
+// notFoundPage is the 404.html nearest to the request, as Cloudflare Pages picks it.
+func notFoundPage(root, request string) []byte {
+	for dir := path.Dir(path.Clean("/" + request)); ; dir = path.Dir(dir) {
+		if body, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(dir), "404.html")); err == nil {
+			return body
+		}
+		if dir == "/" {
+			return nil
+		}
+	}
 }
 
 func acceptsGzip(header string) bool {

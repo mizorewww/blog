@@ -3,11 +3,19 @@ package main
 import (
 	"encoding/json"
 	"encoding/xml"
+	"html/template"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/yuin/goldmark/ast"
 )
+
+// render uses the default edition's renderer.
+func render(src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
+	return renderContent(languages[0].markdown(), src, image)
+}
 
 func TestPostValidation(t *testing.T) {
 	for _, tc := range []struct {
@@ -153,6 +161,9 @@ func TestBuild(t *testing.T) {
 	if _, err := os.Stat("public/posts/draft/index.html"); err == nil {
 		t.Fatal("drafts must not be published")
 	}
+	if en404, err := os.ReadFile("public/en/404.html"); err != nil || !strings.Contains(string(en404), `<html lang="en">`) || !strings.Contains(string(en404), "Page not found") {
+		t.Fatal("the English edition needs its own 404 page")
+	}
 	en, _ := os.ReadFile("public/en/posts/alpha/index.html")
 	if !strings.Contains(string(en), `<html lang="en">`) || !strings.Contains(string(en), "1 min read") || !strings.Contains(string(en), `href="/notes/posts/alpha/" hreflang="zh-CN"`) {
 		t.Fatal("English edition must use its own language and link its translation")
@@ -239,7 +250,7 @@ func TestBuild(t *testing.T) {
 }
 
 func TestTableOfContents(t *testing.T) {
-	body, toc, err := renderContent([]byte("## 中文标题\n\n### A **bold** `code` heading\n\n## 中文标题\n\n```md\n## not a heading\n```\n"), nil)
+	body, toc, err := render([]byte("## 中文标题\n\n### A **bold** `code` heading\n\n## 中文标题\n\n```md\n## not a heading\n```\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -259,14 +270,14 @@ func TestTableOfContents(t *testing.T) {
 	if toc[0].ID != "中文标题" || toc[1].ID != "a-bold-code-heading" || toc[2].ID != "中文标题-1" {
 		t.Fatalf("anchors must stay readable: %+v", toc)
 	}
-	_, toc, err = renderContent([]byte("Just a paragraph."), nil)
+	_, toc, err = render([]byte("Just a paragraph."), nil)
 	if err != nil || len(toc) != 0 {
 		t.Fatal("heading-free content should have no TOC")
 	}
 }
 
 func TestCodeHighlighting(t *testing.T) {
-	body, _, err := renderContent([]byte("```go\nfunc main() { return }\n```\n\n```nosuchlang\n<b>x</b>\n```\n"), nil)
+	body, _, err := render([]byte("```go\nfunc main() { return }\n```\n\n```nosuchlang\n<b>x</b>\n```\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -277,14 +288,14 @@ func TestCodeHighlighting(t *testing.T) {
 	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) {
 		t.Fatalf("unknown languages must stay plain and escaped, with the language named: %s", html)
 	}
-	body, _, err = renderContent([]byte("```go src=\"https://github.com/o/r/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/a/b.go#L76-L77\" title=\"T\"\nx := 1\ny := 2\n```\n"), nil)
+	body, _, err = render([]byte("```go src=\"https://github.com/o/r/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/a/b.go#L76-L77\" title=\"T\"\nx := 1\ny := 2\n```\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if html = string(body); !strings.Contains(html, `<b>a/b.go</b><span>T</span>`) || !strings.Contains(html, `L76–77 · ad8012c ↗`) || !strings.Contains(html, `>77</span>`) || strings.Contains(html, `class="lang"`) {
 		t.Fatalf("source quotes need a path header and their own line numbers: %s", html)
 	}
-	if _, _, err = renderContent([]byte("```go src=\"https://example.com/a.go\"\nx\n```\n"), nil); err == nil {
+	if _, _, err = render([]byte("```go src=\"https://example.com/a.go\"\nx\n```\n"), nil); err == nil {
 		t.Fatal("src must be a GitHub permalink")
 	}
 }
@@ -294,7 +305,7 @@ func TestBlocks(t *testing.T) {
 		"```chart bar mirror=\"true\"\n区间 | A | B\n0 | 3 | 1\n1 | 5 | 2\n```\n\n" +
 		"```chart scatter diag=\"true\" mark=\"p\"\n点 | x | y\np | -0.05 | -0.09\nq | 0.01 | 0.01\n```\n\n" +
 		"```stats title=\"S\"\n## BTC 单利\n总收益 | +1.1 | 说明\n回撤 | -0.1\n```\n\n::tv BINANCE:BTCUSDT 比特币 height=420\n"
-	body, _, err := renderContent([]byte(src), nil)
+	body, _, err := render([]byte(src), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -306,15 +317,18 @@ func TestBlocks(t *testing.T) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
 	}
+	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), nil); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
+		t.Fatalf("ticker button must follow the edition: %s %v", en, err)
+	}
 	for _, bad := range []string{"```chart pie\nx | y\n1 | 2\n```\n", "```chart line\nx\n1\n```\n", "```chart scatter\n点 | x | y\np | a | 1\n```\n", "```stats\n## A\n```\n"} {
-		if _, _, err := renderContent([]byte(bad), nil); err == nil {
+		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("expected an error for %q", bad)
 		}
 	}
 }
 
 func TestMath(t *testing.T) {
-	body, _, err := renderContent([]byte("面积 $\\pi r^2$ 与 $$f(h) = (1-h)$$。\n\n$$\n\\frac{a}{b}\n$$\n\n价格 $0.0028/$0.14，$5 和 $10，`$x$`，\\$y$。\n"), nil)
+	body, _, err := render([]byte("面积 $\\pi r^2$ 与 $$f(h) = (1-h)$$。\n\n$$\n\\frac{a}{b}\n$$\n\n价格 $0.0028/$0.14，$5 和 $10，`$x$`，\\$y$。\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,13 +341,13 @@ func TestMath(t *testing.T) {
 	if strings.Count(html, "<math") != 3 || strings.Contains(html, "\n  ") {
 		t.Fatalf("expected three compact formulas: %s", html)
 	}
-	if _, _, err = renderContent([]byte("$\\arg x$"), nil); err == nil {
+	if _, _, err = render([]byte("$\\arg x$"), nil); err == nil {
 		t.Fatal("unsupported LaTeX must fail the build")
 	}
 }
 
 func TestDataTable(t *testing.T) {
-	body, _, err := renderContent([]byte("```data title=\"Sharpe <x>\" bars=\"BTC\" mark=\"Δ0.35\" note=\"周频\"\nDelta | BTC | 说明\n--- | ---: | ---\nΔ0.05 | −1.00 | <b>\nΔ0.35 | 3.00 | —\n```\n"), nil)
+	body, _, err := render([]byte("```data title=\"Sharpe <x>\" bars=\"BTC\" mark=\"Δ0.35\" note=\"周频\"\nDelta | BTC | 说明\n--- | ---: | ---\nΔ0.05 | −1.00 | <b>\nΔ0.35 | 3.00 | —\n```\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -349,8 +363,8 @@ func TestDataTable(t *testing.T) {
 			t.Fatalf("missing %q in %s", want, html)
 		}
 	}
-	shared, _, _ := renderContent([]byte("```data bars=\"A,B\"\nx | A | B\na | 1 | 4\n```\n"), nil)
-	column, _, _ := renderContent([]byte("```data bars=\"A,B\" scale=\"column\"\nx | A | B\na | 1 | 4\n```\n"), nil)
+	shared, _, _ := render([]byte("```data bars=\"A,B\"\nx | A | B\na | 1 | 4\n```\n"), nil)
+	column, _, _ := render([]byte("```data bars=\"A,B\" scale=\"column\"\nx | A | B\na | 1 | 4\n```\n"), nil)
 	if !strings.Contains(string(shared), `--b:25.0%">1</td>`) || !strings.Contains(string(column), `--b:100.0%">1</td>`) {
 		t.Fatalf("bars must share a scale unless scale=column: %s %s", shared, column)
 	}
@@ -360,7 +374,7 @@ func TestDataTable(t *testing.T) {
 		"```data\na | b\n1\n```",
 		"```data\na | b\n```",
 	} {
-		if _, _, err := renderContent([]byte(bad), nil); err == nil {
+		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("invalid data table must fail the build: %s", bad)
 		}
 	}
@@ -396,17 +410,22 @@ func TestRedirects(t *testing.T) {
 	write := func(name string, body []byte) error { files[filepath.ToSlash(name)] = string(body); return nil }
 	site := Site{URL: "https://example.com/notes", Redirects: []Redirect{{"/zh/*", "/"}, {"/about/", "https://about.example.com"}}}
 	posts := []*Post{{PostMetadata: PostMetadata{Title: "T", Aliases: []string{"/zh/技术/x/"}}, Slug: "x", Path: "/posts/x/"}}
+	posts = append(posts, &Post{PostMetadata: PostMetadata{Title: "E", Aliases: []string{"/old-en/"}}, Slug: "e", Path: "/en/posts/e/", Lang: &languages[1]})
 	if err := writeRedirects(site, "/notes", posts, write); err != nil {
 		t.Fatal(err)
 	}
 	want := "/notes/zh/%E6%8A%80%E6%9C%AF/x/ /notes/posts/x/ 301\n/notes/zh/%E6%8A%80%E6%9C%AF/x /notes/posts/x/ 301\n" +
 		"/notes/zh/技术/x/ /notes/posts/x/ 301\n/notes/zh/技术/x /notes/posts/x/ 301\n" +
+		"/notes/old-en/ /notes/en/posts/e/ 301\n/notes/old-en /notes/en/posts/e/ 301\n" +
 		"/notes/zh/* /notes/ 301\n/notes/about/ https://about.example.com 301\n"
 	if files["_redirects"] != want {
 		t.Fatalf("unexpected _redirects:\n%s", files["_redirects"])
 	}
 	if page := files["zh/技术/x/index.html"]; !strings.Contains(page, `content="0; url=https://example.com/notes/posts/x/"`) || !strings.Contains(page, `rel="canonical" href="https://example.com/notes/posts/x/"`) || !strings.Contains(page, "noindex") {
 		t.Fatalf("missing fallback page: %q", page)
+	}
+	if page := files["old-en/index.html"]; !strings.Contains(page, `<html lang="en">`) || !strings.Contains(page, "This post has moved") {
+		t.Fatalf("redirect pages must use the post's language: %q", page)
 	}
 	for _, bad := range [][]string{{"zh/x/"}, {"/zh/x"}, {"/zh/../x/"}, {"/posts/y/"}, {"/"}, {"/a/", "/a/"}} {
 		p := *posts[0]
