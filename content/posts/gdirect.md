@@ -1,4 +1,4 @@
-{"title":"gdirect：终端直连 Google 云盘的原理与配置指南","description":"TL;DR 先看 gdirect 是如何绕过 DNS 与 SNI 阻断直连 Google 云盘的，再照着 10 分钟图文指南配好专属 OAuth 客户端，最后拆解底层 IP 探测与定制 libaria2 的实现细节。","date":"2026-10-25","tag":"技术","tags":["Rust","Google Drive","CLI","Network"]}
+{"title":"gdirect：终端直连 Google 云盘的原理与配置指南","description":"TL;DR 先看 gdirect 如何借道 google-cn 国内节点直连 Google 云盘、避开翻墙软件嗅探截胡，再照着 10 分钟图文指南配好专属 OAuth 客户端，最后拆解底层实现。","date":"2026-10-25","tag":"技术","tags":["Rust","Google Drive","CLI","Network"]}
 ---
 
 平时从 Google Drive 拖几十 GB 的数据集或备份，走代理往往既烧流量又受限于节点带宽；用浏览器下载还经常在中途断流后从头再来。为此我写了 [gdirect](https://github.com/mizorewww/gdirect)：一个在终端里浏览、下载、上传和挂载 Google 云盘的工具。
@@ -202,11 +202,11 @@ gdirect download FILE_ID
 gdirect download FILE_ID --no-sni
 ```
 
-### 做法二：在翻墙软件中配置规则，让特定域名（或 `gdirect` 进程）走直连
+### 做法二：在翻墙软件中配置规则，把云盘域名（或 `gdirect` 进程）也并入直连
 
-如果你希望翻墙软件和 TUN 模式 24 小时常开，就不能只把 `google-cn` 设为直连，而是要在翻墙软件的 `google` 代理规则**之前**，显式把 `gdirect` 传输用到的域名（或 `gdirect` 进程本身）指派给 **`DIRECT` 直连**：
+如果你希望翻墙软件和 TUN 模式 24 小时常开，思路其实很简单：**既然翻墙软件是因为嗅探到了云盘域名才把流量分给 `google`（代理）的，那我们就在 `google` 规则之前，手动把这几个云盘域名（或 `gdirect` 进程本身）也像 `google-cn` 一样指派给 `DIRECT` 直连**：
 
-- **保留走代理（`PROXY`）的域名**（用于登录和令牌自动刷新）：
+- **保留走代理（`PROXY`）的域名**（仅用于登录和令牌自动刷新）：
   - `accounts.google.com`
   - `oauth2.googleapis.com`
 - **需要放行直连（`DIRECT`）并关闭 `fake-ip` 的传输域名**：
@@ -355,6 +355,9 @@ fn probe(ip: IpAddr) -> Result<(i64, Option<String>)> {
 - **`.no_proxy()` + `.resolve()`**：强制绕过环境变量代理，在客户端内部把 `www.googleapis.com` 和 `drive.usercontent.google.com` 直接绑定到待测 `ip:443`，同时走完整的 TLS 证书校验（验证证书链及 SAN 域名匹配，杜绝连上运营商拦截页或中间人）。
 - **无凭证 API 校验**：不携带任何用户 Token 请求 `GET /drive/v3/about?fields=user`。真正的 Google Drive API 节点一定会返回 HTTP `401 Unauthorized` 且 JSON `error.code == 401`。这样既验证了应用层路由，又不会在探测未知 IP 时泄露用户的 Bearer Token。
 - **下载链路探针**：接着向 `drive.usercontent.google.com` 请求一个公开的小测试文件。如果测试文件本身因 Google 限流返回 403/404，只要前一步 Drive API 校验通过，该 IP 依然会被标记为可用并打印警告，避免因为公开测试文件失效而把正常 IP 全部误杀。
+
+> **如何自己寻找更多候选直连 IP？**
+> 如果内置种子 IP `183.56.143.147` 在你所在地区的运营商网络下延迟较高，你可以从 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 的 `google-cn` 列表里挑几个域名（如 `dl.google.com`、`g.cn`、`fonts.googleapis.com`、`gstatic.cn`），用国内 DNS（如 `dig @223.5.5.5 dl.google.com +short`）解析出一批你当地运营商的 Google 边缘 IP，每行一个存成 `ips.txt`，再执行 `gdirect scan --ips ips.txt`。探测仪会自动帮你筛出其中持有合法证书且能跑通 Drive API 的最快节点。
 
 ### 2. 定制 libaria2：为什么必须给 C++ 源码打补丁
 
