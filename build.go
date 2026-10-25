@@ -3,17 +3,13 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 	"html/template"
 	"net/url"
 	"os"
 	"path/filepath"
-	"slices"
 	"sort"
-	"strconv"
 	"strings"
-	"time"
 )
 
 // Options are the choices of one build.
@@ -153,23 +149,6 @@ func (b *builder) prepare() error {
 	return err
 }
 
-// profileName labels a sameAs link in the footer.
-func profileName(link string) string {
-	u, err := url.Parse(link)
-	if err != nil {
-		return link
-	}
-	switch strings.TrimPrefix(u.Hostname(), "www.") {
-	case "github.com":
-		return "GitHub"
-	case "x.com", "twitter.com":
-		return "X"
-	case "t.me":
-		return "Telegram"
-	}
-	return u.Hostname()
-}
-
 // readEditions reads and renders every post, newest first in each edition.
 func (b *builder) readEditions() error {
 	for _, e := range b.editions {
@@ -264,46 +243,6 @@ func (b *builder) writeEdition(e *edition) error {
 	return nil
 }
 
-// indexTerms files the edition's posts under categories and tags.
-func (b *builder) indexTerms(e *edition) error {
-	var err error
-	if e.categories, err = collectTerms(e.posts, e.lang.Base, "categories", func(p *Post) []string { return []string{p.Tag} }); err != nil {
-		return err
-	}
-	if e.tags, err = collectTerms(e.posts, e.lang.Base, "tags", func(p *Post) []string { return p.Tags }); err != nil {
-		return err
-	}
-	units := 0
-	for _, p := range e.posts {
-		units += p.Units
-		for _, c := range e.categories {
-			if c.Slug == termSlug(p.Tag) {
-				p.Category = c
-			}
-		}
-		for _, name := range p.Tags {
-			for _, t := range e.tags {
-				if t.Slug == termSlug(name) && !slices.Contains(p.Terms, t) {
-					p.Terms = append(p.Terms, t)
-				}
-			}
-		}
-	}
-	e.stats = fmt.Sprintf(e.lang.UI.Stats, len(e.posts), len(e.categories), len(e.tags), wordCount(e.lang, units))
-	return nil
-}
-
-// wordCount abbreviates a reading-unit total the way each language counts.
-func wordCount(lang *Lang, units int) string {
-	switch {
-	case lang.Code == "zh" && units >= 10000:
-		return strconv.FormatFloat(float64(units)/10000, 'f', 1, 64) + " 万"
-	case lang.Code != "zh" && units >= 1000:
-		return strconv.FormatFloat(float64(units)/1000, 'f', 1, 64) + "k"
-	}
-	return strconv.Itoa(units)
-}
-
 func (b *builder) writeHome(e *edition) error {
 	home := e.lang.Base + "/"
 	if err := b.page(home, Page{Lang: e.lang, Title: b.site.Title, Description: e.lang.UI.Description, Kind: "home", Posts: e.posts, Categories: e.categories, Tags: e.tags, Stats: e.stats, Switch: b.switchTo(e, "/")}, ""); err != nil {
@@ -357,32 +296,6 @@ func (b *builder) writeTerms(e *edition) error {
 	return nil
 }
 
-// writeSearch writes the search page and the index its script fetches on first use.
-func (b *builder) writeSearch(e *edition) error {
-	type entry struct {
-		Title string `json:"t"`
-		Text  string `json:"x"`
-	}
-	index := map[string]entry{}
-	var corpus strings.Builder
-	for _, p := range e.posts {
-		words := append([]string{p.Title, p.Description, p.Tag}, p.Tags...)
-		text := contentText(string(p.Content))
-		index[p.Path] = entry{strings.Join(words, " "), text}
-		corpus.WriteString(text)
-	}
-	corpus.WriteString(e.lang.UI.SearchFound + e.lang.UI.SearchNone)
-	data, err := json.Marshal(index)
-	if err != nil {
-		return err
-	}
-	if err = b.write(strings.TrimPrefix(e.lang.Base+"/search.json", "/"), data); err != nil {
-		return err
-	}
-	// Snippets appear only after a search, so their glyphs get a font of their own.
-	return b.page(e.lang.Base+"/search/", Page{Lang: e.lang, Title: e.lang.UI.Search + " — " + b.site.Title, Description: e.lang.UI.SearchLabel, Kind: "search", Posts: e.posts, Switch: b.switchTo(e, "/search/")}, corpus.String())
-}
-
 // writeNotFound writes the edition's 404.html; Cloudflare Pages serves the nearest one.
 func (b *builder) writeNotFound(e *edition) error {
 	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + b.site.Title, Description: e.lang.UI.NotFoundDek, Kind: "404"}, "")
@@ -418,55 +331,6 @@ func (b *builder) page(path string, p Page, extra string) error {
 		return fmt.Errorf("%s: fonts: %w", name, err)
 	}
 	return b.write(name, []byte(strings.Replace(out.String(), pageFontsMarker, faces, 1)))
-}
-
-// newestOf is the latest edit among posts. Dates come from content, not the
-// clock, so unchanged content builds identical files.
-func newestOf(posts []*Post) string {
-	newest := ""
-	for _, p := range posts {
-		newest = max(newest, p.Modified())
-	}
-	return newest
-}
-
-// feed queues a full-text RSS feed at path.
-func (b *builder) feed(lang *Lang, path, title, description string, posts []*Post) {
-	f := Feed{Version: "2.0", Channel: Channel{Title: title, Link: b.site.URL + strings.TrimSuffix(path, "feed.xml"), Description: description, Language: lang.HTML,
-		Self: AtomLink{Href: b.site.URL + path, Rel: "self", Type: "application/rss+xml"}}}
-	if newest := newestOf(posts); newest != "" {
-		updated, _ := time.Parse(time.DateOnly, newest)
-		f.Channel.BuildDate = updated.Format(time.RFC1123Z)
-	}
-	for _, p := range posts {
-		date, _ := time.Parse(time.DateOnly, p.Date)
-		link := b.site.URL + p.Path
-		guid := link
-		if len(p.Aliases) > 0 {
-			guid = b.site.URL + escapePath(p.Aliases[0]) // keeps feed readers from re-announcing moved posts
-		}
-		f.Channel.Items = append(f.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
-	}
-	b.feeds[strings.TrimPrefix(path, "/")] = f
-}
-
-func (b *builder) writeFeeds() error {
-	for name, f := range b.feeds {
-		if err := b.writeXML(name, f); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (b *builder) writeSitemap() error { return b.writeXML("sitemap.xml", b.sitemap) }
-
-func (b *builder) writeXML(name string, v any) error {
-	data, err := xml.MarshalIndent(v, "", "  ")
-	if err != nil {
-		return err
-	}
-	return b.write(name, append([]byte(xml.Header), data...))
 }
 
 // writeHeaders writes Cloudflare Pages cache rules: documents revalidate,

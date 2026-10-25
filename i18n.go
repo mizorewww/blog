@@ -1,15 +1,7 @@
 package main
 
 import (
-	"fmt"
-	"os/exec"
-	"path/filepath"
-	"sort"
-	"strings"
-	"unicode"
-
 	"github.com/yuin/goldmark"
-	"golang.org/x/net/html"
 )
 
 // Lang is one language edition of the site. Chinese lives at the root, the
@@ -73,112 +65,4 @@ var languages = []Lang{
 		Switch: "中文", SwitchLang: "zh-CN",
 		NotFoundTitle: "Page not found", LiveChart: "Live chart", Moved: "Moved", MovedTo: "This post has moved to ",
 	}},
-}
-
-// Term is a category or tag with the posts filed under it.
-type Term struct {
-	Name, Slug, Path string
-	Posts            []*Post
-}
-
-// termSlug matches the old blog's github-slugger URLs: lowercase, spaces to
-// hyphens, punctuation other than - and _ dropped, letters of any script kept.
-func termSlug(name string) string {
-	var b strings.Builder
-	for _, r := range strings.ToLower(strings.TrimSpace(name)) {
-		switch {
-		case unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsMark(r) || r == '-' || r == '_':
-			b.WriteRune(r)
-		case r == ' ':
-			b.WriteByte('-')
-		}
-	}
-	return b.String()
-}
-
-// collectTerms groups posts (newest first) by name; terms sort by post count, then name.
-// Two different names with one slug would share a page, so they fail the build.
-func collectTerms(posts []*Post, base, kind string, names func(*Post) []string) ([]*Term, error) {
-	bySlug := map[string]*Term{}
-	var terms []*Term
-	for _, p := range posts {
-		for _, name := range names(p) {
-			slug := termSlug(name)
-			if slug == "" {
-				continue
-			}
-			t := bySlug[slug]
-			if t == nil {
-				t = &Term{Name: name, Slug: slug, Path: base + "/" + kind + "/" + slug + "/"}
-				bySlug[slug] = t
-				terms = append(terms, t)
-			} else if t.Name != name {
-				return nil, fmt.Errorf("%s: %s %q and %q share the URL %s; use one spelling", p.File, kind, name, t.Name, t.Path)
-			}
-			if len(t.Posts) == 0 || t.Posts[len(t.Posts)-1] != p {
-				t.Posts = append(t.Posts, p)
-			}
-		}
-	}
-	sort.SliceStable(terms, func(i, j int) bool {
-		if len(terms[i].Posts) != len(terms[j].Posts) {
-			return len(terms[i].Posts) > len(terms[j].Posts)
-		}
-		return terms[i].Slug < terms[j].Slug
-	})
-	return terms, nil
-}
-
-// Commit is one change to a post's source, newest first.
-type Commit struct{ Hash, Short, Date, Subject string }
-
-// gitHistory lists the commits that touched path; outside a repository it is empty.
-func gitHistory(path string) []Commit {
-	out, err := exec.Command("git", "log", "--follow", "--format=%H%x1f%cs%x1f%s", "--", filepath.ToSlash(path)).Output()
-	if err != nil {
-		return nil
-	}
-	var commits []Commit
-	for _, line := range strings.Split(strings.TrimSpace(string(out)), "\n") {
-		parts := strings.SplitN(line, "\x1f", 3)
-		if len(parts) == 3 && len(parts[0]) >= 7 {
-			commits = append(commits, Commit{parts[0], parts[0][:7], parts[1], parts[2]})
-		}
-	}
-	return commits
-}
-
-// gitHead is the commit being built, shown in the footer.
-func gitHead() string {
-	out, err := exec.Command("git", "rev-parse", "HEAD").Output()
-	if err != nil {
-		return ""
-	}
-	return strings.TrimSpace(string(out))
-}
-
-// contentText is the readable text of rendered HTML, for the search index.
-func contentText(content string) string {
-	var b strings.Builder
-	skip := 0
-	z := html.NewTokenizer(strings.NewReader(content))
-	for {
-		switch z.Next() {
-		case html.ErrorToken:
-			return strings.Join(strings.Fields(b.String()), " ")
-		case html.StartTagToken:
-			if name, _ := z.TagName(); string(name) == "svg" || string(name) == "math" || string(name) == "button" {
-				skip++
-			}
-		case html.EndTagToken:
-			if name, _ := z.TagName(); skip > 0 && (string(name) == "svg" || string(name) == "math" || string(name) == "button") {
-				skip--
-			}
-		case html.TextToken:
-			if skip == 0 {
-				b.Write(z.Text())
-				b.WriteByte(' ')
-			}
-		}
-	}
 }
