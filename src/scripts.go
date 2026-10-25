@@ -11,7 +11,7 @@ import (
 // base script plus only the parts its content uses, compacted and inline.
 type pageScripts map[string]string
 
-var scriptParts = []string{"base", "tip", "ticker", "toc", "search"}
+var scriptParts = []string{"base", "tip", "ticker", "toc", "draw", "search"}
 
 func loadScripts() (pageScripts, error) {
 	scripts := pageScripts{}
@@ -49,6 +49,9 @@ func (s pageScripts) For(p Page) template.JS {
 		}
 		if len(p.Post.TOC) > 0 {
 			parts = append(parts, s["toc"])
+		}
+		if strings.Contains(string(p.Post.Content), "<strong>") {
+			parts = append(parts, s["draw"])
 		}
 	}
 	if p.Kind == "search" {
