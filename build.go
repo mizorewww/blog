@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 )
@@ -334,10 +335,26 @@ func (b *builder) page(path string, p Page, extra string) error {
 }
 
 // writeHeaders writes Cloudflare Pages cache rules: documents revalidate,
-// content-hashed assets are immutable.
+// content-hashed assets are immutable. Routes come from what the build wrote,
+// so a new top-level section is never left to the host's default caching.
 func (b *builder) writeHeaders() error {
+	entries, err := os.ReadDir(b.stage)
+	if err != nil {
+		return err
+	}
+	routes := []string{"/"}
+	for _, entry := range entries {
+		name := entry.Name()
+		switch {
+		case name == "static" || name == "images" || name == "404.html" || strings.HasPrefix(name, "_"):
+		case entry.IsDir():
+			routes = append(routes, "/"+name+"/*")
+		case slices.Contains([]string{".html", ".xml", ".json", ".txt"}, filepath.Ext(name)):
+			routes = append(routes, "/"+name)
+		}
+	}
 	var headers strings.Builder
-	for _, route := range []string{"/", "/index.html", "/posts/*", "/tags/*", "/categories/*", "/search/*", "/search.json", "/en/*", "/feed.xml", "/sitemap.xml", "/robots.txt"} {
+	for _, route := range routes {
 		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", b.prefix, route)
 	}
 	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n", b.prefix, b.prefix, b.version, b.prefix)

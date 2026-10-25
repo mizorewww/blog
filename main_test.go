@@ -117,6 +117,11 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
+	for _, route := range []string{"/notes/\n", "/notes/index.html\n", "/notes/posts/*\n", "/notes/en/*\n", "/notes/search.json\n", "/notes/feed.xml\n", "/notes/robots.txt\n"} {
+		if !strings.Contains(string(headers), route+"  Cache-Control: no-cache") {
+			t.Fatalf("documents must revalidate: %s missing from\n%s", route, headers)
+		}
+	}
 	for _, name := range []string{"index.html", "posts/beta/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
 		if err != nil {
