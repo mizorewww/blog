@@ -7,28 +7,27 @@
 
 ## TL;DR：我们是怎么“伪装”直连的？
 
-在受限网络下直连 Google Drive 之所以会失败，通常卡在两道关卡：**DNS 污染**（拿不到真实 IP）和 **TLS SNI 阻断**（TLS 握手阶段的 `ClientHello` 明文暴露了 `drive.google.com` 等域名，触发连接重置）。
+在大陆网络下，Google Drive 的域名（`drive.google.com`、`www.googleapis.com`、`drive.usercontent.google.com`）处于被封锁状态；但与此同时，Google 为了给国内提供 Chrome 更新、Android 连通性校验、字体等基础服务，在大陆境内（电信、联通、移动骨干网内）保留了一批可直连的边缘服务器——也就是分流规则集（如 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata)）里归入 **`google-cn`** 的那批域名（如 `dl.google.com`、`g.cn`、`fonts.googleapis.com`）背后的国内 IP（例如广州电信的 `183.56.143.147`）。
 
-但 Google 在全球有大量共用前端架构（Google Front End）的边缘节点 IP，其中不少 IP 本身并没有在路由层被封锁——只要你的 TCP 连接能落到这些真实的 Google IP 上，并且在 TLS/HTTP 层告诉它你要访问的是 Drive 服务，Google 的边缘网关就会把流量正常转发给云盘后端。
+关键在于：**这些位于墙内的 `google-cn` 节点，跑的同样是 Google 统一的前端反向代理（GFE，Google Front End），背后通过 Google 内部专线直通全球云盘后端，并且持有 `*.googleapis.com` 与 `*.googleusercontent.com` 的合法官方 TLS 证书。**
 
-`gdirect` 就是利用这一点，通过四步完成“伪装”与直连的：
+`gdirect` 就是利用这一点，用**“借 `google-cn` 的国内肉身（IP），发 Google Drive 的原始请求（域名与证书）”**完成伪装与直连的：
 
-1. **绕过系统 DNS，实测筛出能用的真 Google IP**：不直接采信系统 DNS，而是从内置种子 IP（`183.56.143.147`）、历史缓存和候选池出发，直接连向目标 IP 的 443 端口。只有当对端出示了合法的 Google 官方 TLS 证书、且能正确响应 Drive v3 API 探针时，才会被记入本地 SQLite，并在 24 小时内自动复用延迟最低的那一个。
-2. **TCP 层“指鹿为马”，HTTP 与证书层原封不动**：上层请求写的依然是标准的 `https://www.googleapis.com` 和 `https://*.googleusercontent.com`，因此发给 Google 的 HTTP `Host` 头完全正常，本机对 Google 证书的合法性校验也一分不减；但在底层的套接字解析阶段（Rust 的 `reqwest::resolve` 和打过补丁的 C++ `libaria2` `getaddrinfo`），哪怕下载途中发生多次 302 跨域名重定向，所有连接都会被强制扭转到那个扫出来的直连 IP 上。
-3. **改写或剥离 TLS SNI，绕过明文域名阻断**：如果网络环境会检测 TLS 握手包里的明文域名，可以用 `--no-sni` 让 `libaria2` 在 `ClientHello` 中干脆不发 SNI 扩展，或者用 `--sni example.com` 塞一个别的域名进去。中间设备看不到敏感的 Google 域名，而连接到达 Google 边缘节点后依然能正常完成握手，且**全程保持严格的 TLS 证书校验**。
-4. **控制面与数据面分离**：只有几 KB 的登录与刷新令牌（`accounts.google.com`、`oauth2.googleapis.com`）照常走系统网络或代理，保证随时能登得上；真正吃带宽的目录浏览、多连接并发下载、32 MiB 分块上传全部走直连 IP，不耗代理流量就能跑满本地宽带。
+1. **底层 TCP 指向国内 `google-cn` 节点 IP**：绕过被污染的系统 DNS，从内置种子 IP（`183.56.143.147`）和候选池出发，直接连向目标的 443 端口。经过实测探针（核验 Google 官方 TLS 证书 + 验证 Drive v3 API 响应）确认可用后存入本地 SQLite。在底层的套接字建立阶段（Rust 的 `reqwest::resolve` 和定制 C++ `libaria2` 的 `getaddrinfo` 钩子），哪怕下载中途发生多次 302 跨域名重定向，所有连接的目标 IP 都会被强制锁死在这个国内 `google-cn` 节点上——因为目标 IP 本身就在国内骨干网，物理链路根本不过墙。
+2. **上层 TLS / HTTP 保持真实云盘域名与证书校验**：连上国内 `google-cn` 的 IP 后，应用层请求写的依然是标准的 `https://www.googleapis.com`（API 与分块上传）和 `https://drive.usercontent.google.com` / `https://*.googleusercontent.com`（文件下载）。国内 GFE 节点收到后，按主机名通过 Google 内网把云盘数据拉回来；本机也照常按真实域名严格校验 TLS 证书（若遇到针对明文域名的拦截，还可用 `--sni` / `--no-sni` 改写或剥离 TLS 握手中的 SNI）。
+3. **控制面与数据面分离**：只有几 KB 的登录与刷新令牌（`accounts.google.com`、`oauth2.googleapis.com`）照常走系统网络（翻墙代理），保证随时能登得上；真正吃带宽的目录浏览、多连接并发下载、32 MiB 分块上传全部走上述国内直连 IP，不耗一字节代理流量就能跑满本地宽带。
 
 | 流量类型 | 涉及命令 / 域名 | 走向 |
 | --- | --- | --- |
-| 云盘 API、下载、上传 | `browse`、`ls`、`download`、`upload`（`www.googleapis.com`、`drive.usercontent.google.com`、`*.googleusercontent.com`） | 扫描到的 Google 直连 IP。主机名和证书校验不变，可用 `--sni` / `--no-sni` 改写或去掉 TLS SNI |
-| 登录与刷新令牌 | `login` 及自动刷新（`accounts.google.com`、`oauth2.googleapis.com`） | 系统网络（走系统 DNS 与系统代理） |
+| 云盘 API、下载、上传 | `browse`、`ls`、`download`、`upload`（`www.googleapis.com`、`drive.usercontent.google.com`、`*.googleusercontent.com`） | 扫描到的国内 `google-cn` 可用 IP。主机名和证书校验不变，可用 `--sni` / `--no-sni` 改写或去掉 TLS SNI |
+| 登录与刷新令牌 | `login` 及自动刷新（`accounts.google.com`、`oauth2.googleapis.com`） | 系统网络（走系统 DNS 与翻墙代理） |
 | 磁盘挂载 | `mount`（底层调用 `rclone`） | 系统网络 |
 
 > **大陆网络环境特别提示：**
-> `gdirect` 登录与刷 Token（`accounts.google.com`、`oauth2.googleapis.com`）需要走代理；但到了 `scan` 扫描和下载/上传阶段，如果你开着翻墙软件（尤其是 **TUN 虚拟网卡模式** 或 **域名嗅探**），流量很可能会被翻墙软件强行截胡，导致**依旧走代理扣流量**或者扫描全部失败。
-> 大陆用户请务必二选一（详见下文[大陆网络与代理配置指南](#大陆网络与代理配置指南)）：
-> 1. **省心做法**：开着翻墙软件完成 `gdirect login` 登录；之后**退出翻墙软件（或关闭 TUN 模式）**，再执行 `gdirect scan` 和下载。
-> 2. **规则分流做法**：在翻墙软件中配置规则，让 `drive.usercontent.google.com`、`*.googleusercontent.com` 等传输域名及扫出的直连 IP 走 **`DIRECT` 直连**（并关闭它们的 `fake-ip`），仅保留登录域名走代理。
+> 就算你的翻墙软件已经把 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 的 `google-cn` 设为了直连，开着翻墙软件（尤其是 TUN 模式）跑 `gdirect` 时**依然有可能走代理**！因为 `gdirect` 虽然连的是 `google-cn` 的 IP，但 TLS 握手发的是云盘域名（`drive.usercontent.google.com`、`www.googleapis.com`），而这些域名在规则集里属于需要翻墙的 `google` 而非 `google-cn`，会被翻墙软件嗅探（Sniff）出域名后半路截胡送进代理。
+> 因此大陆用户请务必二选一（详见下文[大陆网络与代理配置指南](#大陆网络与代理配置指南)）：
+> 1. **在翻墙软件中配置规则**：显式让上述云盘域名（或 `gdirect` 进程）走 `DIRECT` 直连并关闭 `fake-ip`；
+> 2. **退出翻墙软件或关闭 TUN**：开着代理完成 `gdirect login` 登录好之后，在 `scan` 和下载时退出翻墙软件（或关闭 TUN 模式）。
 
 ---
 
@@ -168,52 +167,57 @@ gdirect login --client-secret ~/Downloads/client_secret.json
 
 ## 大陆网络与代理配置指南
 
-在大陆使用 `gdirect` 时，最容易踩的一个坑是：**明明用了 `gdirect`，结果几十 GB 的下载流量还是走了翻墙软件，或者 `gdirect scan` 一个可用 IP 都扫不出来。**
+在大陆使用 `gdirect` 时，最容易遇到的困惑是：**我的翻墙软件（sing-box / Mihomo / Clash）明明已经用了 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 规则集，并且把 `google-cn` 设为了 `DIRECT` 直连，为什么跑 `gdirect` 下载时流量还是有可能走代理？**
 
-### 为什么开着翻墙软件还会走代理？
+### 仔细算一笔账：翻墙软件是怎么把直连流量截胡的？
 
-虽然 `gdirect` 在代码里显式绕过了系统环境变量里的 HTTP/SOCKS 代理（设置了 `no_proxy`），并把连接直接发往 Google 的公网 IP，但大陆常用的代理客户端（Clash Verge / Mihomo、Surge、Sing-box 等）普遍开启了 **TUN 虚拟网卡模式**、**Fake-IP（增强模式）** 以及 **流量域名嗅探（Sniffing）**：
+虽然 `gdirect` 在应用层禁用了 HTTP/SOCKS 代理环境变量（`no_proxy`），但当你开着翻墙软件（尤其是 **TUN 虚拟网卡模式**）时，所有流量都会先经过翻墙软件的路由引擎。我们顺着翻墙软件的匹配逻辑看一遍：
 
-1. 当 `gdirect` 向直连 IP 发起 TLS 握手时，TUN 虚拟网卡在网络层把包拦下来，嗅探出 TLS `ClientHello` 里的 SNI 是 `www.googleapis.com` 或 `*.googleusercontent.com`；
-2. 翻墙软件命中了内置的 `GEOSITE,google,PROXY` 规则，于是不管三七二十一，把这股本该直连的 TCP 流量**重新塞进了你的代理节点**；
-3. 反过来，如果在扫描阶段 DNS 被返回了 `198.18.x.x` 的 Fake-IP，或者探测包被 TUN 截胡后超时，就会导致 `gdirect scan` 报全员 `unavailable`。
+1. **我们借的是 `google-cn` 的 IP，但发的是 Google Drive 的域名**：
+   `gdirect` 在底层把连接目标 IP 换成了国内 `google-cn` 节点（比如 `183.56.143.147`），但为了让 Google 边缘节点正确路由并通过本机 TLS 证书校验，它在 TLS 握手（`ClientHello` 的 SNI）和 HTTP `Host` 头里发出的依然是 `www.googleapis.com`、`drive.usercontent.google.com` 和 `*.googleusercontent.com`。
+2. **云盘的这些域名，并不在 `google-cn` 规则集里！**
+   翻开 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 的 `google-cn` 规则集可以看到，里面收录的是 `dl.google.com`、`g.cn`、`gstatic.cn`、`fonts.googleapis.com`、`clientservices.googleapis.com` 等国内本来就能直连的域名；而 **`www.googleapis.com`、`drive.usercontent.google.com`、`drive.google.com`、`*.googleusercontent.com` 并不在 `google-cn` 里，它们全部躺在需要翻墙的 `google` 规则集里**。
+3. **TUN 流量嗅探（`sniff`）触发按域名截胡**：
+   当 `gdirect` 向国内 IP `183.56.143.147:443` 发起连接时，TUN 网卡拦下数据包，通过 `sniff`（TLS 域名嗅探）读出里面的 SNI 是 `drive.usercontent.google.com` 或 `www.googleapis.com`。随后翻墙软件拿着这个嗅探出来的域名从上往下走规则：
+   - 经过 `rule_set: google-cn`（直连）$\rightarrow$ **未命中**（因为域名是云盘域名，不在 `google-cn` 中）；
+   - 走到 `rule_set: google`（代理）$\rightarrow$ **直接命中！**
+   - 在主流规则模板里，域名规则优先于 IP 规则（或者当 `scan` 尝试用系统 DNS 解析上述云盘域名时，直接在 DNS 层命中 `google` 规则被远端代理解析或返回 `198.18.x.x` 的 Fake-IP）。结果就是：**这股明明发往国内电信 IP 的连接，因为身上带着 `google` 规则集里的域名，被翻墙软件当成翻墙流量重新塞进了代理节点！**
 
-因此，在大陆环境下，你有两种使用方式可以选：
+理清了这个逻辑，大陆用户只需要在下面两种做法中**二选一**即可彻底解决：
 
-### 方案一：登录开代理，`scan` 和下载时退出翻墙软件（或关闭 TUN）
+### 做法一：登录好之后，`scan` 和下载时退出翻墙软件（或关闭 TUN）
 
-如果你不想折腾翻墙软件的分流规则，这是最简单、也最保险的做法：
+如果你不想改动翻墙软件现有的分流规则，这是最简单、也最干净的做法：
 
-1. **登录阶段（开着翻墙软件）**：保持翻墙软件开启，执行 `gdirect login --client-secret ...` 完成初次登录（因为浏览器访问 `accounts.google.com` 和终端请求 `oauth2.googleapis.com` 换取令牌必须走代理）。
-2. **扫描与下载阶段（退出翻墙软件，或关掉 TUN 开关）**：
-   - 如果你的翻墙软件只开了“系统代理（System Proxy）”而**没开 TUN 模式**，通常可以直接使用；但只要开了 TUN，请先**关闭 TUN 模式**（或者在已经拿到短期 Token 后直接退出翻墙软件）。
-   - 执行一次 `gdirect scan`，让它在纯物理宽带下扫出真正能直连的 Google IP。
-   - 执行 `gdirect download ...` 或 `gdirect browse` 开始满速直连下载。
-   - 如果所在宽带运营商对 Google 域名有连接重置（表现为下载报 `libaria2 code 1: connection or TLS failure`），加上 `--no-sni` 剥离 TLS 明文域名即可：
+1. **登录阶段（开着翻墙软件）**：保持翻墙软件正常开启，执行 `gdirect login --client-secret ...` 完成授权（因为浏览器打开 `accounts.google.com` 以及终端向 `oauth2.googleapis.com` 换取/刷新令牌必须走代理）。
+2. **扫描与下载阶段（退出翻墙软件，或关闭 TUN 模式）**：
+   - 登录完成后（本地已拿到有效期约 1 小时的短期 `access_token`），**直接退出翻墙软件，或者关掉翻墙软件的 TUN 模式**（如果只开系统代理 System Proxy、不开 TUN，`gdirect` 自身会忽略系统代理环境变量直接连出去，但关掉 TUN 最稳妥）。
+   - 执行 `gdirect scan` 扫出当前纯物理宽带下最快的国内 `google-cn` 节点 IP。
+   - 执行 `gdirect download ...` 或 `gdirect browse` 开始满速直连下载（若遇到宽带运营商对明文 SNI 重置连接，加上 `--no-sni` 即可）：
 
 ```sh
 gdirect scan
+gdirect download FILE_ID
+# 若遇到连接或 TLS 重置（libaria2 code 1），去掉 SNI 即可：
 gdirect download FILE_ID --no-sni
-gdirect browse --no-sni
 ```
 
-> **提示**：每次登录或刷新拿到的短期 `access_token` 在本地 SQLite 中有约 1 小时的有效期。只要在有效期内，完全退出翻墙软件也能正常 `ls`、`browse` 和 `download`；当超过 1 小时提示无法连接 `oauth2.googleapis.com` 刷新令牌时，再临时开一下代理刷个 Token 即可。
+### 做法二：在翻墙软件中配置规则，让特定域名（或 `gdirect` 进程）走直连
 
-### 方案二：在翻墙软件中配置直连规则（保持代理与 TUN 常开）
+如果你希望翻墙软件和 TUN 模式 24 小时常开，就不能只把 `google-cn` 设为直连，而是要在翻墙软件的 `google` 代理规则**之前**，显式把 `gdirect` 传输用到的域名（或 `gdirect` 进程本身）指派给 **`DIRECT` 直连**：
 
-如果你希望翻墙软件和 TUN 模式 24 小时常开、不用来回切开关，只需在代理软件里把 `gdirect` 涉及的域名按职责分流：
-
-- **必须走代理（`PROXY`）的域名**（仅登录和刷新令牌用，流量极小）：
+- **保留走代理（`PROXY`）的域名**（用于登录和令牌自动刷新）：
   - `accounts.google.com`
   - `oauth2.googleapis.com`
-- **必须设为直连（`DIRECT`）并关闭 `fake-ip` 的域名与 IP**（云盘 API、上传与下载流量）：
+- **需要放行直连（`DIRECT`）并关闭 `fake-ip` 的传输域名**：
   - `drive.usercontent.google.com`
   - `*.googleusercontent.com`
   - `drive.google.com`
-  - `www.googleapis.com`、`content.googleapis.com`、`drive.googleapis.com`
-  - 以及 `gdirect scan --list` 扫出来的可用 Google IP（如默认的种子 IP `183.56.143.147`）
+  - `www.googleapis.com`、`drive.googleapis.com`、`content.googleapis.com`
 
-以 **Clash / Mihomo** 为例，推荐在配置文件中加入以下规则（注意放在 `GEOSITE,google` 或 `MATCH` 兜底规则**之前**）：
+> **注意**：普通浏览器访问 `www.googleapis.com` 时并不会像 `gdirect` 这样把底层 IP 替换成 `google-cn` 节点，所以如果你把 `www.googleapis.com` 全局设为 `DIRECT`，可能会影响浏览器里依赖该域名的其他网页。因此在桌面端最推荐配合 **`PROCESS-NAME`（进程名分流）**，或者只对 `gdirect` 进程放行直连。
+
+以 **Mihomo（Clash）** 为例，在配置文件的 `GEOSITE,google` 规则之前加入：
 
 ```yaml
 dns:
@@ -230,19 +234,18 @@ rules:
   - DOMAIN,accounts.google.com,PROXY
   - DOMAIN,oauth2.googleapis.com,PROXY
 
-  # 2. 云盘下载与 API 域名走直连（若担心影响浏览器访问其他 googleapis 服务，也可改用下面的 PROCESS-NAME 规则）
+  # 2. 推荐：让 gdirect 进程的其余所有流量（扫描、API、下载、上传）强制直连，不被 sniff 域名规则截胡
+  - PROCESS-NAME,gdirect,DIRECT
+
+  # 3. 或者按具体域名直连（放在 GEOSITE,google / RULE-SET,google 之前）：
   - DOMAIN,drive.usercontent.google.com,DIRECT
   - DOMAIN-SUFFIX,googleusercontent.com,DIRECT
   - DOMAIN,www.googleapis.com,DIRECT
   - DOMAIN,drive.googleapis.com,DIRECT
   - DOMAIN,content.googleapis.com,DIRECT
-
-  # 3. 或者更干脆：除 oauth2 刷令牌外，让 gdirect 进程发出的所有连接与直连 IP 律走 DIRECT
-  - PROCESS-NAME,gdirect,DIRECT
-  - IP-CIDR,183.56.143.147/32,DIRECT,no-resolve
 ```
 
-配好并重载配置后，即使全程开着 TUN 模式，`gdirect` 刷新 Token 也会自动走代理，而 `scan`、浏览和几十 GB 的大文件下载则会直接走物理网卡直连，不会偷跑一字节机场流量。
+如果你用的是 **sing-box**，同样可以在 `route.rules` 的 `sniff` 或 `rule_set: ["google"]` 之前加上一条按进程或域名的直连规则（保留 `oauth2.googleapis.com` 走代理），就能在 TUN 常开的情况下随时免流跑满云盘下载。
 
 ---
 
