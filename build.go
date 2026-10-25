@@ -134,6 +134,10 @@ func (b *builder) prepare() error {
 	if err != nil {
 		return err
 	}
+	scripts, err := loadScripts()
+	if err != nil {
+		return err
+	}
 	b.tmpl, err = template.New("page.html").Funcs(template.FuncMap{
 		"css":     func() template.CSS { return css },
 		"local":   func(p string) string { return b.prefix + p },
@@ -142,6 +146,7 @@ func (b *builder) prepare() error {
 		"year":    func() string { return b.year },
 		"anchors": withAnchors,
 		"profile": profileName,
+		"script":  scripts.For,
 	}).ParseGlob("templates/*.html")
 	if err != nil {
 		return err

@@ -157,7 +157,14 @@ func TestBuild(t *testing.T) {
 			t.Fatalf("article metadata is missing on %s", tc.slug)
 		}
 	}
+	home, _ := os.ReadFile("public/index.html")
+	if !strings.Contains(string(home), `matches(".theme")`) || strings.Contains(string(home), "tradingview") || strings.Contains(string(home), `querySelector(".toc")`) {
+		t.Fatal("the home page needs the base script only")
+	}
 	alpha, _ := os.ReadFile("public/posts/alpha/index.html")
+	if !strings.Contains(string(alpha), `querySelector(".toc")`) {
+		t.Fatal("a post with headings needs the table of contents script")
+	}
 	for _, want := range []string{`href="/notes/categories/%e6%8a%80%e6%9c%af/"`, `href="/notes/tags/nextjs/">#Next.js`, `hreflang="en" href="https://example.com/notes/en/posts/alpha/"`, `class="anchor" href="#第一节"`, `rel="license"`, `class="progress"`, "© 2026 "} {
 		if !strings.Contains(string(alpha), want) {
 			t.Fatalf("post lacks %s", want)
@@ -460,5 +467,12 @@ func TestRedirects(t *testing.T) {
 		if err := writeRedirects(site, "", []*Post{&p}, write); err == nil {
 			t.Fatalf("alias %v must be rejected", bad)
 		}
+	}
+}
+
+func TestCompactScript(t *testing.T) {
+	got := compactScript("// comment\n{\n  const url = \"https://x\";\n\n  run(); // trailing comments stay\n}\n")
+	if got != "{\nconst url = \"https://x\";\nrun(); // trailing comments stay\n}" {
+		t.Fatalf("unexpected compact script: %q", got)
 	}
 }
