@@ -339,12 +339,14 @@ func build(base string) error {
 	if err != nil {
 		return err
 	}
+	// The footer year is the newest post's, so a rebuild in January changes nothing.
+	year := ""
 	tmpl, err := template.New("page.html").Funcs(template.FuncMap{
 		"css":     func() template.CSS { return css },
 		"local":   func(p string) string { return prefix + p },
 		"jsonld":  structuredData,
 		"asset":   func(p string) string { return prefix + "/static/" + version + "/" + p },
-		"year":    func() int { return time.Now().Year() },
+		"year":    func() string { return year },
 		"anchors": withAnchors,
 		"profile": func(link string) string {
 			u, err := url.Parse(link)
@@ -415,6 +417,7 @@ func build(base string) error {
 	}
 	for li := range editions {
 		for _, p := range editions[li] {
+			year = max(year, p.Date[:4])
 			for lj := range editions {
 				for _, q := range editions[lj] {
 					if lj != li && q.Slug == p.Slug {

@@ -137,7 +137,7 @@ func TestBuild(t *testing.T) {
 		}
 	}
 	alpha, _ := os.ReadFile("public/posts/alpha/index.html")
-	for _, want := range []string{`href="/notes/categories/%e6%8a%80%e6%9c%af/"`, `href="/notes/tags/nextjs/">#Next.js`, `hreflang="en" href="https://example.com/notes/en/posts/alpha/"`, `class="anchor" href="#第一节"`, `rel="license"`, `class="progress"`} {
+	for _, want := range []string{`href="/notes/categories/%e6%8a%80%e6%9c%af/"`, `href="/notes/tags/nextjs/">#Next.js`, `hreflang="en" href="https://example.com/notes/en/posts/alpha/"`, `class="anchor" href="#第一节"`, `rel="license"`, `class="progress"`, "© 2026 "} {
 		if !strings.Contains(string(alpha), want) {
 			t.Fatalf("post lacks %s", want)
 		}
