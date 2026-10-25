@@ -202,13 +202,14 @@ func plainText(n ast.Node, src []byte) string {
 	return b.String()
 }
 
-func renderContent(src []byte, images ...func(*ast.Image) error) (template.HTML, []Heading, error) {
+// renderContent renders a post body; image, when not nil, rewrites each image node.
+func renderContent(src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
 	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
 	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var toc []Heading
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if image, ok := n.(*ast.Image); entering && ok && len(images) > 0 {
-			if err := images[0](image); err != nil {
+		if node, ok := n.(*ast.Image); entering && ok && image != nil {
+			if err := image(node); err != nil {
 				return ast.WalkStop, err
 			}
 		}
@@ -235,7 +236,7 @@ func withAnchors(content template.HTML) template.HTML {
 	return template.HTML(sectionHeading.ReplaceAllString(string(content), `<h$1 id="$2"><a class="anchor" href="#$2" aria-hidden="true" tabindex="-1">#</a>`))
 }
 
-func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
+func readPost(name string, image func(*ast.Image) error) (Post, error) {
 	var p Post
 	src, err := os.ReadFile(name)
 	if err != nil {
@@ -264,7 +265,7 @@ func readPost(name string, images ...func(*ast.Image) error) (Post, error) {
 			return p, fmt.Errorf("%s: updated must be a YYYY-MM-DD date on or after date", name)
 		}
 	}
-	p.Content, p.TOC, err = renderContent([]byte(parts[1]), images...)
+	p.Content, p.TOC, err = renderContent([]byte(parts[1]), image)
 	p.Units = readingUnits(parts[1])
 	p.Minutes = max(1, (p.Units+299)/300)
 	return p, err
