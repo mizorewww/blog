@@ -83,6 +83,7 @@ func build(opts Options) error {
 		func() error { return writeRedirects(b.site, b.prefix, b.allPosts(), b.write) },
 		func() error { return copyAssets(b.stage, b.version) },
 		b.writeHeaders,
+		func() error { return checkLinks(b.stage, b.site.URL, b.prefix) },
 		b.publish,
 	}
 	for _, step := range steps {
