@@ -78,7 +78,7 @@ go run ./src new -h               # 全部参数
 
 ## 数据表格
 
-本站不嵌入图表脚本。需要比较数值时，用 `data` 代码块写一张带标题和细横条的表格；折线、面积、柱状和散点图用 ```` ```chart ````（构建时画成静态 SVG，悬停显示数值），指标卡用 ```` ```stats ````，行情卡用 `::tv` 或 `$BTC`（读者点击后才加载 TradingView）。后三者的语法见 `.claude/skills/write-post/SKILL.md`。
+本站不嵌入图表脚本。需要比较数值时，用 `data` 代码块写一张带标题和细横条的表格；折线、面积、柱状和散点图用 ```` ```chart ````（构建时画成静态 SVG，悬停显示数值），指标卡用 ```` ```stats ````，行情卡用 `::tv` 或 `$BTC`（读者点击后才加载 TradingView）。后三者的语法见 `.claude/skills/post-components/SKILL.md`。
 
 ````markdown
 ```data title="12 档 delta 的 Sharpe 对比" bars="BTC,ETH" mark="Δ0.35" note="周频收益 × √52 年化。"
@@ -96,7 +96,7 @@ Delta | BTC  | ETH
 - 全为数字的列自动右对齐、等宽数字。表格过宽时在容器内横向滚动。
 - 未知属性、找不到的 `bars` 列、行列数不一致都会让构建失败。
 
-普通 Markdown 表格使用相同的横线样式；用 `---:` 让数字列右对齐。如何把图表改写成表格，以及给 AI 的完整写作规范，见 `.claude/skills/write-post/SKILL.md`。
+普通 Markdown 表格使用相同的横线样式；用 `---:` 让数字列右对齐。如何把图表改写成表格，以及给 AI 的完整写作规范，见 `.claude/skills/post-components/SKILL.md`。
 
 ## 旧地址跳转
 
