@@ -42,7 +42,7 @@
 <main id="main">
 {{template "main" .}}
 </main>
-<footer class="site-footer"><span>© {{year}} {{.Site.Author}}{{with .Site.Commit}} · <a href="{{$.Site.Repo}}/commit/{{.}}">{{slice . 0 7}}</a>{{end}}</span><nav aria-label="{{.UI.Elsewhere}}">{{range .Site.SameAs}}<a href="{{.}}" rel="me">{{profile .}}</a>{{end}}{{with .Site.Email}}<a href="mailto:{{.}}">Email</a>{{end}}<a href="{{local .Lang.Base}}/feed.xml">RSS</a></nav></footer>
+<footer class="site-footer"><span>© {{with year}}{{.}} {{end}}{{.Site.Author}}{{with .Site.Commit}} · <a href="{{$.Site.Repo}}/commit/{{.}}">{{slice . 0 7}}</a>{{end}}</span><nav aria-label="{{.UI.Elsewhere}}">{{range .Site.SameAs}}<a href="{{.}}" rel="me">{{profile .}}</a>{{end}}{{with .Site.Email}}<a href="mailto:{{.}}">Email</a>{{end}}<a href="{{local .Lang.Base}}/feed.xml">RSS</a></nav></footer>
 </div>
 <script>{{script .}}</script>
 </body>
