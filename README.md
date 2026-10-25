@@ -1,12 +1,12 @@
 # mizore / notes
 
-一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。页眉只有站名、「关于」和 RSS 三个链接，首页是一句站点介绍加文章列表：日期、分类、标题、摘要和阅读时长；页脚只有版权和外部链接。使用贯穿页面的横线、两侧纵线和交点标记组织页面。
+一个参考 [Zed Blog](https://zed.dev/blog) 排版气质的极简个人博客。页眉是站名、标签、搜索、「关于」、语言切换和深浅色按钮，首页是一句站点介绍、统计和文章列表：日期、分类、标题、摘要、标签和阅读时长；页脚是版权、构建所用的提交、外部链接和 RSS。使用贯穿页面的横线、两侧纵线和交点标记组织页面。
 
-**静态 HTML · 默认 0 JS · 无框架 · 无 hydration · 无 bundler**
+**静态 HTML · 正文不依赖 JS · 无框架 · 无 hydration · 无 bundler**
 
 ## 本地运行
 
-需要 Go 1.25 或更新版本（测试环境：Go 1.27.3）。
+需要 `go.mod` 中声明的 Go 1.26 或更新版本。
 
 ```sh
 go run . -url http://localhost:8080 -serve localhost:8080
@@ -61,7 +61,7 @@ go run . new -h               # 全部参数
 ```
 
 - `title`、`description`、`date` 必填；日期格式为 `YYYY-MM-DD`，非法日期会让构建失败。
-- `tag` 是可选的文字标签。
+- `tag` 是可选的分类（一篇只有一个），`tags` 是可选的标签列表；分别生成 `/categories/…/` 与 `/tags/…/` 页面和 RSS。拼写不同但网址相同的名字（如 `C++` 与 `C`）会让构建失败。
 - `aliases` 可选，列出文章的旧地址（以 `/` 开头和结尾，如 `"/zh/折腾/xiaomi-book-pro-14/"`），见下文「旧地址跳转」。
 - `updated` 可选，格式同 `date` 且不早于它；文章有实质修改时填写，用于 `dateModified`、`article:modified_time` 和 sitemap 的 `lastmod`。
 - 文章按日期倒序排列，同日按文件名排序。
@@ -70,7 +70,7 @@ go run . new -h               # 全部参数
 - 支持常规 Markdown、表格、代码块和自动标题 ID；中文标题保留可读锚点，例如 `## 问题一：屏幕花屏` 对应 `#问题一屏幕花屏`。
 - 文章目录自动提取 `##`、`###` 标题，桌面为侧栏，手机位于正文前，可原生折叠；无标题时不显示目录。
 - 文末显示上一篇（更早）和下一篇（更新），同日按文件名顺序；首尾自动省略不存在的链接，只有一篇时不显示相邻文章导航。
-- 文章页不展示分类、日期、阅读时长或作者署名；发布日期仍保留在 HTML 元数据和 RSS 中。
+- 文章页顶部显示日期、分类、阅读时长、更新日期与标签；文末列出该文件的 git 修改记录、源文件链接和许可。
 - 原始 HTML 与危险链接由 Goldmark 默认规则禁用；元数据由 `html/template` 转义。
 - 数学公式写 LaTeX：行内 `$E = mc^2$`，独立公式把 `$$` 各放一行。构建时由 [treeblood](https://github.com/wyatt915/treeblood) 转为浏览器原生 MathML，0 JS、无额外字体；不支持的命令（如 `\arg`）让构建失败并指出公式，可改写为 `\mathrm{arg}`。为了不误伤价格，`$` 后紧跟空格、结束 `$` 前有空格或后接数字时都不算公式，`$5 和 $10` 保持原样；确需字面量时写 `\$`。
 - 阅读时长按每分钟 300 个汉字或英文单词估算，不计代码块和数据表格。
@@ -78,7 +78,7 @@ go run . new -h               # 全部参数
 
 ## 数据表格
 
-本站不嵌入图表脚本或图表图片。需要比较数值时，用 `data` 代码块写一张带标题和细横条的表格：
+本站不嵌入图表脚本。需要比较数值时，用 `data` 代码块写一张带标题和细横条的表格；折线、面积、柱状和散点图用 ```` ```chart ````（构建时画成静态 SVG，悬停显示数值），指标卡用 ```` ```stats ````，行情卡用 `::tv` 或 `$BTC`（读者点击后才加载 TradingView）。后三者的语法见 `.claude/skills/write-post/SKILL.md`。
 
 ````markdown
 ```data title="12 档 delta 的 Sharpe 对比" bars="BTC,ETH" mark="Δ0.35" note="周频收益 × √52 年化。"
@@ -118,7 +118,7 @@ Delta | BTC  | ETH
 
 保留有意义的替代文字，让屏幕阅读器与爬虫理解图片。
 
-直接运行原来的 `go run .`，无需手动压缩。首次构建含本地位图的文章需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。没有本地位图时仍然只需 Go；浏览器端不增加依赖。
+直接运行原来的 `go run .`，无需手动压缩。新图片或改动过的图片需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。`.cache/images/` 里已有结果的图片由 Go 直接读取，不启动 Python，也不需要 uv；浏览器端不增加依赖。
 
 - JPEG、PNG、WebP、静态 GIF、AVIF：生成 WebP 候选，宽图按最大 1600 px 等比缩小，不放大小图。JPEG/WebP/AVIF 使用 quality 82；PNG/静态 GIF 使用无损编码，透明背景保留（缩小尺寸本身仍会重采样）。
 - 只采用比原图更小的结果，否则保留原文件及原始尺寸。处理照片 EXIF 方向，生成的 WebP 不携带 EXIF；保留原文件的情况下也保留原有元数据。
@@ -135,47 +135,54 @@ Delta | BTC  | ETH
 | 文件 | 用途 |
 | --- | --- |
 | `site.json` | 站点标题、作者、描述、正式 URL、页眉「关于」链接（`about`）与结构化数据中的个人主页（`sameAs`） |
-| `templates/page.html` | 页眉、文章列表与文章布局 |
+| `templates/page.html` | 所有页面共用的 head、页眉和页脚 |
+| `templates/pages/<kind>.html` | 首页、文章、分类与标签、搜索、404 各自的正文 |
+| `templates/js/*.js` | 页面脚本：基础（字体、深浅色、复制）、图表提示、行情、目录高亮、搜索；每页只带用到的部分 |
 | `static/style.css` | 颜色、字体、间距、响应式规则 |
 | `static/favicon.svg` | `m.` 图标，可换成自己的标记 |
-| `content/posts/*.md` | 文章 |
-| `main.go` | 构建器与本地预览入口 |
+| `content/posts/*.md` | 文章；英文版在 `content/posts/en/`，同名文件互为翻译 |
+| `main.go` / `build.go` | 命令行入口；构建流程（读取、渲染各类页面、索引、发布） |
+| `post.go` / `i18n.go` / `terms.go` | 文章解析与 Markdown；各语言版本与界面文字；分类和标签 |
+| `feed.go` / `search.go` / `seo.go` / `links.go` | RSS 与 sitemap；搜索索引；JSON-LD；站内链接检查 |
+| `fonts.go` / `assets.go` | 按页字体子集；CSS 内联与资源版本号 |
 | `images.go` / `scripts/prepare-image.py` | 本地图片重写、压缩与构建缓存 |
-| `assets.go` / `serve.go` | 资源版本号与 HTTP 压缩、缓存 |
+| `serve.go` | 本地预览服务器：压缩与缓存 |
 | `new.go` / `templates/post.md.tmpl` | 创建文章工具及正文模板 |
+| `REVIEW.md` | 代码审查标准与重构记录 |
 
 个人介绍不放在本站：页眉的「关于」指向 `site.json` 的 `about`（目前是 about.mizore.blog）。RSS 同时出现在页眉和 HTML head 的自动发现中。
 
 ## 输出与设计约束
 
-- 首页、文章页、404：完整语义化 HTML，HTTP 响应包含全部正文。
+- 首页、文章页、404：完整语义化 HTML，HTTP 响应包含全部正文。每个语言版本有自己的 `404.html`，Cloudflare Pages 按最近的目录选用。
 - `feed.xml`：包含全文的 RSS 2.0，带 `atom:link rel="self"`、语言、分类和 `lastBuildDate`。
-- `sitemap.xml` 的 `lastmod` 取文章的 `updated` 或 `date`，首页取最新一篇；日期只来自内容，内容不变时构建结果完全一致。
+- `sitemap.xml` 的 `lastmod` 取文章的 `updated` 或 `date`，首页取最新一篇；页脚年份取最新文章的年份。日期只来自内容，同样的内容和提交构建出完全相同的文件。
 - `sitemap.xml`、`robots.txt`：爬虫入口。
 - canonical、description、跳至正文链接、键盘焦点状态。
 - 分享与搜索：Open Graph 与 Twitter `summary` 卡片只有标题和描述，刻意不输出 `og:image` 预览图；文章页输出发布、修改日期、作者与标签。
 - 结构化数据：首页 `WebSite`、文章页 `BlogPosting` 的 JSON-LD，作者为 `site.json` 的 `author`，链接到 `about` 与 `sameAs`（GitHub、X），与 about.mizore.blog 的身份一致。这是 `application/ld+json` 数据块，不是可执行脚本。
-- 正文用思源黑体，标题用思源宋体，日期、表格与代码用 Maple Mono，全部自托管、不依赖系统字体。构建时按页面子集化：每页首屏（第一个正文小标题之前）用到的字直接内嵌，其余的字拆成这一页自己的小文件，加载后再启用。新文章不需要重新生成字体；GB2312 以外的生僻字要先运行 `uv run scripts/prepare-fonts.py` 更新 `fonts/` 下的源字体。
-- Adobe 官方简体中文可变字体，自托管 WOFF2，按字符分片、`font-display: swap`，无第三方网络请求，无分析脚本。
-- 字体已提交到 `static/fonts/`，字体无需日常重新生成；新增文字由浏览器自动加载对应分片。可选用 `uv run scripts/prepare-fonts.py` 重新优化当前文章的常用字符分片，工具不参与日常构建。
+- 正文用思源黑体，标题用思源宋体，日期、表格与代码用 Maple Mono，全部自托管、不依赖系统字体，无第三方网络请求，无分析脚本。
+- 中文字体按页面子集化：源字体在 `fonts/`（GB2312 常用字），每页首屏（第一个正文小标题之前）用到的字直接内嵌，其余的字写成这一页自己的小文件，首次滚动或加载完成后启用；搜索摘要的字另有一份，出现时才下载。Maple Mono 常规与中等字重内嵌在 CSS 里，斜体是单独文件。新文章不需要重新生成字体；GB2312 以外的生僻字要先运行 `uv run scripts/prepare-fonts.py` 更新 `fonts/`。
+- 子集化时 `fonts.go` 的 `faceFor` 复刻了 `style.css` 里的字体与字重规则；`go test` 会在这些 CSS 规则变化时失败，提醒同步修改。
 - 字体版本：Source Han Serif 2.003R / Maple Mono 7.9，SIL OFL 1.1 许可证保留在字体目录。
-- Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark、代码高亮（goldmark-highlighting + Chroma）与公式转换（treeblood）；含本地位图的构建另需 uv/Pillow。
-- 构建先写临时目录，全部成功后替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
-- 没有评论、搜索、客户端路由、Service Worker 或动态后端。
+- Go 标准库处理模板、JSON、XML、日期和文件；Go 第三方依赖为锁定版本的 Goldmark、Chroma（代码高亮）、treeblood（公式）、tdewolff/font（字体子集）与 x/net/html；处理新图片时另需 uv/Pillow。
+- 构建先写临时目录，检查所有站内链接（`href`、`src`、`srcset` 指向的文件和 `#锚点` 都必须存在），全部成功后才替换 `public/`，避免内容或模板错误破坏已有输出。替换并非无缝在线发布，请通过托管平台部署产物。
+- 页面脚本只做增强：深浅色切换、代码复制、目录高亮、图表悬停数值、搜索和按需加载的 TradingView 行情。源码在 `templates/js/`，构建时去掉缩进和注释后内联，每页只带用到的部分；禁用 JS 时正文、目录和导航照常可用。
+- 搜索是静态的：首次使用时下载该语言的 `search.json`，在浏览器里过滤文章列表。
+- 没有评论、客户端路由、Service Worker 或动态后端。
 
 ## 压缩与缓存
 
 - CSS、字体和图标输出到 `/static/<内容哈希>/`。样式或资源改变后地址自动更新，使用 `Cache-Control: public, max-age=31536000, immutable`；不变的资源可直接使用浏览器缓存。
-- HTML、RSS、sitemap 和 robots 使用 `Cache-Control: no-cache` + ETag：每次重新验证，未变化返回 304，修改后返回新内容。`no-cache` 允许存储，但要求复用前验证。
+- HTML、RSS、sitemap、robots 和搜索索引使用 `Cache-Control: no-cache` + ETag：每次重新验证，未变化返回 304，修改后返回新内容。`no-cache` 允许存储，但要求复用前验证。`_headers` 的路由由构建实际写出的顶层文件和目录生成。
 - 本地 Go 服务器会 gzip 压缩 HTML、CSS、XML、SVG 等文本响应，发送 `Vary: Accept-Encoding`，为压缩和未压缩内容生成各自的 ETag。已压缩的 WOFF2 不再重复 gzip。
-- 首屏预加载两个常用字体分片；没有 Service Worker 或客户端缓存脚本。
 - 自行放进 `static/` 的文章图片保持原路径，Go 服务器对未带版本号的资源重新验证，不使用永久缓存。
 - 构建输出包含 Cloudflare Pages 的 `_headers` 文件，配置 HTML 重新验证和当前版本静态资源长期缓存，支持站点子路径。参见 [Cloudflare Pages 响应头文档](https://developers.cloudflare.com/pages/configuration/headers/)。
 - 其他静态托管平台需配置同等响应头并启用压缩；GitHub Pages 不读取 `_headers`，其缓存策略由平台控制。缓存头属于 HTTP 服务配置，不能仅靠 HTML 文件生效。
 
 ## 代码高亮
 
-围栏代码块标明语言时，构建时由 [Goldmark highlighting v2](https://github.com/yuin/goldmark-highlighting) + [Chroma v2](https://github.com/alecthomas/chroma) 生成带 class 的 HTML，颜色写在 `static/style.css` 末尾的几行规则里，与站点配色一致：关键字绿色、字符串与数字棕色、函数与变量蓝灰、注释灰色斜体。浏览器端 0 JS，不加行号、工具栏或复制按钮。
+围栏代码块标明语言时，构建时由 [Chroma v2](https://github.com/alecthomas/chroma) 生成带 class 的 HTML（`code.go`），颜色写在 `static/style.css` 末尾的几行规则里，与站点配色一致：关键字绿色、字符串与数字棕色、函数与变量蓝灰、注释灰色斜体。代码块角落显示语言名和复制按钮；加 `src="<GitHub blob 永久链接>#L76-L103"` 时显示文件路径、真实行号和提交。
 
 ````markdown
 ```go
