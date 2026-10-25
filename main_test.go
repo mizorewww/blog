@@ -104,6 +104,11 @@ func TestBuild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	for _, unused := range []string{"style.css", "fonts/maple-mono-400.woff2"} {
+		if _, err := os.Stat("public/static/" + version + "/" + unused); err == nil {
+			t.Fatalf("%s is inlined and must not be published", unused)
+		}
+	}
 	lateFonts, _ := filepath.Glob("public/static/" + version + "/fonts/sans-400-*.woff2")
 	if len(lateFonts) == 0 {
 		t.Fatal("pages need their late font subsets")

@@ -79,28 +79,33 @@ func copyAssets(stage, version string) error {
 		return err
 	}
 	for _, entry := range entries {
+		if entry.Name() == "style.css" {
+			continue // inlined into every page by pageCSS
+		}
 		source := filepath.Join("static", entry.Name())
 		target := filepath.Join(stage, "static", entry.Name())
 		if entry.Name() == "root" {
 			// favicon.ico and apple-touch-icon.png are fetched from the site root by convention.
 			target = stage
 		}
-		if entry.Name() == "fonts" || entry.Name() == "style.css" || entry.Name() == "favicon.svg" {
+		if entry.Name() == "fonts" || entry.Name() == "favicon.svg" {
 			target = filepath.Join(stage, "static", version, entry.Name())
 		}
 		if entry.IsDir() {
 			if err = os.CopyFS(target, os.DirFS(source)); err != nil {
 				return err
 			}
+			if entry.Name() == "fonts" {
+				for _, name := range inlineFonts {
+					if err = os.Remove(filepath.Join(target, name)); err != nil {
+						return err
+					}
+				}
+			}
 		} else {
 			body, err := os.ReadFile(source)
 			if err != nil {
 				return err
-			}
-			if entry.Name() == "style.css" {
-				if body, err = inlineStyleFonts(body); err != nil {
-					return err
-				}
 			}
 			if err = os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 				return err
