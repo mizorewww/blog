@@ -2,7 +2,15 @@
 const root = document.documentElement;
 // The page's "Late" font subsets (src/fonts.go) switch on at the first scroll,
 // or soon after load; phones wait so the first paint keeps the network.
-const late = () => root.classList.add("late");
+// They download first and switch on together, and the text in the middle of
+// the screen is held in place: they reflow what fallback fonts laid out, and
+// a page that changes height would otherwise jump, most of all at its end.
+let fetching;
+const late = () => fetching ??= Promise.all([...document.fonts].filter(f => f.family.includes("Late")).map(f => f.load().catch(() => {}))).then(() => {
+  const anchor = document.elementFromPoint(innerWidth / 2, innerHeight / 2), top = anchor?.getBoundingClientRect().top;
+  root.classList.add("late");
+  if (anchor) scrollBy({ top: anchor.getBoundingClientRect().top - top, behavior: "instant" });
+});
 addEventListener("scroll", late, { once: true, passive: true });
 addEventListener("load", () => setTimeout(late, matchMedia("(min-width:901px)").matches ? 0 : 1500));
 const dark = () => (root.dataset.theme || (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light")) == "dark";
