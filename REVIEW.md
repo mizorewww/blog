@@ -8,16 +8,16 @@
 
 ### 1. 正确性（必须通过）
 
-- `go vet ./...`、`go test ./...` 通过；`go run .` 能完整构建，失败时 `public/` 保持上一次的结果。
+- `go vet ./...`、`go test ./...` 通过；`go run ./src` 能完整构建，失败时 `public/` 保持上一次的结果。
 - 新的 Markdown 语法或元数据字段：非法输入必须让构建失败并指出文件，不允许静默忽略或输出半成品 HTML。元数据的未知字段已经会让构建失败，新增字段要加进 `PostMetadata`。
 - 用户可控内容（标题、描述、标签、代码块属性）只经过 `html/template` 或 `html.EscapeString` 进入页面；`template.HTML` / `template.JS` 只用于 Goldmark 输出、`json.Marshal` 结果和 `templates/js` 的脚本。
-- 旧链接不能断：改 slug、标签名、URL 结构时，`aliases` / `site.json redirects` 同步更新，`TestRedirects` 覆盖新规则。站内链接由构建时的链接检查兜底（`links.go`）。
+- 旧链接不能断：改 slug、标签名、URL 结构时，`aliases` / `site.json redirects` 同步更新，`TestRedirects` 覆盖新规则。站内链接由构建时的链接检查兜底（`src/links.go`）。
 - 中英两个版本都要验证：新加的界面文字放进 `i18n.go` 的 `UI`，不在 Go 或模板里写死某一种语言。
 
 ### 2. 站点约束（必须通过）
 
 - 不新增运行时第三方请求；需要外部脚本的功能（如 TradingView）必须是读者点击后才加载。
-- 不新增浏览器端依赖、框架或 bundler；页面脚本写在 `templates/js/`，只做增强，禁用 JS 时正文、目录、导航完整可用。新脚本要在 `scripts.go` 里按页面内容决定是否带上。
+- 不新增浏览器端依赖、框架或 bundler；页面脚本写在 `templates/js/`，只做增强，禁用 JS 时正文、目录、导航完整可用。新脚本要在 `src/scripts.go` 里按页面内容决定是否带上。
 - 不输出 `og:image` 等分享预览图（`TestBuild` 检查）。
 - Lighthouse 性能分 ≥ 97（手机）。改动字体、CSS、首屏 HTML 结构、图片加载属性或页面脚本时，本地运行 `sh scripts/lighthouse.sh` 测量每一篇文章；CI 每次推送也会测量。
 - 同样的内容和提交构建出同样的文件；日期只来自内容或 git，不来自时钟；不按 Go map 的顺序输出。
@@ -26,7 +26,7 @@
 
 - 一个函数只做一件事；超过约 80 行或嵌套超过 3 层时拆分。构建流程的每一步是 `builder` 的一个方法，新的输出加一个方法而不是加长已有的。
 - 不用包级可变状态传参数；构建选项放进 `Options`，每次构建使用自己的语言版本副本。
-- `fonts.go faceFor` 镜像 `style.css` 的字体规则：改了 CSS 的 `font-family` / `font-weight`，`TestFontRulesMatchFaceFor` 会失败，按提示同步修改 `faceFor` 和测试里的列表。
+- `src/fonts.go faceFor` 镜像 `style.css` 的字体规则：改了 CSS 的 `font-family` / `font-weight`，`TestFontRulesMatchFaceFor` 会失败，按提示同步修改 `faceFor` 和测试里的列表。
 - 一种页面一个模板：`templates/pages/<kind>.html`，共用部分留在 `templates/page.html`。
 - 文档与行为一致：改了行为就改 README 和 `.claude/skills/write-post/SKILL.md`。
 - 注释解释"为什么"，不复述代码；风格与周围代码一致，`gofmt -l .` 无输出。
@@ -35,7 +35,7 @@
 ### 4. 审查流程
 
 1. 先读 diff 涉及的完整函数，而不只是改动行。
-2. 本地 `go test ./... && go run . -url http://localhost:8080 -serve localhost:8080`，至少打开首页、一篇带图/表/公式的文章、英文版、搜索页。
+2. 本地 `go test ./... && go run ./src -url http://localhost:8080 -serve localhost:8080`，至少打开首页、一篇带图/表/公式的文章、英文版、搜索页。
 3. 按上面 1→3 逐项过；发现的问题按"会出错 / 违反约束 / 可维护性"三级记录。
 4. 推送到 `main` 就会部署到 Cloudflare Pages，所以只有全部"必须通过"项通过才合并。
 
@@ -62,7 +62,7 @@
 
 | # | 问题 | 处理 |
 | --- | --- | --- |
-| 6 | `build()` 约 320 行 | 拆成 `builder` 的各个阶段（`build.go`），源文件按职责拆分：`post.go`、`page.go`、`feed.go`、`i18n.go`、`terms.go`、`git.go`、`search.go` |
+| 6 | `build()` 约 320 行 | 拆成 `builder` 的各个阶段（`src/build.go`），源文件按职责拆分：`src/post.go`、`src/page.go`、`src/feed.go`、`i18n.go`、`src/terms.go`、`src/git.go`、`src/search.go` |
 | 7 | 包级可变状态 | `Options` 替代 `includeDrafts`；构建不再改写全局 `languages` |
 | 8 | 页面脚本是一行手写压缩的 JS | `templates/js/` 下的可读源码，按页面内容选用；首页脚本 2.4 KB → 1.0 KB |
 | 9 | 单个模板靠 `Kind` 分支 | 布局 + `templates/pages/<kind>.html`，输出逐字节不变 |
@@ -75,7 +75,7 @@
 
 ### 质量门禁
 
-- 构建时检查站内链接与锚点（`links.go`）。
+- 构建时检查站内链接与锚点（`src/links.go`）。
 - `scripts/lighthouse.sh` 测量首页、搜索和每篇文章；CI 与部署并行运行，低于 97 时标红但不阻止部署（共享 runner 的分数有波动）。本次重构后本地全部为 99–100。
 
 ### 有意保留

@@ -25,7 +25,7 @@ func newPost(args []string, out io.Writer) error {
 	tag := flags.String("tag", "", "optional category")
 	date := flags.String("date", now.Format(time.DateOnly), "publication date: YYYY-MM-DD")
 	flags.Usage = func() {
-		fmt.Fprintln(out, "Usage: go run . new [flags] \"文章标题\"\n\nFlags must precede the title. Edit templates/post.md.tmpl to customize the body.")
+		fmt.Fprintln(out, "Usage: go run ./src new [flags] \"文章标题\"\n\nFlags must precede the title. Edit templates/post.md.tmpl to customize the body.")
 		flags.PrintDefaults()
 	}
 	if err := flags.Parse(args); err != nil {
@@ -97,6 +97,6 @@ func newPost(args []string, out io.Writer) error {
 		_ = os.Remove(path)
 		return err
 	}
-	fmt.Fprintf(out, "Created %s\nEdit the summary and body, then run go run . to build.\n", path)
+	fmt.Fprintf(out, "Created %s\nEdit the summary and body, then run go run ./src to build.\n", path)
 	return nil
 }

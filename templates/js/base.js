@@ -1,6 +1,6 @@
 // Every page: late fonts, the theme toggle and code copy buttons.
 const root = document.documentElement;
-// The page's "Late" font subsets (fonts.go) switch on at the first scroll,
+// The page's "Late" font subsets (src/fonts.go) switch on at the first scroll,
 // or soon after load; phones wait so the first paint keeps the network.
 const late = () => root.classList.add("late");
 addEventListener("scroll", late, { once: true, passive: true });

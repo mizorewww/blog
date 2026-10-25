@@ -1,4 +1,4 @@
-// Posts with a chart: show the values nearest the pointer (chart.go writes data-tip).
+// Posts with a chart: show the values nearest the pointer (src/chart.go writes data-tip).
 let tip;
 document.addEventListener("pointermove", e => {
   const plot = e.target.closest?.(".plot[data-tip]");

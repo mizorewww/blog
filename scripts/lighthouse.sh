@@ -1,7 +1,7 @@
 #!/bin/sh
 # Lighthouse performance (mobile, simulated) for the home page, search and
 # every post of a running preview; exits non-zero when one scores below
-# MIN_SCORE. Usage: go run . -url http://localhost:8080 -serve localhost:8080 &
+# MIN_SCORE. Usage: go run ./src -url http://localhost:8080 -serve localhost:8080 &
 #                   sh scripts/lighthouse.sh http://localhost:8080
 set -eu
 base=${1:-http://localhost:8080}

@@ -9,7 +9,7 @@
 需要 `go.mod` 中声明的 Go 1.26 或更新版本。
 
 ```sh
-go run . -url http://localhost:8080 -serve localhost:8080
+go run ./src -url http://localhost:8080 -serve localhost:8080
 ```
 
 打开 <http://localhost:8080>。
@@ -17,9 +17,9 @@ go run . -url http://localhost:8080 -serve localhost:8080
 上述预览命令只绑定本机，已启用 gzip 和 HTTP 缓存。修改内容后重新执行命令；没有热更新或浏览器脚本。生产部署只需要生成文件，不需要运行此服务器。
 
 ```sh
-go run .                         # 使用 site.json 的生产 URL
+go run ./src                         # 使用 site.json 的生产 URL
 # 或者指定自己的域名（也支持子路径部署）
-go run . -url https://example.com/blog
+go run ./src -url https://example.com/blog
 ```
 
 将 `public/` 的内容上传到任意静态托管服务。配置目录 URL 对应 `index.html`，不存在的地址返回 `404.html` 并保持 HTTP 404。域名根目录部署时，`robots.txt` 可被标准爬虫直接发现；子路径部署时由域名根站点管理 robots.txt。
@@ -31,15 +31,15 @@ go run . -url https://example.com/blog
 在仓库根目录运行：
 
 ```sh
-go run . new -slug hello-world -description "文章的一句话介绍。" -tag 随笔 "你好，世界"
+go run ./src new -slug hello-world -description "文章的一句话介绍。" -tag 随笔 "你好，世界"
 ```
 
 生成 `content/posts/hello-world.md`，日期默认取本机当天。也可以只传标题：
 
 ```sh
-go run . new "Hello Go"       # hello-go.md
-go run . new "一篇新的笔记"   # post-YYYYMMDD-HHMMSS.md
-go run . new -h               # 全部参数
+go run ./src new "Hello Go"       # hello-go.md
+go run ./src new "一篇新的笔记"   # post-YYYYMMDD-HHMMSS.md
+go run ./src new -h               # 全部参数
 ```
 
 所有选项放在标题前。可用 `-date YYYY-MM-DD` 指定日期，或用 `-title` 代替位置参数。文件名只允许小写英文字母、数字和连字符；重名会报错，绝不覆盖已有文章。缺省摘要和正文是待填写的占位文字，创建后编辑再构建。
@@ -65,7 +65,7 @@ go run . new -h               # 全部参数
 - `aliases` 可选，列出文章的旧地址（以 `/` 开头和结尾，如 `"/zh/折腾/xiaomi-book-pro-14/"`），见下文「旧地址跳转」。
 - `updated` 可选，格式同 `date` 且不早于它；文章有实质修改时填写，用于 `dateModified`、`article:modified_time` 和 sitemap 的 `lastmod`。
 - 文章按日期倒序排列，同日按文件名排序。
-- 除 `"draft": true` 的草稿外，所有文章都会发布，包括未来日期；草稿用 `go run . -drafts` 在本地预览。
+- 除 `"draft": true` 的草稿外，所有文章都会发布，包括未来日期；草稿用 `go run ./src -drafts` 在本地预览。
 - 元数据里的未知字段（包括拼错的字段名）会让构建失败。
 - 支持常规 Markdown、表格、代码块和自动标题 ID；中文标题保留可读锚点，例如 `## 问题一：屏幕花屏` 对应 `#问题一屏幕花屏`。
 - 文章目录自动提取 `##`、`###` 标题，桌面为侧栏，手机位于正文前，可原生折叠；无标题时不显示目录。
@@ -118,7 +118,7 @@ Delta | BTC  | ETH
 
 保留有意义的替代文字，让屏幕阅读器与爬虫理解图片。
 
-直接运行原来的 `go run .`，无需手动压缩。新图片或改动过的图片需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。`.cache/images/` 里已有结果的图片由 Go 直接读取，不启动 Python，也不需要 uv；浏览器端不增加依赖。
+直接运行原来的 `go run ./src`，无需手动压缩。新图片或改动过的图片需要安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)；它会为 `scripts/prepare-image.py` 自动准备锁定版本的 Pillow。`.cache/images/` 里已有结果的图片由 Go 直接读取，不启动 Python，也不需要 uv；浏览器端不增加依赖。
 
 - JPEG、PNG、WebP、静态 GIF、AVIF：生成 WebP 候选，宽图按最大 1600 px 等比缩小，不放大小图。JPEG/WebP/AVIF 使用 quality 82；PNG/静态 GIF 使用无损编码，透明背景保留（缩小尺寸本身仍会重采样）。
 - 只采用比原图更小的结果，否则保留原文件及原始尺寸。处理照片 EXIF 方向，生成的 WebP 不携带 EXIF；保留原文件的情况下也保留原有元数据。

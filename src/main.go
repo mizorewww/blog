@@ -20,7 +20,7 @@ func main() {
 	flag.BoolVar(&opts.Drafts, "drafts", false, "also build draft posts")
 	flag.Parse()
 	if flag.NArg() != 0 {
-		log.Fatal("unexpected arguments; use go run . new -h to create an article")
+		log.Fatal("unexpected arguments; use go run ./src new -h to create an article")
 	}
 	if err := build(opts); err != nil {
 		log.Fatal(err)

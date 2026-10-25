@@ -9,7 +9,7 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 
 ## 文件
 
-`content/posts/<slug>.md`，slug 只用小写字母、数字和单个连字符，并作为 URL `/posts/<slug>/`。用 `go run . new -slug <slug> -description "…" -tag <分类> "标题"` 创建，或手写：
+`content/posts/<slug>.md`，slug 只用小写字母、数字和单个连字符，并作为 URL `/posts/<slug>/`。用 `go run ./src new -slug <slug> -description "…" -tag <分类> "标题"` 创建，或手写：
 
 ```markdown
 {"title":"标题","description":"一句话摘要，出现在首页、RSS 和 meta description。","date":"2026-10-24","tag":"折腾","tags":["Linux","Laptop"]}
@@ -17,10 +17,10 @@ description: Write, edit, or migrate an article for this blog (content/posts/*.m
 正文第一段。
 ```
 
-- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 是分类，只有一个；`tags` 是标签列表，各自生成 `/categories/…/` 和 `/tags/…/` 页面与 RSS。`"draft":true` 不发布（`go run . -drafts` 预览）。英文版放在 `content/posts/en/` 下、用同一个文件名，两边会互相链接。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
+- 第一行是单行 JSON，再单独一行 `---`。`title`、`description`、`date`（`YYYY-MM-DD`）必填，`tag` 是分类，只有一个；`tags` 是标签列表，各自生成 `/categories/…/` 和 `/tags/…/` 页面与 RSS。`"draft":true` 不发布（`go run ./src -drafts` 预览）。英文版放在 `content/posts/en/` 下、用同一个文件名，两边会互相链接。修改已发布文章的实质内容时加上 `"updated":"YYYY-MM-DD"`；改错字不用。
 - 正文不要再写 `# 标题`：页面已用 `title` 作 h1。正文从 `##` 开始，`##` / `###` 自动进入目录。
 - 改 slug 或迁移旧文章时，把旧地址写进 `"aliases":["/旧/路径/"]`，第一项也是 RSS guid，已有的别名不要删。
-- 未完成的文章在元数据里加 `"draft":true`：正式构建跳过它，`go run . -drafts -url http://localhost:8080 -serve localhost:8080` 可本地预览。发布时删掉这个字段。
+- 未完成的文章在元数据里加 `"draft":true`：正式构建跳过它，`go run ./src -drafts -url http://localhost:8080 -serve localhost:8080` 可本地预览。发布时删掉这个字段。
 - 元数据只能用上面列出的字段（另有 `aliases`）；拼错或多余的字段会让构建失败。
 - `description` 要说清读者能得到什么，不要写口号；60–120 字为宜。它同时是搜索结果摘要和分享卡片文字（分享卡片没有图片）。
 
@@ -117,6 +117,6 @@ Delta | BTC  | ETH
 
 ## 完成前
 
-1. `go run .` 构建成功（公式、`data` 表格、图片路径出错都会让构建失败并给出位置）。
+1. `go run ./src` 构建成功（公式、`data` 表格、图片路径出错都会让构建失败并给出位置）。
 2. `go test ./...` 通过。
-3. 用 `go run . -url http://localhost:8080 -serve localhost:8080` 打开文章，桌面和 390 px 宽各看一遍：目录、表格、公式、代码块没有溢出页面。
+3. 用 `go run ./src -url http://localhost:8080 -serve localhost:8080` 打开文章，桌面和 390 px 宽各看一遍：目录、表格、公式、代码块没有溢出页面。
