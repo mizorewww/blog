@@ -84,14 +84,52 @@ func (p *imagePipeline) publish(path string) (string, error) {
 	return p.base + relative, os.WriteFile(target, data, 0644)
 }
 
+const (
+	imageScript = "scripts/prepare-image.py"
+	imageCache  = ".cache/images"
+)
+
+// cachedImage reads the manifest prepare-image.py left for an unchanged
+// image and script, so warm builds start no Python process and need no uv.
+func cachedImage(source string) (imageInfo, bool) {
+	var info imageInfo
+	script, err := os.ReadFile(imageScript)
+	if err != nil {
+		return info, false
+	}
+	original, err := os.ReadFile(source)
+	if err != nil {
+		return info, false
+	}
+	manifest, err := os.ReadFile(filepath.Join(imageCache, fmt.Sprintf("%x.json", sha256.Sum256(append(script, original...)))))
+	if err != nil || json.Unmarshal(manifest, &info) != nil {
+		return info, false
+	}
+	for _, path := range []string{info.Path, info.smallPath()} {
+		if file, err := os.Stat(path); path != "" && (err != nil || !file.Mode().IsRegular()) {
+			return info, false
+		}
+	}
+	return info, info.Path != ""
+}
+
+func (i imageInfo) smallPath() string {
+	if i.Small == nil {
+		return ""
+	}
+	return i.Small.Path
+}
+
 // process optimizes and publishes one source image once per build.
 func (p *imagePipeline) process(source string) (imageInfo, error) {
 	if info, ok := p.processed[source]; ok {
 		return info, nil
 	}
 	info := imageInfo{Path: source}
-	if !strings.EqualFold(filepath.Ext(source), ".svg") {
-		cmd := exec.Command("uv", "run", "--script", "scripts/prepare-image.py", source, ".cache/images")
+	if cached, ok := cachedImage(source); ok {
+		info = cached
+	} else if !strings.EqualFold(filepath.Ext(source), ".svg") {
+		cmd := exec.Command("uv", "run", "--script", imageScript, source, imageCache)
 		cmd.Stderr = os.Stderr
 		output, err := cmd.Output()
 		if err != nil {

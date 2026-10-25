@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha256"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -60,5 +62,40 @@ func TestImagePipeline(t *testing.T) {
 	body, _, err = render([]byte("![first](../images/图.svg)"), pipeline.hook("content/posts/a.md"))
 	if err != nil || !strings.Contains(string(body), `width="800" height="600"`) || strings.Contains(string(body), `loading="lazy"`) {
 		t.Fatalf("%s: %v", body, err)
+	}
+}
+
+func TestImageCacheSkipsPython(t *testing.T) {
+	dir := t.TempDir()
+	cwd, _ := os.Getwd()
+	if err := os.Chdir(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(cwd) })
+	t.Setenv("PATH", "") // uv cannot run, so only the cache can answer
+	files := map[string]string{imageScript: "# script", "content/images/a.png": "png bytes", "out.webp": "webp"}
+	for name, body := range files {
+		if err := os.MkdirAll(filepath.Dir(name), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(name, []byte(body), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	pipeline := imagePipeline{stage: "output", base: "https://example.com"}
+	if _, err := pipeline.process("content/images/a.png"); err == nil {
+		t.Fatal("a cold cache must run prepare-image.py")
+	}
+	key := sha256.Sum256([]byte("# script" + "png bytes"))
+	manifest := fmt.Sprintf(`{"path":%q,"width":800,"height":600}`, filepath.Join(dir, "out.webp"))
+	if err := os.MkdirAll(imageCache, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(imageCache, fmt.Sprintf("%x.json", key)), []byte(manifest), 0644); err != nil {
+		t.Fatal(err)
+	}
+	info, err := pipeline.process("content/images/a.png")
+	if err != nil || info.Width != 800 || !strings.HasPrefix(info.Path, "https://example.com/images/") {
+		t.Fatalf("warm cache must answer without uv: %+v %v", info, err)
 	}
 }
