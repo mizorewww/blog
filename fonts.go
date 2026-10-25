@@ -167,6 +167,7 @@ func (e textElement) is(class string) bool { return slices.Contains(e.class, cla
 
 // faceFor mirrors the font-family and font-weight rules in style.css for the
 // innermost element of stack; mono text falls back to the sans faces for CJK.
+// TestFontRulesMatchFaceFor fails when those rules change, so the two stay in step.
 func faceFor(stack []textElement) int {
 	n := len(stack)
 	parent := func(i int) textElement {
