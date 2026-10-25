@@ -9,8 +9,7 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#151714" media="(prefers-color-scheme: dark)">
-{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<meta name="robots" content="max-image-preview:large">
-<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
+{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
 {{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{$.Site.URL}}{{.Path}}">
 {{end}}<link rel="author" href="{{.Site.About}}">
 <meta property="og:site_name" content="{{.Site.Title}}">

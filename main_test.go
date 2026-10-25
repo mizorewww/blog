@@ -131,7 +131,7 @@ func TestBuild(t *testing.T) {
 		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+3 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
 			t.Fatalf("invalid static page %s", name)
 		}
-		if strings.Contains(html, "og:image") || strings.Contains(html, "summary_large_image") || !strings.Contains(html, `<meta name="twitter:card" content="summary">`) {
+		if strings.Contains(html, "og:image") || strings.Contains(html, "summary_large_image") || strings.Contains(html, "max-image-preview") || !strings.Contains(html, `<meta name="twitter:card" content="summary">`) {
 			t.Fatalf("%s must not carry a share preview image", name)
 		}
 	}
