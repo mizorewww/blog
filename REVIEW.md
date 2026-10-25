@@ -28,7 +28,7 @@
 - 不用包级可变状态传参数；构建选项放进 `Options`，每次构建使用自己的语言版本副本。
 - `src/fonts.go faceFor` 镜像 `style.css` 的字体规则：改了 CSS 的 `font-family` / `font-weight`，`TestFontRulesMatchFaceFor` 会失败，按提示同步修改 `faceFor` 和测试里的列表。
 - 一种页面一个模板：`templates/pages/<kind>.html`，共用部分留在 `templates/page.html`。
-- 文档与行为一致：改了行为就改 README 和 `.claude/skills/write-post/SKILL.md`。
+- 文档与行为一致：改了 CLI 就改 README，改了文章组件就改 `.claude/skills/post-components/SKILL.md`。
 - 注释解释"为什么"，不复述代码；风格与周围代码一致，`gofmt -l .` 无输出。
 - 提交保持原子：一个提交只做一件事并能单独通过测试；纯重构的提交不改变构建结果（用前后两次构建的 `diff -r` 确认）。
 
