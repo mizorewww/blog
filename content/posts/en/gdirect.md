@@ -19,19 +19,17 @@ Google has far more addresses than DNS ever hands out, though. Google publishes 
 2. **Keep real Drive hostnames and certificate checks at the upper layers; retry under a "forged identity" when reset**: the real hostname is sent by default. If a censoring middlebox resets connections carrying the real SNI (showing up as a connect error or timeout), `gdirect` automatically retries once under a **forged identity**: TLS connects as `g.cn` (a Google-owned name the front end serves a matching certificate for) and verifies the certificate against `g.cn`, while the HTTP `Host` header still carries the real Drive hostname such as `www.googleapis.com`. GFE routes by `Host`, so Drive requests work as usual, and because the TLS name and the certificate name always match, **certificate verification is never weakened**. That is the essential difference from "just rewriting the SNI", where the certificate no longer matches. Whichever identity works is remembered in SQLite.
 3. **Certificates are anchored to Google's own GTS roots only**: no general-purpose CA bundle. Google issues every endpoint we use under its own Google Trust Services roots, so verification trusts only those embedded roots. Even if a third-party CA is compromised or an intermediate key leaks (like the eMudhra key exposure made public in October 2026), it cannot be used to impersonate Google to `gdirect`. This holds for the relay too: TLS passes through it untouched, so it cannot read tokens or file contents.
 4. **Fail over across endpoints**: when the current endpoint stops answering, gdirect first tries the other TLS identity, then each other endpoint verified within the last day; dead endpoints are marked in the database, and downloads resume the partial file on the next one.
-5. **Separate the control plane from the data plane**: login and token refreshes (`accounts.google.com`, `oauth2.googleapis.com`), only a few kilobytes, go through the normal system network (your proxy) so authentication always works; bandwidth-heavy directory listing, multi-connection downloads, and 32 MiB resumable uploads all go through the direct endpoint without spending proxy traffic.
+5. **Separate the control plane from the data plane**: sign-in, account verification and token refreshes (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`), only a few kilobytes, go through the normal system network (your proxy; since 0.8.0 the HTTP/HTTPS system proxy on macOS / Windows, or `HTTPS_PROXY` on Linux) so authentication always works; bandwidth-heavy directory listing, multi-connection downloads, and 32 MiB resumable uploads all go through the direct endpoint without spending proxy traffic.
 
 | Traffic Type | Commands / Domains | Route |
 | --- | --- | --- |
 | Drive API, downloads, uploads | `browse`, `ls`, `download`, `upload` (`www.googleapis.com`, `drive.usercontent.google.com`, `*.googleusercontent.com`) | The relay `183.56.143.147` first, then scanned Google front ends (`--google-only`: front ends only). Real SNI by default, falling back to the forged `g.cn` identity on resets (`Host` stays real); fails over to the next verified endpoint. `--ip`, `--sni` / `--no-sni` override |
-| Login & token refresh | `login` and automatic token refresh (`accounts.google.com`, `oauth2.googleapis.com`) | System network (uses system DNS and your proxy) |
+| Sign-in, account verification & token refresh | `login` and automatic token refresh (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`) | System network (system DNS and proxy; honors the HTTP/HTTPS system proxy or `HTTPS_PROXY`) |
 | Disk mount | `mount` (invokes `rclone` under the hood) | System network |
 
 > **Important Note for Users in Mainland China:**
-> Running `gdirect` with your proxy client on (especially in TUN mode) **will likely send the traffic back through the proxy**, for two reasons. First, `gdirect` connects to Google's own overseas IPs (such as `142.250.x.x` or `192.178.x.x`), and rules that route by `GEOIP` or Google IP ranges send those to the proxy. Second, the TLS SNI carries a Drive hostname, so a sniffing proxy matches it against the `google` ruleset and hijacks the connection. TUN mode also "answers" TCP for every address, so the scan ends up measuring the proxy instead of your network (`gdirect scan` warns when nearly every address answers).
-> Make sure to pick one of these two setups (see [Mainland China Network and Proxy Configuration Guide](#mainland-china-network-and-proxy-configuration-guide) below for details):
-> 1. **Add direct rules in your proxy client**: route the `gdirect` process (most reliable) or the Drive domains to `DIRECT` and exclude them from `fake-ip`;
-> 2. **Quit your proxy or disable TUN during transfers**: keep your proxy on for the one-time `gdirect login`, then quit the proxy (or turn off TUN mode) when running `scan` and `download`.
+> Sign-in requests need the proxy; transfer requests need a direct path. Since 0.8.0 the easiest setup is to keep your proxy client in **rule mode with the system proxy on and TUN off**: on macOS / Windows, `gdirect` uses the system proxy for sign-in automatically (on Linux, set `HTTPS_PROXY`), while scans and transfers bypass the proxy and connect directly—no direct rules needed.
+> With **TUN mode** on, the traffic **will likely be sent back through the proxy**: `gdirect` connects to Google's own overseas IPs (such as `142.250.x.x` or `192.178.x.x`), which rules routing by `GEOIP` or Google IP ranges send to the proxy; the TLS SNI carries a Drive hostname, so a sniffing proxy matches it against the `google` ruleset and hijacks the connection; and TUN "answers" TCP for every address, so the scan measures the proxy instead of your network (`gdirect scan` warns when nearly every address answers). If TUN must stay on, route the `gdirect` process's transfers direct—see the [Mainland China Network and Proxy Configuration Guide](#mainland-china-network-and-proxy-configuration-guide) below.
 
 ---
 
@@ -171,11 +169,33 @@ gdirect login --client-secret ~/Downloads/client_secret.json
 
 ## Mainland China Network and Proxy Configuration Guide
 
-The most common question from users in mainland China is: **my proxy client (sing-box / Mihomo / Clash) has carefully tuned routing rules—why does `gdirect` produce odd scan results, and why do downloads still go through the proxy?**
+`gdirect` traffic comes in two kinds. Sign-in, account verification and token refresh (`accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`) must go through a proxy; scans, Drive API requests, uploads and downloads must connect directly to the scanned endpoints and must **not** be picked up by the proxy. How you configure your proxy client decides whether the two can each take their own path.
 
-### Tracing the Packet Path: How Does a Proxy Hijack Direct Traffic?
+Since 0.8.0 (thanks to [@Liuycer](https://github.com/Liuycer) for [#1](https://github.com/mizorewww/gdirect/pull/1)), the easiest setup is **rule mode + system proxy, with TUN off**: sign-in requests read the system proxy settings, transfer requests bypass every application-level proxy anyway, so the two separate naturally and no direct rules are needed. That setup comes first below, followed by what goes wrong with TUN on and how to configure it.
 
-Even though `gdirect` disables HTTP/SOCKS proxy environment variables (`no_proxy`) at the application layer, whenever your proxy client is running—especially in **TUN virtual network interface mode**—every packet on the machine passes through the proxy's routing engine first. Let's trace what happens step by step:
+### Approach 1 (Recommended): Rule Mode + System Proxy, TUN Off
+
+1. **Keep your proxy client (sing-box / Mihomo / Clash, etc.) in rule mode, turn on "system proxy", and turn off TUN.** Make sure `accounts.google.com`, `oauth2.googleapis.com` and `www.googleapis.com` go through the proxy (the `google` group in common rulesets already covers them). No `DIRECT` rules are needed.
+2. **macOS and Windows**: `gdirect` sign-in, account verification and token refresh automatically use the manual HTTP/HTTPS system proxy. **Linux, or a PAC-based system proxy**: set `HTTPS_PROXY` for each command, pointing at your client's HTTP or mixed port (`HTTP_PROXY` / `HTTPS_PROXY` take precedence over system settings, and `mount` passes them on to rclone; `NO_PROXY` must not exclude the three domains above). Transfer commands may refresh the token too, so the simplest is to `export` it in your shell.
+3. **Scans and transfers are unaffected**: scans, pinned API requests, uploads and downloads explicitly bypass application proxies and connect directly to the scanned endpoints. Without TUN, the proxy client never even sees these connections, so there is nothing to hijack.
+
+```sh
+gdirect login --client-secret ~/Downloads/client_secret.json   # macOS / Windows: uses the system proxy
+export HTTPS_PROXY=http://127.0.0.1:7890                        # Linux / PAC: your proxy's port
+gdirect scan
+gdirect download FILE_ID
+gdirect --google-only download FILE_ID   # Google's own front ends only, no third-party relay
+# Manual overrides still work: --sni forces a TLS identity, --no-sni omits SNI (downloads only)
+gdirect download FILE_ID --no-sni
+```
+
+`gdirect scan --list` shows each endpoint's latency and required TLS identity, and labels anything outside Google's address space `[third-party relay]`. If your ISP resets connections carrying the real SNI, there is nothing to do by hand: `gdirect` retries under the forged `g.cn` identity, and moves to the next verified endpoint when the current one is gone.
+
+> You can also **quit** the proxy client entirely after signing in and let `gdirect` transfer directly. The access token expires after about an hour, though, and refreshing it still needs the proxy, so for long transfers keep the system proxy on.
+
+### With TUN On: How Does a Proxy Hijack Direct Traffic?
+
+With **TUN virtual network interface mode** on, every packet on the machine passes through the proxy's routing engine first, and `gdirect` bypassing proxies at the application layer doesn't help. Let's trace what happens:
 
 1. **The destination is one of Google's own overseas front ends**:
    At the socket layer, `gdirect` swaps the destination for a scanned endpoint—usually a front end inside Google's own address space (such as `142.250.x.x` or `192.178.x.x`), or, by default, the relay `183.56.143.147` it tries first. So that the Google front end routes the request by hostname and local certificate verification succeeds, the TLS handshake (`ClientHello` SNI) and HTTP `Host` header still carry `www.googleapis.com`, `drive.usercontent.google.com`, and `*.googleusercontent.com` (the SNI is `g.cn` under the forged identity).
@@ -185,77 +205,34 @@ Even though `gdirect` disables HTTP/SOCKS proxy environment variables (`no_proxy
    When `gdirect` connects to port 443 on a front end, the TUN interface intercepts the packet and uses `sniff` (TLS SNI inspection) to read `drive.usercontent.google.com` or `www.googleapis.com`. In rulesets such as [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata), those domains belong to the proxied `google` set, not the directly reachable `google-cn` set (which lists domains like `dl.google.com`, `g.cn`, and `fonts.googleapis.com`):
    - `rule_set: google-cn` (`DIRECT`) $\rightarrow$ **Miss**;
    - `rule_set: google` (`PROXY`) $\rightarrow$ **Match!**
-   - Even when an IP rule would let the destination through (the relay `183.56.143.147` is a Chinese IP and matches `GEOIP,CN`, for instance), domain rules come before IP rules in mainstream templates, so the sniffed Drive hostname pulls the connection back into the proxy anyway.
+   - Even when an IP rule would let the destination through (the relay `183.56.143.147` is a Chinese IP and matches `GEOIP,CN`, for instance), domain rules come before IP rules in mainstream templates, so the sniffed Drive hostname pulls the connection back into the proxy anyway. Sign-in needs `www.googleapis.com` proxied, and transfers use that very same hostname: that is why the two kinds of traffic are hard to separate under TUN.
 4. **TUN "answers" TCP for every address**:
    In TUN mode, the proxy accepts each connection locally and then dials the destination itself. The first step of `gdirect scan`, a TCP probe, therefore "succeeds" almost everywhere, and the scan measures the proxy rather than your network. When over 90% of a batch answers, `scan` prints a warning asking you to route Google IPs `DIRECT` and scan again.
 
-Once you see why this happens, picking **either one** of the two approaches below solves it:
+### Approach 2: When TUN Must Stay On, Keep Transfers Away from Sniffing and IP Rules
 
-### Approach 1: Quit Your Proxy (or Turn Off TUN) During `scan` and Downloads
+If TUN has to stay on around the clock, the goal is: **sign-in requests keep going through the proxy by domain, while `gdirect`'s transfer connections go direct.** There are two ways:
 
-If you don't want to touch your proxy client's routing rules, this is the simplest and cleanest workflow:
+- **Route by process (simplest on desktop)**: before `GEOSITE,google`, `GEOIP,google` and similar rules, put the proxy rules for sign-in and token refresh, then `PROCESS-NAME,gdirect,DIRECT`. The catch: the `www.googleapis.com` account check during `gdirect login` also matches the process rule, goes direct and fails, so **for the moment of signing in** switch back to Approach 1 (TUN off, system proxy on) or disable the process rule temporarily. Sign-in is rare (once, for an app in production); token refresh afterwards only uses `oauth2.googleapis.com`, which sits above the process rule and stays proxied.
+- **Skip sniffing for the scanned IPs**: exclude the endpoints listed by `gdirect scan --list` in your client's sniffing settings, and route those IPs (or all of Google's ranges) direct. Transfer connections then carry no domain, and the `www.googleapis.com` proxy rule only matches sign-in. The downsides: endpoints change with each scan, and routing Google's ranges direct breaks Google services in your browser.
 
-1. **Login phase (proxy ON)**: With your proxy running as usual, run `gdirect login --client-secret ...` to finish authorization (opening `accounts.google.com` in the browser and exchanging/refreshing tokens against `oauth2.googleapis.com` require a proxy).
-2. **Scan & transfer phase (quit proxy, or turn off TUN mode)**:
-   - Once logged in (`gdirect` caches a short-lived `access_token` valid for ~1 hour), **quit your proxy client or turn off its TUN mode** (if you only use System Proxy without TUN, `gdirect` ignores system proxy environment variables automatically, though turning off TUN is the most foolproof).
-   - Run `gdirect scan` to find usable endpoints over your raw physical broadband (`gdirect scan --list` shows latency, which TLS identity each IP needs, and marks anything outside Google's address space as `[third-party relay]`).
-   - Run `gdirect download ...` or `gdirect browse` to download directly. If your ISP resets connections carrying the real SNI, there is nothing to do by hand: `gdirect` retries under the forged `g.cn` identity, and moves to the next verified endpoint when the current one is gone:
+> **Note**: A regular browser visiting `www.googleapis.com` connects to the blackholed IP that DNS returns, not to a scanned front end the way `gdirect` does. So don't route the Drive domains or Google's IP ranges `DIRECT` wholesale for `gdirect`; that breaks every web page and Google service in your browser that depends on them. fake-ip doesn't affect transfers either: `gdirect` connects to IPs without DNS, and the only effect is that `198.18.x.x` fake answers seen during `scan` are dropped, leaving a few fewer candidates.
 
-```sh
-gdirect scan
-gdirect download FILE_ID
-gdirect --google-only download FILE_ID   # Google's own front ends only, no third-party relay
-# Manual overrides still work: --sni forces a TLS identity, --no-sni omits SNI (downloads only)
-gdirect download FILE_ID --no-sni
-```
-
-### Approach 2: Route the `gdirect` Process DIRECT in Your Proxy Client
-
-If you keep your proxy and TUN mode running 24/7, the fix is: **before the IP rules and the `google` domain rules, route the `gdirect` process (or the Drive domains) to `DIRECT`**:
-
-- **Domains that must stay on `PROXY`** (used only for login and token refresh):
-  - `accounts.google.com`
-  - `oauth2.googleapis.com`
-- **Transfer domains to route to `DIRECT` and exclude from `fake-ip`**:
-  - `drive.usercontent.google.com`
-  - `*.googleusercontent.com`
-  - `drive.google.com`
-  - `www.googleapis.com`, `drive.googleapis.com`, `content.googleapis.com`
-  - `g.cn`, used by the forged identity
-
-> **Note**: A regular browser visiting `www.googleapis.com` connects to the blackholed IP that DNS returns, not to a scanned front end the way `gdirect` does. Likewise, routing all of Google's IP ranges `DIRECT` would break every Google service in your browser. Both domain and IP-range rules have side effects, so on desktop platforms matching by **`PROCESS-NAME`** (`gdirect`) is strongly recommended.
-
-For **Mihomo (Clash)**, add the following before your `GEOSITE,google` and `GEOIP,google` rules:
+For **Mihomo (Clash)**, routing by process means adding the following before your `GEOSITE,google`, `GEOIP,google` and similar rules:
 
 ```yaml
-dns:
-  fake-ip-filter:
-    - "www.googleapis.com"
-    - "drive.googleapis.com"
-    - "content.googleapis.com"
-    - "drive.usercontent.google.com"
-    - "drive.google.com"
-    - "+.googleusercontent.com"
-
 rules:
-  # 1. Keep OAuth login and token refresh on PROXY
+  # 1. Sign-in and token refresh go through the proxy (must come before the process rule)
   - DOMAIN,accounts.google.com,PROXY
   - DOMAIN,oauth2.googleapis.com,PROXY
 
-  # 2. Recommended: force all other traffic from the gdirect process (scan, API, download, upload)
-  #    to DIRECT so sniffed domain rules and Google IP rules don't hijack it
+  # 2. Everything else from the gdirect process (scan, API, download, upload) goes DIRECT,
+  #    so sniffed domain rules and Google IP rules don't hijack it.
+  #    For gdirect login, turn TUN off and use the system proxy, or disable this rule
   - PROCESS-NAME,gdirect,DIRECT
-
-  # 3. Or route by domain (place before GEOSITE,google / RULE-SET,google;
-  #    this affects web pages in your browser that use these domains):
-  - DOMAIN,drive.usercontent.google.com,DIRECT
-  - DOMAIN-SUFFIX,googleusercontent.com,DIRECT
-  - DOMAIN,www.googleapis.com,DIRECT
-  - DOMAIN,drive.googleapis.com,DIRECT
-  - DOMAIN,content.googleapis.com,DIRECT
 ```
 
-If you use **sing-box**, add an equivalent `direct` rule matching `process_name: gdirect` before `rule_set: ["google"]` and any Google IP rules in `route.rules` (while keeping `oauth2.googleapis.com` proxied) to run direct Drive transfers with TUN left on all day.
+If you use **sing-box**, likewise put a proxy rule for `oauth2.googleapis.com` and then a `process_name: gdirect` direct rule before `rule_set: ["google"]` and any Google IP rules in `route.rules`.
 
 ---
 
@@ -335,6 +312,7 @@ For tricky network environments, there are transport-layer overrides:
 | `scan` warns `almost every address answered TCP` | A TUN proxy is answering for every address, so the scan measured the proxy. Turn TUN off as described above, or route the `gdirect` process / Google IPs `DIRECT`, then scan again |
 | `no usable Google front end found` | No usable endpoint was found from this network. Rule out a TUN proxy first; otherwise scan again later (reachable front ends change), or supply candidates with `gdirect scan --ips FILE` |
 | `libaria2 code 1` mid-download (connection or TLS failure) | The real SNI was reset or the endpoint died. `gdirect` retries under `g.cn`, then resumes on the next verified endpoint and marks the dead one; it only fails once every endpoint has, and re-running the command rescans. `--sni g.cn` / `--no-sni` still work by hand |
+| `cannot verify the account` or `cannot reach Google's token endpoint` during sign-in | Sign-in, account verification or token refresh didn't go through the proxy. Make sure your client's system proxy is on and `accounts.google.com`, `oauth2.googleapis.com` and `www.googleapis.com` are proxied; set `HTTPS_PROXY` on Linux or with PAC; with TUN and a process rule, turn TUN off for the moment of signing in (see Approach 2) |
 | An IP in `scan --list` shows `[third-party relay]` | The address is outside Google's published space: a third-party relay, such as `183.56.143.147`, which is tried first by default. It cannot read your traffic but sees your IP; use `--google-only` if that matters to you |
 
 ---
@@ -426,6 +404,7 @@ The first version used "GFE" as if it were a category of node, which is inaccura
 - **The scan became a front-end sweep** (0.7.0; `src/scan.rs`): candidates come only from inside Google's space: earlier verified endpoints, DNS answers (poisoned ones fall outside and are dropped), the /24s where our sweep found working front ends (`src/frontend-seeds.txt`), then the core front-end blocks, then everything else, each part shuffled per user. Only the productive host numbers are tried. Each batch of 2,048 addresses gets a TCP probe, then full verification of what answered; when one works, the rest of its /24 goes next; the sweep stops at 8 verified endpoints. It warns when nearly everything answers TCP (a TUN proxy intercepting).
 - **Failover** (0.7.0; `Api::deliver` and downloads): when the current endpoint stops answering, gdirect tries the other TLS identity, then each other endpoint verified within the last day; downloads resume on the new endpoint.
 - **The relay**: 0.7.0 dropped `183.56.143.147` from the scan and purged it from existing databases once. In practice the relay is fast and stable, so **0.8.0 tries it first by default and falls back to the scanned Google front ends when it fails**, and the 0.7.0 purge is gone. It also adds a global **`--google-only`** option (environment variable `GDIRECT_GOOGLE_ONLY=1`): the scan skips relays and transfers use only endpoints inside Google's space. Either way, endpoints outside Google's space are labelled `[third-party relay]` in `scan` and `scan --list`.
+- **Sign-in through the system proxy** (0.8.0, [#1](https://github.com/mizorewww/gdirect/pull/1) contributed by [@Liuycer](https://github.com/Liuycer)): sign-in, account verification and token refresh use the macOS / Windows HTTP/HTTPS system proxy (and `HTTPS_PROXY`), so a rule-mode proxy client with TUN off is enough to sign in; scans, pinned API requests, uploads and downloads still connect directly.
 
 Which to choose: the relay cannot read your tokens or files, but its operator—whom we don't know—sees your IP, traffic volume and timing, and (without the forged identity) which Google host you connect to. If that bothers you, use `--google-only`; you can also force the forged identity with `--sni g.cn` so the relay doesn't even see the hostname.
 
@@ -449,7 +428,81 @@ If you're curious about how `gdirect` combines Rust with a custom-patched `libar
 
 ### 1. Where Candidates Come From: Google's Own Address Space and the Sweep Order
 
-When a transfer command runs without an endpoint verified in the last 24 hours in local SQLite, `src/scan.rs` starts a scan. By default 0.8.0 probes the known relay `183.56.143.147` first (skipped under `--google-only`), then sweeps Google's front ends anyway, as backups for when the relay fails. The code below is from 0.7.0; the front-end sweep is unchanged in 0.8.0.
+When a transfer command runs without an endpoint verified in the last 24 hours in local SQLite, `src/scan.rs` starts a scan. By default 0.8.0 probes the known relay `183.56.143.147` first (skipped under `--google-only`), then sweeps Google's front ends anyway, as backups for when the relay fails:
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/scan.rs#L336-L346" title="0.8.0: verify the known relay before sweeping, unless --google-only"
+        if !google_only {
+            let relays: Vec<IpAddr> = RELAYS.iter().filter_map(|r| r.parse().ok()).collect();
+            eprintln!("Checking known relays (not Google; use --google-only to skip)…");
+            record(
+                db,
+                &google,
+                verify(&relays, usize::MAX),
+                |_| true,
+                &mut warned,
+            )?;
+        }
+```
+
+There is exactly one relay, hard-coded in `RELAYS` with a comment stating it is not Google. For transfers, `usable` sets the order of endpoints: the relay first, the rest by latency; `--google-only` drops every endpoint outside Google's space, including ones you added by hand with `scan --ips`:
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/scan.rs#L32-L54" title="0.8.0: the known relay and endpoint ordering"
+/// Known third-party relays that forward to Google. Not Google: the operator
+/// sees client IPs and, without the forged identity, the hostname, but TLS
+/// stays end to end and is verified against Google's roots. They are fast and
+/// stable in mainland China, so they are tried first unless --google-only.
+const RELAYS: [&str; 1] = ["183.56.143.147"];
+fn relay(ip: IpAddr) -> bool {
+    RELAYS.iter().any(|r| r.parse() == Ok(ip))
+}
+/// Endpoints in the order transfers should use them: known relays first
+/// (unless `google_only`, which drops everything outside Google's space),
+/// then the rest as given (fastest first).
+pub fn usable(
+    routes: Vec<crate::store::Route>,
+    google: &Ranges,
+    google_only: bool,
+) -> Vec<crate::store::Route> {
+    let mut routes: Vec<_> = routes
+        .into_iter()
+        .filter(|r| !google_only || google.contains(r.ip))
+        .collect();
+    routes.sort_by_key(|r| !relay(r.ip));
+    routes
+}
+```
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/main.rs#L194-L220" title="0.8.0: pick the current endpoint and backups; a pinned --ip gets no failover"
+fn direct_route(db: &store::Store, route: &Route, google_only: bool) -> Result<Direct> {
+    let explicit = route.sni();
+    let auto = explicit.is_none();
+    if let Some(ip) = route.ip {
+        return Ok(Direct {
+            ip,
+            sni: explicit,
+            auto,
+            backups: Vec::new(),
+        });
+    }
+    let google = ranges::current(db);
+    let mut routes = scan::usable(db.routes(16)?, &google, google_only);
+    if routes.is_empty() {
+        scan::run(db, None, google_only)?;
+        routes = scan::usable(db.routes(16)?, &google, google_only);
+    }
+    let identity = |sni: String| (!sni.is_empty()).then_some(sni);
+    let mut routes = routes.into_iter().map(|r| (r.ip, identity(r.sni)));
+    let (ip, stored) = routes.next().context("no verified endpoint")?;
+    Ok(Direct {
+        ip,
+        sni: explicit.or(stored),
+        auto,
+        backups: routes.take(8).collect(),
+    })
+}
+```
+
+The front-end sweep code below is from 0.7.0; it is unchanged in 0.8.0.
 
 The sweep is bounded by Google's own address space in `src/ranges.rs`: goog.json lists every address Google owns, cloud.json the part that can be assigned to Google Cloud customers, and the difference is where Google's own services live. A snapshot is embedded and refreshed weekly from `www.gstatic.com`; a list that comes back implausibly small (truncated or tampered with) is rejected in favour of the old one:
 

@@ -19,19 +19,17 @@
 2. **上层 TLS / HTTP 保持真实云盘域名与证书校验；被重置时自动换“伪造身份”重试**：默认发送真实域名。一旦审查设备把携带真实 SNI 的连接重置（表现为连接错误或超时），`gdirect` 会自动改用**伪造身份**再试一次——TLS 以 `g.cn`（Google 自有、前端会出示配套证书的域名）连接并按 `g.cn` 校验证书，而 HTTP `Host` 头依然携带 `www.googleapis.com` 等真实云盘主机名。GFE 按 `Host` 路由，云盘请求照常工作；由于 TLS 连接名与证书校验名始终一致，**证书校验从头到尾没有被破坏**——这也是它与“裸改 SNI”（伪造后证书就对不上了）的本质区别。能通过的身份会被记进 SQLite，之后直接用能通的那条。
 3. **证书校验只锚定 Google 自家的 GTS 根证书**：不再信任通用 CA 包。Google 把我们用到的每个端点都签在自己的 Google Trust Services 根下，所以校验只认这几张内置根证书——即使某家第三方 CA 被攻破、中间 CA 私钥泄露（如 2026 年 10 月公开的 eMudhra 泄钥事件），也无法对 `gdirect` 冒充 Google 做中间人。这一点对中转同样成立：TLS 原样穿过中转，它读不到令牌和文件内容。
 4. **端点失效自动切换**：当前端点连不上时，先换另一个 TLS 身份，再依次换到过去一天内验证过的其他端点；失效的端点在数据库里标死，下载会在下一个端点上接着已下载的部分续传。
-5. **控制面与数据面分离**：只有几 KB 的登录与刷新令牌（`accounts.google.com`、`oauth2.googleapis.com`）照常走系统网络（翻墙代理），保证随时能登得上；真正吃带宽的目录浏览、多连接并发下载、32 MiB 分块上传全部走上述直连端点，不耗代理流量。
+5. **控制面与数据面分离**：只有几 KB 的登录、账号核验与刷新令牌（`accounts.google.com`、`oauth2.googleapis.com`、`www.googleapis.com`）照常走系统网络（翻墙代理；0.8.0 起在 macOS / Windows 上会读取系统 HTTP/HTTPS 代理，Linux 用 `HTTPS_PROXY`），保证随时能登得上；真正吃带宽的目录浏览、多连接并发下载、32 MiB 分块上传全部走上述直连端点，不耗代理流量。
 
 | 流量类型 | 涉及命令 / 域名 | 走向 |
 | --- | --- | --- |
 | 云盘 API、下载、上传 | `browse`、`ls`、`download`、`upload`（`www.googleapis.com`、`drive.usercontent.google.com`、`*.googleusercontent.com`） | 默认先试中转 `183.56.143.147`，不通再用扫描到的 Google 前端（`--google-only` 只用后者）。默认用真实 SNI，被重置时自动回退为 `g.cn` 伪造身份（`Host` 头保持真实）；端点失效时切换到下一个已验证端点。也可用 `--ip`、`--sni` / `--no-sni` 手动指定 |
-| 登录与刷新令牌 | `login` 及自动刷新（`accounts.google.com`、`oauth2.googleapis.com`） | 系统网络（走系统 DNS 与翻墙代理） |
+| 登录、账号核验与刷新令牌 | `login` 及自动刷新（`accounts.google.com`、`oauth2.googleapis.com`、`www.googleapis.com`） | 系统网络（系统 DNS 与代理；读取系统 HTTP/HTTPS 代理或 `HTTPS_PROXY`） |
 | 磁盘挂载 | `mount`（底层调用 `rclone`） | 系统网络 |
 
 > **大陆网络环境特别提示：**
-> 开着翻墙软件（尤其是 TUN 模式）跑 `gdirect` 时，流量**很可能被重新送进代理**。原因有两个：一是 `gdirect` 连的是 Google 自己的海外 IP（如 `142.250.x.x`、`192.178.x.x`），按 `GEOIP` / Google IP 段分流的规则会把它们判给代理；二是 TLS 握手里的 SNI 是云盘域名，翻墙软件嗅探（Sniff）出域名后会按 `google` 规则把连接截胡。TUN 模式还会替所有地址“接通” TCP，扫描测到的就成了代理而不是你的网络（`gdirect scan` 发现几乎所有地址都能连上时会提示）。
-> 因此大陆用户请务必二选一（详见下文[大陆网络与代理配置指南](#大陆网络与代理配置指南)）：
-> 1. **在翻墙软件中配置规则**：让 `gdirect` 进程（最稳妥）或上述云盘域名走 `DIRECT` 直连并关闭 `fake-ip`；
-> 2. **退出翻墙软件或关闭 TUN**：开着代理完成 `gdirect login` 登录好之后，在 `scan` 和下载时退出翻墙软件（或关闭 TUN 模式）。
+> 登录类请求要走代理，传输类请求要直连。0.8.0 起最省事的配法是：代理软件用**规则模式、打开系统代理、关闭 TUN**——macOS / Windows 上 `gdirect` 登录时会自动使用系统代理（Linux 设置 `HTTPS_PROXY`），扫描和传输则绕过代理直连，不需要任何直连规则。
+> 如果开着 **TUN 模式**，流量**很可能被重新送进代理**：一是 `gdirect` 连的是 Google 自己的海外 IP（如 `142.250.x.x`、`192.178.x.x`），按 `GEOIP` / Google IP 段分流的规则会把它们判给代理；二是 TLS 握手里的 SNI 是云盘域名，翻墙软件嗅探（Sniff）出域名后会按 `google` 规则把连接截胡；TUN 还会替所有地址“接通” TCP，扫描测到的就成了代理而不是你的网络（`gdirect scan` 发现几乎所有地址都能连上时会提示）。TUN 必须常开时，要让 `gdirect` 进程的传输走直连，详见下文[大陆网络与代理配置指南](#大陆网络与代理配置指南)。
 
 ---
 
@@ -171,37 +169,19 @@ gdirect login --client-secret ~/Downloads/client_secret.json
 
 ## 大陆网络与代理配置指南
 
-在大陆使用 `gdirect` 时，最容易遇到的困惑是：**我的翻墙软件（sing-box / Mihomo / Clash）明明分流规则配得好好的，为什么跑 `gdirect` 时扫描结果怪异、下载流量还是走了代理？**
+`gdirect` 的流量分两类：登录、账号核验和刷新令牌（`accounts.google.com`、`oauth2.googleapis.com`、`www.googleapis.com`）必须走代理；扫描、云盘 API、上传和下载则要直连扫描出的端点，**不能**被代理接走。代理软件怎么配，决定了这两类流量能不能各走各的路。
 
-### 仔细算一笔账：翻墙软件是怎么把直连流量截胡的？
+0.8.0 起（感谢 [@Liuycer](https://github.com/Liuycer) 贡献的 [#1](https://github.com/mizorewww/gdirect/pull/1)），最省事的做法是**规则模式 + 系统代理，关掉 TUN**：登录类请求会读取系统代理设置，传输类请求本来就绕过一切应用层代理，两者天然分开，什么直连规则都不用加。下面先讲这种做法，再讲 TUN 常开时会出什么问题、该怎么配。
 
-虽然 `gdirect` 在应用层禁用了 HTTP/SOCKS 代理环境变量（`no_proxy`），但当你开着翻墙软件（尤其是 **TUN 虚拟网卡模式**）时，所有流量都会先经过翻墙软件的路由引擎。我们顺着翻墙软件的匹配逻辑看一遍：
+### 做法一（推荐）：规则模式 + 系统代理，关闭 TUN
 
-1. **目标 IP 是 Google 自己的海外前端**：
-   `gdirect` 在底层把连接目标换成扫描出的端点——通常是 Google 自有地址段里的前端（比如 `142.250.x.x`、`192.178.x.x`），默认情况下也可能是先试的中转 `183.56.143.147`。为了让 Google 前端按主机名正确路由并通过本机 TLS 证书校验，它在 TLS 握手（`ClientHello` 的 SNI）和 HTTP `Host` 头里发出的依然是 `www.googleapis.com`、`drive.usercontent.google.com` 和 `*.googleusercontent.com`（启用伪造身份时 SNI 是 `g.cn`）。
-2. **按 IP 分流：Google 的 IP 默认就走代理**：
-   常见规则模板里有 `GEOIP,google` / `RULE-SET,google-ip` 之类的 IP 规则，Google 的地址段整体被判给代理。这对浏览器是对的（大部分 Google IP 在国内确实不通），但对 `gdirect` 来说，它好不容易扫出来的“恰好能直连”的前端也会被一并送进代理。
-3. **按域名分流：TUN 流量嗅探（`sniff`）把连接截胡**：
-   当 `gdirect` 向某个前端 IP 的 443 端口发起连接时，TUN 网卡拦下数据包，通过 `sniff`（TLS 域名嗅探）读出 SNI 是 `drive.usercontent.google.com` 或 `www.googleapis.com`。这些域名在 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 等规则集里属于需要翻墙的 `google`，而不是国内可直连的 `google-cn`（后者只收录 `dl.google.com`、`g.cn`、`fonts.googleapis.com` 这类域名）：
-   - 经过 `rule_set: google-cn`（直连）$\rightarrow$ **未命中**；
-   - 走到 `rule_set: google`（代理）$\rightarrow$ **直接命中！**
-   - 即使目标 IP 本来会被某条直连规则放行（例如中转 `183.56.143.147` 是国内 IP，会命中 `GEOIP,CN`），在主流模板里域名规则优先于 IP 规则，嗅探出的云盘域名照样把它拉回代理。
-4. **TUN 会替所有地址“接通” TCP**：
-   TUN 模式下，翻墙软件会先在本地接受连接，再自己去连目标。于是 `gdirect scan` 的第一步 TCP 探测几乎全部“成功”，测到的其实是代理而不是你的网络。`scan` 看到一批地址里 90% 以上都能连上时会打印警告，提示你把 Google IP 设为直连后再扫。
-
-理清了这个逻辑，大陆用户只需要在下面两种做法中**二选一**即可彻底解决：
-
-### 做法一：登录好之后，`scan` 和下载时退出翻墙软件（或关闭 TUN）
-
-如果你不想改动翻墙软件现有的分流规则，这是最简单、也最干净的做法：
-
-1. **登录阶段（开着翻墙软件）**：保持翻墙软件正常开启，执行 `gdirect login --client-secret ...` 完成授权（因为浏览器打开 `accounts.google.com` 以及终端向 `oauth2.googleapis.com` 换取/刷新令牌必须走代理）。
-2. **扫描与下载阶段（退出翻墙软件，或关闭 TUN 模式）**：
-   - 登录完成后（本地已拿到有效期约 1 小时的短期 `access_token`），**直接退出翻墙软件，或者关掉翻墙软件的 TUN 模式**（如果只开系统代理 System Proxy、不开 TUN，`gdirect` 自身会忽略系统代理环境变量直接连出去，但关掉 TUN 最稳妥）。
-   - 执行 `gdirect scan` 在纯物理宽带下扫出可用端点（`gdirect scan --list` 会列出延迟、每个 IP 需要哪种 TLS 身份，并把 Google 地址段之外的标为 `[third-party relay]`）。
-   - 执行 `gdirect download ...` 或 `gdirect browse` 开始直连下载。即使宽带运营商重置携带真实 SNI 的连接也不用手动处理：`gdirect` 会自动改用 `g.cn` 伪造身份重试，当前端点彻底不通时再换下一个已验证端点：
+1. **代理软件（sing-box / Mihomo / Clash 等）保持规则模式，打开“系统代理”，关闭 TUN。** 确认 `accounts.google.com`、`oauth2.googleapis.com` 和 `www.googleapis.com` 会走代理（常见规则集的 `google` 分组已经包含它们）。不需要添加任何 `DIRECT` 规则。
+2. **macOS 和 Windows**：`gdirect` 的登录、账号核验与刷新令牌会自动使用系统里手动配置的 HTTP/HTTPS 代理，直接用即可。**Linux，或者系统代理用的是 PAC**：给每条命令设置 `HTTPS_PROXY`，指向代理软件的 HTTP 或 mixed 端口（`HTTP_PROXY` / `HTTPS_PROXY` 优先于系统设置，`mount` 也会把它们传给 rclone；`NO_PROXY` 不要把上面三个域名排除掉）。传输命令里也可能刷新令牌，所以最简单是直接 `export` 到 shell 里。
+3. **扫描和传输不受影响**：扫描、固定 IP 的 API 请求、上传和下载都显式绕过应用层代理，直连扫描出的端点。没有 TUN，代理软件根本看不到这些连接，也就谈不上截胡。
 
 ```sh
+gdirect login --client-secret ~/Downloads/client_secret.json   # macOS / Windows：自动走系统代理
+export HTTPS_PROXY=http://127.0.0.1:7890                        # Linux / PAC：换成你的代理端口
 gdirect scan
 gdirect download FILE_ID
 gdirect --google-only download FILE_ID   # 只用 Google 自己的前端，不经过第三方中转
@@ -209,53 +189,50 @@ gdirect --google-only download FILE_ID   # 只用 Google 自己的前端，不�
 gdirect download FILE_ID --no-sni
 ```
 
-### 做法二：在翻墙软件中配置规则，让 `gdirect` 进程直连
+`gdirect scan --list` 会列出每个端点的延迟、需要哪种 TLS 身份，并把 Google 地址段之外的标为 `[third-party relay]`。即使运营商重置携带真实 SNI 的连接也不用手动处理：`gdirect` 会自动改用 `g.cn` 伪造身份重试，当前端点彻底不通时再换下一个已验证端点。
 
-如果你希望翻墙软件和 TUN 模式 24 小时常开，思路是：**在 IP 规则和 `google` 域名规则之前，先把 `gdirect` 进程（或云盘域名）指派给 `DIRECT` 直连**：
+> 也可以登录后**完全退出**代理软件，只靠 `gdirect` 直连传输。但访问令牌大约 1 小时过期，之后刷新令牌仍需要代理，所以长时间传输时最好让系统代理保持开启。
 
-- **保留走代理（`PROXY`）的域名**（仅用于登录和令牌自动刷新）：
-  - `accounts.google.com`
-  - `oauth2.googleapis.com`
-- **需要放行直连（`DIRECT`）并关闭 `fake-ip` 的传输域名**：
-  - `drive.usercontent.google.com`
-  - `*.googleusercontent.com`
-  - `drive.google.com`
-  - `www.googleapis.com`、`drive.googleapis.com`、`content.googleapis.com`
-  - 伪造身份用的 `g.cn`
+### TUN 模式下，翻墙软件是怎么把直连流量截胡的？
 
-> **注意**：普通浏览器访问 `www.googleapis.com` 时连的是 DNS 给出的、在国内被黑洞的 IP，不会像 `gdirect` 这样换成扫描出的可用前端；同理，把 Google 的 IP 段整体设为 `DIRECT` 也会让浏览器里的 Google 服务全部断掉。所以按域名或按 IP 段放行都有副作用，桌面端最推荐用 **`PROCESS-NAME`（进程名分流）**，只对 `gdirect` 进程放行直连。
+如果你开着 **TUN 虚拟网卡模式**，所有流量都会先经过翻墙软件的路由引擎，`gdirect` 在应用层绕过代理也没用。顺着匹配逻辑看一遍：
 
-以 **Mihomo（Clash）** 为例，在配置文件的 `GEOSITE,google` 和 `GEOIP,google` 等规则之前加入：
+1. **目标 IP 是 Google 自己的海外前端**：
+   `gdirect` 在底层把连接目标换成扫描出的端点——通常是 Google 自有地址段里的前端（比如 `142.250.x.x`、`192.178.x.x`），默认情况下也可能是先试的中转 `183.56.143.147`。为了让 Google 前端按主机名正确路由并通过本机 TLS 证书校验，它在 TLS 握手（`ClientHello` 的 SNI）和 HTTP `Host` 头里发出的依然是 `www.googleapis.com`、`drive.usercontent.google.com` 和 `*.googleusercontent.com`（启用伪造身份时 SNI 是 `g.cn`）。
+2. **按 IP 分流：Google 的 IP 默认就走代理**：
+   常见规则模板里有 `GEOIP,google` / `RULE-SET,google-ip` 之类的 IP 规则，Google 的地址段整体被判给代理。这对浏览器是对的（大部分 Google IP 在国内确实不通），但 `gdirect` 好不容易扫出来的“恰好能直连”的前端也会被一并送进代理。
+3. **按域名分流：TUN 流量嗅探（`sniff`）把连接截胡**：
+   当 `gdirect` 向某个前端 IP 的 443 端口发起连接时，TUN 网卡拦下数据包，通过 `sniff`（TLS 域名嗅探）读出 SNI 是 `drive.usercontent.google.com` 或 `www.googleapis.com`。这些域名在 [DustinWin/ruleset_geodata](https://github.com/DustinWin/ruleset_geodata) 等规则集里属于需要翻墙的 `google`，而不是国内可直连的 `google-cn`（后者只收录 `dl.google.com`、`g.cn`、`fonts.googleapis.com` 这类域名）：
+   - 经过 `rule_set: google-cn`（直连）$\rightarrow$ **未命中**；
+   - 走到 `rule_set: google`（代理）$\rightarrow$ **直接命中！**
+   - 即使目标 IP 本来会被某条直连规则放行（例如中转 `183.56.143.147` 是国内 IP，会命中 `GEOIP,CN`），在主流模板里域名规则优先于 IP 规则，嗅探出的云盘域名照样把它拉回代理。登录要求 `www.googleapis.com` 走代理，偏偏传输用的也是这个域名，这就是 TUN 模式下两类流量难以分开的根源。
+4. **TUN 会替所有地址“接通” TCP**：
+   TUN 模式下，翻墙软件会先在本地接受连接，再自己去连目标。于是 `gdirect scan` 的第一步 TCP 探测几乎全部“成功”，测到的其实是代理而不是你的网络。`scan` 看到一批地址里 90% 以上都能连上时会打印警告，提示你把 Google IP 设为直连后再扫。
+
+### 做法二：TUN 必须常开时，让传输绕开嗅探与 IP 规则
+
+如果 TUN 必须 24 小时开着，目标是：**登录类请求照常按域名走代理，`gdirect` 的传输连接则直连。** 有两种配法：
+
+- **按进程直连（桌面端最简单）**：在 `GEOSITE,google`、`GEOIP,google` 等规则之前，先放登录与刷新令牌的代理规则，再放 `PROCESS-NAME,gdirect,DIRECT`。代价是 `gdirect login` 时核验账号的那次 `www.googleapis.com` 请求也会被这条进程规则判为直连而失败，所以**登录那一下**要临时切回做法一（关 TUN、开系统代理），或暂时停用这条进程规则。登录很少发生（正式版应用只需一次），之后的刷新令牌只用 `oauth2.googleapis.com`，排在进程规则前面，照常走代理。
+- **对扫描出的 IP 关闭嗅探**：在代理软件的嗅探设置里把 `gdirect scan --list` 列出的端点排除掉，再让这些 IP 直连（或者干脆让 Google 的 IP 段直连）。这样传输连接不带域名，`www.googleapis.com` 的代理规则就只会命中登录请求。缺点是端点会随扫描变化，IP 段直连还会让浏览器里的 Google 服务断掉。
+
+> **注意**：普通浏览器访问 `www.googleapis.com` 时连的是 DNS 给出的、在国内被黑洞的 IP，不会像 `gdirect` 这样换成扫描出的可用前端。所以不要为了 `gdirect` 把云盘域名或 Google 的 IP 段整体设为 `DIRECT`，那会让浏览器里依赖它们的网页和 Google 服务全部断掉。fake-ip 也不影响传输：`gdirect` 直接连 IP、不查 DNS，只是 `scan` 时从 DNS 拿到的 `198.18.x.x` 假地址会被丢弃，候选少几个而已。
+
+以 **Mihomo（Clash）** 为例，按进程直连的配法是在配置文件的 `GEOSITE,google`、`GEOIP,google` 等规则之前加入：
 
 ```yaml
-dns:
-  fake-ip-filter:
-    - "www.googleapis.com"
-    - "drive.googleapis.com"
-    - "content.googleapis.com"
-    - "drive.usercontent.google.com"
-    - "drive.google.com"
-    - "+.googleusercontent.com"
-
 rules:
-  # 1. 登录与刷新令牌走代理
+  # 1. 登录与刷新令牌走代理（必须排在进程规则之前）
   - DOMAIN,accounts.google.com,PROXY
   - DOMAIN,oauth2.googleapis.com,PROXY
 
-  # 2. 推荐：让 gdirect 进程的其余所有流量（扫描、API、下载、上传）强制直连，
-  #    不被 sniff 出的域名规则或 Google IP 规则截胡
+  # 2. gdirect 进程的其余流量（扫描、API、下载、上传）强制直连，
+  #    不被 sniff 出的域名规则或 Google IP 规则截胡。
+  #    gdirect login 时请临时关 TUN 改用系统代理，或停用这一条
   - PROCESS-NAME,gdirect,DIRECT
-
-  # 3. 或者按具体域名直连（放在 GEOSITE,google / RULE-SET,google 之前，
-  #    会影响浏览器里依赖这些域名的网页）：
-  - DOMAIN,drive.usercontent.google.com,DIRECT
-  - DOMAIN-SUFFIX,googleusercontent.com,DIRECT
-  - DOMAIN,www.googleapis.com,DIRECT
-  - DOMAIN,drive.googleapis.com,DIRECT
-  - DOMAIN,content.googleapis.com,DIRECT
 ```
 
-如果你用的是 **sing-box**，同样可以在 `route.rules` 的 `rule_set: ["google"]` 和 Google IP 规则之前加上一条按进程（`process_name: gdirect`）的直连规则（保留 `oauth2.googleapis.com` 走代理），就能在 TUN 常开的情况下直连跑云盘下载。
+如果你用的是 **sing-box**，同样可以在 `route.rules` 的 `rule_set: ["google"]` 和 Google IP 规则之前，先放 `oauth2.googleapis.com` 的代理规则，再放一条 `process_name: gdirect` 的直连规则。
 
 ---
 
@@ -335,6 +312,7 @@ gdirect -a me@gmail.com browse            # 只在这一条命令里用某个账
 | `scan` 提示 `almost every address answered TCP` | TUN 代理在替所有地址接通连接，扫描测的是代理。按上文关闭 TUN，或让 `gdirect` 进程 / Google IP 走直连后重扫 |
 | `no usable Google front end found` | 当前网络没扫到能用的端点。先排除 TUN 代理；仍不行可过段时间重扫（可直连的前端会变化），或用 `gdirect scan --ips FILE` 提供自己的候选 |
 | 下载中途报 `libaria2 code 1`（连接或 TLS 失败） | 真实 SNI 被运营商重置或端点失效。`gdirect` 会先换 `g.cn` 身份重试，再换到下一个已验证端点续传，并把失效端点标死；所有端点都失败时才报错，重跑同一命令会重新扫描。也可手动 `--sni g.cn` / `--no-sni` |
+| 登录时报 `cannot verify the account` 或 `cannot reach Google's token endpoint` | 登录、账号核验和刷新令牌没能走代理。确认代理软件开了系统代理且 `accounts.google.com`、`oauth2.googleapis.com`、`www.googleapis.com` 走代理；Linux 或 PAC 下设置 `HTTPS_PROXY`；TUN 下按进程直连时，登录那一下请临时关 TUN（见做法二） |
 | `scan --list` 里某个 IP 带 `[third-party relay]` | 这个地址不在 Google 公布的地址段里，是第三方中转（如默认先试的 `183.56.143.147`）。它读不到流量内容，但能看到你的 IP；介意就用 `--google-only` |
 
 ---
@@ -426,6 +404,7 @@ TLS 超时或重置 | 约 290
 - **扫描改为 Google 前端扫描**（0.7.0，`src/scan.rs`）：候选只来自 Google 地址段内：之前验证过的端点、DNS 结果（被污染的自然落在段外、被丢弃）、我们这次扫出可用前端的 /24（`src/frontend-seeds.txt`），再是前端集中的核心地址块，最后是其余地址，每部分为每个用户打乱顺序。只试成功率高的主机号。每批 2048 个地址先做 TCP 探测，再对有应答的做完整验证；某个地址可用，就优先试它所在 /24 的其他地址；凑够 8 个已验证端点即停。几乎所有地址都能连上时提示 TUN 代理在拦截。
 - **端点切换**（0.7.0，`Api::deliver` 与下载）：当前端点连不上时，先换 TLS 身份，再依次换到一天内验证过的其他端点；下载在新端点上续传。
 - **中转的处理**：0.7.0 曾把 `183.56.143.147` 从扫描里去掉，并从已有数据库里清除一次。实际用下来，这台中转速度快、也很稳定，所以 **0.8.0 改为默认先试它，不通再用扫描出的 Google 前端**，并取消了 0.7.0 的清除。同时新增全局选项 **`--google-only`**（环境变量 `GDIRECT_GOOGLE_ONLY=1`）：扫描跳过中转，传输只用 Google 地址段内的端点。无论哪种模式，Google 地址段之外的端点在 `scan` 和 `scan --list` 里都会标为 `[third-party relay]`。
+- **登录走系统代理**（0.8.0，[@Liuycer](https://github.com/Liuycer) 贡献的 [#1](https://github.com/mizorewww/gdirect/pull/1)）：登录、账号核验和刷新令牌会使用 macOS / Windows 的 HTTP/HTTPS 系统代理（以及 `HTTPS_PROXY`），关掉 TUN、开着规则模式的系统代理就能登录；扫描、固定 IP 的 API 请求、上传和下载仍然直连。
 
 怎么选：中转读不到你的令牌和文件，但它的运营者能看到你的 IP、流量规模和时间，以及（不用伪造身份时）你连的是哪个 Google 主机，而且我们不知道运营者是谁。介意这些，就用 `--google-only`；需要时也可以用 `--sni g.cn` 强制伪造身份，让中转连主机名也看不到。
 
@@ -449,7 +428,81 @@ TLS 超时或重置 | 约 290
 
 ### 1. 候选从哪来：Google 自有地址段与扫描顺序
 
-第一次运行传输类命令时，如果本地 SQLite 里没有 24 小时内验证过的可用端点，`src/scan.rs` 就会启动扫描。0.8.0 默认先探测已知的中转 `183.56.143.147`（`--google-only` 时跳过），然后照样扫描 Google 前端，作为中转失效时的备用。下面的代码摘自 0.7.0，Google 前端的扫描逻辑在 0.8.0 里没有变。
+第一次运行传输类命令时，如果本地 SQLite 里没有 24 小时内验证过的可用端点，`src/scan.rs` 就会启动扫描。0.8.0 默认先探测已知的中转 `183.56.143.147`（`--google-only` 时跳过），然后照样扫描 Google 前端，作为中转失效时的备用：
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/scan.rs#L336-L346" title="0.8.0：扫描前先验证已知中转，--google-only 时跳过"
+        if !google_only {
+            let relays: Vec<IpAddr> = RELAYS.iter().filter_map(|r| r.parse().ok()).collect();
+            eprintln!("Checking known relays (not Google; use --google-only to skip)…");
+            record(
+                db,
+                &google,
+                verify(&relays, usize::MAX),
+                |_| true,
+                &mut warned,
+            )?;
+        }
+```
+
+中转只有一个，写死在 `RELAYS` 里，并在注释里写明它不是 Google。传输时，`usable` 决定端点的使用顺序：中转排第一，其余按延迟；`--google-only` 则直接丢掉 Google 地址段之外的所有端点，包括你用 `scan --ips` 手动加进来的：
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/scan.rs#L32-L54" title="0.8.0：已知中转与端点排序"
+/// Known third-party relays that forward to Google. Not Google: the operator
+/// sees client IPs and, without the forged identity, the hostname, but TLS
+/// stays end to end and is verified against Google's roots. They are fast and
+/// stable in mainland China, so they are tried first unless --google-only.
+const RELAYS: [&str; 1] = ["183.56.143.147"];
+fn relay(ip: IpAddr) -> bool {
+    RELAYS.iter().any(|r| r.parse() == Ok(ip))
+}
+/// Endpoints in the order transfers should use them: known relays first
+/// (unless `google_only`, which drops everything outside Google's space),
+/// then the rest as given (fastest first).
+pub fn usable(
+    routes: Vec<crate::store::Route>,
+    google: &Ranges,
+    google_only: bool,
+) -> Vec<crate::store::Route> {
+    let mut routes: Vec<_> = routes
+        .into_iter()
+        .filter(|r| !google_only || google.contains(r.ip))
+        .collect();
+    routes.sort_by_key(|r| !relay(r.ip));
+    routes
+}
+```
+
+```rust src="https://github.com/mizorewww/gdirect/blob/1099f77c614fbd6de246b67ca21da4a0ffab06eb/src/main.rs#L194-L220" title="0.8.0：选出当前端点与备用端点；--ip 固定端点时不做切换"
+fn direct_route(db: &store::Store, route: &Route, google_only: bool) -> Result<Direct> {
+    let explicit = route.sni();
+    let auto = explicit.is_none();
+    if let Some(ip) = route.ip {
+        return Ok(Direct {
+            ip,
+            sni: explicit,
+            auto,
+            backups: Vec::new(),
+        });
+    }
+    let google = ranges::current(db);
+    let mut routes = scan::usable(db.routes(16)?, &google, google_only);
+    if routes.is_empty() {
+        scan::run(db, None, google_only)?;
+        routes = scan::usable(db.routes(16)?, &google, google_only);
+    }
+    let identity = |sni: String| (!sni.is_empty()).then_some(sni);
+    let mut routes = routes.into_iter().map(|r| (r.ip, identity(r.sni)));
+    let (ip, stored) = routes.next().context("no verified endpoint")?;
+    Ok(Direct {
+        ip,
+        sni: explicit.or(stored),
+        auto,
+        backups: routes.take(8).collect(),
+    })
+}
+```
+
+下面关于 Google 前端扫描的代码摘自 0.7.0，这部分在 0.8.0 里没有变。
 
 扫描的边界是 `src/ranges.rs` 里的 Google 自有地址段：goog.json 是 Google 拥有的全部地址，cloud.json 是其中可以分配给 Google Cloud 客户的部分，两者相减，剩下的就是 Google 自家服务的地址。程序内置一份快照，每周从 `www.gstatic.com` 更新一次；如果下载到的列表少得不像话（被截断或被篡改），宁可沿用旧的也不接受：
 
