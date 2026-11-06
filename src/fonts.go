@@ -203,7 +203,8 @@ serif:
 			e.tag == "tr" && e.is("mark") && within("data"),
 			e.is("dl"),
 			e.tag == "b" && (parent(i).is("stats-group") || within("ticker")),
-			e.tag == "dd" && within("kpi") && !e.is("s"):
+			e.tag == "dd" && within("kpi") && !e.is("s"),
+			e.is("b") && within("sketch"):
 			return sans500
 		}
 	}

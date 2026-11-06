@@ -31,6 +31,7 @@ import (
 // .cache/figures, so a warm build starts neither Python nor Chrome. An
 // ```echarts figure also carries its option as JSON: on the page, ECharts
 // takes the figure over as it scrolls into view (templates/js/echart.js).
+// A ```sketch is SVG drawn by hand and only checked (src/sketch.go).
 type figureExtension struct{}
 
 const (
@@ -46,7 +47,8 @@ var (
 	figureAttributes = []string{"title", "note", "height"}
 	// figureTokens are the style.css colors a figure may name, as var(--name).
 	// The build draws with a stand-in for each and the SVG keeps the variable.
-	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "stone", "sky", "olive", "kraft", "fig"}
+	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "clay-ink", "stone", "sky", "olive", "kraft", "fig",
+		"panel", "node", "node-line", "edge", "blue", "blue-wash", "blue-ink", "green", "green-wash", "green-ink", "orange", "orange-wash", "orange-ink", "violet", "violet-wash", "violet-ink"}
 	figureToken  = regexp.MustCompile(`var\(--([\w-]+)\)`)
 	fixedColor   = regexp.MustCompile(`(?i)^\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()`)
 	diagramPaint = regexp.MustCompile(`(fill|stroke|color|background)\s*:\s*([^,;\s]+)`)
@@ -81,7 +83,7 @@ func (figureTransformer) Transform(doc *ast.Document, reader text.Reader, _ pars
 	var fences []*ast.FencedCodeBlock
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if fence, ok := n.(*ast.FencedCodeBlock); entering && ok {
-			if lang := string(fence.Language(reader.Source())); lang == "echarts" || lang == "mermaid" {
+			if lang := string(fence.Language(reader.Source())); lang == "echarts" || lang == "mermaid" || lang == "sketch" {
 				fences = append(fences, fence)
 			}
 		}
@@ -112,9 +114,13 @@ func (n *figureBlock) parse() error {
 	if strings.TrimSpace(n.source) == "" {
 		return fmt.Errorf("is empty")
 	}
-	if n.Lang == "mermaid" {
+	if n.Lang != "echarts" {
 		if _, ok := attrs["height"]; ok {
 			return fmt.Errorf("height is for echarts; a diagram takes the height it needs")
+		}
+		if n.Lang == "sketch" {
+			n.SVG, err = sketchSVG(n.source)
+			return err
 		}
 		return checkDiagramColors(n.source)
 	}
@@ -258,16 +264,49 @@ var figureInputs = []string{figureScript, figureTheme, filepath.Join("static", e
 	"fonts/sans-400.woff2", "fonts/sans-500.woff2", "static/fonts/maple-mono-400.woff2", "static/fonts/maple-mono-500.woff2"}
 
 // figureStandIns maps each token to the color the build draws it with.
+// They are scattered through the color space by a hash, salted until no
+// stand-in lies within 3 of the line between two others, so the drawing
+// script can tell a mix of two, as a heatmap scale makes, from any single one
+// (render-figures.py checks the same).
 func figureStandIns() []byte {
-	standIns := map[string]string{}
-	for _, name := range figureTokens {
-		// Spread through the color space, so the drawing script can tell a mix
-		// of two stand-ins, as a heatmap scale makes, from any single one.
-		sum := sha256.Sum256([]byte("stand-in " + name))
-		standIns[name] = fmt.Sprintf("#%02x%02x%02x", sum[0], sum[1], sum[2])
+	points := make([][3]float64, len(figureTokens))
+	for salt := 0; ; salt++ {
+		standIns := map[string]string{}
+		for i, name := range figureTokens {
+			sum := sha256.Sum256([]byte(fmt.Sprintf("stand-in %d %s", salt, name)))
+			points[i] = [3]float64{float64(sum[0]), float64(sum[1]), float64(sum[2])}
+			standIns[name] = fmt.Sprintf("#%02x%02x%02x", sum[0], sum[1], sum[2])
+		}
+		if separated(points) {
+			data, _ := json.Marshal(standIns)
+			return data
+		}
 	}
-	data, _ := json.Marshal(standIns)
-	return data
+}
+
+// separated reports whether no point lies within 3 of a segment between two others.
+func separated(points [][3]float64) bool {
+	for a := range points {
+		for b := a + 1; b < len(points); b++ {
+			p, q := points[a], points[b]
+			d := [3]float64{q[0] - p[0], q[1] - p[1], q[2] - p[2]}
+			length := d[0]*d[0] + d[1]*d[1] + d[2]*d[2]
+			for c, r := range points {
+				if c == a || c == b {
+					continue
+				}
+				t := ((r[0]-p[0])*d[0] + (r[1]-p[1])*d[1] + (r[2]-p[2])*d[2]) / length
+				if t <= 0 || t >= 1 {
+					continue
+				}
+				x, y, z := r[0]-p[0]-t*d[0], r[1]-p[1]-t*d[1], r[2]-p[2]-t*d[2]
+				if x*x+y*y+z*z < 9 {
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
 
 // cached is where a figure's drawing is kept, named by everything it depends on.
@@ -287,8 +326,11 @@ func (d *figureDrawer) cached(request []byte) (string, error) {
 	return filepath.Join(figureCache, fmt.Sprintf("%x.svg", sha256.Sum256(append(d.key, request...)))), nil
 }
 
-// draw fills a parsed figure's SVG.
+// draw fills a parsed figure's SVG; a sketch is its own drawing.
 func (d *figureDrawer) draw(f *figureBlock) error {
+	if f.Lang == "sketch" {
+		return nil
+	}
 	request, err := json.Marshal(figureRequest{f.Lang, f.source, figureWidth, f.height})
 	if err != nil {
 		return err
