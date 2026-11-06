@@ -193,9 +193,10 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 
 属性只有 `title`（必填）和 `note`。构建时只检查、不渲染，不需要 Chrome。
 
-- **画布**：`viewBox="0 0 宽 高"`，宽一般就是 704（正文栏），高按内容定；不要写 `width`/`height`，页面会自适应。比 560 宽的图在手机上横向滚动而不缩小。
-- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath linearGradient stop title desc`。`script`、`style` 属性、`foreignObject`、事件属性、外部链接都会让构建失败。
-- **颜色用 class**，需要时 `fill`/`stroke` 写 `var(--token)`（同 echarts 的 token 表，另有 `panel node node-line edge` 和 `blue green orange violet` 及其 `-wash`、`-ink`、`clay-ink`），写死的颜色会构建失败。
+- **画布**：`viewBox="0 0 宽 高"`，宽一般就是 704（正文栏），高按内容定；`<svg>` 上不写 `width`/`height`/`class`/颜色，页面会自适应。
+- **手机版**：手机正文栏只有约 324 px，704 宽的图会整体缩小到一半，小字看不清，并排的对比也挤成一团。所以稍复杂的图都在同一个代码块里再写第二个 `<svg>`：宽不超过 400（一般 340），把并排的东西改成上下排、把长标签换行。页面在 640 px 以下显示第二个，以上显示第一个。只有一个 `<svg>` 时，手机上整体缩小显示。
+- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath title desc`。`script`、`style` 属性、`foreignObject`、渐变、事件属性、外部链接都会让构建失败。
+- **颜色用 class**，需要时 `fill`/`stroke` 写 `var(--token)`（同 echarts 的 token 表，另有 `panel node node-line edge` 和 `blue teal orange violet` 及其 `-wash`、`-ink`、`clay-ink`），写死的颜色会构建失败。
 - **id 会自动加上图的前缀**，`url(#id)` 和 `href="#id"` 跟着改；`marker-end="url(#arrow)"` 是现成的开口箭头，不用自己定义。
 
 | class | 用在 | 样子 |
@@ -203,9 +204,9 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 | `panel` | 背景 `rect` | 暖灰底板，不描边；左右对比就画两块 |
 | `window` | `rect` | 虚线圆角框：上下文窗口、沙箱、一组东西的边界 |
 | `node` | 包住 `rect`+`text` 的 `g` | 暖灰填充、深灰细描边的节点 |
-| `node plain` / `blue` / `green` / `orange` / `violet` / `clay` | 同上 | 白底；或按角色上色：blue=system prompt/指令，green=文档/产出，orange=工具，violet=记忆/附注，clay=输入输出（配 `rx` 画成胶囊） |
+| `node plain` / `blue` / `teal` / `orange` / `violet` / `clay` | 同上 | 白底；或按角色上色：blue=system prompt/指令，teal=文档/产出/好的结果，orange=工具，violet=记忆/附注，clay=输入输出（配 `rx` 画成胶囊） |
 | `edge`、`edge dash`、`edge hot` | `path`/`line` | 1.25px 灰线；虚线=可选/并行；clay=出问题的地方 |
-| `caps` | `text` | 等宽小号大写，板块标题，如“PREPROCESSING” |
+| `caps` | `text` | 等宽小号、自动转大写，板块标题，如“preprocessing” → PREPROCESSING |
 | `small`、`b`、`mid`、`end`、`accent` | `text` | 11px 灰色说明、加粗、居中、右对齐、clay 强调色 |
 | `glyph` | `circle` | 模型图标的小圆点（几个点排成网格） |
 
@@ -214,7 +215,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 中文 13px 一个字约 13px 宽，英文和数字约 8px；先算好文字宽度再定节点宽度，留 12px 以上左右余量。
 - 连线用直角折线 `M x y H x2 V y2`，箭头指向节点边缘外 2–4px。
 - 一张图讲一件事：对比就并排两块 `panel`，流程就一条主线，层级就嵌套 `window`。
-- 写完一定在浏览器里看：深浅两种配色、手机宽度，文字不出框、不压线。
+- 写完一定在浏览器里看：深浅两种配色、1280 和 390 两种宽度（390 时看到的是手机版），文字不出框、不压线。
 
 ## 图表风格
 
