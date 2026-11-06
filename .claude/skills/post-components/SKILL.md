@@ -153,9 +153,10 @@ Delta | BTC  | ETH
 | `note` | 图下的注释：数据来源、时间范围、口径 |
 | `height` | 像素，160–720，默认 360；宽度跟随正文 |
 
-- 构建时在无头 Chrome 里画成静态 SVG（没有 JS、RSS 里也能看）；页面上图滚进视口时 ECharts 接管，图表动画画出，可悬停、可点图例。
-- 只能写 JSON，不能写函数；`formatter` 用字符串模板，如 `"{value}%"`、`"{b}: {c}"`。
-- **颜色只能写 `var(--名字)`**，写 `#hex`、`rgb()` 会构建失败，这样深浅色都对。可用：`clay`（强调）、`stone`（对照的中性色）、`sky`、`olive`、`kraft`、`fig`，以及 `ink`、`body`、`muted`、`faint`、`line`、`grid`、`card`、`paper`、`wash`、`clay-wash`。
+- 构建时在无头 Chrome 里画成静态 SVG，没有 JS 时也看得到（按正文宽度画好再缩放，手机上字会很小；RSS 阅读器不认 `var(--…)`，颜色会丢）。页面上图滚进视口时 ECharts 接管，图表动画画出，可悬停、可点图例。
+- 只能写 JSON，不能写函数：`formatter` 用字符串模板，如 `"{value}%"`、`"{b}: {c}"`；`tooltip.valueFormatter` 也写成模板 `"{value}%"`，页面会把它变成函数。其他只接受函数的选项不能用。
+- 系列类型写错（如 `"barz"`）、`series` 为空、或者某个系列画不出来，构建都会失败。
+- **颜色只能写 `var(--名字)`**：写 `#hex`、`rgb()`、`red` 这样的颜色名会构建失败，这样深浅色都对。颜色键（`color`、`borderColor`、`inRange.color` …）里还可以写 `transparent`、`none`、`auto`、`gradient` 等关键字。可用：`clay`（强调）、`stone`（对照的中性色）、`sky`、`olive`、`kraft`、`fig`，以及 `ink`、`body`、`muted`、`faint`、`line`、`grid`、`card`、`paper`、`wash`、`clay-wash`。
 - 主题（`templates/js/chart-theme.js`）已经设好字体、坐标轴、网格、提示框、动画和系列配色，option 里不要再写这些样式。
 - 不要写 ECharts 的 `title` 组件，标题用 `title` 属性。`grid`、`legend` 位置一般不用改。
 
@@ -172,7 +173,7 @@ flowchart TD
 ```
 ````
 
-属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机更窄：流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
+属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本，不要给节点写 `style`/`classDef` 颜色（要写只能是 `fill:var(--clay)` 这样的 token）。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机上约 324 px：比 520 px 宽的图在手机上横向滚动。流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
 
 ## 图表风格
 
@@ -183,6 +184,8 @@ flowchart TD
 - **直接标注，少用图例**：柱状图加 `"label": {"show": true, "position": "top"}`（横向用 `"right"`）；折线加 `"endLabel": {"show": true, "formatter": "{a}"}`，并把 `grid.right` 调大到能放下名字。只有两三个系列且没有直接标注时才用 `legend`。
 - 阈值、事件用 `markLine` / `markArea` 标在图上，标签写清是什么（如“压缩阈值 110K”）。
 - 坐标轴带单位（`"axisLabel": {"formatter": "{value}K"}`、`"name"`），大数换成千或百万。
+- 手机上正文栏只有约 324 px：分类标签要短（“命中 85%”而不是“缓存命中率 85%（实测）”），细节放进 `note`；横向柱状图的分类名尤其要短，不然柱子会被挤得很窄。
+- 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
 选组件：要读精确数值、或者行数多 → `data`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；关系和流程 → `mermaid`。
