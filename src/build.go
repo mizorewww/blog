@@ -192,7 +192,7 @@ func (b *builder) readEditions() error {
 				continue
 			}
 			p.File, p.Lang, p.Path = name, e.lang, e.lang.Base+p.Path
-			if err = p.render(b.images.hook(name)); err != nil {
+			if err = p.render(contentHooks{image: b.images.hook(name)}); err != nil {
 				return err
 			}
 			if p.History = gitHistory(name); len(p.History) > 0 && b.site.Repo != "" {

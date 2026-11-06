@@ -14,7 +14,7 @@ import (
 
 // render uses the default edition's renderer.
 func render(src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
-	return renderContent(languages[0].markdown(), src, image)
+	return renderContent(languages[0].markdown(), src, contentHooks{image: image})
 }
 
 func TestPostValidation(t *testing.T) {
@@ -40,7 +40,7 @@ func TestPostValidation(t *testing.T) {
 			}
 			p, err := readPost(path)
 			if err == nil {
-				err = p.render(nil)
+				err = p.render(contentHooks{})
 			}
 			if (err == nil) != tc.valid {
 				t.Fatalf("valid=%v, err=%v", tc.valid, err)
@@ -347,7 +347,7 @@ func TestBlocks(t *testing.T) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
 	}
-	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), nil); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
+	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
 		t.Fatalf("ticker button must follow the edition: %s %v", en, err)
 	}
 	for _, bad := range []string{"```chart pie\nx | y\n1 | 2\n```\n", "```chart line\nx\n1\n```\n", "```chart scatter\n点 | x | y\np | a | 1\n```\n", "```stats\n## A\n```\n"} {

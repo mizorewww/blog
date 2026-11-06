@@ -26,7 +26,7 @@ func TestNewPost(t *testing.T) {
 	path := "content/posts/hello-world.md"
 	post, err := readPost(path)
 	if err == nil {
-		err = post.render(nil)
+		err = post.render(contentHooks{})
 	}
 	if err != nil || post.Title != "你好，世界" || len(post.TOC) != 3 {
 		t.Fatalf("invalid generated article: %+v, %v", post, err)

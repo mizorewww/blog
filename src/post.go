@@ -119,14 +119,19 @@ func plainText(n ast.Node, src []byte) string {
 	return b.String()
 }
 
-// renderContent renders a post body with an edition's renderer; image, when not nil, rewrites each image node.
-func renderContent(markdown goldmark.Markdown, src []byte, image func(*ast.Image) error) (template.HTML, []Heading, error) {
+// contentHooks are build steps that run on the parsed post; nil ones are skipped.
+type contentHooks struct {
+	image func(*ast.Image) error // rewrites each image node
+}
+
+// renderContent renders a post body with an edition's renderer.
+func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (template.HTML, []Heading, error) {
 	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
 	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	var toc []Heading
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
-		if node, ok := n.(*ast.Image); entering && ok && image != nil {
-			if err := image(node); err != nil {
+		if node, ok := n.(*ast.Image); entering && ok && hooks.image != nil {
+			if err := hooks.image(node); err != nil {
 				return ast.WalkStop, err
 			}
 		}
@@ -195,9 +200,9 @@ func readPost(name string) (Post, error) {
 	return p, nil
 }
 
-// render fills Content and TOC in the post's edition; image, when not nil, rewrites each image.
-func (p *Post) render(image func(*ast.Image) error) (err error) {
-	p.Content, p.TOC, err = renderContent(p.Lang.markdown(), p.body, image)
+// render fills Content and TOC in the post's edition.
+func (p *Post) render(hooks contentHooks) (err error) {
+	p.Content, p.TOC, err = renderContent(p.Lang.markdown(), p.body, hooks)
 	return err
 }
 
