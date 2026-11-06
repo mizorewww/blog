@@ -210,10 +210,10 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		} else if h := diagramHeight(f.SVG, figureWidth); h > 0 {
 			// Where the page skips drawing the diagram, it holds this much room (style.css).
 			style = fmt.Sprintf(` style="--h:%dpx"`, h)
-			// A sketch's phone layout is the second <svg>; it fills a column of about 340 px.
+			// A sketch's phone layout is the second <svg>; a 390 px phone's column is 324 px.
 			if i := strings.Index(f.SVG, `<svg viewBox=`); i >= 0 {
 				if j := strings.Index(f.SVG[i+1:], `<svg viewBox=`); j >= 0 {
-					style = fmt.Sprintf(` style="--h:%dpx;--hn:%dpx"`, h, diagramHeight(f.SVG[i+1+j:], 340))
+					style = fmt.Sprintf(` style="--h:%dpx;--hn:%dpx"`, h, diagramHeight(f.SVG[i+1+j:], 324))
 				}
 			}
 		}

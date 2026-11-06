@@ -202,7 +202,7 @@ mark{background:var(--sel);color:inherit}
 .sketch text{fill:var(--ink);dominant-baseline:central}
 .sketch .b{font-weight:500}
 .sketch .small{font-size:11px;fill:var(--muted)}
-.sketch .caps{font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;fill:var(--muted)}
+.sketch .caps{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;fill:var(--muted)}
 .sketch .mid{text-anchor:middle}
 .sketch .end{text-anchor:end}
 .sketch .panel{fill:var(--panel);stroke:none}

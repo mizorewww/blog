@@ -69,7 +69,7 @@ func TestSketchPhoneLayout(t *testing.T) {
 		t.Fatal(err)
 	}
 	html := string(body)
-	for _, want := range []string{`style="--h:100px;--hn:200px"`, `class="sketch wide"`, `class="sketch narrow"`, `-0-a"`, `-1-a"`, `-0-arrow)"`, `-1-arrow)"`} {
+	for _, want := range []string{`style="--h:100px;--hn:191px"`, `class="sketch wide"`, `class="sketch narrow"`, `-0-a"`, `-1-a"`, `-0-arrow)"`, `-1-arrow)"`} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
