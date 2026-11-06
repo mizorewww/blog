@@ -49,7 +49,10 @@ var (
 	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "stone", "sky", "olive", "kraft", "fig"}
 	figureToken  = regexp.MustCompile(`var\(--([\w-]+)\)`)
 	fixedColor   = regexp.MustCompile(`(?i)^\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()`)
-	svgViewBox   = regexp.MustCompile(`^<svg[^>]*\sviewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"`)
+	diagramPaint = regexp.MustCompile(`(fill|stroke|color|background)\s*:\s*([^,;\s]+)`)
+	// colorKeywords are the non-color values ECharts takes where a color goes.
+	colorKeywords = []string{"transparent", "none", "inherit", "auto", "gradient", "source", "target", "series", "data"}
+	svgViewBox    = regexp.MustCompile(`^<svg[^>]*\sviewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"`)
 )
 
 type figureBlock struct {
@@ -113,7 +116,7 @@ func (n *figureBlock) parse() error {
 		if _, ok := attrs["height"]; ok {
 			return fmt.Errorf("height is for echarts; a diagram takes the height it needs")
 		}
-		return nil
+		return checkDiagramColors(n.source)
 	}
 	n.height = 360
 	if h, ok := attrs["height"]; ok {
@@ -125,10 +128,10 @@ func (n *figureBlock) parse() error {
 	if err := json.Unmarshal([]byte(n.source), &option); err != nil {
 		return fmt.Errorf("the option must be a JSON object: %w", err)
 	}
-	if option["series"] == nil {
-		return fmt.Errorf("the option has no series")
+	if series, ok := option["series"].([]any); !ok || len(series) == 0 {
+		return fmt.Errorf("the option's series must be a non-empty list")
 	}
-	if err := checkColors(option); err != nil {
+	if err := checkColors(option, false); err != nil {
 		return err
 	}
 	var compact bytes.Buffer
@@ -140,8 +143,10 @@ func (n *figureBlock) parse() error {
 }
 
 // checkColors keeps figures to the style.css palette, so every one of them
-// follows the color scheme.
-func checkColors(v any) error {
+// follows the color scheme. Under a key that names a color (color,
+// borderColor, inRange.color …) a string must be a token or a keyword, which
+// also catches named colors such as "red".
+func checkColors(v any, colorKey bool) error {
 	switch v := v.(type) {
 	case string:
 		if fixedColor.MatchString(v) {
@@ -152,16 +157,35 @@ func checkColors(v any) error {
 				return fmt.Errorf("unknown color var(--%s); use one of %s", m[1], strings.Join(figureTokens, ", "))
 			}
 		}
+		if colorKey && !figureToken.MatchString(v) && !slices.Contains(colorKeywords, v) {
+			return fmt.Errorf("color %q is not var(--name); use one of %s", v, strings.Join(figureTokens, ", "))
+		}
 	case []any:
 		for _, x := range v {
-			if err := checkColors(x); err != nil {
+			if err := checkColors(x, colorKey); err != nil {
 				return err
 			}
 		}
 	case map[string]any:
-		for _, x := range v {
-			if err := checkColors(x); err != nil {
+		for k, x := range v {
+			if err := checkColors(x, strings.Contains(strings.ToLower(k), "color")); err != nil {
 				return err
+			}
+		}
+	}
+	return nil
+}
+
+// checkDiagramColors holds Mermaid's style, classDef and linkStyle lines to
+// the same palette.
+func checkDiagramColors(source string) error {
+	for _, line := range strings.Split(source, "\n") {
+		if word, _, _ := strings.Cut(strings.TrimSpace(line), " "); word != "style" && word != "classDef" && word != "linkStyle" {
+			continue
+		}
+		for _, m := range diagramPaint.FindAllStringSubmatch(line, -1) {
+			if t := figureToken.FindStringSubmatch(m[2]); t == nil || t[0] != m[2] || !slices.Contains(figureTokens, t[1]) {
+				return fmt.Errorf("%s:%s is not var(--name); use one of %s", m[1], m[2], strings.Join(figureTokens, ", "))
 			}
 		}
 	}
