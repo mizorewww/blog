@@ -8,14 +8,16 @@ import (
 	"time"
 )
 
-// feedSketch matches a sketch's drawings. Their looks are all classes in
-// style.css, which feed readers do not load: a sketch would show as black
-// blocks, twice. The feed links to the post instead.
-var feedSketch = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="([^"]*)"><svg viewBox="[^"]*" class="sketch.*?</div>`)
+// feedFigure matches the drawing of an ```echarts, ```mermaid or ```sketch
+// figure, and an ECharts option after it. Their colors are var(--token)
+// and classes from style.css, which feed readers do not load, so fills turn
+// black: a heatmap or a diagram would be a black block. The feed keeps the
+// figure's title and note and links to the post instead.
+var feedFigure = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="[^"]*">.*?</div>(<script type="application/json">.*?</script>)?`)
 
 // feedContent is a post's HTML as the feed carries it.
 func feedContent(content, link string, ui UI) string {
-	return feedSketch.ReplaceAllString(content, `<p><a href="`+html.EscapeString(link)+`">`+html.EscapeString(ui.SketchInPost)+`</a></p>`)
+	return feedFigure.ReplaceAllString(content, `<p><a href="`+html.EscapeString(link)+`">`+html.EscapeString(ui.FigureInPost)+`</a></p>`)
 }
 
 // newestOf is the latest edit among posts. Dates come from content, not the

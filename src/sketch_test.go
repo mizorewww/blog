@@ -79,17 +79,27 @@ func TestSketchPhoneLayout(t *testing.T) {
 	}
 }
 
-// Feed readers load no style.css, so a sketch becomes a link to the post.
-func TestSketchInFeed(t *testing.T) {
-	body, _, err := render([]byte("```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n```mermaid title=\"M\"\nflowchart TD\n  A --> B\n```\n"), nil)
+// Feed readers load no style.css, so a drawn figure becomes a link to the post.
+func TestFiguresInFeed(t *testing.T) {
+	src := "```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n" +
+		"```mermaid title=\"M\"\nflowchart TD\n  A --> B\n```\n\n```echarts title=\"E\" note=\"n\"\n{\"series\": [{\"type\": \"bar\", \"data\": [1]}]}\n```\n"
+	body, _, err := renderContent(languages[0].markdown(), []byte(src), contentHooks{figure: func(f *figureBlock) error {
+		if f.SVG == "" {
+			f.SVG = "<svg><text>" + f.Lang + "</text></svg>"
+		}
+		return nil
+	}})
 	if err != nil {
 		t.Fatal(err)
 	}
 	feed := feedContent(string(body), "https://example.com/posts/a/?x=1&y=2", languages[0].UI)
-	if strings.Contains(feed, "sketch") || !strings.Contains(feed, `<figcaption>图</figcaption><p><a href="https://example.com/posts/a/?x=1&amp;y=2">（示意图见原文）</a></p></figure>`) {
-		t.Fatalf("sketch in feed: %s", feed)
+	link := `<p><a href="https://example.com/posts/a/?x=1&amp;y=2">（图见原文）</a></p>`
+	for _, want := range []string{`<figcaption>图</figcaption>` + link + `</figure>`, `<figcaption>M</figcaption>` + link + `</figure>`, `<figcaption>E</figcaption>` + link + `<p class="figure-note">n</p></figure>`} {
+		if !strings.Contains(feed, want) {
+			t.Fatalf("missing %s in %s", want, feed)
+		}
 	}
-	if !strings.Contains(feed, `<figure class="diagram"><figcaption>M</figcaption><div class="figure-plot"`) {
-		t.Fatal("other figures stay in the feed")
+	if strings.Contains(feed, "<svg") || strings.Contains(feed, "application/json") {
+		t.Fatalf("drawings must not reach the feed: %s", feed)
 	}
 }
