@@ -863,9 +863,9 @@ text({
 <path class="edge " d="M104 170 V246" marker-end="url(#arrow)"/>
 <text class="small" x="112" y="208">代为请求</text>
 <rect class="window" x="236" y="48" width="444" height="276" rx="10"/>
-<text class="caps" x="252" y="68">系统用户 tgbox · rootless Docker</text>
+<text class="small b" x="252" y="68">系统用户 tgbox · rootless Docker</text>
 <g class="node plain"><rect x="256" y="84" width="404" height="206" rx="8"/></g>
-<text class="caps" x="272" y="104">容器 · uid 1000</text>
+<text class="small b" x="272" y="104">容器 · uid 1000</text>
 <g class="node "><rect x="272" y="120" width="120" height="28" rx="3"/><text class="mid small" x="332" y="134">只读根文件系统</text></g>
 <g class="node "><rect x="398" y="120" width="124" height="28" rx="3"/><text class="mid small" x="460" y="134">cap-drop ALL</text></g>
 <g class="node "><rect x="528" y="120" width="116" height="28" rx="3"/><text class="mid small" x="586" y="134">no-new-privileges</text></g>
@@ -886,20 +886,20 @@ text({
 <path class="edge " d="M154 70 H216" marker-end="url(#arrow)"/>
 <text class="small mid" x="186" y="58">代为请求</text>
 <rect class="window" x="8" y="124" width="324" height="282" rx="10"/>
-<text class="caps end" x="320" y="140">系统用户 tgbox</text>
-<text class="caps end" x="320" y="156">rootless Docker</text>
+<text class="small b end" x="320" y="140">系统用户 tgbox</text>
+<text class="small b end" x="320" y="156">rootless Docker</text>
 <path class="edge " d="M56 102 V176" marker-end="url(#arrow)"/>
 <text class="small" x="62" y="140">bash</text>
 <path class="edge " d="M116 176 V104" marker-end="url(#arrow)"/>
 <text class="small" x="122" y="140">send.files</text>
 <g class="node plain"><rect x="20" y="180" width="300" height="214" rx="8"/></g>
-<text class="caps" x="32" y="198">容器 · uid 1000</text>
+<text class="small b" x="32" y="198">容器 · uid 1000</text>
 <g class="node "><rect x="32" y="210" width="134" height="28" rx="3"/><text class="mid small" x="99" y="224">只读根文件系统</text></g>
 <g class="node "><rect x="174" y="210" width="134" height="28" rx="3"/><text class="mid small" x="241" y="224">cap-drop ALL</text></g>
 <g class="node "><rect x="32" y="244" width="134" height="28" rx="3"/><text class="mid small" x="99" y="258">no-new-privileges</text></g>
 <g class="node "><rect x="174" y="244" width="134" height="28" rx="3"/><text class="mid small" x="241" y="258">/tmp：256 MB tmpfs</text></g>
 <g class="node "><rect x="32" y="278" width="276" height="28" rx="3"/><text class="mid small" x="170" y="292">内存、CPU、进程数上限</text></g>
-<g class="node teal"><rect x="32" y="318" width="276" height="62" rx="6"/><text class="mid b" x="170" y="341">/work</text><text class="mid small" x="170" y="358">唯一可写的目录 · 每周一 05:00 清空</text></g>
+<g class="node teal"><rect x="32" y="318" width="276" height="62" rx="6"/><text class="mid b" x="170" y="341">/work</text><text class="mid small" x="170" y="358">唯一可写、会保留 · 每周一 05:00 清空</text></g>
 <text class="small" x="16" y="424">网络可以一键关断；发出的文件先解析真实路径，</text>
 <text class="small" x="16" y="442">符号链接逃不出去</text>
 </svg>
