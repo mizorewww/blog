@@ -186,11 +186,12 @@ mark{background:var(--sel);color:inherit}
 :is(.echart,.diagram){margin:2.6em 0;counter-increment:figure}
 :is(.echart,.diagram) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
 :is(.echart,.diagram) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
-.figure-plot{position:relative}
-.echart .figure-plot{height:var(--h);font-family:var(--mono)}
+/* Inline drawings are heavy to lay out and paint: skip them until they come near, so the first screen paints as fast as a page without them. */
+.figure-plot{position:relative;content-visibility:auto;contain-intrinsic-size:auto 480px}
+.echart .figure-plot{height:var(--h);contain-intrinsic-size:auto var(--h);font-family:var(--mono)}
 .echart .figure-plot>svg{display:block;width:100%;height:100%}
 .echart.wait .figure-plot{visibility:hidden}
-.diagram .figure-plot{overflow-x:auto;padding:4px 0}
+.diagram .figure-plot{overflow-x:auto;padding:4px 0;contain-intrinsic-size:auto calc(var(--h,472px) + 8px)}
 .diagram .figure-plot>svg{display:block;height:auto;margin:auto}
 .figure-note{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.8;color:var(--muted)}
 .stats-group{display:flex;align-items:baseline;gap:10px;margin:0;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:11px;color:var(--muted)}

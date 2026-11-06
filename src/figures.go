@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"html"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -48,6 +49,7 @@ var (
 	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "stone", "sky", "olive", "kraft", "fig"}
 	figureToken  = regexp.MustCompile(`var\(--([\w-]+)\)`)
 	fixedColor   = regexp.MustCompile(`(?i)^\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()`)
+	svgViewBox   = regexp.MustCompile(`^<svg[^>]*\sviewBox="[-\d.]+ [-\d.]+ ([\d.]+) ([\d.]+)"`)
 )
 
 type figureBlock struct {
@@ -175,6 +177,9 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		class, style := "diagram", ""
 		if f.Lang == "echarts" {
 			class, style = "echart", fmt.Sprintf(` style="--h:%dpx"`, f.height)
+		} else if h := diagramHeight(f.SVG); h > 0 {
+			// Where the page skips drawing the diagram, it holds this much room (style.css).
+			style = fmt.Sprintf(` style="--h:%dpx"`, h)
 		}
 		title := html.EscapeString(f.title)
 		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, f.SVG)
@@ -190,6 +195,21 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		_, err := w.WriteString("</figure>\n")
 		return ast.WalkSkipChildren, err
 	})
+}
+
+// diagramHeight is how tall a diagram's SVG lays out in the reading column,
+// or 0 when the SVG gives no size.
+func diagramHeight(svg string) int {
+	m := svgViewBox.FindStringSubmatch(svg)
+	if m == nil {
+		return 0
+	}
+	w, _ := strconv.ParseFloat(m[1], 64)
+	h, _ := strconv.ParseFloat(m[2], 64)
+	if w <= 0 {
+		return 0
+	}
+	return int(math.Round(h * min(w, figureWidth) / w))
 }
 
 // figureDrawer runs render-figures.py once a build needs a drawing that is
