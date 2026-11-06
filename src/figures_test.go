@@ -75,7 +75,7 @@ func TestFigureText(t *testing.T) {
 // A warm build draws from the cache without uv; a failed drawing is not cached.
 func TestFigureCache(t *testing.T) {
 	dir := t.TempDir()
-	for _, name := range []string{figureScript, figureTheme, filepath.Join("static", echartsFile)} {
+	for _, name := range figureInputs {
 		data, err := os.ReadFile(name)
 		if err != nil {
 			t.Fatal(err)

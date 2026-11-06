@@ -228,11 +228,19 @@ type figureRequest struct {
 	Height int    `json:"height"`
 }
 
+// figureInputs are the files a drawing depends on besides its request,
+// including the fonts render-figures.py measures text with.
+var figureInputs = []string{figureScript, figureTheme, filepath.Join("static", echartsFile),
+	"fonts/sans-400.woff2", "fonts/sans-500.woff2", "static/fonts/maple-mono-400.woff2", "static/fonts/maple-mono-500.woff2"}
+
 // figureStandIns maps each token to the color the build draws it with.
 func figureStandIns() []byte {
 	standIns := map[string]string{}
-	for i, name := range figureTokens {
-		standIns[name] = fmt.Sprintf("#0a0a%02x", i+1)
+	for _, name := range figureTokens {
+		// Spread through the color space, so the drawing script can tell a mix
+		// of two stand-ins, as a heatmap scale makes, from any single one.
+		sum := sha256.Sum256([]byte("stand-in " + name))
+		standIns[name] = fmt.Sprintf("#%02x%02x%02x", sum[0], sum[1], sum[2])
 	}
 	data, _ := json.Marshal(standIns)
 	return data
@@ -242,7 +250,7 @@ func figureStandIns() []byte {
 func (d *figureDrawer) cached(request []byte) (string, error) {
 	if d.key == nil {
 		hash := sha256.New()
-		for _, name := range []string{figureScript, figureTheme, filepath.Join("static", echartsFile)} {
+		for _, name := range figureInputs {
 			data, err := os.ReadFile(name)
 			if err != nil {
 				return "", err
@@ -291,7 +299,21 @@ func (d *figureDrawer) draw(f *figureBlock) error {
 		return err
 	}
 	f.SVG = answer.SVG
-	return os.WriteFile(cached, []byte(answer.SVG), 0644)
+	// Written whole or not at all: a build killed mid-write must not cache half an SVG.
+	temp, err := os.CreateTemp(figureCache, "drawing-*")
+	if err != nil {
+		return err
+	}
+	if _, err = temp.WriteString(answer.SVG); err == nil {
+		err = temp.Close()
+	}
+	if err == nil {
+		err = os.Rename(temp.Name(), cached)
+	}
+	if err != nil {
+		os.Remove(temp.Name())
+	}
+	return err
 }
 
 func (d *figureDrawer) start() error {

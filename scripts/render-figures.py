@@ -16,7 +16,9 @@ made once follows the reader's color scheme.
 """
 import base64
 import hashlib
+import itertools
 import json
+import math
 import sys
 import urllib.request
 from pathlib import Path
@@ -65,58 +67,117 @@ body{margin:0;font-family:"Blog Sans",sans-serif}</style><body></body>"""
 
 # Runs in the page: swaps stand-ins for var(--token) and drops fixed sizes.
 SCRIPT = r"""
-const recolor = (svg, tokens, tidy) => {
-  const swap = {};
-  for (const [name, hex] of Object.entries(tokens)) {
-    const [r, g, b] = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
-    swap[hex] = `var(--${name})`;
-    swap[`rgb(${r},${g},${b})`] = `var(--${name})`;
-    swap[`rgb(${r}, ${g}, ${b})`] = `var(--${name})`;
+// Every color in a drawing must come from a token: a stand-in, a mix of two
+// (ECharts interpolates them, as for a heatmap), or either with some alpha.
+// Each becomes var(--token) or color-mix() of tokens; any other color fails
+// the drawing, so a static figure never shows a color the theme did not give.
+const colorPattern = /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/gi;
+const parseColor = s => {
+  let m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (m) {
+    const h = m[1].length == 3 ? [...m[1]].map(c => c + c).join("") : m[1];
+    return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)).concat(1);
   }
-  const keys = Object.keys(swap).sort((a, b) => b.length - a.length).map(k => k.replace(/[()]/g, "\\$&"));
-  const any = new RegExp(keys.join("|"), "gi");
-  const alpha = /rgba\((\d+),\s*(\d+),\s*(\d+),\s*([\d.]+)\)/g;
-  const text = s => s.replace(alpha, (m, r, g, b, a) => {
-    const hex = "#" + [r, g, b].map(n => (+n).toString(16).padStart(2, "0")).join("");
-    const name = Object.keys(tokens).find(k => tokens[k] == hex);
-    return name ? `color-mix(in srgb,var(--${name}) ${Math.round(a * 100)}%,transparent)` : m;
-  }).replace(any, m => swap[m.toLowerCase()] ?? m);
+  m = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+))?\s*\)$/i);
+  return m && [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]];
+};
+const tokenColor = (s, tokens) => {
+  const c = parseColor(s);
+  if (!c) return null;
+  const points = Object.entries(tokens).map(([name, hex]) => [name, parseColor(hex)]);
+  const dist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+  let best = null, gap = 1;
+  for (const [name, p] of points) if (dist(c, p) < gap) [best, gap] = [`var(--${name})`, dist(c, p)];
+  if (!best) {
+    gap = 1.5;
+    for (const [a, p] of points) for (const [b, q] of points) {
+      if (a >= b) continue;
+      const d = [0, 1, 2].map(k => q[k] - p[k]), t = [0, 1, 2].reduce((s, k) => s + (c[k] - p[k]) * d[k], 0) / [0, 1, 2].reduce((s, k) => s + d[k] * d[k], 0);
+      const off = dist(c, [0, 1, 2].map(k => p[k] + t * d[k]));
+      if (t > 0 && t < 1 && off < gap) [best, gap] = [`color-mix(in srgb,var(--${a}) ${Math.round((1 - t) * 100)}%,var(--${b}))`, off];
+    }
+  }
+  if (best && c[3] < 1) best = `color-mix(in srgb,${best} ${Math.round(c[3] * 100)}%,transparent)`;
+  return best;
+};
+const recolor = (svg, tokens, tidy, strictStyles) => {
+  const left = new Set();
+  const text = (s, strict) => s.replace(colorPattern, m => {
+    const t = tokenColor(m, tokens);
+    if (!t && strict) left.add(m);
+    return t ?? m;
+  });
   // Parsed and written as HTML, where the SVG ends up; Mermaid's labels hold <br>.
   const box = document.createElement("div");
   box.innerHTML = svg;
   const root = box.firstElementChild;
   if (root?.nodeName != "svg") throw new Error("no SVG drawn");
   tidy?.(root);
-  const left = new Set();
+  // A stylesheet rule beats a paint attribute (Mermaid sets both); such an
+  // attribute is never painted, so it goes rather than fail the check below.
+  document.body.append(box);
+  for (const el of root.querySelectorAll("[fill], [stroke]")) {
+    for (const attr of ["fill", "stroke"]) {
+      const c = parseColor(el.getAttribute(attr) ?? ""), shown = parseColor(getComputedStyle(el)[attr]);
+      if (c && shown && c.slice(0, 3).join() != shown.slice(0, 3).join()) el.removeAttribute(attr);
+    }
+  }
+  box.remove();
+  const used = new Set([...root.querySelectorAll("use")].map(u => (u.getAttribute("href") ?? u.getAttribute("xlink:href") ?? "").slice(1)));
   for (const el of [root, ...root.querySelectorAll("*")]) {
-    if (el.nodeName == "style") { el.textContent = text(el.textContent); continue; }
+    if (el.nodeName == "style") { el.textContent = text(el.textContent, strictStyles); continue; }
+    // A clip path's paint is never seen, nor a symbol nothing uses (Mermaid
+    // defines its icons in every sequence diagram), nor paint at zero opacity or width.
+    if (el.closest("clipPath, mask")) continue;
+    const symbol = el.closest("symbol");
+    if (symbol && !used.has(symbol.id)) continue;
+    if (el.getAttribute("fill-opacity") == "0") el.setAttribute("fill", "none");
+    if (el.getAttribute("stroke-width") == "0" || el.getAttribute("stroke-opacity") == "0") el.setAttribute("stroke", "none");
     for (const attr of ["fill", "stroke", "stop-color", "color", "flood-color"]) {
       const v = el.getAttribute(attr);
       if (v == null) continue;
-      const t = text(v);
+      const t = text(v, true);
       if (t != v) { el.removeAttribute(attr); el.style.setProperty(attr, t); }
     }
     const style = el.getAttribute("style");
-    if (style) el.setAttribute("style", text(style));
+    if (style) el.setAttribute("style", text(style, true));
   }
-  const out = root.outerHTML;
-  for (const hex of Object.values(tokens)) if (out.toLowerCase().includes(hex)) left.add(hex);
-  if (left.size) throw new Error("colors derived from tokens were left fixed: " + [...left].join(" "));
-  return out;
+  if (left.size) throw new Error("colors not from a var(--token): " + [...left].join(" "));
+  return root.outerHTML;
 };
 window.drawEcharts = async (source, width, height, tokens) => {
   await document.fonts.ready;
   const option = JSON.parse(source.replace(/var\(--([\w-]+)\)/g, (m, n) => tokens[n] ?? m));
   const chart = echarts.init(null, "blog", { renderer: "svg", ssr: true, width, height });
-  chart.setOption({ ...option, animation: false });
+  const errors = [];
+  const log = console.error;
+  console.error = (...a) => errors.push(a.join(" "));
+  try {
+    chart.setOption({ ...option, animation: false });
+  } finally {
+    console.error = log;
+  }
+  // ECharts skips a series it cannot draw, such as an unknown type, and only logs it.
+  const drawn = chart.getOption().series?.length ?? 0;
+  if (errors.length || drawn != option.series.length) {
+    chart.dispose();
+    throw new Error(errors[0] || `drew ${drawn} of ${option.series.length} series`);
+  }
   const svg = chart.renderToSVGString();
   chart.dispose();
-  // The page sizes the drawing and sets its font (style.css), so neither is repeated.
   return recolor(svg, tokens, root => {
+    // The page sizes the drawing and sets its font (style.css), so neither is repeated.
     root.removeAttribute("width");
     root.removeAttribute("height");
     for (const el of root.querySelectorAll("[style]")) el.style.removeProperty("font-family");
-  });
+    // Hover rules are for the live chart; their class names count the charts this
+    // process drew, so they would change with whatever else was drawn.
+    for (const el of root.querySelectorAll("style")) el.remove();
+    for (const el of root.querySelectorAll("[class]")) {
+      el.setAttribute("class", el.getAttribute("class").replace(/\bzr\d+-cls-\d+\b/g, "").trim());
+      if (!el.getAttribute("class")) el.removeAttribute("class");
+    }
+  }, true);
 };
 window.drawMermaid = async (source, id, tokens) => {
   await document.fonts.ready;
@@ -125,6 +186,7 @@ window.drawMermaid = async (source, id, tokens) => {
   return recolor(svg, tokens, root => {
     for (const el of root.querySelectorAll("[style]")) el.style.removeProperty("filter");
     for (const el of root.querySelectorAll("[filter]")) el.removeAttribute("filter");
+    for (const el of root.querySelectorAll("filter")) el.remove();
     // On a phone a wide diagram scrolls sideways rather than shrink its text past reading.
     if (root.style.maxWidth) root.style.minWidth = `min(${root.style.maxWidth}, 520px)`;
     for (const el of root.querySelectorAll("style")) el.textContent = el.textContent.replace(/filter:\s*(drop-shadow\([^;}]*\)|url\([^)]*\))/g, "filter:none");
@@ -162,8 +224,23 @@ def launch(playwright):
             raise RuntimeError("needs Google Chrome, or run: uv run --with playwright==1.64.1 playwright install chromium") from error
 
 
+def check_stand_ins(tokens):
+    """Mixes are told apart only while no stand-in lies on the line between two others."""
+    points = {name: [int(hex[i:i + 2], 16) for i in (1, 3, 5)] for name, hex in tokens.items()}
+    for a, b in itertools.combinations(points, 2):
+        p, q = points[a], points[b]
+        d = [q[k] - p[k] for k in range(3)]
+        for c, r in points.items():
+            if c in (a, b):
+                continue
+            t = sum((r[k] - p[k]) * d[k] for k in range(3)) / sum(x * x for x in d)
+            if 0 < t < 1 and math.dist(r, [p[k] + t * d[k] for k in range(3)]) < 3:
+                raise RuntimeError(f"stand-in for {c} lies between {a} and {b}")
+
+
 def main():
     echarts_file, tokens = sys.argv[1], json.loads(sys.argv[2])
+    check_stand_ins(tokens)
     with sync_playwright() as playwright:
         browser = launch(playwright)
         page = browser.new_page()
@@ -192,7 +269,8 @@ def main():
                     svg = page.evaluate("([s, i, t]) => drawMermaid(s, i, t)", [request["source"], name, tokens])
                 answer = {"svg": svg}
             except Error as error:
-                answer = {"error": str(error).splitlines()[0]}
+                # Mermaid's parse errors name the line on the first and the expected tokens below.
+                answer = {"error": " ".join(line.strip() for line in str(error).splitlines()[:4] if line.strip())}
             print(json.dumps(answer), flush=True)
         browser.close()
 
