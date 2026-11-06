@@ -130,7 +130,7 @@ Delta | BTC  | ETH
 
 ## 动态图表 `echarts`
 
-需要动画、悬停、图例开关，或者 `chart` 画不了的类型（饼/环、热力图、桑基、树图、漏斗、雷达、箱线、日历、仪表盘……）时用。正文是一个 [ECharts 6](https://echarts.apache.org/zh/option.html) 的 option，必须是合法 JSON：
+需要动画、悬停、图例开关，或者 `chart` 画不了的类型时用。主题已经配好颜色的类型：折线、柱状、散点、饼/环、热力图（含日历热力图）、桑基、树图、漏斗、雷达、箱线、K 线、仪表盘。其他类型或组件（如旭日图、`dataZoom`）还没有配色，构建会报“colors not from a var(--token)”，要先在 `templates/js/chart-theme.js` 里给它们设好 token 颜色。正文是一个 [ECharts 6](https://echarts.apache.org/zh/option.html) 的 option，必须是合法 JSON：
 
 ````markdown
 ```echarts title="每周模型调用，按模型" note="截至 11 月 1 日。" height="320"
@@ -173,7 +173,7 @@ flowchart TD
 ```
 ````
 
-属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本，不要给节点写 `style`/`classDef` 颜色（要写只能是 `fill:var(--clay)` 这样的 token）。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机上约 324 px：比 520 px 宽的图在手机上横向滚动。流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
+属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本，节点一般不需要单独上色；要强调某个节点时，`style`/`classDef` 只能写 token，如 `style A fill:var(--clay-wash),stroke:var(--clay)`。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机上约 324 px：比 520 px 宽的图在手机上横向滚动。流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
 
 ## 图表风格
 
