@@ -78,3 +78,18 @@ func TestSketchPhoneLayout(t *testing.T) {
 		t.Fatal("each drawing needs its own arrowhead")
 	}
 }
+
+// Feed readers load no style.css, so a sketch becomes a link to the post.
+func TestSketchInFeed(t *testing.T) {
+	body, _, err := render([]byte("```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n```mermaid title=\"M\"\nflowchart TD\n  A --> B\n```\n"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	feed := feedContent(string(body), "https://example.com/posts/a/?x=1&y=2", languages[0].UI)
+	if strings.Contains(feed, "sketch") || !strings.Contains(feed, `<figcaption>图</figcaption><p><a href="https://example.com/posts/a/?x=1&amp;y=2">（示意图见原文）</a></p></figure>`) {
+		t.Fatalf("sketch in feed: %s", feed)
+	}
+	if !strings.Contains(feed, `<figure class="diagram"><figcaption>M</figcaption><div class="figure-plot"`) {
+		t.Fatal("other figures stay in the feed")
+	}
+}

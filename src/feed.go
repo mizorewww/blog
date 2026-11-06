@@ -2,9 +2,21 @@ package main
 
 import (
 	"encoding/xml"
+	"html"
+	"regexp"
 	"strings"
 	"time"
 )
+
+// feedSketch matches a sketch's drawings. Their looks are all classes in
+// style.css, which feed readers do not load: a sketch would show as black
+// blocks, twice. The feed links to the post instead.
+var feedSketch = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="([^"]*)"><svg viewBox="[^"]*" class="sketch.*?</div>`)
+
+// feedContent is a post's HTML as the feed carries it.
+func feedContent(content, link string, ui UI) string {
+	return feedSketch.ReplaceAllString(content, `<p><a href="`+html.EscapeString(link)+`">`+html.EscapeString(ui.SketchInPost)+`</a></p>`)
+}
 
 // newestOf is the latest edit among posts. Dates come from content, not the
 // clock, so unchanged content builds identical files.
@@ -31,7 +43,7 @@ func (b *builder) feed(lang *Lang, path, title, description string, posts []*Pos
 		if len(p.Aliases) > 0 {
 			guid = b.site.URL + escapePath(p.Aliases[0]) // keeps feed readers from re-announcing moved posts
 		}
-		f.Channel.Items = append(f.Channel.Items, Item{Title: p.Title, Link: link, Description: string(p.Content), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
+		f.Channel.Items = append(f.Channel.Items, Item{Title: p.Title, Link: link, Description: feedContent(string(p.Content), link, lang.UI), Category: p.Tag, Date: date.Format(time.RFC1123Z), GUID: guid})
 	}
 	b.feeds[strings.TrimPrefix(path, "/")] = f
 }

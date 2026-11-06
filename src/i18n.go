@@ -19,7 +19,7 @@ type UI struct {
 	Stats, Count, Category, Tag, TagsTitle, SearchLabel, SearchFound, SearchNone, Copy                   string
 	History, Commits, Source, License, LicenseText, LicenseNote                                          string
 	Switch, SwitchLang                                                                                   string
-	NotFoundTitle, LiveChart, Moved, MovedTo                                                             string
+	NotFoundTitle, LiveChart, Moved, MovedTo, SketchInPost                                               string
 }
 
 // markdowns holds one renderer per edition, keyed by Lang.Code.
@@ -50,7 +50,7 @@ var languages = []Lang{
 		History: "修改", Commits: "%d 次提交，最近一次在 %s", Source: "源文件", License: "许可",
 		LicenseText: "除另有说明，本文采用 ", LicenseNote: " 许可。转载或改编请署名、非商业使用，并以相同方式共享。",
 		Switch: "EN", SwitchLang: "en",
-		NotFoundTitle: "页面未找到", LiveChart: "实时图表", Moved: "已移动", MovedTo: "这篇文章已移动到 ",
+		NotFoundTitle: "页面未找到", LiveChart: "实时图表", Moved: "已移动", MovedTo: "这篇文章已移动到 ", SketchInPost: "（示意图见原文）",
 	}},
 	{"en", "/en", "en", "en_US", UI{
 		Description: "Notes on code, tools, and keeping things simple.",
@@ -63,6 +63,6 @@ var languages = []Lang{
 		History: "History", Commits: "%d commits, latest on %s", Source: "Source", License: "License",
 		LicenseText: "Unless noted otherwise, this post is licensed under ", LicenseNote: ". Please attribute, use non-commercially, and share adaptations alike.",
 		Switch: "中文", SwitchLang: "zh-CN",
-		NotFoundTitle: "Page not found", LiveChart: "Live chart", Moved: "Moved", MovedTo: "This post has moved to ",
+		NotFoundTitle: "Page not found", LiveChart: "Live chart", Moved: "Moved", MovedTo: "This post has moved to ", SketchInPost: "(See the diagram in the post.)",
 	}},
 }
