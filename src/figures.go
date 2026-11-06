@@ -1,0 +1,304 @@
+package main
+
+import (
+	"bufio"
+	"bytes"
+	"crypto/sha256"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"html"
+	"io"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+
+	"github.com/yuin/goldmark"
+	"github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/renderer"
+	"github.com/yuin/goldmark/text"
+	"github.com/yuin/goldmark/util"
+)
+
+// ```echarts and ```mermaid fences are figures drawn as static SVG at build
+// time by scripts/render-figures.py, in headless Chrome, and cached under
+// .cache/figures, so a warm build starts neither Python nor Chrome. An
+// ```echarts figure also carries its option as JSON: on the page, ECharts
+// takes the figure over as it scrolls into view (templates/js/echart.js).
+type figureExtension struct{}
+
+const (
+	figureScript = "scripts/render-figures.py"
+	figureTheme  = "templates/js/chart-theme.js"
+	figureCache  = ".cache/figures"
+	echartsFile  = "vendor/echarts-6.1.0.min.js" // under static/, published with the site
+	figureWidth  = 704                           // the reading column
+)
+
+var (
+	kindFigure       = ast.NewNodeKind("Figure")
+	figureAttributes = []string{"title", "note", "height"}
+	// figureTokens are the style.css colors a figure may name, as var(--name).
+	// The build draws with a stand-in for each and the SVG keeps the variable.
+	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "stone", "sky", "olive", "kraft", "fig"}
+	figureToken  = regexp.MustCompile(`var\(--([\w-]+)\)`)
+	fixedColor   = regexp.MustCompile(`(?i)^\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()`)
+)
+
+type figureBlock struct {
+	ast.BaseBlock
+	Lang, Info string
+	title      string
+	note       string
+	height     int
+	source     string // the Mermaid text, or the compacted ECharts option
+	SVG        string // set by the build's figure hook
+}
+
+func (n *figureBlock) Kind() ast.NodeKind            { return kindFigure }
+func (n *figureBlock) Dump(source []byte, level int) { ast.DumpHelper(n, source, level, nil, nil) }
+func (n *figureBlock) IsRaw() bool                   { return true }
+
+type figureTransformer struct{}
+type figureRenderer struct{}
+
+func (figureExtension) Extend(m goldmark.Markdown) {
+	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(figureTransformer{}, 100)))
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(figureRenderer{}, 100)))
+}
+
+func (figureTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
+	var fences []*ast.FencedCodeBlock
+	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if fence, ok := n.(*ast.FencedCodeBlock); entering && ok {
+			if lang := string(fence.Language(reader.Source())); lang == "echarts" || lang == "mermaid" {
+				fences = append(fences, fence)
+			}
+		}
+		return ast.WalkContinue, nil
+	})
+	for _, fence := range fences {
+		block := &figureBlock{Lang: string(fence.Language(reader.Source())), Info: string(fence.Info.Segment.Value(reader.Source()))}
+		var src strings.Builder
+		for i := 0; i < fence.Lines().Len(); i++ {
+			line := fence.Lines().At(i)
+			src.Write(line.Value(reader.Source()))
+		}
+		block.source = src.String()
+		fence.Parent().ReplaceChild(fence.Parent(), fence, block)
+	}
+}
+
+// parse checks the fence and its body; renderContent calls it on every figure.
+func (n *figureBlock) parse() error {
+	attrs, err := blockAttributes(n.Info, figureAttributes)
+	if err != nil {
+		return err
+	}
+	n.title, n.note = attrs["title"], attrs["note"]
+	if strings.TrimSpace(n.title) == "" {
+		return fmt.Errorf("needs a title")
+	}
+	if strings.TrimSpace(n.source) == "" {
+		return fmt.Errorf("is empty")
+	}
+	if n.Lang == "mermaid" {
+		if _, ok := attrs["height"]; ok {
+			return fmt.Errorf("height is for echarts; a diagram takes the height it needs")
+		}
+		return nil
+	}
+	n.height = 360
+	if h, ok := attrs["height"]; ok {
+		if n.height, err = strconv.Atoi(h); err != nil || n.height < 160 || n.height > 720 {
+			return fmt.Errorf("height must be a number of pixels from 160 to 720")
+		}
+	}
+	var option map[string]any
+	if err := json.Unmarshal([]byte(n.source), &option); err != nil {
+		return fmt.Errorf("the option must be a JSON object: %w", err)
+	}
+	if option["series"] == nil {
+		return fmt.Errorf("the option has no series")
+	}
+	if err := checkColors(option); err != nil {
+		return err
+	}
+	var compact bytes.Buffer
+	if err := json.Compact(&compact, []byte(n.source)); err != nil {
+		return err
+	}
+	n.source = compact.String()
+	return nil
+}
+
+// checkColors keeps figures to the style.css palette, so every one of them
+// follows the color scheme.
+func checkColors(v any) error {
+	switch v := v.(type) {
+	case string:
+		if fixedColor.MatchString(v) {
+			return fmt.Errorf("color %q is fixed; use var(--name) with one of %s", v, strings.Join(figureTokens, ", "))
+		}
+		for _, m := range figureToken.FindAllStringSubmatch(v, -1) {
+			if !slices.Contains(figureTokens, m[1]) {
+				return fmt.Errorf("unknown color var(--%s); use one of %s", m[1], strings.Join(figureTokens, ", "))
+			}
+		}
+	case []any:
+		for _, x := range v {
+			if err := checkColors(x); err != nil {
+				return err
+			}
+		}
+	case map[string]any:
+		for _, x := range v {
+			if err := checkColors(x); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+	r.Register(kindFigure, func(w util.BufWriter, _ []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+		if !entering {
+			return ast.WalkContinue, nil
+		}
+		f := n.(*figureBlock)
+		class, style := "diagram", ""
+		if f.Lang == "echarts" {
+			class, style = "echart", fmt.Sprintf(` style="--h:%dpx"`, f.height)
+		}
+		title := html.EscapeString(f.title)
+		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, f.SVG)
+		if f.Lang == "echarts" {
+			// The option is compacted JSON; escaping <, > and & keeps it inside its script element.
+			var option bytes.Buffer
+			json.HTMLEscape(&option, []byte(f.source))
+			fmt.Fprintf(w, `<script type="application/json">%s</script>`, option.String())
+		}
+		if f.note != "" {
+			fmt.Fprintf(w, `<p class="figure-note">%s</p>`, html.EscapeString(f.note))
+		}
+		_, err := w.WriteString("</figure>\n")
+		return ast.WalkSkipChildren, err
+	})
+}
+
+// figureDrawer runs render-figures.py once a build needs a drawing that is
+// not cached, and keeps it for the rest of the build.
+type figureDrawer struct {
+	key    []byte // hashes everything a drawing depends on besides its request
+	cmd    *exec.Cmd
+	stdin  io.WriteCloser
+	stdout *bufio.Reader
+}
+
+type figureRequest struct {
+	Kind   string `json:"kind"`
+	Source string `json:"source"`
+	Width  int    `json:"width"`
+	Height int    `json:"height"`
+}
+
+// figureStandIns maps each token to the color the build draws it with.
+func figureStandIns() []byte {
+	standIns := map[string]string{}
+	for i, name := range figureTokens {
+		standIns[name] = fmt.Sprintf("#0a0a%02x", i+1)
+	}
+	data, _ := json.Marshal(standIns)
+	return data
+}
+
+// cached is where a figure's drawing is kept, named by everything it depends on.
+func (d *figureDrawer) cached(request []byte) (string, error) {
+	if d.key == nil {
+		hash := sha256.New()
+		for _, name := range []string{figureScript, figureTheme, filepath.Join("static", echartsFile)} {
+			data, err := os.ReadFile(name)
+			if err != nil {
+				return "", err
+			}
+			hash.Write(data)
+		}
+		hash.Write(figureStandIns())
+		d.key = hash.Sum(nil)
+	}
+	return filepath.Join(figureCache, fmt.Sprintf("%x.svg", sha256.Sum256(append(d.key, request...)))), nil
+}
+
+// draw fills a parsed figure's SVG.
+func (d *figureDrawer) draw(f *figureBlock) error {
+	request, err := json.Marshal(figureRequest{f.Lang, f.source, figureWidth, f.height})
+	if err != nil {
+		return err
+	}
+	cached, err := d.cached(request)
+	if err != nil {
+		return err
+	}
+	if svg, err := os.ReadFile(cached); err == nil {
+		f.SVG = string(svg)
+		return nil
+	}
+	if d.cmd == nil {
+		if err := d.start(); err != nil {
+			return err
+		}
+	}
+	var answer struct{ SVG, Error string }
+	if _, err = d.stdin.Write(append(request, '\n')); err == nil {
+		var line []byte
+		if line, err = d.stdout.ReadBytes('\n'); err == nil {
+			err = json.Unmarshal(line, &answer)
+		}
+	}
+	if err != nil {
+		return fmt.Errorf("draw figures (requires uv and Chrome): %w", err)
+	}
+	if answer.Error != "" {
+		return errors.New(answer.Error)
+	}
+	if err = os.MkdirAll(figureCache, 0755); err != nil {
+		return err
+	}
+	f.SVG = answer.SVG
+	return os.WriteFile(cached, []byte(answer.SVG), 0644)
+}
+
+func (d *figureDrawer) start() error {
+	d.cmd = exec.Command("uv", "run", "--script", figureScript, filepath.Join("static", echartsFile), string(figureStandIns()))
+	d.cmd.Stderr = os.Stderr
+	stdin, err := d.cmd.StdinPipe()
+	if err != nil {
+		return err
+	}
+	stdout, err := d.cmd.StdoutPipe()
+	if err != nil {
+		return err
+	}
+	d.stdin, d.stdout = stdin, bufio.NewReader(stdout)
+	if err = d.cmd.Start(); err != nil {
+		return fmt.Errorf("draw figures (requires uv): %w", err)
+	}
+	return nil
+}
+
+// close ends the drawing process, if the build started one.
+func (d *figureDrawer) close() error {
+	if d.cmd == nil {
+		return nil
+	}
+	d.stdin.Close()
+	err := d.cmd.Wait()
+	d.cmd = nil
+	return err
+}

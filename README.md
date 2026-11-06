@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个用 Go 写的静态博客框架。文章是带 JSON 元数据的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格和 SVG 图表，正文不依赖 JavaScript。
+一个用 Go 写的静态博客框架。文章是带 JSON 元数据的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，以及构建时画好的 ECharts 图表和 Mermaid 图，正文不依赖 JavaScript。
 
 文章里能用的组件见 [`.claude/skills/post-components/SKILL.md`](.claude/skills/post-components/SKILL.md)。
 
@@ -8,6 +8,7 @@
 
 - Go 1.26 或更新版本（见 `go.mod`）。
 - [uv](https://docs.astral.sh/uv/)：只有新图片或改动过的图片需要，用来压缩图片。
+- Google Chrome（或 `uv run --with playwright==1.64.1 playwright install chromium`）：只有新的或改动过的 ` ```echarts ` / ` ```mermaid ` 图需要，`scripts/render-figures.py` 在无头浏览器里把它们画成 SVG，结果缓存在 `.cache/figures/`。第一次画 Mermaid 图时会下载固定版本、校验过哈希的 mermaid.js 到 `.cache/vendor/`。
 
 所有命令都在仓库根目录运行。
 

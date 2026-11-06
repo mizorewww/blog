@@ -45,6 +45,16 @@ jobs:
           key: images-${{ hashFiles('content/images/**', 'scripts/prepare-image.py') }}
           restore-keys: images-
 
+      # The build draws ```echarts and ```mermaid figures in Chrome (scripts/render-figures.py).
+      - name: Cache drawn figures
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/figures
+            .cache/vendor
+          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'templates/js/chart-theme.js', 'static/vendor/**') }}
+          restore-keys: figures-
+
       - name: Test
         run: go test ./...
 
@@ -96,6 +106,16 @@ jobs:
           path: .cache/images
           key: images-${{ hashFiles('content/images/**', 'scripts/prepare-image.py') }}
           restore-keys: images-
+
+      # The build draws ```echarts and ```mermaid figures in Chrome (scripts/render-figures.py).
+      - name: Cache drawn figures
+        uses: actions/cache@v4
+        with:
+          path: |
+            .cache/figures
+            .cache/vendor
+          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'templates/js/chart-theme.js', 'static/vendor/**') }}
+          restore-keys: figures-
 
       - name: Setup Node
         uses: actions/setup-node@v4

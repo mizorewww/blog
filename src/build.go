@@ -42,6 +42,7 @@ type builder struct {
 	pages    map[string]*template.Template // the layout with each kind's "main", by Page.Kind
 	fonts    *fontSubsetter
 	images   imagePipeline
+	figures  figureDrawer
 	editions []*edition
 	feeds    map[string]Feed
 	sitemap  Sitemap
@@ -62,7 +63,11 @@ func build(opts Options) error {
 	if err = b.prepare(); err != nil {
 		return err
 	}
-	if err = b.readEditions(); err != nil {
+	err = b.readEditions()
+	if closeErr := b.figures.close(); err == nil {
+		err = closeErr
+	}
+	if err != nil {
 		return err
 	}
 	b.linkTranslations()
@@ -192,7 +197,7 @@ func (b *builder) readEditions() error {
 				continue
 			}
 			p.File, p.Lang, p.Path = name, e.lang, e.lang.Base+p.Path
-			if err = p.render(contentHooks{image: b.images.hook(name)}); err != nil {
+			if err = p.render(contentHooks{image: b.images.hook(name), figure: b.figures.draw}); err != nil {
 				return err
 			}
 			if p.History = gitHistory(name); len(p.History) > 0 && b.site.Repo != "" {

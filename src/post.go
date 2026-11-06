@@ -70,7 +70,7 @@ func init() {
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -121,7 +121,8 @@ func plainText(n ast.Node, src []byte) string {
 
 // contentHooks are build steps that run on the parsed post; nil ones are skipped.
 type contentHooks struct {
-	image func(*ast.Image) error // rewrites each image node
+	image  func(*ast.Image) error   // rewrites each image node
+	figure func(*figureBlock) error // draws each figure
 }
 
 // renderContent renders a post body with an edition's renderer.
@@ -133,6 +134,15 @@ func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (
 		if node, ok := n.(*ast.Image); entering && ok && hooks.image != nil {
 			if err := hooks.image(node); err != nil {
 				return ast.WalkStop, err
+			}
+		}
+		if node, ok := n.(*figureBlock); entering && ok {
+			err := node.parse()
+			if err == nil && hooks.figure != nil {
+				err = hooks.figure(node)
+			}
+			if err != nil {
+				return ast.WalkStop, fmt.Errorf("%s block %q: %w", node.Lang, node.Info, err)
 			}
 		}
 		if h, ok := n.(*ast.Heading); entering && ok && h.Level >= 2 && h.Level <= 3 {

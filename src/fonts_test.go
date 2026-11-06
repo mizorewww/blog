@@ -49,6 +49,9 @@ var fontRules = []string{
 	`.plot .dl { font-weight:500 }`,
 	`.tip>div { font-family:var(--mono) }`,
 	`.tip b { font-weight:400 }`,
+	`:is(.echart,.diagram) figcaption { font-family:var(--serif); font-weight:600 }`,
+	`:is(.echart,.diagram) figcaption::before { font-family:var(--mono); font-weight:400 }`,
+	`.echart .figure-plot { font-family:var(--mono) }`,
 	`.stats-group { font-family:var(--mono) }`,
 	`.stats-group b { font-weight:500 }`,
 	`.kpi dd { font-family:var(--mono); font-weight:500 }`,
@@ -119,6 +122,8 @@ func TestFaceFor(t *testing.T) {
 		{[]textElement{el("nav", "post-pagination"), el("a")}, serif400},
 		{[]textElement{el("nav", "post-pagination"), el("a"), el("span")}, sans400},
 		{[]textElement{el("figure", "data"), el("table"), el("tr", "mark"), el("td")}, sans500},
+		{[]textElement{el("figure", "echart"), el("figcaption")}, serif600},
+		{[]textElement{el("figure", "diagram"), el("div", "figure-plot"), el("svg"), el("text")}, sans400},
 	} {
 		if got := faceFor(tc.stack); got != tc.want {
 			t.Errorf("faceFor(%v) = %d, want %d", tc.stack, got, tc.want)

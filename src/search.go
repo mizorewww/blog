@@ -8,6 +8,7 @@ import (
 )
 
 // contentText is the readable text of rendered HTML, for the search index.
+// Drawings, formulas, buttons and a figure's option are not prose.
 func contentText(content string) string {
 	var b strings.Builder
 	skip := 0
@@ -17,11 +18,11 @@ func contentText(content string) string {
 		case html.ErrorToken:
 			return strings.Join(strings.Fields(b.String()), " ")
 		case html.StartTagToken:
-			if name, _ := z.TagName(); string(name) == "svg" || string(name) == "math" || string(name) == "button" {
+			if name, _ := z.TagName(); skippedSearch(string(name)) {
 				skip++
 			}
 		case html.EndTagToken:
-			if name, _ := z.TagName(); skip > 0 && (string(name) == "svg" || string(name) == "math" || string(name) == "button") {
+			if name, _ := z.TagName(); skip > 0 && skippedSearch(string(name)) {
 				skip--
 			}
 		case html.TextToken:
@@ -31,6 +32,10 @@ func contentText(content string) string {
 			}
 		}
 	}
+}
+
+func skippedSearch(tag string) bool {
+	return tag == "svg" || tag == "math" || tag == "button" || tag == "script"
 }
 
 // writeSearch writes the search page and the index its script fetches on first use.

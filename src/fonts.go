@@ -185,7 +185,7 @@ serif:
 		switch {
 		case e.is("key") || e.is("code-path") || e.tag == "span" && parent(i).tag == "a" && within("post-pagination"):
 			break serif // mono or sans inside a serif block
-		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats")):
+		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats") || parent(i).is("echart") || parent(i).is("diagram")):
 			return serif600
 		case e.tag == "h1" && within("article-header") || e.tag == "h2" && within("post-summary"):
 			return serif500
@@ -252,7 +252,11 @@ func pageText(page string) (first, rest [5]map[rune]bool) {
 				}
 			}
 		case html.TextToken:
-			if slices.ContainsFunc(stack, func(e textElement) bool { return slices.Contains(skippedText, e.tag) || e.is("sr-only") }) {
+			// A figure's SVG and option hold text it shows, before and after ECharts takes over.
+			figure := slices.ContainsFunc(stack, func(e textElement) bool { return e.is("echart") || e.is("diagram") })
+			if slices.ContainsFunc(stack, func(e textElement) bool {
+				return slices.Contains(skippedText, e.tag) && !(figure && (e.tag == "svg" || e.tag == "script")) || e.is("sr-only")
+			}) {
 				continue
 			}
 			text := string(z.Text())
