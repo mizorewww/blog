@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个用 Go 写的静态博客框架。文章是带 JSON 元数据的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，以及构建时画好的 ECharts 图表和 Mermaid 图，正文不依赖 JavaScript。
+一个用 Go 写的静态博客框架。文章是带 JSON 元数据的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表和 Mermaid 图，以及手写 SVG 的示意图，正文不依赖 JavaScript。
 
 文章里能用的组件见 [`.claude/skills/post-components/SKILL.md`](.claude/skills/post-components/SKILL.md)。
 

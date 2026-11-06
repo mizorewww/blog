@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, data tables, charts, ECharts figures, Mermaid diagrams, stat cards and ticker cards — and the house style for charts. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -175,6 +175,47 @@ flowchart TD
 
 属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本，节点一般不需要单独上色；要强调某个节点时，`style`/`classDef` 只能写 token，如 `style A fill:var(--clay-wash),stroke:var(--clay)`。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机上约 324 px：比 520 px 宽的图在手机上横向滚动。流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
 
+## 手绘示意图 `sketch`
+
+Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的层层嵌套、在一条色带上标位置），直接写 SVG。样子学 Anthropic 工程博客的示意图：暖灰底板、细描边的节点、按角色上色的标签、细灰线加开口箭头、大量留白。
+
+````markdown
+```sketch title="前缀只追加，缓存才接得上" note="上：正确的投影；下：错误做法。"
+<svg viewBox="0 0 704 180">
+  <rect class="panel" x="0" y="0" width="704" height="180" rx="12"/>
+  <text class="caps" x="24" y="30">只追加</text>
+  <g class="node blue"><rect x="112" y="52" width="72" height="34" rx="4"/><text class="mid" x="148" y="69">system</text></g>
+  <g class="node plain"><rect x="188" y="52" width="236" height="34" rx="4"/><text class="mid" x="306" y="69">历史消息</text></g>
+  <path class="edge" d="M424 69 H470" marker-end="url(#arrow)"/>
+</svg>
+```
+````
+
+属性只有 `title`（必填）和 `note`。构建时只检查、不渲染，不需要 Chrome。
+
+- **画布**：`viewBox="0 0 宽 高"`，宽一般就是 704（正文栏），高按内容定；不要写 `width`/`height`，页面会自适应。比 560 宽的图在手机上横向滚动而不缩小。
+- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath linearGradient stop title desc`。`script`、`style` 属性、`foreignObject`、事件属性、外部链接都会让构建失败。
+- **颜色用 class**，需要时 `fill`/`stroke` 写 `var(--token)`（同 echarts 的 token 表，另有 `panel node node-line edge` 和 `blue green orange violet` 及其 `-wash`、`-ink`、`clay-ink`），写死的颜色会构建失败。
+- **id 会自动加上图的前缀**，`url(#id)` 和 `href="#id"` 跟着改；`marker-end="url(#arrow)"` 是现成的开口箭头，不用自己定义。
+
+| class | 用在 | 样子 |
+| --- | --- | --- |
+| `panel` | 背景 `rect` | 暖灰底板，不描边；左右对比就画两块 |
+| `window` | `rect` | 虚线圆角框：上下文窗口、沙箱、一组东西的边界 |
+| `node` | 包住 `rect`+`text` 的 `g` | 暖灰填充、深灰细描边的节点 |
+| `node plain` / `blue` / `green` / `orange` / `violet` / `clay` | 同上 | 白底；或按角色上色：blue=system prompt/指令，green=文档/产出，orange=工具，violet=记忆/附注，clay=输入输出（配 `rx` 画成胶囊） |
+| `edge`、`edge dash`、`edge hot` | `path`/`line` | 1.25px 灰线；虚线=可选/并行；clay=出问题的地方 |
+| `caps` | `text` | 等宽小号大写，板块标题，如“PREPROCESSING” |
+| `small`、`b`、`mid`、`end`、`accent` | `text` | 11px 灰色说明、加粗、居中、右对齐、clay 强调色 |
+| `glyph` | `circle` | 模型图标的小圆点（几个点排成网格） |
+
+画法：
+- 先定网格：行高 34、节点间距 4–24、板块内边距 24；同一行的节点底边对齐，文字 `y` 取节点中线（`text` 已经垂直居中）。
+- 中文 13px 一个字约 13px 宽，英文和数字约 8px；先算好文字宽度再定节点宽度，留 12px 以上左右余量。
+- 连线用直角折线 `M x y H x2 V y2`，箭头指向节点边缘外 2–4px。
+- 一张图讲一件事：对比就并排两块 `panel`，流程就一条主线，层级就嵌套 `window`。
+- 写完一定在浏览器里看：深浅两种配色、手机宽度，文字不出框、不压线。
+
 ## 图表风格
 
 图的样子参考 Anthropic 博客的图：安静、只强调一件事、数字直接写在图上。
@@ -188,7 +229,7 @@ flowchart TD
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；关系和流程 → `mermaid`。
+选组件：要读精确数值、或者行数多 → `data`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
 
 ## 指标卡 `stats`
 
