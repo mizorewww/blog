@@ -117,6 +117,11 @@ const blends = option => {
     }
   };
   walk(option);
+  // A sankey's "gradient" links blend the colors of the two nodes they join.
+  if (option.series?.some?.(x => x.type == "sankey")) {
+    const used = [...new Set([...JSON.stringify([option, chartTheme(n => `var(--${n})`).color]).matchAll(/var\(--([\w-]+)\)/g)].map(m => m[1]))];
+    used.forEach((a, i) => used.slice(i + 1).forEach(b => pairs.push([a, b])));
+  }
   return pairs;
 };
 const recolor = (svg, tokens, tidy, strictStyles, pairs = []) => {
@@ -166,7 +171,8 @@ const recolor = (svg, tokens, tidy, strictStyles, pairs = []) => {
 };
 window.drawEcharts = async (source, width, height, tokens, prefix) => {
   await document.fonts.ready;
-  const pairs = [...blends(chartTheme(n => `var(--${n})`)), ...blends(JSON.parse(source))];
+  const theme = chartTheme(n => `var(--${n})`);
+  const pairs = [...blends({ visualMap: theme.visualMap }), ...blends(JSON.parse(source))];
   const option = JSON.parse(source.replace(/var\(--([\w-]+)\)/g, (m, n) => tokens[n] ?? m));
   const chart = echarts.init(null, "blog", { renderer: "svg", ssr: true, width, height });
   const errors = [];
@@ -282,8 +288,8 @@ def main():
             request = json.loads(line)
             try:
                 if request["kind"] == "echarts":
-                    # Clip path ids are named by content, like diagram ids below.
-                    prefix = "chart-" + hashlib.sha256(request["source"].encode()).hexdigest()[:8]
+                    # Clip path ids are named by the request, like diagram ids below.
+                    prefix = "chart-" + hashlib.sha256(line.encode()).hexdigest()[:8]
                     svg = page.evaluate("([s, w, h, t, p]) => drawEcharts(s, w, h, t, p)", [request["source"], request["width"], request["height"], tokens, prefix])
                 else:
                     if not mermaid_ready:

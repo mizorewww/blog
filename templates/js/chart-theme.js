@@ -64,6 +64,13 @@ const chartTheme = color => {
       splitLine: { lineStyle: { color: color("muted") } },
       dayLabel: label, monthLabel: label, yearLabel: { ...label, color: color("faint") },
     },
-        visualMap: { textStyle: label, inRange: { color: [color("wash"), color("clay")] } },
+    visualMap: {
+      textStyle: label,
+      inRange: { color: [color("wash"), color("clay")] },
+      handleStyle: { color: color("card"), borderColor: color("muted") },
+      indicatorStyle: { color: color("card"), borderColor: color("muted") },
+      emphasis: { handleStyle: { borderColor: color("ink") } },
+      controller: { inRange: { color: [color("wash"), color("clay")] }, outOfRange: { color: [color("grid")] } },
+    },
   };
 };
