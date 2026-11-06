@@ -168,7 +168,7 @@ func (p *imagePipeline) hook(document string) func(*ast.Image) error {
 		}
 		source, err := imageSource(document, string(node.Destination))
 		if err != nil {
-			return fmt.Errorf("%s: image %q: %w", document, node.Destination, err)
+			return fmt.Errorf("image %q: %w", node.Destination, err)
 		}
 		if source == "" {
 			return nil

@@ -202,7 +202,9 @@ func readPost(name string) (Post, error) {
 
 // render fills Content and TOC in the post's edition.
 func (p *Post) render(hooks contentHooks) (err error) {
-	p.Content, p.TOC, err = renderContent(p.Lang.markdown(), p.body, hooks)
+	if p.Content, p.TOC, err = renderContent(p.Lang.markdown(), p.body, hooks); err != nil && p.File != "" {
+		err = fmt.Errorf("%s: %w", p.File, err)
+	}
 	return err
 }
 
