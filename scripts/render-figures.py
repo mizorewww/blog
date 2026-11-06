@@ -81,9 +81,11 @@ const recolor = (svg, tokens, tidy) => {
     const name = Object.keys(tokens).find(k => tokens[k] == hex);
     return name ? `color-mix(in srgb,var(--${name}) ${Math.round(a * 100)}%,transparent)` : m;
   }).replace(any, m => swap[m.toLowerCase()] ?? m);
-  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
-  const root = doc.documentElement;
-  if (root.nodeName != "svg") throw new Error("no SVG drawn");
+  // Parsed and written as HTML, where the SVG ends up; Mermaid's labels hold <br>.
+  const box = document.createElement("div");
+  box.innerHTML = svg;
+  const root = box.firstElementChild;
+  if (root?.nodeName != "svg") throw new Error("no SVG drawn");
   tidy?.(root);
   const left = new Set();
   for (const el of [root, ...root.querySelectorAll("*")]) {
@@ -97,7 +99,7 @@ const recolor = (svg, tokens, tidy) => {
     const style = el.getAttribute("style");
     if (style) el.setAttribute("style", text(style));
   }
-  const out = new XMLSerializer().serializeToString(root);
+  const out = root.outerHTML;
   for (const hex of Object.values(tokens)) if (out.toLowerCase().includes(hex)) left.add(hex);
   if (left.size) throw new Error("colors derived from tokens were left fixed: " + [...left].join(" "));
   return out;
@@ -122,6 +124,10 @@ window.drawMermaid = async (source, id, tokens) => {
   // Flat, like the page's other figures: no drop shadows under the shapes.
   return recolor(svg, tokens, root => {
     for (const el of root.querySelectorAll("[style]")) el.style.removeProperty("filter");
+    for (const el of root.querySelectorAll("[filter]")) el.removeAttribute("filter");
+    // On a phone a wide diagram scrolls sideways rather than shrink its text past reading.
+    if (root.style.maxWidth) root.style.minWidth = `min(${root.style.maxWidth}, 520px)`;
+    for (const el of root.querySelectorAll("style")) el.textContent = el.textContent.replace(/filter:\s*(drop-shadow\([^;}]*\)|url\([^)]*\))/g, "filter:none");
   });
 };
 """
@@ -179,7 +185,7 @@ def main():
                         theme = {k: tokens[v] for k, v in MERMAID_THEME.items()}
                         page.evaluate("""v => mermaid.initialize({startOnLoad: false, theme: "base", securityLevel: "strict",
                             fontFamily: '"Blog Sans","Blog Sans Late","PingFang SC",sans-serif', themeVariables: {...v, fontSize: "14px"},
-                            flowchart: {curve: "basis", padding: 12}, sequence: {mirrorActors: false}})""", theme)
+                            htmlLabels: false, flowchart: {curve: "basis", padding: 12, wrappingWidth: 280, htmlLabels: false}, sequence: {mirrorActors: false}})""", theme)
                         mermaid_ready = True
                     # Named by content, so ids stay the same however figures are cached.
                     name = "diagram-" + hashlib.sha256(request["source"].encode()).hexdigest()[:8]
