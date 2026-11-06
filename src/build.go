@@ -139,7 +139,7 @@ func (b *builder) prepare() error {
 	if err != nil {
 		return err
 	}
-	scripts, err := loadScripts()
+	scripts, err := loadScripts(b.prefix + "/static/" + b.version + "/" + echartsFile)
 	if err != nil {
 		return err
 	}

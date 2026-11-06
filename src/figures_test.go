@@ -117,3 +117,21 @@ func TestFigureCache(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+// Only pages with an ```echarts figure carry the script, which loads the vendored ECharts.
+func TestFigureScript(t *testing.T) {
+	scripts, err := loadScripts("/static/v1/" + echartsFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	with := string(scripts.For(Page{Post: &Post{Content: `<figure class="echart" style="--h:360px">`}}))
+	if !strings.Contains(with, "chartTheme") || !strings.Contains(with, `"/static/v1/vendor/echarts-6.1.0.min.js"`) || strings.Contains(with, "{{") {
+		t.Fatal("a page with an echarts figure must load ECharts from the versioned assets")
+	}
+	if without := string(scripts.For(Page{Post: &Post{Content: `<figure class="diagram">`}})); strings.Contains(without, "chartTheme") {
+		t.Fatal("diagrams need no script")
+	}
+	if _, err := os.Stat(filepath.Join("static", echartsFile)); err != nil {
+		t.Fatal(err)
+	}
+}

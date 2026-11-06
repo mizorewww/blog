@@ -88,7 +88,7 @@ func copyAssets(stage, version string) error {
 			// favicon.ico and apple-touch-icon.png are fetched from the site root by convention.
 			target = stage
 		}
-		if entry.Name() == "fonts" || entry.Name() == "favicon.svg" {
+		if entry.Name() == "fonts" || entry.Name() == "vendor" || entry.Name() == "favicon.svg" {
 			target = filepath.Join(stage, "static", version, entry.Name())
 		}
 		if entry.IsDir() {

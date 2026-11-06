@@ -109,6 +109,9 @@ func TestBuild(t *testing.T) {
 			t.Fatalf("%s is inlined and must not be published", unused)
 		}
 	}
+	if _, err := os.Stat("public/static/" + version + "/" + echartsFile); err != nil {
+		t.Fatal("ECharts must be published with the versioned, immutable assets:", err)
+	}
 	lateFonts, _ := filepath.Glob("public/static/" + version + "/fonts/sans-400-*.woff2")
 	if len(lateFonts) == 0 {
 		t.Fatal("pages need their late font subsets")

@@ -11,16 +11,17 @@ import (
 // base script plus only the parts its content uses, compacted and inline.
 type pageScripts map[string]string
 
-var scriptParts = []string{"base", "tip", "ticker", "toc", "draw", "search"}
+var scriptParts = []string{"base", "tip", "ticker", "toc", "draw", "chart-theme", "echart", "search"}
 
-func loadScripts() (pageScripts, error) {
+// loadScripts reads the parts; echarts is the URL echart.js loads ECharts from.
+func loadScripts(echarts string) (pageScripts, error) {
 	scripts := pageScripts{}
 	for _, name := range scriptParts {
 		src, err := os.ReadFile(filepath.Join("templates", "js", name+".js"))
 		if err != nil {
 			return nil, err
 		}
-		scripts[name] = compactScript(string(src))
+		scripts[name] = strings.ReplaceAll(compactScript(string(src)), "{{echarts}}", echarts)
 	}
 	return scripts, nil
 }
@@ -52,6 +53,9 @@ func (s pageScripts) For(p Page) template.JS {
 		}
 		if strings.Contains(string(p.Post.Content), "<strong>") {
 			parts = append(parts, s["draw"])
+		}
+		if strings.Contains(string(p.Post.Content), `<figure class="echart"`) {
+			parts = append(parts, s["chart-theme"], s["echart"])
 		}
 	}
 	if p.Kind == "search" {
