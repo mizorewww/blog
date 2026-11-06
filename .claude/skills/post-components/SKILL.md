@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, data tables, charts, stat cards and ticker cards. Use when writing or editing a post and you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, data tables, charts, ECharts figures, Mermaid diagrams, stat cards and ticker cards — and the house style for charts. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -127,6 +127,65 @@ Delta | BTC  | ETH
 | `ref` | 竖直参考线的 x 值，逗号分隔 |
 | `xfmt`、`yfmt` | printf 格式，如 `yfmt="%.0f%%"` |
 | `xscale` | x 先乘以它再按 `xfmt` 格式化，如 `xfmt="$%.0fk" xscale="0.001"` |
+
+## 动态图表 `echarts`
+
+需要动画、悬停、图例开关，或者 `chart` 画不了的类型（饼/环、热力图、桑基、树图、漏斗、雷达、箱线、日历、仪表盘……）时用。正文是一个 [ECharts 6](https://echarts.apache.org/zh/option.html) 的 option，必须是合法 JSON：
+
+````markdown
+```echarts title="每周模型调用，按模型" note="截至 11 月 1 日。" height="320"
+{
+  "tooltip": {"trigger": "axis"},
+  "legend": {},
+  "xAxis": {"type": "category", "data": ["08-07", "08-14", "08-21"]},
+  "yAxis": {"type": "value"},
+  "series": [
+    {"name": "DeepSeek", "type": "bar", "stack": "all", "data": [3154, 7664, 6590]},
+    {"name": "Gemini", "type": "bar", "stack": "all", "data": [0, 0, 3223]}
+  ]
+}
+```
+````
+
+| 属性 | 说明 |
+| --- | --- |
+| `title` | 必填，图上方的标题，也是读屏文字；图号 FIGURE n 自动编 |
+| `note` | 图下的注释：数据来源、时间范围、口径 |
+| `height` | 像素，160–720，默认 360；宽度跟随正文 |
+
+- 构建时在无头 Chrome 里画成静态 SVG（没有 JS、RSS 里也能看）；页面上图滚进视口时 ECharts 接管，图表动画画出，可悬停、可点图例。
+- 只能写 JSON，不能写函数；`formatter` 用字符串模板，如 `"{value}%"`、`"{b}: {c}"`。
+- **颜色只能写 `var(--名字)`**，写 `#hex`、`rgb()` 会构建失败，这样深浅色都对。可用：`clay`（强调）、`stone`（对照的中性色）、`sky`、`olive`、`kraft`、`fig`，以及 `ink`、`body`、`muted`、`faint`、`line`、`grid`、`card`、`paper`、`wash`、`clay-wash`。
+- 主题（`templates/js/chart-theme.js`）已经设好字体、坐标轴、网格、提示框、动画和系列配色，option 里不要再写这些样式。
+- 不要写 ECharts 的 `title` 组件，标题用 `title` 属性。`grid`、`legend` 位置一般不用改。
+
+## 示意图 `mermaid`
+
+流程、时序、状态、结构关系用 [Mermaid](https://mermaid.js.org/)，不要画 ASCII 图：
+
+````markdown
+```mermaid title="要不要接话" note="被点名不经过判断模型。"
+flowchart TD
+  M[群友消息] --> Q{被点名?}
+  Q -- 是 --> A[主模型]
+  Q -- 否 --> D[判断模型] -- 够格 --> A
+```
+````
+
+属性只有 `title`（必填）和 `note`。构建时画成 SVG，配色跟随深浅色，页面上不加载任何脚本。语法错误会让构建失败并给出 Mermaid 的报错。正文栏约 700 px 宽，手机更窄：流程图优先 `TD`（从上到下），一行写不下的节点文字会自动换行，节点控制在十个左右。
+
+## 图表风格
+
+图的样子参考 Anthropic 博客的图：安静、只强调一件事、数字直接写在图上。
+
+- **一张图只说一个结论**，标题写成那个结论或者它回答的问题，`note` 写来源、时间范围和口径。数据必须是真实的，换算或假设要在 `note` 里说明。
+- **只强调一个系列**：要读者看的那个用 `var(--clay)`，对照组用 `var(--stone)`；多个系列地位相同时才用默认配色。柱子突出单根时，在那根数据上写 `{"value": 25, "itemStyle": {"color": "var(--clay)"}}`，其余设为 `stone`。
+- **直接标注，少用图例**：柱状图加 `"label": {"show": true, "position": "top"}`（横向用 `"right"`）；折线加 `"endLabel": {"show": true, "formatter": "{a}"}`，并把 `grid.right` 调大到能放下名字。只有两三个系列且没有直接标注时才用 `legend`。
+- 阈值、事件用 `markLine` / `markArea` 标在图上，标签写清是什么（如“压缩阈值 110K”）。
+- 坐标轴带单位（`"axisLabel": {"formatter": "{value}K"}`、`"name"`），大数换成千或百万。
+- 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
+
+选组件：要读精确数值、或者行数多 → `data`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；关系和流程 → `mermaid`。
 
 ## 指标卡 `stats`
 
