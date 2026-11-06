@@ -13,7 +13,8 @@ const chartTheme = color => {
     splitLine: quiet,
     nameTextStyle: label,
   };
-  const value = { ...axis, axisLine: quiet, splitLine: { lineStyle: { color: color("grid"), type: [3, 3] } } };
+  // On a phone the column is about 324 px: labels that would collide are dropped.
+  const value = { ...axis, axisLabel: { ...label, hideOverlap: true }, axisLine: quiet, splitLine: { lineStyle: { color: color("grid"), type: [3, 3] } } };
   return {
     color: ["clay", "stone", "sky", "olive", "kraft", "fig"].map(color),
     backgroundColor: "transparent",
@@ -22,7 +23,7 @@ const chartTheme = color => {
     animationEasing: "cubicOut",
     animationDurationUpdate: 400,
     grid: { left: 4, right: 16, top: 40, bottom: 4, containLabel: true },
-    legend: { top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 3, itemGap: 18, textStyle: { ...label, color: color("body") }, inactiveColor: color("faint") },
+    legend: { type: "scroll", top: 0, left: 0, icon: "roundRect", itemWidth: 10, itemHeight: 3, itemGap: 18, textStyle: { ...label, color: color("body") }, inactiveColor: color("faint") },
     tooltip: {
       backgroundColor: color("card"),
       borderColor: color("line"),
@@ -30,7 +31,7 @@ const chartTheme = color => {
       padding: [6, 10],
       textStyle: { color: color("ink"), fontFamily: chartFont, fontSize: 11 },
       extraCssText: "border-radius:0;box-shadow:0 4px 14px rgb(0 0 0/.08)",
-      axisPointer: { lineStyle: { color: color("muted"), type: "dashed" }, crossStyle: { color: color("muted") }, shadowStyle: { color: color("wash") } },
+      axisPointer: { lineStyle: { color: color("muted"), type: "dashed" }, crossStyle: { color: color("muted") }, shadowStyle: { color: color("muted"), opacity: 0.12 } },
     },
     categoryAxis: axis,
     timeAxis: axis,

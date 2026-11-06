@@ -2,12 +2,15 @@
 // static SVG. After load, ECharts is fetched once a figure comes near, and
 // takes the figure over as it scrolls into view, so the chart draws itself in
 // and answers the pointer. Figures on screen at load are swapped without
-// animating; if ECharts never arrives, the static drawing stays.
+// animating. A figure is hidden for its entrance only once ECharts is here;
+// if ECharts never arrives, or cannot draw, the static drawing stays.
 const figures = [...document.querySelectorAll(".echart")];
 const color = name => getComputedStyle(root).getPropertyValue("--" + name).trim();
+// Options are JSON, so valueFormatter, which ECharts calls, is written as a template: "{value}%".
 const live = v => typeof v == "string" ? v.replace(/var\(--([\w-]+)\)/g, (m, name) => color(name) || m)
   : Array.isArray(v) ? v.map(live)
-  : v && typeof v == "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, live(x)]))
+  : v && typeof v == "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) =>
+    [k, k == "valueFormatter" && typeof x == "string" ? value => x.replaceAll("{value}", value) : live(x)]))
   : v;
 let library;
 const load = () => library ??= new Promise((resolve, reject) => {
@@ -20,18 +23,30 @@ const load = () => library ??= new Promise((resolve, reject) => {
 const draw = (figure, animate) => {
   figure.chart?.dispose();
   const plot = figure.querySelector(".figure-plot");
+  figure.still ??= plot.innerHTML;
   plot.textContent = "";
-  echarts.registerTheme("blog", chartTheme(color));
-  figure.chart = echarts.init(plot, "blog", { renderer: "svg" });
-  figure.chart.setOption({ ...live(JSON.parse(figure.querySelector("script").textContent)), animation: animate });
+  try {
+    echarts.registerTheme("blog", chartTheme(color));
+    figure.chart = echarts.init(plot, "blog", { renderer: "svg" });
+    figure.chart.setOption({ ...live(JSON.parse(figure.querySelector("script").textContent)), animation: animate });
+  } catch {
+    figure.chart?.dispose();
+    figure.chart = null;
+    plot.innerHTML = figure.still;
+  }
   figure.classList.remove("wait");
 };
+const onScreen = figure => {
+  const box = figure.getBoundingClientRect();
+  return box.top < innerHeight && box.bottom > 0;
+};
 const show = async (figure, animate) => {
-  if (figure.chart) return;
+  if (figure.drawn) return;
+  figure.drawn = true;
   try {
     await load();
   } catch {
-    return figure.classList.remove("wait");
+    return;
   }
   draw(figure, animate);
 };
@@ -39,7 +54,7 @@ addEventListener("load", () => {
   const near = new IntersectionObserver(entries => entries.forEach(e => {
     if (e.isIntersecting) {
       near.unobserve(e.target);
-      load().catch(() => {});
+      load().then(() => e.target.drawn || onScreen(e.target) || e.target.classList.add("wait"), () => {});
     }
   }), { rootMargin: "50% 0px" });
   const seen = new IntersectionObserver(entries => entries.forEach(e => {
@@ -49,12 +64,10 @@ addEventListener("load", () => {
     }
   }), { threshold: 0.35 });
   for (const figure of figures) {
-    const box = figure.getBoundingClientRect();
-    if (box.top < innerHeight && box.bottom > 0) {
+    if (onScreen(figure)) {
       show(figure, false);
       continue;
     }
-    figure.classList.add("wait");
     near.observe(figure);
     seen.observe(figure);
   }
