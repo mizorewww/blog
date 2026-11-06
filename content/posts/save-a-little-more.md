@@ -280,10 +280,19 @@ flowchart TD
 2. **前缀隔离：** 它的调用是完全独立的短请求。主模型的核心上下文没有动过一个字节，**主模型的 Prompt Cache 纹丝不动**。
 3. **极小成本：** 单次决策仅耗费约 1,650 token（大部分是固定的 few-shot 示例），成本约 $0.000033，耗时数百毫秒。即便群里 14.4 万条消息全判一遍，总开销也不过 $4.7。
 
-```data title="判断一次“要不要接话”的代价" bars="输入 token" note="主模型一列取账本里的平均请求；判断模型一列是带上全部例子后的实测。"
-方式 | 输入 token | 每千次费用
-主模型读完整上下文 | 93,067 | 取决于主模型（约 $0.26 ~ $1.50+）
-判断模型只读切片 | 1,650 | $0.033
+```echarts title="判断一次“要不要接话”，要读多少 token" height="200" note="主模型取账本里的平均请求，判断模型是带上全部例子后的实测。每千次的费用：判断模型 $0.033；主模型取决于用哪个模型，约 $0.26 到 $1.50 以上。"
+{
+  "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+  "grid": {"top": 8, "right": 64},
+  "xAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+  "yAxis": {"type": "category", "inverse": true, "data": ["主模型读全文", "判断模型读切片"]},
+  "series": [{
+    "name": "输入", "type": "bar", "barWidth": 24,
+    "label": {"show": true, "position": "right", "formatter": "{c}", "color": "var(--ink)"},
+    "itemStyle": {"color": "var(--stone)"},
+    "data": [{"value": 93067, "label": {"formatter": "93,067"}}, {"value": 1650, "label": {"formatter": "1,650"}, "itemStyle": {"color": "var(--clay)"}}]
+  }]
+}
 ```
 
 判断模型是 11 月 5 日才上线的。在那之前的三个月，旁听消息靠的是一个按概率掷骰子的闸门——账本清楚地记下了它的代价：几乎每一轮都是骰子放进来的，而每一轮都要主模型把九万多 token 从头读一遍。
@@ -479,18 +488,52 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
 
 在一次真实的请求体中，它呈现为这种极其工整的韵律：
 
-```text
-system     …群聊协议、工具规则、人设…
-           # Sticker 目录（会话生命周期内冻结）
-           s3: 😺 得意的赞同，中等强度
-           s4: 😭 委屈到哭，夸张
-user       [21:03:11] #18452 群友 A (@a): 这也太离谱了
-           [21:03:15] #18453 群友 B (@b): [sticker 😂]
-user       〔系统附注〕这批消息里出现了你也能发送的 sticker：
-           s2091: 😂
-assistant  send({ message: "确实离谱", sticker: "s4" })
-user       [media_update #18453] [sticker: 笑到捶地，极度夸张]
-           [21:04:02] #18460 群友 A (@a): 接下来怎么办？
+```sketch title="一次真实的请求" note="虚线框是一次请求的全部输入，从上到下就是模型读到的顺序；每一段旁边的注释说明它为什么放在这里。"
+<svg viewBox="0 0 704 382">
+<rect class="panel" x="0" y="0" width="704" height="382" rx="12"/>
+<text class="caps" x="24" y="26">一次请求，从上到下</text>
+<rect class="window" x="24" y="34" width="444" height="324" rx="8"/>
+<text class="mono mute" x="36" y="79">system</text>
+<g class="node blue"><rect x="112" y="44" width="344" height="70" rx="4"/><text class="mono" x="124" y="61">…群聊协议、工具规则、人设…</text><text class="mono" x="124" y="79"># Sticker 目录（会话内冻结）</text><text class="mono" x="124" y="97">s3: 😺 得意的赞同  s4: 😭 委屈到哭</text></g>
+<path class="edge " d="M458 79.0 H478"/>
+<text class="small" x="484" y="79">冻结：整个会话里逐字节不变</text>
+<text class="mono mute" x="36" y="150">user</text>
+<g class="node plain"><rect x="112" y="124" width="344" height="52" rx="4"/><text class="mono" x="124" y="141">[21:03:11] #18452 群友 A：这也太离谱了</text><text class="mono" x="124" y="159">[21:03:15] #18453 群友 B：[sticker 😂]</text></g>
+<path class="edge " d="M458 150.0 H478"/>
+<text class="small" x="484" y="150">群消息按时间只追加</text>
+<text class="mono mute" x="36" y="212">user</text>
+<g class="node violet"><rect x="112" y="186" width="344" height="52" rx="4"/><text class="mono" x="124" y="203">〔系统附注〕这批消息里出现了你也能发的</text><text class="mono" x="124" y="221">sticker：s2091 😂</text></g>
+<path class="edge " d="M458 212.0 H478"/>
+<text class="small" x="484" y="212">附注紧跟这批输入，写下后不再改</text>
+<text class="mono mute" x="36" y="265">assistant</text>
+<g class="node teal"><rect x="112" y="248" width="344" height="34" rx="4"/><text class="mono" x="124" y="265">send({ message: "确实离谱", sticker: "s4" })</text></g>
+<path class="edge " d="M458 265.0 H478"/>
+<text class="small" x="484" y="265">发出去的话成为下一次请求的前缀</text>
+<text class="mono mute" x="36" y="318">user</text>
+<g class="node plain"><rect x="112" y="292" width="344" height="52" rx="4"/><text class="mono" x="124" y="309">[media_update #18453] [sticker: 笑到捶地]</text><text class="mono" x="124" y="327">[21:04:02] #18460 群友 A：接下来怎么办？</text></g>
+<path class="edge " d="M458 318.0 H478"/>
+<text class="small" x="484" y="310">迟到的识别结果作为新事件追加，</text>
+<text class="small" x="484" y="326">不回头改 #18453</text>
+</svg>
+<svg viewBox="0 0 340 710">
+<rect class="panel" x="0" y="0" width="340" height="710" rx="12"/>
+<text class="caps" x="16" y="24">一次请求，从上到下</text>
+<text class="mono mute" x="16" y="46">system</text>
+<g class="node blue"><rect x="16" y="56" width="308" height="88" rx="4"/><text class="mono" x="28" y="73">…群聊协议、工具规则、人设…</text><text class="mono" x="28" y="91"># Sticker 目录（会话内冻结）</text><text class="mono" x="28" y="109">s3: 😺 得意的赞同</text><text class="mono" x="28" y="127">s4: 😭 委屈到哭</text></g>
+<text class="small accent" x="16" y="158">冻结：整个会话里逐字节不变</text>
+<text class="mono mute" x="16" y="190">user</text>
+<g class="node plain"><rect x="16" y="200" width="308" height="88" rx="4"/><text class="mono" x="28" y="217">[21:03:11] #18452 群友 A：</text><text class="mono" x="28" y="235">  这也太离谱了</text><text class="mono" x="28" y="253">[21:03:15] #18453 群友 B：</text><text class="mono" x="28" y="271">  [sticker 😂]</text></g>
+<text class="small accent" x="16" y="302">群消息按时间只追加</text>
+<text class="mono mute" x="16" y="334">user</text>
+<g class="node violet"><rect x="16" y="344" width="308" height="70" rx="4"/><text class="mono" x="28" y="361">〔系统附注〕这批消息里出现了</text><text class="mono" x="28" y="379">你也能发的</text><text class="mono" x="28" y="397">sticker：s2091 😂</text></g>
+<text class="small accent" x="16" y="428">附注紧跟这批输入，写下后不再改</text>
+<text class="mono mute" x="16" y="460">assistant</text>
+<g class="node teal"><rect x="16" y="470" width="308" height="52" rx="4"/><text class="mono" x="28" y="487">send({ message: "确实离谱",</text><text class="mono" x="28" y="505">       sticker: "s4" })</text></g>
+<text class="small accent" x="16" y="536">发出去的话成为下一次请求的前缀</text>
+<text class="mono mute" x="16" y="568">user</text>
+<g class="node plain"><rect x="16" y="578" width="308" height="88" rx="4"/><text class="mono" x="28" y="595">[media_update #18453]</text><text class="mono" x="28" y="613">  [sticker: 笑到捶地]</text><text class="mono" x="28" y="631">[21:04:02] #18460 群友 A：</text><text class="mono" x="28" y="649">  接下来怎么办？</text></g>
+<text class="small accent" x="16" y="680">迟到的识别结果作为新事件追加，不回头改 #18453</text>
+</svg>
 ```
 
 甚至连迟来的视觉分析，也严格遵守这套美学：
@@ -509,16 +552,56 @@ user       [media_update #18453] [sticker: 笑到捶地，极度夸张]
 - Codemode 声明段哈希；
 - 消息行与元数据的序列化 Grammar 哈希。
 
-```ts
-const GOLDEN = {
-  schemaVersion: 55,
-  systemZhTemplate: "50ffcdb70e57",
-  systemSandboxTemplate: "96efc7945c60",
-  tools: "307b029162a6",
-  codemodeTools: "99718d49e271",
-  eventSerialize: "a05c0584eb08",
-  // ...
-};
+```sketch title="测试守着每一个进入前缀的字节" note="哈希取自 test/cache.test.ts 的 GOLDEN 表（schemaVersion 55），只列出其中五段。"
+<svg viewBox="0 0 704 360">
+<rect class="panel" x="0" y="0" width="704" height="360" rx="12"/>
+<text class="caps" x="24" y="30">进入前缀的每一段，都有一个钉死的哈希</text>
+<g class="node blue"><rect x="24" y="46" width="132" height="30" rx="4"/><text class="mid mono" x="90" y="61">systemZhTemplate</text></g>
+<text class="mid mono mute" x="90" y="92">50ffcdb70e57</text>
+<g class="node blue"><rect x="160" y="46" width="152" height="30" rx="4"/><text class="mid mono" x="236" y="61">systemSandboxTemplate</text></g>
+<text class="mid mono mute" x="236" y="92">96efc7945c60</text>
+<g class="node orange"><rect x="316" y="46" width="100" height="30" rx="4"/><text class="mid mono" x="366" y="61">tools</text></g>
+<text class="mid mono mute" x="366" y="92">307b029162a6</text>
+<g class="node orange"><rect x="420" y="46" width="124" height="30" rx="4"/><text class="mid mono" x="482" y="61">codemodeTools</text></g>
+<text class="mid mono mute" x="482" y="92">99718d49e271</text>
+<g class="node violet"><rect x="548" y="46" width="124" height="30" rx="4"/><text class="mid mono" x="610" y="61">eventSerialize</text></g>
+<text class="mid mono mute" x="610" y="92">a05c0584eb08</text>
+<path class="edge " d="M24 106 V114 H676 V106"/>
+<path class="edge " d="M352 114 V140" marker-end="url(#arrow)"/>
+<g class="node "><rect x="196" y="144" width="312" height="46" rx="4"/><text class="mid b" x="352" y="159">test/cache.test.ts</text><text class="mid small" x="352" y="176">逐段比对，schemaVersion = 55</text></g>
+<text class="small accent" x="24" y="167">顺手改了一个空格、</text>
+<text class="small accent" x="24" y="183">一个换行、一个字段顺序</text>
+<path class="edge hot" d="M150 175 H192" marker-end="url(#arrow)"/>
+<path class="edge " d="M352 192 V214" marker-end="url(#arrow)"/>
+<g class="node clay"><rect x="232" y="218" width="240" height="34" rx="4"/><text class="mid" x="352" y="235">哈希对不上：测试变红</text></g>
+<path class="edge " d="M300 254 V266 H168 V282" marker-end="url(#arrow)"/>
+<path class="edge " d="M404 254 V266 H536 V282" marker-end="url(#arrow)"/>
+<g class="node plain"><rect x="48" y="286" width="240" height="50" rx="4"/><text class="mid b" x="168" y="303">改回去</text><text class="mid small" x="168" y="320">承认是无意识的破坏</text></g>
+<g class="node teal"><rect x="416" y="286" width="240" height="50" rx="4"/><text class="mid b" x="536" y="303">确实要改协议</text><text class="mid small" x="536" y="320">递增 CACHE_SCHEMA_VERSION，刷新基线</text></g>
+</svg>
+<svg viewBox="0 0 340 452">
+<rect class="panel" x="0" y="0" width="340" height="452" rx="12"/>
+<text class="caps" x="16" y="26">前缀的每一段都有哈希</text>
+<g class="node blue"><rect x="16" y="40" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="54">systemZhTemplate</text></g>
+<text class="mono mute" x="200" y="54">50ffcdb70e57</text>
+<g class="node blue"><rect x="16" y="74" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="88">systemSandboxTemplate</text></g>
+<text class="mono mute" x="200" y="88">96efc7945c60</text>
+<g class="node orange"><rect x="16" y="108" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="122">tools</text></g>
+<text class="mono mute" x="200" y="122">307b029162a6</text>
+<g class="node orange"><rect x="16" y="142" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="156">codemodeTools</text></g>
+<text class="mono mute" x="200" y="156">99718d49e271</text>
+<g class="node violet"><rect x="16" y="176" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="190">eventSerialize</text></g>
+<text class="mono mute" x="200" y="190">a05c0584eb08</text>
+<path class="edge " d="M170 210 V228" marker-end="url(#arrow)"/>
+<g class="node "><rect x="16" y="232" width="308" height="46" rx="4"/><text class="mid b" x="170" y="247">test/cache.test.ts</text><text class="mid small" x="170" y="264">逐段比对，schemaVersion = 55</text></g>
+<text class="small accent" x="16" y="298">顺手改了一个空格、一个换行：</text>
+<path class="edge hot" d="M170 308 V322" marker-end="url(#arrow)"/>
+<g class="node clay"><rect x="16" y="326" width="308" height="34" rx="4"/><text class="mid" x="170" y="343">哈希对不上：测试变红</text></g>
+<path class="edge " d="M90 362 V380" marker-end="url(#arrow)"/>
+<path class="edge " d="M250 362 V380" marker-end="url(#arrow)"/>
+<g class="node plain"><rect x="16" y="384" width="146" height="50" rx="4"/><text class="mid b" x="89" y="401">改回去</text><text class="mid small" x="89" y="418">无意识的破坏</text></g>
+<g class="node teal"><rect x="178" y="384" width="146" height="50" rx="4"/><text class="mid b" x="251" y="401">确实要改协议</text><text class="mid small" x="251" y="418">递增版本，刷新基线</text></g>
+</svg>
 ```
 
 任何一个空格的偏移、字段顺序的微调，都会引发红屏。重构者面前只有两条路：要么把代码改回去，承认这是无意识的破坏；要么明确这是一次深思熟虑的协议升级，显式递增 `CACHE_SCHEMA_VERSION`（目前已历经 55 代洗礼），并主动刷新基线。
@@ -676,13 +759,35 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 
 然而另一篇深刻的实证研究 _Is Complex Agentic Memory Always Needed?_ (arXiv:2610.30755) 狠狠戳破了这个泡沫。该研究使用最质朴的 **Raw-RAG** 基线（不抽取实体、不做图谱、不修改记忆，仅仅将原始对话做分块与结构化召回）去横向评测十余种复杂的 Agent 记忆框架，结果在七组严苛基准中，Raw-RAG 斩获了六项第一。
 
-```data title="把原文换成加工过的记忆，会丢掉什么" note="来源：Bao et al., Is Complex Agentic Memory Always Needed?（arXiv:2610.30755）。"
-改动 | 结果
-原文换成抽取的原子事实 | 测试时学习 47.68% → 15.37%，总分 −19.62
-原文换成摘要 | 总分 −5.81
-加图扩展 | 总分 −5.78
-完整访问加工后的记忆库 | 仍低于直接给原文（57.5% 对 61.6%）
-Mem0 去掉 UPDATE / DELETE | 准确率 67.36% → 69.42%
+```echarts title="把原文换成加工过的记忆，总分掉了多少" height="200" note="相对于直接用原始对话的总分变化。来源：Bao et al., Is Complex Agentic Memory Always Needed?（arXiv:2610.30755）。"
+{
+  "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
+  "grid": {"top": 8, "left": 8, "right": 24},
+  "xAxis": {"type": "value", "max": 0, "min": -25},
+  "yAxis": {"type": "category", "inverse": true, "data": ["换成原子事实", "换成摘要", "加上图扩展"], "axisLine": {"show": false}},
+  "series": [{
+    "name": "总分变化", "type": "bar", "barWidth": 22,
+    "label": {"show": true, "position": "left", "formatter": "{c}", "color": "var(--ink)"},
+    "itemStyle": {"color": "var(--stone)"},
+    "data": [{"value": -19.62, "itemStyle": {"color": "var(--clay)"}}, -5.81, -5.78]
+  }]
+}
+```
+
+而在同一项指标上，少一层加工的那一边总是更高：
+
+```echarts title="同一项指标，少一层加工反而更高" height="260" note="测试时学习：原文 47.68%，抽取成原子事实后 15.37%。准确率：直接给原文 61.6%，完整访问加工后的记忆库 57.5%。Mem0：去掉 UPDATE / DELETE 后 69.42%，保留时 67.36%。来源同上。"
+{
+  "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "valueFormatter": "{value}%"},
+  "legend": {},
+  "grid": {"top": 36, "right": 56},
+  "xAxis": {"type": "value", "max": 80, "axisLabel": {"formatter": "{value}%"}},
+  "yAxis": {"type": "category", "inverse": true, "data": ["测试时学习", "准确率", "Mem0 准确率"]},
+  "series": [
+    {"name": "少一层加工", "type": "bar", "barWidth": 14, "itemStyle": {"color": "var(--clay)"}, "label": {"show": true, "position": "right", "formatter": "{c}%", "color": "var(--ink)"}, "data": [47.68, 61.6, 69.42]},
+    {"name": "多一层加工", "type": "bar", "barWidth": 14, "itemStyle": {"color": "var(--stone)"}, "label": {"show": true, "position": "right", "formatter": "{c}%", "color": "var(--ink)"}, "data": [15.37, 57.5, 67.36]}
+  ]
+}
 ```
 
 更令人窒息的是维护成本：为了维护那套精密易碎的记忆网络，各系统在 MemoryAgentBench 上动辄消耗数千万 token 和长达数小时的计算；而原始检索仅需十几分钟。
@@ -905,14 +1010,6 @@ text({
 </svg>
 ```
 
-| 边界维度       | 架构实现                                                                       |
-| :------------- | :----------------------------------------------------------------------------- |
-| **宿主隔离**   | 独立无特权系统用户 `tgbox` 下运行 rootless Docker，与 bot 守护进程权限物理隔离 |
-| **容器沙盒**   | 根文件系统全只读挂载、`--cap-drop ALL`、`no-new-privileges`，以 uid 1000 运行  |
-| **资源围栏**   | 内存、CPU、进程数硬上限约束，`/tmp` 仅挂载 256 MB 的纯内存 tmpfs               |
-| **凭据绝缘**   | 容器内没有任何 API Key、SSH Key 或环境变量；模型请求由宿主外层代理闭环         |
-| **持久化边界** | 仅挂载专属的 `/work` 卷，每周一清晨 05:00 自动重置擦除；网络可一键物理关断     |
-| **文件防穿透** | 宿主外发附件时深度解析真实文件路径，严禁任何符号链接逃逸                       |
 
 **一个通用的执行环境，替代了无穷无尽的平庸插件。** 这种架构上的高度收敛，比任何代码层面的优化都更具美感。
 
@@ -951,12 +1048,47 @@ text({
 
 审视我们曾经遭遇过的严重线上事故记录：
 
-| 发生日期  | 故障表象                                               | 真实根因                                                |
-| :-------- | :----------------------------------------------------- | :------------------------------------------------------ |
-| **09-16** | 几乎每轮都在发狂压缩，但上下文体积完全不减             | 自研压缩器按字符数估算 token，图片在 details 里被算成 0 |
-| **09-16** | 遇到 429 报错后，被 @ 的待处理消息被系统误标记为已完成 | 自研重试逻辑耗尽后，状态机草率退出了 turn               |
-| **10-04** | 机器人陷入长达 20 分钟的死寂失联                       | 图片 token 突增超出预算，自研预检压缩逻辑死锁           |
-| **10-06** | 机器人在群里惊呼群友窃取了它的后台数据                 | 动态列表拼进正文，自研摘要把臆测定性为客观事实          |
+```sketch title="四起线上事故" note="日期是 2026 年。每张卡片上半是群友看到的表象，下半是查出来的根因。"
+<svg viewBox="0 0 704 272">
+<rect class="panel" x="0" y="0" width="704" height="272" rx="12"/>
+<path class="edge " d="M40 40 H664"/>
+<path class="edge" d="M40.0 36 V44"/>
+<text class="small mid" x="40" y="24">09-10</text>
+<path class="edge" d="M248.0 36 V44"/>
+<text class="small mid" x="248" y="24">09-20</text>
+<path class="edge" d="M456.0 36 V44"/>
+<text class="small mid" x="456" y="24">09-30</text>
+<path class="edge" d="M664.0 36 V44"/>
+<text class="small mid" x="664" y="24">10-10</text>
+<circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
+<path class="edge " d="M164.8 46 V60 H97 V76"/>
+<g class="node plain"><rect x="24" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="36" y="98">09-16</text><text class="b" x="36" y="122">几乎每轮都在压缩，</text><text class="b" x="36" y="139">上下文却完全不减</text><text class="caps" x="36" y="166">根因</text><text class="small" x="36" y="184">按字符估算 token，</text><text class="small" x="36" y="200">图片被算成 0</text><g class="node clay"><rect x="80" y="88" width="71" height="20" rx="10"/><text class="mid small" x="115.5" y="98">自研压缩器</text></g>
+<circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
+<path class="edge " d="M164.8 46 V60 H267 V76"/>
+<g class="node plain"><rect x="194" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="206" y="98">09-16</text><text class="b" x="206" y="122">遇到 429 后，被 @ 的</text><text class="b" x="206" y="139">消息被误标为已完成</text><text class="caps" x="206" y="166">根因</text><text class="small" x="206" y="184">重试耗尽后，状态机</text><text class="small" x="206" y="200">草率退出了 turn</text><g class="node clay"><rect x="250" y="88" width="60" height="20" rx="10"/><text class="mid small" x="280.0" y="98">自研重试</text></g>
+<circle cx="539.2" cy="40" r="5" fill="var(--clay)"/>
+<path class="edge " d="M539.2 46 V60 H437 V76"/>
+<g class="node plain"><rect x="364" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="376" y="98">10-04</text><text class="b" x="376" y="122">20 分钟死寂，</text><text class="b" x="376" y="139">完全失联</text><text class="caps" x="376" y="166">根因</text><text class="small" x="376" y="184">图片 token 突增超出</text><text class="small" x="376" y="200">预算，预检压缩死锁</text><g class="node clay"><rect x="420" y="88" width="82" height="20" rx="10"/><text class="mid small" x="461.0" y="98">自研预检压缩</text></g>
+<circle cx="580.8" cy="40" r="5" fill="var(--clay)"/>
+<path class="edge " d="M580.8 46 V60 H607 V76"/>
+<g class="node plain"><rect x="534" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="546" y="98">10-06</text><text class="b" x="546" y="122">在群里指责群友</text><text class="b" x="546" y="139">窃取了它的后台数据</text><text class="caps" x="546" y="166">根因</text><text class="small" x="546" y="184">动态列表拼进正文，</text><text class="small" x="546" y="200">摘要把臆测当成事实</text><g class="node clay"><rect x="590" y="88" width="60" height="20" rx="10"/><text class="mid small" x="620.0" y="98">自研摘要</text></g>
+<text class="small mid accent" x="352" y="252">四起事故没有一起和 Telegram 有关，根因都在自己写的会话状态机和压缩逻辑里</text>
+</svg>
+<svg viewBox="0 0 340 708">
+<rect class="panel" x="0" y="0" width="340" height="708" rx="12"/>
+<path class="edge" d="M24 20 V648"/>
+<circle cx="24" cy="38" r="5" fill="var(--clay)"/>
+<g class="node plain"><rect x="44" y="20" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="38">09-16</text><text class="b" x="56" y="62">几乎每轮都在压缩，</text><text class="b" x="56" y="79">上下文却完全不减</text><text class="caps" x="56" y="106">根因</text><text class="small" x="56" y="124">按字符估算 token，</text><text class="small" x="56" y="140">图片被算成 0</text><g class="node clay"><rect x="100" y="28" width="71" height="20" rx="10"/><text class="mid small" x="135.5" y="38">自研压缩器</text></g>
+<circle cx="24" cy="200" r="5" fill="var(--clay)"/>
+<g class="node plain"><rect x="44" y="182" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="200">09-16</text><text class="b" x="56" y="224">遇到 429 后，被 @ 的</text><text class="b" x="56" y="241">消息被误标为已完成</text><text class="caps" x="56" y="268">根因</text><text class="small" x="56" y="286">重试耗尽后，状态机</text><text class="small" x="56" y="302">草率退出了 turn</text><g class="node clay"><rect x="100" y="190" width="60" height="20" rx="10"/><text class="mid small" x="130.0" y="200">自研重试</text></g>
+<circle cx="24" cy="362" r="5" fill="var(--clay)"/>
+<g class="node plain"><rect x="44" y="344" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="362">10-04</text><text class="b" x="56" y="386">20 分钟死寂，</text><text class="b" x="56" y="403">完全失联</text><text class="caps" x="56" y="430">根因</text><text class="small" x="56" y="448">图片 token 突增超出</text><text class="small" x="56" y="464">预算，预检压缩死锁</text><g class="node clay"><rect x="100" y="352" width="82" height="20" rx="10"/><text class="mid small" x="141.0" y="362">自研预检压缩</text></g>
+<circle cx="24" cy="524" r="5" fill="var(--clay)"/>
+<g class="node plain"><rect x="44" y="506" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="524">10-06</text><text class="b" x="56" y="548">在群里指责群友</text><text class="b" x="56" y="565">窃取了它的后台数据</text><text class="caps" x="56" y="592">根因</text><text class="small" x="56" y="610">动态列表拼进正文，</text><text class="small" x="56" y="626">摘要把臆测当成事实</text><g class="node clay"><rect x="100" y="514" width="60" height="20" rx="10"/><text class="mid small" x="130.0" y="524">自研摘要</text></g>
+<text class="small accent" x="16" y="674">四起事故没有一起和 Telegram 有关，</text>
+<text class="small accent" x="16" y="692">根因都在自己写的会话状态机和压缩逻辑里</text>
+</svg>
+```
 
 **这四起触目惊心的事故，没有一起跟 Telegram 本身有关，全部源自我们自己闭门造车的会话状态机与压缩算法。**
 
@@ -1025,12 +1157,22 @@ text({
 
 **能在最险恶的群聊里生存下来的设计哲学，移栽到任何 Agent 系统里都是无坚不摧的：**
 
-| 节制维度             | 面向实体     | 核心设计真理                                                                      |
-| :------------------- | :----------- | :-------------------------------------------------------------------------------- |
-| **调用频次 ($N$)**   | 外部模型     | 确定性逻辑坚决由代码硬切；暧昧的分寸交给只读切片的分类器；发完立即本地截断。      |
-| **缓存命中 ($h$)**   | 服务前缀     | 前缀是物理铁律；动态信息只能作为不可变增量单调追加；以 Golden Hash 守卫每一字节。 |
-| **上下文深度 ($T$)** | 运行时上下文 | 算清自己的 API 账单；放弃花哨有损的虚假记忆；保留原话，不懂就让它现场去查。       |
-| **代码负增长**       | Coding Agent | 凡不属于业务语义的底层轮子一概不造；一个通用 Shell 沙盒胜过上百个代码插件。       |
+```sketch title="四把尺子" note="四个节制的维度，各自面对的对象，和它们共同的设计原则。"
+<svg viewBox="0 0 704 296">
+<rect class="panel" x="0" y="0" width="704" height="296" rx="12"/>
+<g class="node orange"><rect x="24" y="24" width="320" height="118" rx="6"/><text class="b" x="38" y="46">调用次数 N</text></g><text class="small end" x="330" y="46">外部模型</text><text class="small" x="38" y="74">确定性的事交给代码</text><text class="small" x="38" y="95">分寸交给只读切片的判断模型</text><text class="small" x="38" y="116">发完立即在本地结束这一轮</text>
+<g class="node blue"><rect x="360" y="24" width="320" height="118" rx="6"/><text class="b" x="374" y="46">缓存命中 h</text></g><text class="small end" x="666" y="46">请求前缀</text><text class="small" x="374" y="74">前缀是铁律，只追加不改写</text><text class="small" x="374" y="95">动态信息作为增量写在后面</text><text class="small" x="374" y="116">Golden Hash 守住每一个字节</text>
+<g class="node violet"><rect x="24" y="160" width="320" height="118" rx="6"/><text class="b" x="38" y="182">上下文深度 T</text></g><text class="small end" x="330" y="182">运行时上下文</text><text class="small" x="38" y="210">算清自己的 API 账单</text><text class="small" x="38" y="231">不做有损的记忆加工</text><text class="small" x="38" y="252">保留原话，不懂就现场去查</text>
+<g class="node teal"><rect x="360" y="160" width="320" height="118" rx="6"/><text class="b" x="374" y="182">代码负增长</text></g><text class="small end" x="666" y="182">Coding Agent</text><text class="small" x="374" y="210">业务之外的轮子一个不造</text><text class="small" x="374" y="231">一个通用的 Shell 沙盒</text><text class="small" x="374" y="252">胜过上百个插件</text>
+</svg>
+<svg viewBox="0 0 340 540">
+<rect class="panel" x="0" y="0" width="340" height="540" rx="12"/>
+<g class="node orange"><rect x="16" y="16" width="308" height="118" rx="6"/><text class="b" x="30" y="38">调用次数 N</text></g><text class="small end" x="310" y="38">外部模型</text><text class="small" x="30" y="66">确定性的事交给代码</text><text class="small" x="30" y="87">分寸交给只读切片的判断模型</text><text class="small" x="30" y="108">发完立即在本地结束这一轮</text>
+<g class="node blue"><rect x="16" y="146" width="308" height="118" rx="6"/><text class="b" x="30" y="168">缓存命中 h</text></g><text class="small end" x="310" y="168">请求前缀</text><text class="small" x="30" y="196">前缀是铁律，只追加不改写</text><text class="small" x="30" y="217">动态信息作为增量写在后面</text><text class="small" x="30" y="238">Golden Hash 守住每一个字节</text>
+<g class="node violet"><rect x="16" y="276" width="308" height="118" rx="6"/><text class="b" x="30" y="298">上下文深度 T</text></g><text class="small end" x="310" y="298">运行时上下文</text><text class="small" x="30" y="326">算清自己的 API 账单</text><text class="small" x="30" y="347">不做有损的记忆加工</text><text class="small" x="30" y="368">保留原话，不懂就现场去查</text>
+<g class="node teal"><rect x="16" y="406" width="308" height="118" rx="6"/><text class="b" x="30" y="428">代码负增长</text></g><text class="small end" x="310" y="428">Coding Agent</text><text class="small" x="30" y="456">业务之外的轮子一个不造</text><text class="small" x="30" y="477">一个通用的 Shell 沙盒</text><text class="small" x="30" y="498">胜过上百个插件</text>
+</svg>
+```
 
 在 LLM 的世界里，所有的法则最终收敛为一个简明的美学事实：
 **Token 是唯一的货币。**
