@@ -67,10 +67,12 @@ body{margin:0;font-family:"Blog Sans",sans-serif}</style><body></body>"""
 
 # Runs in the page: swaps stand-ins for var(--token) and drops fixed sizes.
 SCRIPT = r"""
-// Every color in a drawing must come from a token: a stand-in, a mix of two
-// (ECharts interpolates them, as for a heatmap), or either with some alpha.
-// Each becomes var(--token) or color-mix() of tokens; any other color fails
-// the drawing, so a static figure never shows a color the theme did not give.
+// Every color a drawing paints must come from a token: a stand-in, a mix of
+// two that the option asks ECharts to blend (a visualMap range, a gradient),
+// or either with some alpha. Each becomes var(--token) or color-mix() of
+// tokens; any other painted color fails the drawing. Mermaid's stylesheet
+// is recolored too, but not checked: it carries rules for shapes a diagram
+// may not draw.
 const colorPattern = /#[0-9a-f]{6}\b|#[0-9a-f]{3}\b|rgba?\([^)]*\)/gi;
 const parseColor = s => {
   let m = s.match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -81,7 +83,7 @@ const parseColor = s => {
   m = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+))?\s*\)$/i);
   return m && [+m[1], +m[2], +m[3], m[4] == null ? 1 : +m[4]];
 };
-const tokenColor = (s, tokens) => {
+const tokenColor = (s, tokens, pairs) => {
   const c = parseColor(s);
   if (!c) return null;
   const points = Object.entries(tokens).map(([name, hex]) => [name, parseColor(hex)]);
@@ -90,8 +92,8 @@ const tokenColor = (s, tokens) => {
   for (const [name, p] of points) if (dist(c, p) < gap) [best, gap] = [`var(--${name})`, dist(c, p)];
   if (!best) {
     gap = 1.5;
-    for (const [a, p] of points) for (const [b, q] of points) {
-      if (a >= b) continue;
+    for (const [a, b] of pairs) {
+      const p = parseColor(tokens[a]), q = parseColor(tokens[b]);
       const d = [0, 1, 2].map(k => q[k] - p[k]), t = [0, 1, 2].reduce((s, k) => s + (c[k] - p[k]) * d[k], 0) / [0, 1, 2].reduce((s, k) => s + d[k] * d[k], 0);
       const off = dist(c, [0, 1, 2].map(k => p[k] + t * d[k]));
       if (t > 0 && t < 1 && off < gap) [best, gap] = [`color-mix(in srgb,var(--${a}) ${Math.round((1 - t) * 100)}%,var(--${b}))`, off];
@@ -100,10 +102,27 @@ const tokenColor = (s, tokens) => {
   if (best && c[3] < 1) best = `color-mix(in srgb,${best} ${Math.round(c[3] * 100)}%,transparent)`;
   return best;
 };
-const recolor = (svg, tokens, tidy, strictStyles) => {
+// blends lists the token pairs an option blends: consecutive colors of a
+// visualMap range or a gradient's stops. Only these may be read as mixes.
+const blends = option => {
+  const pairs = [], name = c => typeof c == "string" && c.match(/^var\(--([\w-]+)\)$/)?.[1];
+  const add = colors => colors.map(name).forEach((n, i, all) => i && n && all[i - 1] && pairs.push([all[i - 1], n]));
+  const walk = (v, key, parent) => {
+    if (Array.isArray(v)) {
+      if (key == "color" && /^(inRange|outOfRange)$/.test(parent)) add(v);
+      if (key == "colorStops") add(v.map(stop => stop?.color));
+      v.forEach(x => walk(x, key, parent));
+    } else if (v && typeof v == "object") {
+      for (const [k, x] of Object.entries(v)) walk(x, k, key);
+    }
+  };
+  walk(option);
+  return pairs;
+};
+const recolor = (svg, tokens, tidy, strictStyles, pairs = []) => {
   const left = new Set();
   const text = (s, strict) => s.replace(colorPattern, m => {
-    const t = tokenColor(m, tokens);
+    const t = tokenColor(m, tokens, pairs);
     if (!t && strict) left.add(m);
     return t ?? m;
   });
@@ -145,8 +164,9 @@ const recolor = (svg, tokens, tidy, strictStyles) => {
   if (left.size) throw new Error("colors not from a var(--token): " + [...left].join(" "));
   return root.outerHTML;
 };
-window.drawEcharts = async (source, width, height, tokens) => {
+window.drawEcharts = async (source, width, height, tokens, prefix) => {
   await document.fonts.ready;
+  const pairs = [...blends(chartTheme(n => `var(--${n})`)), ...blends(JSON.parse(source))];
   const option = JSON.parse(source.replace(/var\(--([\w-]+)\)/g, (m, n) => tokens[n] ?? m));
   const chart = echarts.init(null, "blog", { renderer: "svg", ssr: true, width, height });
   const errors = [];
@@ -177,11 +197,18 @@ window.drawEcharts = async (source, width, height, tokens) => {
       el.setAttribute("class", el.getAttribute("class").replace(/\bzr\d+-cls-\d+\b/g, "").trim());
       if (!el.getAttribute("class")) el.removeAttribute("class");
     }
-  }, true);
+    // So do its clip path ids; they are named by the figure instead.
+    for (const el of [root, ...root.querySelectorAll("*")]) {
+      for (const attr of [...el.attributes]) {
+        if (/\bzr\d+-/.test(attr.value)) el.setAttribute(attr.name, attr.value.replace(/\bzr\d+-/g, prefix + "-"));
+      }
+    }
+  }, true, pairs);
 };
 window.drawMermaid = async (source, id, tokens) => {
   await document.fonts.ready;
-  const { svg } = await mermaid.render(id, source);
+  // Mermaid's parser takes no var(): style and classDef lines draw with stand-ins too.
+  const { svg } = await mermaid.render(id, source.replace(/var\(--([\w-]+)\)/g, (m, n) => tokens[n] ?? m));
   // Flat, like the page's other figures: no drop shadows under the shapes.
   return recolor(svg, tokens, root => {
     for (const el of root.querySelectorAll("[style]")) el.style.removeProperty("filter");
@@ -255,7 +282,9 @@ def main():
             request = json.loads(line)
             try:
                 if request["kind"] == "echarts":
-                    svg = page.evaluate("([s, w, h, t]) => drawEcharts(s, w, h, t)", [request["source"], request["width"], request["height"], tokens])
+                    # Clip path ids are named by content, like diagram ids below.
+                    prefix = "chart-" + hashlib.sha256(request["source"].encode()).hexdigest()[:8]
+                    svg = page.evaluate("([s, w, h, t, p]) => drawEcharts(s, w, h, t, p)", [request["source"], request["width"], request["height"], tokens, prefix])
                 else:
                     if not mermaid_ready:
                         page.add_script_tag(path=str(mermaid_file()))
