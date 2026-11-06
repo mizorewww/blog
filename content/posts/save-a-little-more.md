@@ -194,7 +194,7 @@ flowchart TD
 
 ```echarts title="判断模型上线前，每一轮是谁叫醒的" height="300" note="路由记录里判定为 started 的消息，按触发原因统计，共 54,457 轮；同一份截至 11 月 1 日的本地快照，所以比上面漏斗里的数字少最后三天。同期另有 50,362 条消息因 bot 正忙并入下一轮，4,849 条处于冷却期被跳过。"
 {
-  "tooltip": {"trigger": "item", "formatter": "{b}：{c} 轮（{d}%）"},
+  "tooltip": {"trigger": "item"},
   "series": [{
     "name": "触发原因", "type": "pie", "radius": ["40%", "62%"], "center": ["50%", "54%"],
     "label": {"formatter": "{b}\n{d}%", "lineHeight": 16},
