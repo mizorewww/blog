@@ -208,6 +208,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 | `edge`、`edge dash`、`edge hot` | `path`/`line` | 1.25px 灰线；虚线=可选/并行；clay=出问题的地方 |
 | `caps` | `text` | 等宽小号、自动转大写，只用于板块标题，如“preprocessing” → PREPROCESSING；用户名、路径、参数这类区分大小写的名字不要放进去，用 `small` |
 | `small`、`b`、`mid`、`end`、`accent` | `text` | 11px 灰色说明、加粗、居中、右对齐、clay 强调色 |
+| `mono` | `text` | 11.5px 等宽，用来画请求原文、代码、哈希这类“原样”的内容 |
 | `glyph` | `circle` | 模型图标的小圆点（几个点排成网格） |
 
 画法：

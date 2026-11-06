@@ -54,6 +54,7 @@ var fontRules = []string{
 	`.echart .figure-plot { font-family:var(--mono) }`,
 	`.sketch { font-family:var(--sans) }`,
 	`.sketch .b { font-weight:500 }`,
+	`.sketch .mono { font-family:var(--mono) }`,
 	`.sketch .caps { font-family:var(--mono) }`,
 	`.stats-group { font-family:var(--mono) }`,
 	`.stats-group b { font-weight:500 }`,
