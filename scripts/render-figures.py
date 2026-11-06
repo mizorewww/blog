@@ -37,29 +37,29 @@ FONTS = [
 # Mermaid's theme, in style.css tokens. Every color it draws with is set here,
 # so none is derived from a stand-in and left behind as a fixed color.
 MERMAID_THEME = {
-    "background": "paper", "mainBkg": "wash", "primaryColor": "wash", "primaryTextColor": "ink",
-    "primaryBorderColor": "faint", "nodeBorder": "faint", "nodeTextColor": "ink", "textColor": "ink",
+    "background": "paper", "mainBkg": "node", "primaryColor": "node", "primaryTextColor": "ink",
+    "primaryBorderColor": "node-line", "nodeBorder": "node-line", "nodeTextColor": "ink", "textColor": "ink",
     "secondaryColor": "clay-wash", "secondaryTextColor": "ink", "secondaryBorderColor": "clay",
-    "tertiaryColor": "card", "tertiaryTextColor": "ink", "tertiaryBorderColor": "line",
-    "lineColor": "muted", "defaultLinkColor": "muted", "titleColor": "ink", "edgeLabelBackground": "paper",
-    "clusterBkg": "card", "clusterBorder": "line",
-    "actorBkg": "wash", "actorBorder": "faint", "actorTextColor": "ink", "actorLineColor": "faint",
-    "signalColor": "muted", "signalTextColor": "ink", "labelBoxBkgColor": "wash", "labelBoxBorderColor": "faint",
-    "labelTextColor": "ink", "loopTextColor": "ink", "noteBkgColor": "clay-wash", "noteBorderColor": "clay",
-    "noteTextColor": "ink", "activationBkgColor": "card", "activationBorderColor": "muted", "sequenceNumberColor": "paper",
-    "altBackground": "wash", "stateBkg": "wash", "stateBorder": "faint", "compositeBackground": "card",
-    "compositeTitleBackground": "wash", "transitionColor": "muted", "transitionLabelColor": "ink", "specialStateColor": "muted",
-    "innerEndBackground": "muted", "labelBackgroundColor": "paper", "errorBkgColor": "clay-wash", "errorTextColor": "clay",
+    "tertiaryColor": "card", "tertiaryTextColor": "ink", "tertiaryBorderColor": "node-line",
+    "lineColor": "edge", "defaultLinkColor": "edge", "titleColor": "ink", "edgeLabelBackground": "paper",
+    "clusterBkg": "panel", "clusterBorder": "panel",
+    "actorBkg": "node", "actorBorder": "node-line", "actorTextColor": "ink", "actorLineColor": "edge",
+    "signalColor": "edge", "signalTextColor": "ink", "labelBoxBkgColor": "panel", "labelBoxBorderColor": "edge",
+    "labelTextColor": "ink", "loopTextColor": "muted", "noteBkgColor": "clay-wash", "noteBorderColor": "clay",
+    "noteTextColor": "ink", "activationBkgColor": "card", "activationBorderColor": "node-line", "sequenceNumberColor": "paper",
+    "altBackground": "panel", "stateBkg": "node", "stateBorder": "node-line", "compositeBackground": "panel",
+    "compositeTitleBackground": "node", "transitionColor": "edge", "transitionLabelColor": "ink", "specialStateColor": "node-line",
+    "innerEndBackground": "node-line", "labelBackgroundColor": "paper", "errorBkgColor": "clay-wash", "errorTextColor": "clay",
     "pie1": "clay", "pie2": "stone", "pie3": "sky", "pie4": "olive", "pie5": "kraft", "pie6": "fig",
     "pieTitleTextColor": "ink", "pieSectionTextColor": "paper", "pieLegendTextColor": "body",
     "pieStrokeColor": "paper", "pieOuterStrokeColor": "paper",
-    "quadrant1Fill": "wash", "quadrant2Fill": "wash", "quadrant3Fill": "wash", "quadrant4Fill": "wash",
+    "quadrant1Fill": "panel", "quadrant2Fill": "panel", "quadrant3Fill": "panel", "quadrant4Fill": "panel",
     "quadrant1TextFill": "ink", "quadrant2TextFill": "ink", "quadrant3TextFill": "ink", "quadrant4TextFill": "ink",
     "quadrantPointFill": "clay", "quadrantPointTextFill": "ink", "quadrantXAxisTextFill": "muted",
     "quadrantYAxisTextFill": "muted", "quadrantInternalBorderStrokeFill": "line",
     "quadrantExternalBorderStrokeFill": "line", "quadrantTitleFill": "ink",
     "git0": "clay", "git1": "sky", "git2": "olive", "git3": "kraft", "git4": "fig", "git5": "stone",
-    "cScale0": "wash", "cScale1": "clay-wash", "cScale2": "card", "cScaleLabel0": "ink", "cScaleLabel1": "ink", "cScaleLabel2": "ink",
+    "cScale0": "node", "cScale1": "clay-wash", "cScale2": "card", "cScaleLabel0": "ink", "cScaleLabel1": "ink", "cScaleLabel2": "ink",
 }
 
 PAGE = """<!doctype html><meta charset="utf-8"><style>%s
@@ -297,7 +297,7 @@ def main():
                         theme = {k: tokens[v] for k, v in MERMAID_THEME.items()}
                         page.evaluate("""v => mermaid.initialize({startOnLoad: false, theme: "base", securityLevel: "strict",
                             fontFamily: '"Blog Sans","Blog Sans Late","PingFang SC",sans-serif', themeVariables: {...v, fontSize: "14px"},
-                            htmlLabels: false, flowchart: {curve: "basis", padding: 12, wrappingWidth: 280, htmlLabels: false}, sequence: {mirrorActors: false}})""", theme)
+                            htmlLabels: false, flowchart: {curve: "step", padding: 12, wrappingWidth: 280, htmlLabels: false}, sequence: {mirrorActors: false}})""", theme)
                         mermaid_ready = True
                     # Named by content, so ids stay the same however figures are cached.
                     name = "diagram-" + hashlib.sha256(request["source"].encode()).hexdigest()[:8]
