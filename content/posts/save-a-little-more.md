@@ -409,6 +409,81 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
   既然只能单调追加，那把贴纸信息伪装成正文拼进群友的消息里如何？
   灾难接踵而至：模型读到后，会真诚地认为“群友刚才把我的贴纸库泄露了”，进而在聊天中反复指责群友偷窥它的后台。更致命的是，当会话到达窗口上限触发压缩时，压缩器会把这句“群友泄露了贴纸库”的荒唐推测提炼成固定事实，永远写进长期摘要，造成无法修复的认知污染。
 
+```sketch title="动态信息只有一个位置放得下" note="每一行是放进贴纸列表之后的一次请求；clay 竖线是前缀断开、缓存从那里失效的位置。"
+<svg viewBox="0 0 704 288">
+<rect class="panel" x="0" y="0" width="704" height="288" rx="12"/>
+<text class="caps" x="24" y="24">动态的贴纸列表，放在请求的哪里</text>
+<circle cx="32" cy="59" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 56 35 62 M35 56 29 62"/>
+<text class="b" x="48" y="52">塞进 system prompt</text>
+<text class="small accent" x="48" y="70">改一个字，后面九万多 token 的缓存全失效</text>
+<g class="node blue"><rect x="352" y="44" width="59.1" height="30" rx="4"/><text class="mid" x="381.55" y="59">system</text></g>
+<g class="node orange"><rect x="414.1" y="44" width="47.3" height="30" rx="4"/><text class="mid" x="437.75" y="59">贴纸</text></g>
+<g class="node plain"><rect x="464.3" y="44" width="153.6" height="30" rx="4"/><text class="mid" x="541.1" y="59">历史消息</text></g>
+<g class="node plain"><rect x="620.9" y="44" width="59.1" height="30" rx="4"/><text class="mid" x="650.45" y="59">新消息</text></g>
+<path class="edge hot" d="M412.6 38 V80"/>
+<circle cx="32" cy="119" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 116 35 122 M35 116 29 122"/>
+<text class="b" x="48" y="112">挂在结尾，下一轮换掉</text>
+<text class="small accent" x="48" y="130">前缀在换掉的地方断开</text>
+<g class="node blue"><rect x="352" y="104" width="57" height="30" rx="4"/><text class="mid" x="380.5" y="119">system</text></g>
+<g class="node plain"><rect x="412" y="104" width="148.1" height="30" rx="4"/><text class="mid" x="486.05" y="119">历史消息</text></g>
+<g class="node plain"><rect x="563.1" y="104" width="57" height="30" rx="4"/><text class="mid" x="591.6" y="119">新消息</text></g>
+<g class="node orange"><rect x="623" y="104" width="57" height="30" rx="4"/><text class="mid" x="651.5" y="119">新贴纸</text></g>
+<path class="edge hot" d="M621.5 98 V140"/>
+<circle cx="32" cy="179" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 176 35 182 M35 176 29 182"/>
+<text class="b" x="48" y="172">混进聊天记录</text>
+<text class="small accent" x="48" y="190">缓存还在，但模型以为是群友说的，还会被压缩成“事实”</text>
+<g class="node blue"><rect x="352" y="164" width="57.5" height="30" rx="4"/><text class="mid" x="380.75" y="179">system</text></g>
+<g class="node plain"><rect x="412.5" y="164" width="207.0" height="30" rx="4"/></g>
+<text class="" x="422.5" y="179">历史消息</text>
+<g class="node orange"><rect x="559.5" y="170" width="52" height="18" rx="3"/><text class="mid small" x="585.5" y="179.0">贴纸</text></g>
+<g class="node plain"><rect x="622.5" y="164" width="57.5" height="30" rx="4"/><text class="mid" x="651.25" y="179">新消息</text></g>
+<circle cx="32" cy="239" r="8" fill="var(--teal-wash)" stroke="var(--teal)"/><path class="edge" d="M28 239 31 242 36 236" stroke="var(--teal)"/>
+<text class="b" x="48" y="232">〔系统附注〕追加在那批输入后</text>
+<text class="small " x="48" y="250">只追加、写下不改、有专属标识、不进会话库</text>
+<g class="node blue"><rect x="352" y="224" width="59.1" height="30" rx="4"/><text class="mid" x="381.55" y="239">system</text></g>
+<g class="node plain"><rect x="414.1" y="224" width="153.6" height="30" rx="4"/><text class="mid" x="490.9" y="239">历史消息</text></g>
+<g class="node plain"><rect x="570.7" y="224" width="59.1" height="30" rx="4"/><text class="mid" x="600.25" y="239">新消息</text></g>
+<g class="node violet"><rect x="632.7" y="224" width="47.3" height="30" rx="4"/><text class="mid" x="656.35" y="239">附注</text></g>
+</svg>
+<svg viewBox="0 0 340 486">
+<rect class="panel" x="0" y="0" width="340" height="486" rx="12"/>
+<text class="caps" x="16" y="22">动态的贴纸列表放在哪</text>
+<circle cx="24" cy="50" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M21 47 27 53 M27 47 21 53"/>
+<text class="b" x="40" y="50">塞进 system prompt</text>
+<text class="small accent" x="40" y="70">改一个字，</text>
+<text class="small accent" x="40" y="86">后面九万多 token 的缓存全失效</text>
+<g class="node blue"><rect x="16" y="106" width="55.4" height="28" rx="4"/><text class="mid small" x="43.7" y="120">system</text></g>
+<g class="node orange"><rect x="74.4" y="106" width="44.3" height="28" rx="4"/><text class="mid small" x="96.55" y="120">贴纸</text></g>
+<g class="node plain"><rect x="121.7" y="106" width="144" height="28" rx="4"/><text class="mid small" x="193.7" y="120">历史消息</text></g>
+<g class="node plain"><rect x="268.6" y="106" width="55.4" height="28" rx="4"/><text class="mid small" x="296.3" y="120">新消息</text></g>
+<path class="edge hot" d="M72.9 100 V140"/>
+<circle cx="24" cy="172" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M21 169 27 175 M27 169 21 175"/>
+<text class="b" x="40" y="172">挂在结尾，下一轮换掉</text>
+<text class="small accent" x="40" y="192">前缀在换掉的地方断开</text>
+<g class="node blue"><rect x="16" y="212" width="53.4" height="28" rx="4"/><text class="mid small" x="42.7" y="226">system</text></g>
+<g class="node plain"><rect x="72.4" y="212" width="138.8" height="28" rx="4"/><text class="mid small" x="141.8" y="226">历史消息</text></g>
+<g class="node plain"><rect x="214.2" y="212" width="53.4" height="28" rx="4"/><text class="mid small" x="240.9" y="226">新消息</text></g>
+<g class="node orange"><rect x="270.6" y="212" width="53.4" height="28" rx="4"/><text class="mid small" x="297.3" y="226">新贴纸</text></g>
+<path class="edge hot" d="M269.1 206 V246"/>
+<circle cx="24" cy="278" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M21 275 27 281 M27 275 21 281"/>
+<text class="b" x="40" y="278">混进聊天记录</text>
+<text class="small accent" x="40" y="298">缓存还在，</text>
+<text class="small accent" x="40" y="314">但模型以为是群友说的，还会被压缩成“事实”</text>
+<g class="node blue"><rect x="16" y="334" width="53.9" height="28" rx="4"/><text class="mid small" x="42.95" y="348">system</text></g>
+<g class="node plain"><rect x="72.9" y="334" width="194.1" height="28" rx="4"/></g>
+<text class="small" x="82.9286" y="348">历史消息</text>
+<g class="node orange"><rect x="215.1" y="340" width="44" height="16" rx="3"/><text class="mid small" x="237.1" y="348.0">贴纸</text></g>
+<g class="node plain"><rect x="270.1" y="334" width="53.9" height="28" rx="4"/><text class="mid small" x="297.05" y="348">新消息</text></g>
+<circle cx="24" cy="400" r="8" fill="var(--teal-wash)" stroke="var(--teal)"/><path class="edge" d="M20 400 23 403 28 397" stroke="var(--teal)"/>
+<text class="b" x="40" y="400">〔系统附注〕追加在那批输入后</text>
+<text class="small " x="40" y="420">只追加、写下不改、有专属标识、不进会话库</text>
+<g class="node blue"><rect x="16" y="440" width="55.4" height="28" rx="4"/><text class="mid small" x="43.7" y="454">system</text></g>
+<g class="node plain"><rect x="74.4" y="440" width="144" height="28" rx="4"/><text class="mid small" x="146.4" y="454">历史消息</text></g>
+<g class="node plain"><rect x="221.3" y="440" width="55.4" height="28" rx="4"/><text class="mid small" x="249" y="454">新消息</text></g>
+<g class="node violet"><rect x="279.7" y="440" width="44.3" height="28" rx="4"/><text class="mid small" x="301.85" y="454">附注</text></g>
+</svg>
+```
+
 通过这三次碰壁，动态信息的宿命被物理定律锁死在唯一的狭窄缝隙中：
 
 1. **它必须是严格追加的；**
@@ -488,7 +563,7 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
 
 在一次真实的请求体中，它呈现为这种极其工整的韵律：
 
-```sketch title="一次真实的请求" note="虚线框是一次请求的全部输入，从上到下就是模型读到的顺序；每一段旁边的注释说明它为什么放在这里。"
+```sketch title="一次真实的请求" note="节选，删去了群友的用户名和贴纸的强度描述。虚线框是一次请求的全部输入，从上到下就是模型读到的顺序；每一段旁边的注释说明它为什么放在这里。"
 <svg viewBox="0 0 704 382">
 <rect class="panel" x="0" y="0" width="704" height="382" rx="12"/>
 <text class="caps" x="24" y="26">一次请求，从上到下</text>
@@ -776,13 +851,13 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 
 而在同一项指标上，少一层加工的那一边总是更高：
 
-```echarts title="同一项指标，少一层加工反而更高" height="260" note="测试时学习：原文 47.68%，抽取成原子事实后 15.37%。准确率：直接给原文 61.6%，完整访问加工后的记忆库 57.5%。Mem0：去掉 UPDATE / DELETE 后 69.42%，保留时 67.36%。来源同上。"
+```echarts title="同一项指标，少一层加工反而更高" height="260" note="测试时学习：原文 47.68%，抽取成原子事实后 15.37%。完整访问加工后的记忆库：57.5%，仍低于直接给原文的 61.6%。Mem0：去掉 UPDATE / DELETE 后 69.42%，保留时 67.36%。来源同上。"
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "valueFormatter": "{value}%"},
   "legend": {},
   "grid": {"top": 36, "right": 56},
   "xAxis": {"type": "value", "max": 80, "axisLabel": {"formatter": "{value}%"}},
-  "yAxis": {"type": "category", "inverse": true, "data": ["测试时学习", "准确率", "Mem0 准确率"]},
+  "yAxis": {"type": "category", "inverse": true, "data": ["测试时学习", "完整访问记忆库", "Mem0 准确率"]},
   "series": [
     {"name": "少一层加工", "type": "bar", "barWidth": 14, "itemStyle": {"color": "var(--clay)"}, "label": {"show": true, "position": "right", "formatter": "{c}%", "color": "var(--ink)"}, "data": [47.68, 61.6, 69.42]},
     {"name": "多一层加工", "type": "bar", "barWidth": 14, "itemStyle": {"color": "var(--stone)"}, "label": {"show": true, "position": "right", "formatter": "{c}%", "color": "var(--ink)"}, "data": [15.37, 57.5, 67.36]}
@@ -959,7 +1034,7 @@ text({
 
 在这个纯净的容器边界上，我们构筑了严密的安全防线：
 
-```sketch title="一台完整的 Linux，装在几层边界里" note="bot 守护进程和容器分属不同的系统用户；容器里没有任何密钥，模型请求和发往群里的文件都经守护进程转手。"
+```sketch title="一台完整的 Linux，装在几层边界里" note="bot 守护进程和容器分属不同的系统用户；容器里没有任何 API Key、SSH Key 或环境变量，模型请求和发往群里的文件都经守护进程转手。"
 <svg viewBox="0 0 704 344">
 <rect class="panel" x="0" y="0" width="704" height="344" rx="12"/>
 <text class="caps" x="24" y="30">宿主机</text>
@@ -1049,8 +1124,8 @@ text({
 审视我们曾经遭遇过的严重线上事故记录：
 
 ```sketch title="四起线上事故" note="日期是 2026 年。每张卡片上半是群友看到的表象，下半是查出来的根因。"
-<svg viewBox="0 0 704 272">
-<rect class="panel" x="0" y="0" width="704" height="272" rx="12"/>
+<svg viewBox="0 0 704 244">
+<rect class="panel" x="0" y="0" width="704" height="244" rx="12"/>
 <path class="edge " d="M40 40 H664"/>
 <path class="edge" d="M40.0 36 V44"/>
 <text class="small mid" x="40" y="24">09-10</text>
@@ -1072,10 +1147,9 @@ text({
 <circle cx="580.8" cy="40" r="5" fill="var(--clay)"/>
 <path class="edge " d="M580.8 46 V60 H607 V76"/>
 <g class="node plain"><rect x="534" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="546" y="98">10-06</text><text class="b" x="546" y="122">在群里指责群友</text><text class="b" x="546" y="139">窃取了它的后台数据</text><text class="caps" x="546" y="166">根因</text><text class="small" x="546" y="184">动态列表拼进正文，</text><text class="small" x="546" y="200">摘要把臆测当成事实</text><g class="node clay"><rect x="590" y="88" width="60" height="20" rx="10"/><text class="mid small" x="620.0" y="98">自研摘要</text></g>
-<text class="small mid accent" x="352" y="252">四起事故没有一起和 Telegram 有关，根因都在自己写的会话状态机和压缩逻辑里</text>
 </svg>
-<svg viewBox="0 0 340 708">
-<rect class="panel" x="0" y="0" width="340" height="708" rx="12"/>
+<svg viewBox="0 0 340 672">
+<rect class="panel" x="0" y="0" width="340" height="672" rx="12"/>
 <path class="edge" d="M24 20 V648"/>
 <circle cx="24" cy="38" r="5" fill="var(--clay)"/>
 <g class="node plain"><rect x="44" y="20" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="38">09-16</text><text class="b" x="56" y="62">几乎每轮都在压缩，</text><text class="b" x="56" y="79">上下文却完全不减</text><text class="caps" x="56" y="106">根因</text><text class="small" x="56" y="124">按字符估算 token，</text><text class="small" x="56" y="140">图片被算成 0</text><g class="node clay"><rect x="100" y="28" width="71" height="20" rx="10"/><text class="mid small" x="135.5" y="38">自研压缩器</text></g>
@@ -1085,8 +1159,6 @@ text({
 <g class="node plain"><rect x="44" y="344" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="362">10-04</text><text class="b" x="56" y="386">20 分钟死寂，</text><text class="b" x="56" y="403">完全失联</text><text class="caps" x="56" y="430">根因</text><text class="small" x="56" y="448">图片 token 突增超出</text><text class="small" x="56" y="464">预算，预检压缩死锁</text><g class="node clay"><rect x="100" y="352" width="82" height="20" rx="10"/><text class="mid small" x="141.0" y="362">自研预检压缩</text></g>
 <circle cx="24" cy="524" r="5" fill="var(--clay)"/>
 <g class="node plain"><rect x="44" y="506" width="280" height="150" rx="6"/></g><text class="mono accent" x="56" y="524">10-06</text><text class="b" x="56" y="548">在群里指责群友</text><text class="b" x="56" y="565">窃取了它的后台数据</text><text class="caps" x="56" y="592">根因</text><text class="small" x="56" y="610">动态列表拼进正文，</text><text class="small" x="56" y="626">摘要把臆测当成事实</text><g class="node clay"><rect x="100" y="514" width="60" height="20" rx="10"/><text class="mid small" x="130.0" y="524">自研摘要</text></g>
-<text class="small accent" x="16" y="674">四起事故没有一起和 Telegram 有关，</text>
-<text class="small accent" x="16" y="692">根因都在自己写的会话状态机和压缩逻辑里</text>
 </svg>
 ```
 
