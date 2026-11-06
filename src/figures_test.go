@@ -30,10 +30,10 @@ func TestFigures(t *testing.T) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
 	}
-	if h := diagramHeight(`<svg id="d" width="100%" viewBox="4 4 1408 300.4" style="max-width: 1408px;">`); h != 150 {
+	if h := diagramHeight(`<svg id="d" width="100%" viewBox="4 4 1408 300.4" style="max-width: 1408px;">`, figureWidth); h != 150 {
 		t.Fatalf("diagramHeight = %d, want 150 in the 704 px column", h)
 	}
-	if h := diagramHeight(`<svg viewBox="0 0 352 100">`); h != 100 {
+	if h := diagramHeight(`<svg viewBox="0 0 352 100">`, figureWidth); h != 100 {
 		t.Fatalf("diagramHeight = %d, want the natural 100", h)
 	}
 	if strings.Join(drawn, ",") != "echarts,mermaid" {

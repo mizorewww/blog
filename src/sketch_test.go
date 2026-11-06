@@ -18,7 +18,7 @@ func TestSketch(t *testing.T) {
 	html := string(body)
 	for _, want := range []string{
 		`<figure class="diagram" style="--h:120px"><figcaption>图</figcaption><div class="figure-plot" role="img" aria-label="图"><svg viewBox="0 0 400 120" class="sketch"`,
-		`style="max-width:400px;min-width:min(400px,560px)"><defs><marker id="sketch-`,
+		`<svg viewBox="0 0 400 120" class="sketch" xmlns="http://www.w3.org/2000/svg" style="max-width:400px"><defs><marker id="sketch-`,
 		`<text x="50" y="25">A &amp; &lt;b&gt;</text>`,
 		`style="fill:var(--clay)"`,
 		`<p class="figure-note">注</p></figure>`,
@@ -48,9 +48,33 @@ func TestSketch(t *testing.T) {
 		`<svg viewBox="5 5 10 10"><rect/></svg>`,
 		`<svg viewBox="0 0 10 10"><rect>`,
 		`<rect/>`,
+		`<svg viewBox="0 0 10 10" fill="var(--clay)"><rect/></svg>`,
+		`<svg viewBox="0 0 10 10"><linearGradient/></svg>`,
+		`<svg viewBox="0 0 10 10"><rect/></svg>text`,
+		`<svg viewBox="0 0 704 10"><rect/></svg><svg viewBox="0 0 500 10"><rect/></svg>`,
+		`<svg viewBox="0 0 704 10"/><svg viewBox="0 0 300 10"/><svg viewBox="0 0 200 10"/>`,
 	} {
 		if _, _, err := render([]byte("```sketch title=\"T\"\n"+bad+"\n```\n"), nil); err == nil {
 			t.Errorf("expected an error for %s", bad)
 		}
+	}
+}
+
+// A second drawing is the phone layout: its own ids and arrowhead, shown below 640 px.
+func TestSketchPhoneLayout(t *testing.T) {
+	both := `<svg viewBox="0 0 704 100"><rect id="a"/><path class="edge" marker-end="url(#arrow)"/></svg>` +
+		`<svg viewBox="0 0 340 200"><rect id="a"/><path class="edge" marker-end="url(#arrow)"/></svg>`
+	body, _, err := render([]byte("```sketch title=\"T\"\n"+both+"\n```\n"), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	html := string(body)
+	for _, want := range []string{`style="--h:100px;--hn:200px"`, `class="sketch wide"`, `class="sketch narrow"`, `-0-a"`, `-1-a"`, `-0-arrow)"`, `-1-arrow)"`} {
+		if !strings.Contains(html, want) {
+			t.Fatalf("missing %s in %s", want, html)
+		}
+	}
+	if strings.Count(html, `<marker `) != 2 {
+		t.Fatal("each drawing needs its own arrowhead")
 	}
 }

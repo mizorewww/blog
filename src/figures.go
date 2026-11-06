@@ -48,7 +48,7 @@ var (
 	// figureTokens are the style.css colors a figure may name, as var(--name).
 	// The build draws with a stand-in for each and the SVG keeps the variable.
 	figureTokens = []string{"ink", "body", "muted", "faint", "line", "grid", "card", "paper", "wash", "clay", "clay-wash", "clay-ink", "stone", "sky", "olive", "kraft", "fig",
-		"panel", "node", "node-line", "edge", "blue", "blue-wash", "blue-ink", "green", "green-wash", "green-ink", "orange", "orange-wash", "orange-ink", "violet", "violet-wash", "violet-ink"}
+		"panel", "node", "node-line", "edge", "blue", "blue-wash", "blue-ink", "teal", "teal-wash", "teal-ink", "orange", "orange-wash", "orange-ink", "violet", "violet-wash", "violet-ink"}
 	figureToken  = regexp.MustCompile(`var\(--([\w-]+)\)`)
 	fixedColor   = regexp.MustCompile(`(?i)^\s*(#[0-9a-f]{3,8}|rgba?\(|hsla?\()`)
 	diagramPaint = regexp.MustCompile(`(fill|stroke|color|background)\s*:\s*([^,;\s]+)`)
@@ -207,9 +207,15 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 		class, style := "diagram", ""
 		if f.Lang == "echarts" {
 			class, style = "echart", fmt.Sprintf(` style="--h:%dpx"`, f.height)
-		} else if h := diagramHeight(f.SVG); h > 0 {
+		} else if h := diagramHeight(f.SVG, figureWidth); h > 0 {
 			// Where the page skips drawing the diagram, it holds this much room (style.css).
 			style = fmt.Sprintf(` style="--h:%dpx"`, h)
+			// A sketch's phone layout is the second <svg>; it fills a column of about 340 px.
+			if i := strings.Index(f.SVG, `<svg viewBox=`); i >= 0 {
+				if j := strings.Index(f.SVG[i+1:], `<svg viewBox=`); j >= 0 {
+					style = fmt.Sprintf(` style="--h:%dpx;--hn:%dpx"`, h, diagramHeight(f.SVG[i+1+j:], 340))
+				}
+			}
 		}
 		title := html.EscapeString(f.title)
 		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, f.SVG)
@@ -227,9 +233,9 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	})
 }
 
-// diagramHeight is how tall a diagram's SVG lays out in the reading column,
+// diagramHeight is how tall a diagram's SVG lays out in a column this wide,
 // or 0 when the SVG gives no size.
-func diagramHeight(svg string) int {
+func diagramHeight(svg string, column float64) int {
 	m := svgViewBox.FindStringSubmatch(svg)
 	if m == nil {
 		return 0
@@ -239,7 +245,7 @@ func diagramHeight(svg string) int {
 	if w <= 0 {
 		return 0
 	}
-	return int(math.Round(h * min(w, figureWidth) / w))
+	return int(math.Round(h * min(w, column) / w))
 }
 
 // figureDrawer runs render-figures.py once a build needs a drawing that is
