@@ -65,15 +65,62 @@
 
 那么，这数百亿的 token 到底在读什么？我们抽样分析了四万多次真实请求的切片，并与我之前改造 [Memoh](/posts/making-memoh-cheaper-on-telegram/) 时的单次请求放在一起对照：
 
-```data title="一次请求里都装了什么" bars="本项目,Memoh 改造前" note="本项目：40,593 次请求的平均值，平均每次 93,067 token。Memoh：改造前抓的单次请求，按字节计。"
-部分 | 本项目 | Memoh 改造前
-聊天历史 | 86.6% | 68.0%
-system prompt | 10.2% | 10.7%
-压缩摘要 | 2.1% | 0%
-工具 schema | 1.1% | 21.3%
+```sketch title="一次请求里都装了什么" note="左：40,593 次请求的平均值，平均每次 93,067 token；右：Memoh 改造前抓的一次请求，按字节计。虚线框是一次请求的全部输入，高度按比例。"
+<svg viewBox="0 0 704 336">
+<rect class="panel" x="0" y="0" width="704" height="336" rx="12"/>
+<text class="caps" x="28" y="30">本项目</text>
+<text class="small" x="28" y="50">40,593 次请求的平均 · 93,067 token</text>
+<rect class="window" x="28" y="66" width="176" height="248" rx="8"/>
+<g class="node blue"><rect x="36" y="74.0" width="160" height="22.7" rx="2"/></g>
+<g class="node orange"><rect x="36" y="97.7" width="160" height="1.6" rx="2"/></g>
+<g class="node violet"><rect x="36" y="100.2" width="160" height="3.9" rx="2"/></g>
+<g class="node plain"><rect x="36" y="105.1" width="160" height="199.9" rx="3"/></g>
+<rect x="46" y="115.1" width="96" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="130.1" width="120" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="114" y="145.1" width="72" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="160.1" width="108" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="175.1" width="84" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="90" y="190.1" width="96" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="205.1" width="120" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="220.1" width="72" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="78" y="235.1" width="108" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="250.1" width="84" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="46" y="265.1" width="96" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="66" y="280.1" width="120" height="7" rx="3.5" fill="var(--line)"/>
+<path class="edge " d="M200 85.8 H216"/>
+<text class="small" x="220" y="85.832">system prompt <tspan class="b">10.2%</tspan></text>
+<path class="edge " d="M200 98.9 H212 V103.8 H216"/>
+<text class="small" x="220" y="103.832">工具 schema <tspan class="b">1.1%</tspan></text>
+<path class="edge " d="M200 102.7 H212 V121.8 H216"/>
+<text class="small" x="220" y="121.832">压缩摘要 <tspan class="b">2.1%</tspan></text>
+<path class="edge " d="M200 205.5 H216"/>
+<text class="small" x="220" y="205.544">聊天历史 <tspan class="b">86.6%</tspan></text>
+<text class="caps" x="372" y="30">MEMOH 改造前</text>
+<text class="small" x="372" y="50">抓到的一次请求 · 按字节</text>
+<rect class="window" x="372" y="66" width="176" height="248" rx="8"/>
+<g class="node blue"><rect x="380" y="74.0" width="160" height="23.8" rx="2"/></g>
+<g class="node orange"><rect x="380" y="98.8" width="160" height="48.4" rx="2"/></g>
+<g class="node plain"><rect x="380" y="148.2" width="160" height="156.8" rx="3"/></g>
+<rect x="390" y="158.2" width="96" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="390" y="173.2" width="120" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="458" y="188.2" width="72" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="390" y="203.2" width="108" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="390" y="218.2" width="84" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="434" y="233.2" width="96" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="390" y="248.2" width="120" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="390" y="263.2" width="72" height="7" rx="3.5" fill="var(--line)"/>
+<rect x="422" y="278.2" width="108" height="7" rx="3.5" fill="var(--line)"/>
+<path class="edge " d="M544 86.4 H560"/>
+<text class="small" x="564" y="86.412">system prompt <tspan class="b">10.7%</tspan></text>
+<path class="edge " d="M544 123.5 H560"/>
+<text class="small" x="564" y="123.532">工具 schema <tspan class="b">21.3%</tspan></text>
+<path class="edge " d="M544 227.1 H560"/>
+<text class="small" x="564" y="227.12">聊天历史 <tspan class="b">68%</tspan></text>
+<text class="small" x="564" y="245.12">压缩摘要 0%</text>
+</svg>
 ```
 
-这张表给所有自以为是的“架构优化”泼了一盆冷水：
+这张图给所有自以为是的“架构优化”泼了一盆冷水：
 很多人热衷于优化 Prompt 措辞、精简两句 system prompt，或者把工具名字改短几个字符——但哪怕你把工具 schema 优化到极致，它在真实请求里也仅仅占 1.1%。
 
 **整个系统的总成本，受控于一个极简的数学模型：**
@@ -313,12 +360,39 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
 
 这套严酷的推导，催生了我们最终的请求投影结构：
 
-```mermaid title="一次请求从前到后的四层" note="越靠前越不能动：上一层的任何一个字节变了，它后面的缓存全部失效。"
-flowchart TD
-  S["System Prompt<br/>协议、工具、冻结的贴纸目录：逐字节不变"] --> H["历史消息<br/>按时间只追加，不回写、不重排"]
-  H --> N["〔系统附注〕<br/>beforeRequest 投影，紧跟那一批输入，写下后不再改"]
-  N --> O["Assistant 输出<br/>成为下一次请求的前缀"]
-  O -. 下一轮从这里继续追加 .-> H
+```sketch title="前缀只追加，缓存才接得上" note="上：正确的投影，第 n+1 次请求完整包含第 n 次。下：把动态列表挂在结尾、下一轮换掉，前缀在换掉的地方断开。"
+<svg viewBox="0 0 704 332">
+<rect class="panel" x="0" y="0" width="704" height="332" rx="12"/>
+<text class="caps" x="24" y="30">只追加：每次请求都是下一次的前缀</text>
+<text class="small" x="24" y="69">第 n 次</text>
+<g class="node blue"><rect x="112" y="52" width="72" height="34" rx="4"/><text class="mid" x="148" y="69">system</text></g>
+<g class="node plain"><rect x="188" y="52" width="236" height="34" rx="4"/><text class="mid" x="306" y="69">历史消息</text></g>
+<g class="node violet"><rect x="428" y="52" width="60" height="34" rx="4"/><text class="mid" x="458" y="69">附注</text></g>
+<g class="node green"><rect x="492" y="52" width="64" height="34" rx="4"/><text class="mid" x="524" y="69">输出</text></g>
+<rect x="104" y="112" width="460" height="70" rx="8" fill="var(--clay-wash)"/>
+<text class="small" x="24" y="137">第 n+1 次</text>
+<g class="node blue"><rect x="112" y="120" width="72" height="34" rx="4"/><text class="mid" x="148" y="137">system</text></g>
+<g class="node plain"><rect x="188" y="120" width="236" height="34" rx="4"/><text class="mid" x="306" y="137">历史消息</text></g>
+<g class="node violet"><rect x="428" y="120" width="60" height="34" rx="4"/><text class="mid" x="458" y="137">附注</text></g>
+<g class="node green"><rect x="492" y="120" width="64" height="34" rx="4"/><text class="mid" x="524" y="137">输出</text></g>
+<g class="node plain"><rect x="568" y="120" width="64" height="34" rx="4"/><text class="mid" x="600" y="137">新消息</text></g>
+<g class="node violet"><rect x="636" y="120" width="44" height="34" rx="4"/><text class="mid" x="658" y="137">附注</text></g>
+<text class="small accent" x="112" y="170">与上一次逐字节相同：命中缓存，DeepSeek 上是 1/50 的价格</text>
+<text class="small mid" x="620" y="170">新增：全价</text>
+<path class="edge dash" d="M560 46 V188"/>
+<text class="caps" x="24" y="220">错误做法：每轮换掉结尾的动态列表</text>
+<text class="small" x="24" y="259">第 n+1 次</text>
+<g class="node blue"><rect x="112" y="242" width="72" height="34" rx="4"/><text class="mid" x="148" y="259">system</text></g>
+<g class="node plain"><rect x="188" y="242" width="236" height="34" rx="4"/><text class="mid" x="306" y="259">历史消息</text></g>
+<rect class="window" x="428" y="242" width="96" height="34" rx="4"/>
+<text class="small mid" x="476" y="259">上一轮的贴纸表</text>
+<circle cx="524" cy="242" r="7" fill="var(--card)" stroke="var(--clay)"/>
+<path class="edge hot" d="M521 239 527 245 M527 239 521 245"/>
+<g class="node plain"><rect x="528" y="242" width="64" height="34" rx="4"/><text class="mid" x="560" y="259">新消息</text></g>
+<g class="node orange"><rect x="596" y="242" width="84" height="34" rx="4"/><text class="mid" x="638" y="259">新贴纸表</text></g>
+<path class="edge hot" d="M426 234 V284"/>
+<text class="small accent" x="112" y="298">前缀从这里断开，后面的每个字节都按全价重读：实测每轮白白漏掉 13,600 token 的缓存</text>
+</svg>
 ```
 
 在一次真实的请求体中，它呈现为这种极其工整的韵律：
@@ -440,6 +514,46 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 现在的架构停泊在经受考验的平衡点上：
 **窗口收敛在 128K**，当上下文累积到 11 万 token 时触发底层 Pi 原生结构化压缩，稳定保留最近约 2 万 token 的原话。重度任务（检索、长程调研、代码调试）全部利用 `task` 剥离到独立的子会话中运转，只将凝练的成果带回群聊。主会话永远保持纯净——它只呈现“大家在聊什么”以及“我做了什么”，绝不沦为庞杂的调试日志。
 
+```sketch title="窗口开多大" note="对应用开发者来说 API 按 token 线性计价：窗口太小，压缩和冷缓存的开销压过省下的读取；太大，每一句闲聊都要读满一大段上下文。"
+<svg viewBox="0 0 704 262">
+<rect class="panel" x="0" y="0" width="704" height="262" rx="12"/>
+<text class="caps" x="24" y="30">窗口太小</text>
+<text class="caps mid" x="516" y="30">刚好</text>
+<text class="caps end" x="680" y="30">窗口太大</text>
+<rect x="25.0" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
+<rect x="63.6" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<rect x="102.2" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.73"/>
+<rect x="140.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.63"/>
+<rect x="179.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="217.9" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.41"/>
+<rect x="256.5" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.30"/>
+<rect x="295.1" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.31"/>
+<rect x="333.7" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.44"/>
+<rect x="372.3" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.58"/>
+<rect x="410.9" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.71"/>
+<rect x="449.5" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.84"/>
+<rect x="488.1" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.97"/>
+<rect x="526.6" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.71"/>
+<rect x="565.2" y="46" width="36.6" height="26" rx="2" fill="var(--green)" fill-opacity="0.31"/>
+<rect x="603.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="642.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<text class="small " x="28" y="86">16K</text>
+<text class="small mid" x="188" y="86">32K</text>
+<text class="small mid" x="352" y="86">64K</text>
+<text class="small mid" x="516" y="86">128K</text>
+<text class="small end" x="676" y="86">256K</text>
+<circle cx="119.9" cy="59.0" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge " d="M119.9 65.0 V110 H128.0 V120"/>
+<g class="node orange"><rect x="24" y="120" width="208" height="118" rx="6"/><text class="b" x="38" y="142">16K–48K</text><text class="small" x="38" y="170">每次只读一点，但压缩很勤</text><text class="small" x="38" y="192">每次压缩都全量读一遍再写摘要</text><text class="small" x="38" y="214">压完前缀作废，下一轮全价</text></g>
+<circle cx="516.0" cy="59.0" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge " d="M516.0 65.0 V110 H352.0 V120"/>
+<g class="node green"><rect x="248" y="120" width="208" height="118" rx="6"/><text class="b" x="262" y="142">128K（现在）</text><text class="small" x="262" y="170">11 万时压缩，保留约 2 万原话</text><text class="small" x="262" y="192">检索、调研交给子会话</text><text class="small" x="262" y="214">主会话只留聊天和做了什么</text></g>
+<circle cx="656.0" cy="59.0" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge " d="M656.0 65.0 V110 H576.0 V120"/>
+<g class="node orange"><rect x="472" y="120" width="208" height="118" rx="6"/><text class="b" x="486" y="142">256K</text><text class="small" x="486" y="170">几乎不用压缩</text><text class="small" x="486" y="192">但每次请求要读 13 万 token</text><text class="small" x="486" y="214">一句“哈哈确实”也一样</text></g>
+</svg>
+```
+
 ### 戳破幻象：为什么我们彻底放弃记忆系统
 
 谈及 Agent 的长期演进，人们总是沉迷于构建繁复的“记忆系统”：抽取实体、三元组图谱、更新/遗忘机制、向量化语义检索……
@@ -513,24 +627,48 @@ text({
 });
 ```
 
-把这一轮摊开来看，主模型只被调用了两次，中间所有的等待和搬运都发生在沙箱里：
+把两种做法摊开来对比，差别在于主模型被叫醒几次、每次要读什么：
 
-```mermaid title="codemode 的一轮" note="原始的搜索结果和群记录只进沙箱，回到主模型的是脚本切好的几百字。"
-sequenceDiagram
-  participant G as 群聊
-  participant M as 主模型
-  participant S as 沙箱
-  participant T as 搜索 / 群记录
-  M->>S: 一段脚本（第一次调用）
-  S->>G: send「我去翻一下，稍等」
-  par 并行
-    S->>T: search
-  and
-    S->>T: tg_messages
-  end
-  T-->>S: 原始结果，几万字节
-  S-->>M: 切好的几百字
-  M->>G: send 结论（第二次调用）
+```sketch title="同一个任务，两种跑法" note="左：传统 agent 循环，每个工具结果都回到主模型，再全量读一遍上下文。右：codemode，脚本在沙箱里先发消息、并行检索、切好结果，主模型只被叫醒两次。"
+<svg viewBox="0 0 704 452">
+<rect class="panel" x="0" y="0" width="342" height="452" rx="12"/>
+<rect class="panel" x="362" y="0" width="342" height="452" rx="12"/>
+<text class="caps" x="24" y="30">逐个调用工具</text>
+<text class="caps" x="386" y="30">CODEMODE</text>
+<g class="node "><rect x="60" y="56" width="222" height="46" rx="4"/><text class="mid b" x="171" y="71">主模型</text><text class="mid small" x="171" y="88">读 9.3 万 token</text></g>
+<circle class="glyph" cx="74" cy="76.0" r="2.4"/><circle class="glyph" cx="74" cy="82.0" r="2.4"/><circle class="glyph" cx="82" cy="73.0" r="2.4"/><circle class="glyph" cx="82" cy="79.0" r="2.4"/><circle class="glyph" cx="82" cy="85.0" r="2.4"/><circle class="glyph" cx="90" cy="76.0" r="2.4"/><circle class="glyph" cx="90" cy="82.0" r="2.4"/>
+<path class="edge " d="M171.0 104 V121" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="100" y="124" width="142" height="30" rx="4"/><text class="mid" x="171" y="139">search</text></g>
+<path class="edge " d="M171.0 156 V173" marker-end="url(#arrow)"/>
+<g class="node "><rect x="60" y="176" width="222" height="46" rx="4"/><text class="mid b" x="171" y="191">主模型</text><text class="mid small" x="171" y="208">再读 9.3 万 + 搜索结果</text></g>
+<circle class="glyph" cx="74" cy="196.0" r="2.4"/><circle class="glyph" cx="74" cy="202.0" r="2.4"/><circle class="glyph" cx="82" cy="193.0" r="2.4"/><circle class="glyph" cx="82" cy="199.0" r="2.4"/><circle class="glyph" cx="82" cy="205.0" r="2.4"/><circle class="glyph" cx="90" cy="196.0" r="2.4"/><circle class="glyph" cx="90" cy="202.0" r="2.4"/>
+<path class="edge " d="M171.0 224 V241" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="100" y="244" width="142" height="30" rx="4"/><text class="mid" x="171" y="259">fetch 网页</text></g>
+<path class="edge " d="M171.0 276 V293" marker-end="url(#arrow)"/>
+<g class="node "><rect x="60" y="296" width="222" height="46" rx="4"/><text class="mid b" x="171" y="311">主模型</text><text class="mid small" x="171" y="328">再读一遍 + 网页原文</text></g>
+<circle class="glyph" cx="74" cy="316.0" r="2.4"/><circle class="glyph" cx="74" cy="322.0" r="2.4"/><circle class="glyph" cx="82" cy="313.0" r="2.4"/><circle class="glyph" cx="82" cy="319.0" r="2.4"/><circle class="glyph" cx="82" cy="325.0" r="2.4"/><circle class="glyph" cx="90" cy="316.0" r="2.4"/><circle class="glyph" cx="90" cy="322.0" r="2.4"/>
+<path class="edge " d="M171.0 344 V361" marker-end="url(#arrow)"/>
+<g class="node green"><rect x="100" y="364" width="142" height="30" rx="4"/><text class="mid" x="171" y="379">send 回答</text></g>
+<text class="small mid accent" x="171" y="424">三次全价往返，原文留在上下文里</text>
+<g class="node "><rect x="398" y="56" width="270" height="46" rx="4"/><text class="mid b" x="533" y="71">主模型 · 第一次</text><text class="mid small" x="533" y="88">写一段脚本</text></g>
+<circle class="glyph" cx="412" cy="76" r="2.4"/><circle class="glyph" cx="412" cy="82" r="2.4"/><circle class="glyph" cx="420" cy="73" r="2.4"/><circle class="glyph" cx="420" cy="79" r="2.4"/><circle class="glyph" cx="420" cy="85" r="2.4"/><circle class="glyph" cx="428" cy="76" r="2.4"/><circle class="glyph" cx="428" cy="82" r="2.4"/>
+<path class="edge " d="M533.0 104 V128" marker-end="url(#arrow)"/>
+<rect class="window" x="384" y="132" width="298" height="196" rx="8"/>
+<text class="caps" x="394" y="148">沙箱里的脚本</text>
+<g class="node green"><rect x="398" y="162" width="270" height="30" rx="4"/><text class="mid" x="533" y="177">send「我去翻一下，稍等」</text></g>
+<path class="edge " d="M533.0 194 V204 H456 V214" marker-end="url(#arrow)"/>
+<path class="edge " d="M533.0 204 H610 V214" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="398" y="218" width="116" height="30" rx="4"/><text class="mid" x="456" y="233">search</text></g>
+<g class="node orange"><rect x="552" y="218" width="116" height="30" rx="4"/><text class="mid" x="610" y="233">tg_messages</text></g>
+<text class="small mid" x="533" y="233">并行</text>
+<path class="edge " d="M456 250 V260 H533.0 V276" marker-end="url(#arrow)"/>
+<path class="edge " d="M610 250 V260 H533.0"/>
+<g class="node plain"><rect x="398" y="280" width="270" height="34" rx="4"/><text class="mid" x="533" y="297">切成几百字</text></g>
+<path class="edge " d="M533.0 330 V352" marker-end="url(#arrow)"/>
+<g class="node "><rect x="398" y="356" width="270" height="46" rx="4"/><text class="mid b" x="533" y="371">主模型 · 第二次</text><text class="mid small" x="533" y="388">读切好的结果</text></g>
+<circle class="glyph" cx="412" cy="376" r="2.4"/><circle class="glyph" cx="412" cy="382" r="2.4"/><circle class="glyph" cx="420" cy="373" r="2.4"/><circle class="glyph" cx="420" cy="379" r="2.4"/><circle class="glyph" cx="420" cy="385" r="2.4"/><circle class="glyph" cx="428" cy="376" r="2.4"/><circle class="glyph" cx="428" cy="382" r="2.4"/>
+<text class="small mid accent" x="533" y="426">两次调用，原始结果只进沙箱</text>
+</svg>
 ```
 
 仔细品味这一小段脚本所蕴含的美学力量：
@@ -560,6 +698,32 @@ sequenceDiagram
 这一切神奇的体验，**我们没有为之专门编写过一行所谓的“插件代码”**。模型本身受过人类文明全部开源工具的洗礼，它天生精通 Shell；我们所要做的唯一体面之事，不是充当保姆给它造轮子，而是划定安全边界，给它提供一个干净、隔离、随时待命的通用执行环境。
 
 在这个纯净的容器边界上，我们构筑了严密的安全防线：
+
+```sketch title="一台完整的 Linux，装在几层边界里" note="bot 守护进程和容器分属不同的系统用户；容器里没有任何密钥，模型请求和发往群里的文件都经守护进程转手。"
+<svg viewBox="0 0 704 344">
+<rect class="panel" x="0" y="0" width="704" height="344" rx="12"/>
+<text class="caps" x="24" y="30">宿主机</text>
+<g class="node "><rect x="24" y="104" width="160" height="64" rx="4"/><text class="mid b" x="104" y="128">bot 守护进程</text><text class="mid small" x="104" y="145">密钥和 token 在这里</text></g>
+<g class="node clay"><rect x="24" y="250" width="160" height="40" rx="20"/><text class="mid" x="104" y="270">模型 API</text></g>
+<path class="edge " d="M104 170 V246" marker-end="url(#arrow)"/>
+<text class="small" x="112" y="208">代为请求</text>
+<rect class="window" x="236" y="48" width="444" height="276" rx="10"/>
+<text class="caps" x="252" y="68">系统用户 tgbox · rootless Docker</text>
+<g class="node plain"><rect x="256" y="84" width="404" height="206" rx="8"/></g>
+<text class="caps" x="272" y="104">容器 · uid 1000</text>
+<g class="node "><rect x="272" y="120" width="120" height="28" rx="3"/><text class="mid small" x="332" y="134">只读根文件系统</text></g>
+<g class="node "><rect x="398" y="120" width="124" height="28" rx="3"/><text class="mid small" x="460" y="134">cap-drop ALL</text></g>
+<g class="node "><rect x="528" y="120" width="116" height="28" rx="3"/><text class="mid small" x="586" y="134">no-new-privileges</text></g>
+<g class="node "><rect x="272" y="156" width="186" height="28" rx="3"/><text class="mid small" x="365" y="170">内存、CPU、进程数上限</text></g>
+<g class="node "><rect x="464" y="156" width="180" height="28" rx="3"/><text class="mid small" x="554" y="170">/tmp：256 MB tmpfs</text></g>
+<g class="node green"><rect x="272" y="202" width="372" height="72" rx="6"/><text class="mid b" x="458" y="230">/work</text><text class="mid small" x="458" y="247">唯一可写、会保留的目录 · 每周一 05:00 清空</text></g>
+<path class="edge " d="M186 122 H252" marker-end="url(#arrow)"/>
+<text class="small mid" x="219" y="108">bash</text>
+<path class="edge " d="M252 150 H188" marker-end="url(#arrow)"/>
+<text class="small mid" x="219" y="166">send.files</text>
+<text class="small" x="256" y="308">网络可以一键关断；发出的文件先解析真实路径，符号链接逃不出去</text>
+</svg>
+```
 
 | 边界维度       | 架构实现                                                                       |
 | :------------- | :----------------------------------------------------------------------------- |
