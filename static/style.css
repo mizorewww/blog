@@ -286,7 +286,7 @@ mark{background:var(--sel);color:inherit}
 .colophon summary:hover{color:var(--ink)}
 .colophon ol{list-style:none;margin:10px 0 4px;padding:0 0 0 14px;border-left:1px solid var(--line)}
 .colophon li+li{margin-top:6px}
-.colophon li a{display:flex;flex-wrap:wrap;gap:0 10px;color:var(--muted)}
+.colophon li a{display:grid;grid-template-columns:auto auto minmax(0,1fr);align-items:baseline;gap:0 10px;color:var(--muted)}
 .colophon code,.colophon time{font-family:var(--mono);font-size:11px}
 .colophon code{color:var(--green)}
 .progress{position:fixed;inset:0 0 auto;z-index:5;height:2px;background:var(--green);transform:scaleX(0);transform-origin:0 50%;pointer-events:none}
@@ -356,6 +356,8 @@ main::after{bottom:0}
 .to-top{right:14px;bottom:14px}
 .colophon dl>div{grid-template-columns:1fr;gap:0}
 .colophon dt{line-height:1.8}
+.colophon li a{grid-template-columns:auto minmax(0,1fr)}
+.colophon li span{grid-column:1/-1}
 .site-footer{padding:20px}
 .toc-mobile{padding:16px 20px}
 .article-meta{gap:6px 14px;font-size:11px}
