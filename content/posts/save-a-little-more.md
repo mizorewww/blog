@@ -397,7 +397,7 @@ flowchart TD
 正是这个坚决的截断，让三个月的平均每轮调用数被死死锁在 **1.13 次**。多出来的 0.13 次，仅仅用于处理被点名却忘了 `send` 时的单次自我纠偏。
 
 面对网络超时的未知状态，很多工程师习惯无脑重试。但在 Telegram 这一端，发送消息是一个不可逆的非幂等行为。一旦消息已在服务端生成而本地超时，重试就会导致群里出现两条一模一样的弱智复读。
-我们的工程准则极其决绝：**只有在确定性的 4xx 错误且未提交任何负载时才允许重试；其余一切网络未知，一律标记为 `no_retry`，就地休工。** 宁可在极端网络震荡下偶尔遗漏一句，也绝不在众人注视的群聊里丢掉体面。
+我们的工程准则极其决绝：**只有在确定性的 4xx 错误且未提交任何负载时才允许重试；其余一切网络未知，一律标记为 `no_retry`，就地休工。** 。
 
 ```sketch title="发送失败时，只有一种情况可以重试" note="只有确定的 4xx 错误、并且消息还没交出去时才重试；其余情况一律不重试。"
 <svg viewBox="0 0 704 216">
@@ -432,7 +432,7 @@ flowchart TD
 
 ---
 
-## 剥开第二层：拉满缓存命中率 $h$ —— 前缀是神圣不可侵犯的物理定则
+## 剥开第二层：拉满缓存命中率 $h$ 
 
 如果说压减调用量是第一道防线，那么 Prompt Caching（提示词缓存）就是决定生死的核心杠杆。
 
@@ -457,8 +457,6 @@ flowchart TD
 ```
 
 从 85% 到 98.7%，看起来只是百分比上微不足道的十几个点，但费用相差了整整 **5 倍**；而与无缓存的裸奔相比，差距是惊人的 **30 倍**！
-
-要说清楚的是，98.7% 是 DeepSeek 官方 API 上的实测。同一套只追加的前缀，换到别的服务商那里，命中率并不一样——前缀稳定只是命中的前提，剩下的取决于服务商怎么实现缓存：
 
 ```echarts title="同一套前缀，在不同服务商上的缓存命中率" height="240" note="命中率 = 缓存读取 token ÷ 输入 token，不含压缩调用，截至 11 月 1 日的本地快照。DeepSeek 官方 API 3,415 次（8 月 7 日至 10 日），Devin 上的 SWE-2 19,494 次，Antigravity 上的 Gemini Flash 22,274 次。经 ollama-cloud 调用的 DeepSeek（15,668 次）不上报缓存读取，不在图中。"
 {
@@ -703,75 +701,6 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
 
 甚至连迟来的视觉分析，也严格遵守这套美学：
 群友刚发图时，消息行只有一个轻量的占位符 `[图片]`；几秒后异步视觉模型解析出了画面内容，系统**绝不回头去改写旧消息**，而是在当前最新的输入流里追加一行不可变的增量事件：`[media_update #id] [图片: 一只躺在键盘上的三花猫]`。
-
-### 让测试守护字节的尊严
-
-在敏捷开发和重构中，只靠程序员的克制是守不住前缀的。
-某个人“顺手”微调了一下报错格式，或者给某句提示词末尾加了一个换行符，编译完全正常，逻辑完全正确，但在线上，数万 token 的缓存命中率瞬间跌入深渊——系统没有任何报错，唯一的警报是你下个月飙升的云账单。
-
-在我们的体系里，`test/cache.test.ts` 承担着神圣的守卫职责。
-它不测试业务逻辑的琐碎细节，而是对所有进入模型前缀的组件执行 **Golden Hash 校验**：
-
-- System Prompt 模版哈希；
-- 工具 Definitions 与参数 Schema 序列化哈希；
-- Codemode 声明段哈希；
-- 消息行与元数据的序列化 Grammar 哈希。
-
-```sketch title="测试守着每一个进入前缀的字节" note="哈希取自 test/cache.test.ts 的 GOLDEN 表（schemaVersion 55），只列出其中五段。"
-<svg viewBox="0 0 704 360">
-<rect class="panel" x="0" y="0" width="704" height="360" rx="12"/>
-<text class="caps" x="24" y="30">进入前缀的每一段，都有一个钉死的哈希</text>
-<g class="node blue"><rect x="24" y="46" width="132" height="30" rx="4"/><text class="mid mono" x="90" y="61">systemZhTemplate</text></g>
-<text class="mid mono mute" x="90" y="92">50ffcdb70e57</text>
-<g class="node blue"><rect x="160" y="46" width="152" height="30" rx="4"/><text class="mid mono" x="236" y="61">systemSandboxTemplate</text></g>
-<text class="mid mono mute" x="236" y="92">96efc7945c60</text>
-<g class="node orange"><rect x="316" y="46" width="100" height="30" rx="4"/><text class="mid mono" x="366" y="61">tools</text></g>
-<text class="mid mono mute" x="366" y="92">307b029162a6</text>
-<g class="node orange"><rect x="420" y="46" width="124" height="30" rx="4"/><text class="mid mono" x="482" y="61">codemodeTools</text></g>
-<text class="mid mono mute" x="482" y="92">99718d49e271</text>
-<g class="node violet"><rect x="548" y="46" width="124" height="30" rx="4"/><text class="mid mono" x="610" y="61">eventSerialize</text></g>
-<text class="mid mono mute" x="610" y="92">a05c0584eb08</text>
-<path class="edge " d="M24 106 V114 H676 V106"/>
-<path class="edge " d="M352 114 V140" marker-end="url(#arrow)"/>
-<g class="node "><rect x="196" y="144" width="312" height="46" rx="4"/><text class="mid b" x="352" y="159">test/cache.test.ts</text><text class="mid small" x="352" y="176">逐段比对，schemaVersion = 55</text></g>
-<text class="small accent" x="24" y="167">顺手改了一个空格、</text>
-<text class="small accent" x="24" y="183">一个换行、一个字段顺序</text>
-<path class="edge hot" d="M150 175 H192" marker-end="url(#arrow)"/>
-<path class="edge " d="M352 192 V214" marker-end="url(#arrow)"/>
-<g class="node clay"><rect x="232" y="218" width="240" height="34" rx="4"/><text class="mid" x="352" y="235">哈希对不上：测试变红</text></g>
-<path class="edge " d="M300 254 V266 H168 V282" marker-end="url(#arrow)"/>
-<path class="edge " d="M404 254 V266 H536 V282" marker-end="url(#arrow)"/>
-<g class="node plain"><rect x="48" y="286" width="240" height="50" rx="4"/><text class="mid b" x="168" y="303">改回去</text><text class="mid small" x="168" y="320">承认是无意识的破坏</text></g>
-<g class="node teal"><rect x="416" y="286" width="240" height="50" rx="4"/><text class="mid b" x="536" y="303">确实要改协议</text><text class="mid small" x="536" y="320">递增 CACHE_SCHEMA_VERSION，刷新基线</text></g>
-</svg>
-<svg viewBox="0 0 340 452">
-<rect class="panel" x="0" y="0" width="340" height="452" rx="12"/>
-<text class="caps" x="16" y="26">前缀的每一段都有哈希</text>
-<g class="node blue"><rect x="16" y="40" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="54">systemZhTemplate</text></g>
-<text class="mono mute" x="200" y="54">50ffcdb70e57</text>
-<g class="node blue"><rect x="16" y="74" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="88">systemSandboxTemplate</text></g>
-<text class="mono mute" x="200" y="88">96efc7945c60</text>
-<g class="node orange"><rect x="16" y="108" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="122">tools</text></g>
-<text class="mono mute" x="200" y="122">307b029162a6</text>
-<g class="node orange"><rect x="16" y="142" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="156">codemodeTools</text></g>
-<text class="mono mute" x="200" y="156">99718d49e271</text>
-<g class="node violet"><rect x="16" y="176" width="172" height="28" rx="4"/><text class="mid mono" x="102" y="190">eventSerialize</text></g>
-<text class="mono mute" x="200" y="190">a05c0584eb08</text>
-<path class="edge " d="M170 210 V228" marker-end="url(#arrow)"/>
-<g class="node "><rect x="16" y="232" width="308" height="46" rx="4"/><text class="mid b" x="170" y="247">test/cache.test.ts</text><text class="mid small" x="170" y="264">逐段比对，schemaVersion = 55</text></g>
-<text class="small accent" x="16" y="298">顺手改了一个空格、一个换行：</text>
-<path class="edge hot" d="M170 308 V322" marker-end="url(#arrow)"/>
-<g class="node clay"><rect x="16" y="326" width="308" height="34" rx="4"/><text class="mid" x="170" y="343">哈希对不上：测试变红</text></g>
-<path class="edge " d="M90 362 V380" marker-end="url(#arrow)"/>
-<path class="edge " d="M250 362 V380" marker-end="url(#arrow)"/>
-<g class="node plain"><rect x="16" y="384" width="146" height="50" rx="4"/><text class="mid b" x="89" y="401">改回去</text><text class="mid small" x="89" y="418">无意识的破坏</text></g>
-<g class="node teal"><rect x="178" y="384" width="146" height="50" rx="4"/><text class="mid b" x="251" y="401">确实要改协议</text><text class="mid small" x="251" y="418">递增版本，刷新基线</text></g>
-</svg>
-```
-
-任何一个空格的偏移、字段顺序的微调，都会引发红屏。重构者面前只有两条路：要么把代码改回去，承认这是无意识的破坏；要么明确这是一次深思熟虑的协议升级，显式递增 `CACHE_SCHEMA_VERSION`（目前已历经 55 代洗礼），并主动刷新基线。
-
-**这个测试守护的不是功能，它守护的是系统的物理守恒与真金白银。**
 
 ---
 
@@ -1392,7 +1321,7 @@ text({
 | 维度         | Pi Telegram Agent (本项目)                         | 塑料碗 (tuuject/surowan)                                 |
 | :----------- | :------------------------------------------------- | :------------------------------------------------------- |
 | **目标受众** | 专为我们自己的固定圈子深度定制                     | 面向任何想自行部署的外部用户（BYOK）                     |
-| **作用域**   | 专注于单一 Supergroup 的高频涌现                   | 覆盖私聊、频道、论坛 Topic，依赖精细白名单               |
+| **作用域**   | 专注于单一 Supergroup 的高频涌现                   | 多个group                                                |
 | **角色模型** | 一次部署对应一个高度聚焦的数字人格                 | 单部署支持随 Chat 动态切换人设与模型矩阵                 |
 | **发言决断** | 点名必回；闲聊交由**独立的小分类模型只读切片**裁决 | Bucket 桶聚合后交由**主模型**全量裁决，辅以时间/概率闸门 |
 | **遗忘机制** | 依赖 Pi 底层的结构化保留压缩（128K 窗口）          | **纯 Checkpoint 滑动截断（只删不压）**                   |
