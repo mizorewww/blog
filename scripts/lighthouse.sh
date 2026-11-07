@@ -11,6 +11,8 @@ min=${MIN_SCORE:-97}
 runs=${RUNS:-3}
 out=${OUT:-$(mktemp -d)}
 mkdir -p "$out"
+# node require()s each report: a relative path would be read as a package name.
+out=$(cd "$out" && pwd)
 paths="/ /search/ $(grep -o '<loc>[^<]*/posts/[^<]*</loc>' public/sitemap.xml | sed 's#<loc>[a-z]*://[^/]*##; s#</loc>##')"
 failed=0
 for path in $paths; do
