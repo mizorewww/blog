@@ -1,14 +1,16 @@
 #!/bin/sh
 # Lighthouse performance (mobile, simulated) for the home page, search and
 # every post of a running preview; exits non-zero when one scores below
-# MIN_SCORE. Each page's score is the median of RUNS runs, since single
+# MIN_SCORE. The JSON reports go to $OUT (a temporary directory by default).
+# Each page's score is the median of RUNS runs, since single
 # runs on a cold or shared machine swing by tens of points. Usage: go run ./src -url http://localhost:8080 -serve localhost:8080 &
 #                   sh scripts/lighthouse.sh http://localhost:8080
 set -eu
 base=${1:-http://localhost:8080}
 min=${MIN_SCORE:-97}
 runs=${RUNS:-3}
-out=$(mktemp -d)
+out=${OUT:-$(mktemp -d)}
+mkdir -p "$out"
 paths="/ /search/ $(grep -o '<loc>[^<]*/posts/[^<]*</loc>' public/sitemap.xml | sed 's#<loc>[a-z]*://[^/]*##; s#</loc>##')"
 failed=0
 for path in $paths; do

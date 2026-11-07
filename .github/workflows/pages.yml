@@ -132,4 +132,13 @@ jobs:
           go build -o blog ./src
           ./blog -url http://localhost:8080 -serve localhost:8080 &
           for i in $(seq 30); do curl -sf http://localhost:8080/ >/dev/null && break; sleep 1; done
-          sh scripts/lighthouse.sh http://localhost:8080
+          OUT=lighthouse sh scripts/lighthouse.sh http://localhost:8080
+
+      # Layout shifts that only the runner sees can be traced from these.
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse
+          path: lighthouse
+          retention-days: 14
