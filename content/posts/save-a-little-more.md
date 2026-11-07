@@ -65,7 +65,7 @@
 
 那么，这数百亿的 token 到底在读什么？我们抽样分析了四万多次真实请求的切片，并与我之前改造 [Memoh](/posts/making-memoh-cheaper-on-telegram/) 时的单次请求放在一起对照：
 
-```sketch title="一次请求里都装了什么" note="左：40,593 次请求的平均值，平均每次 93,067 token；右：Memoh 改造前抓的一次请求，按字节计。虚线框是一次请求的全部输入，高度按比例。"
+```sketch title="一次请求里都装了什么" note="本项目：40,593 次请求的平均值，平均每次 93,067 token；Memoh 改造前：抓到的一次请求，按字节计。虚线框是一次请求的全部输入，高度按比例。"
 <svg viewBox="0 0 704 336">
 <rect class="panel" x="0" y="0" width="704" height="336" rx="12"/>
 <text class="caps" x="28" y="30">本项目</text>
@@ -335,10 +335,100 @@ flowchart TD
 1. **私密思考，显式发言：** 模型的原生 Assistant 文本永远留在控制台内，**唯有显式调用 `send` 工具，消息才会穿透到群聊**。模型读完上下文后选择不发，本轮便无声终结。
 2. **终端原语截断（Terminal Send）：** 一旦单条 `send` 投递成功，底层直接调用 Pi 原生的 terminate 机制，**强行截断循环，拒绝再次返回模型**。
 
+```sketch title="发完就结束，不回头汇报" note="通用 agent 把发送结果交回模型，模型再全量读一遍上下文，只为汇报一句“发好了”。本项目里 send 成功就由 Pi 的 terminate 结束这一轮；模型不调用 send 时，它写的文本只留在控制台。"
+<svg viewBox="0 0 704 404">
+<rect class="panel" x="0" y="0" width="342" height="404" rx="12"/>
+<text class="caps" x="24" y="28">通用 agent 循环</text>
+<g class="node "><rect x="51" y="48" width="240" height="46" rx="4"/><text class="mid b" x="171" y="63">主模型</text><text class="mid small" x="171" y="80">读 9.3 万 token</text></g>
+<circle class="glyph" cx="65" cy="68" r="2.4"/><circle class="glyph" cx="65" cy="74" r="2.4"/><circle class="glyph" cx="73" cy="65" r="2.4"/><circle class="glyph" cx="73" cy="71" r="2.4"/><circle class="glyph" cx="73" cy="77" r="2.4"/><circle class="glyph" cx="81" cy="68" r="2.4"/><circle class="glyph" cx="81" cy="74" r="2.4"/>
+<path class="edge " d="M171 96 V118" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="81" y="122" width="180" height="30" rx="4"/><text class="mid" x="171" y="137">send</text></g>
+<path class="edge " d="M171 154 V176" marker-end="url(#arrow)"/>
+<g class="node plain"><rect x="81" y="180" width="180" height="30" rx="4"/><text class="mid small" x="171" y="195">tool result：发送成功</text></g>
+<path class="edge " d="M171 212 V234" marker-end="url(#arrow)"/>
+<g class="node "><rect x="51" y="238" width="240" height="46" rx="4"/><text class="mid b" x="171" y="253">主模型</text><text class="mid small" x="171" y="270">再读 9.3 万 + 结果</text></g>
+<circle class="glyph" cx="65" cy="258" r="2.4"/><circle class="glyph" cx="65" cy="264" r="2.4"/><circle class="glyph" cx="73" cy="255" r="2.4"/><circle class="glyph" cx="73" cy="261" r="2.4"/><circle class="glyph" cx="73" cy="267" r="2.4"/><circle class="glyph" cx="81" cy="258" r="2.4"/><circle class="glyph" cx="81" cy="264" r="2.4"/>
+<path class="edge " d="M171 286 V308" marker-end="url(#arrow)"/>
+<g class="node clay"><rect x="51" y="312" width="240" height="30" rx="4"/><text class="mid small" x="171" y="327">“我已经把消息发出去啦！”</text></g>
+<text class="small mid accent" x="171" y="372">多一轮全价调用，群里多一句废话</text>
+<rect class="panel" x="362" y="0" width="342" height="404" rx="12"/>
+<text class="caps" x="386" y="28">本项目</text>
+<g class="node "><rect x="413" y="48" width="240" height="46" rx="4"/><text class="mid b" x="533" y="63">主模型</text><text class="mid small" x="533" y="80">读 9.3 万 token</text></g>
+<circle class="glyph" cx="427" cy="68" r="2.4"/><circle class="glyph" cx="427" cy="74" r="2.4"/><circle class="glyph" cx="435" cy="65" r="2.4"/><circle class="glyph" cx="435" cy="71" r="2.4"/><circle class="glyph" cx="435" cy="77" r="2.4"/><circle class="glyph" cx="443" cy="68" r="2.4"/><circle class="glyph" cx="443" cy="74" r="2.4"/>
+<path class="edge " d="M533 96 V118" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="443" y="122" width="180" height="30" rx="4"/><text class="mid" x="533" y="137">send</text></g>
+<path class="edge " d="M533 154 V176" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="413" y="180" width="240" height="46" rx="4"/><text class="mid b" x="533" y="195">terminate</text><text class="mid small" x="533" y="212">send 成功，这一轮到此为止</text></g>
+<text class="small mid" x="533" y="262">不调用 send 时：</text>
+<text class="small mid" x="533" y="280">assistant 文本只留在控制台，</text>
+<text class="small mid" x="533" y="298">这一轮无声结束</text>
+<text class="small mid accent" x="533" y="372">平均每轮 1.13 次调用</text>
+</svg>
+<svg viewBox="0 0 340 824">
+<rect class="panel" x="0" y="0" width="340" height="404" rx="12"/>
+<text class="caps" x="24" y="28">通用 agent 循环</text>
+<g class="node "><rect x="50" y="48" width="240" height="46" rx="4"/><text class="mid b" x="170" y="63">主模型</text><text class="mid small" x="170" y="80">读 9.3 万 token</text></g>
+<circle class="glyph" cx="64" cy="68" r="2.4"/><circle class="glyph" cx="64" cy="74" r="2.4"/><circle class="glyph" cx="72" cy="65" r="2.4"/><circle class="glyph" cx="72" cy="71" r="2.4"/><circle class="glyph" cx="72" cy="77" r="2.4"/><circle class="glyph" cx="80" cy="68" r="2.4"/><circle class="glyph" cx="80" cy="74" r="2.4"/>
+<path class="edge " d="M170 96 V118" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="80" y="122" width="180" height="30" rx="4"/><text class="mid" x="170" y="137">send</text></g>
+<path class="edge " d="M170 154 V176" marker-end="url(#arrow)"/>
+<g class="node plain"><rect x="80" y="180" width="180" height="30" rx="4"/><text class="mid small" x="170" y="195">tool result：发送成功</text></g>
+<path class="edge " d="M170 212 V234" marker-end="url(#arrow)"/>
+<g class="node "><rect x="50" y="238" width="240" height="46" rx="4"/><text class="mid b" x="170" y="253">主模型</text><text class="mid small" x="170" y="270">再读 9.3 万 + 结果</text></g>
+<circle class="glyph" cx="64" cy="258" r="2.4"/><circle class="glyph" cx="64" cy="264" r="2.4"/><circle class="glyph" cx="72" cy="255" r="2.4"/><circle class="glyph" cx="72" cy="261" r="2.4"/><circle class="glyph" cx="72" cy="267" r="2.4"/><circle class="glyph" cx="80" cy="258" r="2.4"/><circle class="glyph" cx="80" cy="264" r="2.4"/>
+<path class="edge " d="M170 286 V308" marker-end="url(#arrow)"/>
+<g class="node clay"><rect x="50" y="312" width="240" height="30" rx="4"/><text class="mid small" x="170" y="327">“我已经把消息发出去啦！”</text></g>
+<text class="small mid accent" x="170" y="372">多一轮全价调用，群里多一句废话</text>
+<rect class="panel" x="0" y="420" width="340" height="404" rx="12"/>
+<text class="caps" x="24" y="448">本项目</text>
+<g class="node "><rect x="50" y="468" width="240" height="46" rx="4"/><text class="mid b" x="170" y="483">主模型</text><text class="mid small" x="170" y="500">读 9.3 万 token</text></g>
+<circle class="glyph" cx="64" cy="488" r="2.4"/><circle class="glyph" cx="64" cy="494" r="2.4"/><circle class="glyph" cx="72" cy="485" r="2.4"/><circle class="glyph" cx="72" cy="491" r="2.4"/><circle class="glyph" cx="72" cy="497" r="2.4"/><circle class="glyph" cx="80" cy="488" r="2.4"/><circle class="glyph" cx="80" cy="494" r="2.4"/>
+<path class="edge " d="M170 516 V538" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="80" y="542" width="180" height="30" rx="4"/><text class="mid" x="170" y="557">send</text></g>
+<path class="edge " d="M170 574 V596" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="50" y="600" width="240" height="46" rx="4"/><text class="mid b" x="170" y="615">terminate</text><text class="mid small" x="170" y="632">send 成功，这一轮到此为止</text></g>
+<text class="small mid" x="170" y="682">不调用 send 时：</text>
+<text class="small mid" x="170" y="700">assistant 文本只留在控制台，</text>
+<text class="small mid" x="170" y="718">这一轮无声结束</text>
+<text class="small mid accent" x="170" y="792">平均每轮 1.13 次调用</text>
+</svg>
+```
+
 正是这个坚决的截断，让三个月的平均每轮调用数被死死锁在 **1.13 次**。多出来的 0.13 次，仅仅用于处理被点名却忘了 `send` 时的单次自我纠偏。
 
 面对网络超时的未知状态，很多工程师习惯无脑重试。但在 Telegram 这一端，发送消息是一个不可逆的非幂等行为。一旦消息已在服务端生成而本地超时，重试就会导致群里出现两条一模一样的弱智复读。
 我们的工程准则极其决绝：**只有在确定性的 4xx 错误且未提交任何负载时才允许重试；其余一切网络未知，一律标记为 `no_retry`，就地休工。** 宁可在极端网络震荡下偶尔遗漏一句，也绝不在众人注视的群聊里丢掉体面。
+
+```sketch title="发送失败时，只有一种情况可以重试" note="只有确定的 4xx 错误、并且消息还没交出去时才重试；其余情况一律不重试。"
+<svg viewBox="0 0 704 216">
+<rect class="panel" x="0" y="0" width="704" height="216" rx="12"/>
+<g class="node clay"><rect x="24" y="74" width="120" height="40" rx="20"/><text class="mid" x="84" y="94">send 失败</text></g>
+<path class="edge " d="M146 94 H178" marker-end="url(#arrow)"/>
+<g class="node "><rect x="182" y="64" width="220" height="60" rx="4"/><text class="mid b" x="292" y="86">确定是 4xx</text><text class="mid small" x="292" y="103">而且负载还没提交出去？</text></g>
+<path class="edge " d="M404 84 H432 V52 H452" marker-end="url(#arrow)"/>
+<text class="small mid" x="418" y="70">是</text>
+<path class="edge " d="M404 104 H432 V140 H452" marker-end="url(#arrow)"/>
+<text class="small mid" x="418" y="118">否</text>
+<g class="node teal"><rect x="456" y="32" width="224" height="40" rx="4"/><text class="mid" x="568" y="52">重试</text></g>
+<g class="node plain"><rect x="456" y="118" width="224" height="46" rx="4"/><text class="mid b" x="568" y="133">标记 no_retry，就地休工</text><text class="mid small" x="568" y="150">超时和一切网络未知都算这里</text></g>
+<text class="small accent" x="24" y="194">发消息不可逆：服务端可能已经发出、只是本地超时，这时重试就是在群里复读一遍。</text>
+</svg>
+<svg viewBox="0 0 340 352">
+<rect class="panel" x="0" y="0" width="340" height="352" rx="12"/>
+<g class="node clay"><rect x="110" y="20" width="120" height="40" rx="20"/><text class="mid" x="170" y="40">send 失败</text></g>
+<path class="edge " d="M170 62 V84" marker-end="url(#arrow)"/>
+<g class="node "><rect x="40" y="88" width="260" height="60" rx="4"/><text class="mid b" x="170" y="110">确定是 4xx</text><text class="mid small" x="170" y="127">而且负载还没提交出去？</text></g>
+<path class="edge " d="M120 150 V190" marker-end="url(#arrow)"/>
+<text class="small" x="128" y="172">是</text>
+<path class="edge " d="M220 150 V190" marker-end="url(#arrow)"/>
+<text class="small" x="228" y="172">否</text>
+<g class="node teal"><rect x="16" y="194" width="140" height="40" rx="4"/><text class="mid" x="86" y="214">重试</text></g>
+<g class="node plain"><rect x="164" y="194" width="160" height="62" rx="4"/><text class="mid b" x="244" y="217">no_retry，就地休工</text><text class="mid small" x="244" y="234">超时、网络未知</text></g>
+<text class="small accent" x="16" y="296">发消息不可逆：服务端可能已经发出、</text>
+<text class="small accent" x="16" y="314">只是本地超时，这时重试就是在群里</text>
+<text class="small accent" x="16" y="332">复读一遍。宁可偶尔漏一句。</text>
+</svg>
+```
 
 ---
 
@@ -875,6 +965,61 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 
 群里过去一年的每一条消息，原汁原味地躺在本地 SQLite 里，并附建有高性能 Trigram 倒排索引。当模型察觉到群友聊起“上次那个谁说的事情”或者看不懂的黑话梗时，它被赋予了一个强大的结构化工具 `tg_messages`。它能够按昵称历史、更名轨迹、发言人 ID、上下文回复树以及时间区间去查询**真正未经篡改的现场原话**。
 
+```sketch title="不建记忆层，只留原话" note="常见的记忆系统每一轮都要抽取、建图、更新、写摘要；本项目不加工，原文按需检索，tg_messages 按昵称历史、更名轨迹、发言人、回复树和时间区间查询。"
+<svg viewBox="0 0 704 404">
+<rect class="panel" x="0" y="0" width="342" height="404" rx="12"/>
+<text class="caps" x="24" y="28">记忆系统：每一轮都在加工</text>
+<g class="node plain"><rect x="32" y="48" width="278" height="32" rx="4"/><text class="mid" x="171" y="64">对话原文</text></g>
+<path class="edge " d="M171 82 V98" marker-end="url(#arrow)"/>
+<g class="node "><rect x="32" y="102" width="278" height="32" rx="4"/><text class="mid" x="171" y="118">抽取实体和原子事实</text></g>
+<path class="edge " d="M171 136 V152" marker-end="url(#arrow)"/>
+<g class="node "><rect x="32" y="156" width="278" height="32" rx="4"/><text class="mid" x="171" y="172">建图谱、更新、遗忘</text></g>
+<path class="edge " d="M171 190 V206" marker-end="url(#arrow)"/>
+<g class="node violet"><rect x="32" y="210" width="278" height="32" rx="4"/><text class="mid" x="171" y="226">写成摘要</text></g>
+<path class="edge " d="M171 244 V260" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="32" y="264" width="278" height="32" rx="4"/><text class="mid" x="171" y="280">注入下一轮上下文</text></g>
+<text class="small mid accent" x="171" y="340">每一轮都要花 token 去加工；</text>
+<text class="small mid accent" x="171" y="358">加工错了，下一次压缩会把它当事实留下</text>
+<rect class="panel" x="362" y="0" width="342" height="404" rx="12"/>
+<text class="caps" x="386" y="28">本项目：只留原话</text>
+<g class="node plain"><rect x="394" y="48" width="278" height="32" rx="4"/><text class="mid" x="533" y="64">群里的每一条消息</text></g>
+<path class="edge " d="M533 82 V98" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="394" y="102" width="278" height="46" rx="4"/><text class="mid b" x="533" y="117">SQLite 原文</text><text class="mid small" x="533" y="134">附 Trigram 倒排索引，不改一个字</text></g>
+<path class="edge dash" d="M533 214 V150" marker-end="url(#arrow)"/>
+<text class="small" x="541" y="182">群友追问时才查</text>
+<g class="node orange"><rect x="394" y="218" width="278" height="64" rx="4"/><text class="mid b" x="533" y="242">tg_messages</text><text class="mid small" x="533" y="259">昵称历史 · 更名 · 发言人 · 回复树 · 时间</text></g>
+<path class="edge " d="M533 284 V300" marker-end="url(#arrow)"/>
+<g class="node "><rect x="394" y="304" width="278" height="32" rx="4"/><text class="mid" x="533" y="320">主模型读到现场原话</text></g>
+<text class="small mid accent" x="533" y="358">平时一个 token 都不花在“记忆”上</text>
+</svg>
+<svg viewBox="0 0 340 824">
+<rect class="panel" x="0" y="0" width="340" height="404" rx="12"/>
+<text class="caps" x="24" y="28">记忆系统：每一轮都在加工</text>
+<g class="node plain"><rect x="32" y="48" width="276" height="32" rx="4"/><text class="mid" x="170" y="64">对话原文</text></g>
+<path class="edge " d="M170 82 V98" marker-end="url(#arrow)"/>
+<g class="node "><rect x="32" y="102" width="276" height="32" rx="4"/><text class="mid" x="170" y="118">抽取实体和原子事实</text></g>
+<path class="edge " d="M170 136 V152" marker-end="url(#arrow)"/>
+<g class="node "><rect x="32" y="156" width="276" height="32" rx="4"/><text class="mid" x="170" y="172">建图谱、更新、遗忘</text></g>
+<path class="edge " d="M170 190 V206" marker-end="url(#arrow)"/>
+<g class="node violet"><rect x="32" y="210" width="276" height="32" rx="4"/><text class="mid" x="170" y="226">写成摘要</text></g>
+<path class="edge " d="M170 244 V260" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="32" y="264" width="276" height="32" rx="4"/><text class="mid" x="170" y="280">注入下一轮上下文</text></g>
+<text class="small mid accent" x="170" y="340">每一轮都要花 token 去加工；</text>
+<text class="small mid accent" x="170" y="358">加工错了，下一次压缩会把它当事实留下</text>
+<rect class="panel" x="0" y="420" width="340" height="404" rx="12"/>
+<text class="caps" x="24" y="448">本项目：只留原话</text>
+<g class="node plain"><rect x="32" y="468" width="276" height="32" rx="4"/><text class="mid" x="170" y="484">群里的每一条消息</text></g>
+<path class="edge " d="M170 502 V518" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="32" y="522" width="276" height="46" rx="4"/><text class="mid b" x="170" y="537">SQLite 原文</text><text class="mid small" x="170" y="554">附 Trigram 倒排索引，不改一个字</text></g>
+<path class="edge dash" d="M170 634 V570" marker-end="url(#arrow)"/>
+<text class="small" x="178" y="602">群友追问时才查</text>
+<g class="node orange"><rect x="32" y="638" width="276" height="64" rx="4"/><text class="mid b" x="170" y="662">tg_messages</text><text class="mid small" x="170" y="679">昵称历史 · 更名 · 发言人 · 回复树 · 时间</text></g>
+<path class="edge " d="M170 704 V720" marker-end="url(#arrow)"/>
+<g class="node "><rect x="32" y="724" width="276" height="32" rx="4"/><text class="mid" x="170" y="740">主模型读到现场原话</text></g>
+<text class="small mid accent" x="170" y="778">平时一个 token 都不花在“记忆”上</text>
+</svg>
+```
+
 **把原始上下文原原本本留给时间，把理解与考证的权力留给需要它的那一刻。**
 前者每一轮都在无声地抽干你的算力，而后者只有在群友真正追问的那一秒，才会激荡出一次优雅的检索。
 
@@ -925,7 +1070,7 @@ text({
 
 把两种做法摊开来对比，差别在于主模型被叫醒几次、每次要读什么：
 
-```sketch title="同一个任务，两种跑法" note="左：传统 agent 循环，每个工具结果都回到主模型，再全量读一遍上下文；图里画了两次工具调用，实际常常是四五轮。右：codemode，脚本在沙箱里先发消息、并行检索、切好结果，主模型只被叫醒两次。"
+```sketch title="同一个任务，两种跑法" note="传统 agent 循环里，每个工具结果都回到主模型，再全量读一遍上下文；图里画了两次工具调用，实际常常是四五轮。codemode 的脚本在沙箱里先发消息、并行检索、切好结果，主模型只被叫醒两次。"
 <svg viewBox="0 0 704 452">
 <rect class="panel" x="0" y="0" width="342" height="452" rx="12"/>
 <text class="caps" x="24" y="30">逐个调用工具</text>
@@ -1178,6 +1323,62 @@ text({
 - 它处理小分类模型的接话裁决；
 - 它构筑 Rootless 容器的安全护城河。
 
+```sketch title="删掉的交给 Pi，留下的只有群聊语义" note="迁移那次提交删掉的四块自研代码，各自由 Pi 1.5 的哪项能力接替；留下的代码只做另外那四件事。"
+<svg viewBox="0 0 704 300">
+<rect class="panel" x="0" y="0" width="452" height="300" rx="12"/>
+<text class="caps" x="24" y="28">删掉 7,877 行，交给 Pi 1.5</text>
+<rect class="panel" x="468" y="0" width="236" height="300" rx="12"/>
+<text class="caps" x="488" y="28">留下的约 8,000 行</text>
+<rect class="window" x="24" y="48" width="188" height="40" rx="4"/>
+<text class="small mid" x="118" y="68">session 状态机与指纹对比</text>
+<path class="edge " d="M214 68 H236" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="240" y="48" width="188" height="40" rx="4"/><text class="mid small" x="334" y="68">持久化会话、状态恢复</text></g>
+<rect class="window" x="24" y="108" width="188" height="40" rx="4"/>
+<text class="small mid" x="118" y="128">token 估算器与中文摘要打包</text>
+<path class="edge " d="M214 128 H236" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="240" y="108" width="188" height="40" rx="4"/><text class="mid small" x="334" y="128">基于 AST 的压缩</text></g>
+<rect class="window" x="24" y="168" width="188" height="40" rx="4"/>
+<text class="small mid" x="118" y="188">子进程 bridge 与调度管道</text>
+<path class="edge " d="M214 188 H236" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="240" y="168" width="188" height="40" rx="4"/><text class="mid small" x="334" y="188">执行队列、沙箱调度</text></g>
+<rect class="window" x="24" y="228" width="188" height="40" rx="4"/>
+<text class="small mid" x="118" y="248">300 行工具示例文档</text>
+<path class="edge " d="M214 248 H236" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="240" y="228" width="188" height="40" rx="4"/><text class="mid small" x="334" y="248">TypeBox 参数 Schema</text></g>
+<g class="node teal"><rect x="488" y="48" width="196" height="40" rx="4"/><text class="mid small" x="586" y="68">消息归档与 Trigram 检索</text></g>
+<g class="node teal"><rect x="488" y="108" width="196" height="40" rx="4"/><text class="mid small" x="586" y="128">前缀不变的批次序列化</text></g>
+<g class="node teal"><rect x="488" y="168" width="196" height="40" rx="4"/><text class="mid small" x="586" y="188">小分类模型的接话裁决</text></g>
+<g class="node teal"><rect x="488" y="228" width="196" height="40" rx="4"/><text class="mid small" x="586" y="248">rootless 容器的安全边界</text></g>
+<text class="small mid accent" x="226" y="286">凡是不属于“Telegram 群聊语义”的，都不自己写</text>
+</svg>
+<svg viewBox="0 0 340 564">
+<rect class="panel" x="0" y="0" width="340" height="316" rx="12"/>
+<text class="caps" x="16" y="26">删掉 7,877 行，交给 Pi 1.5</text>
+<rect class="window" x="16" y="42" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="55">session 状态机与指纹对比</text>
+<path class="edge " d="M170 69 V74"/>
+<g class="node blue"><rect x="16" y="76" width="308" height="26" rx="4"/><text class="mid small" x="170" y="89">→ 持久化会话、状态恢复</text></g>
+<rect class="window" x="16" y="108" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="121">token 估算器与中文摘要打包</text>
+<path class="edge " d="M170 135 V140"/>
+<g class="node blue"><rect x="16" y="142" width="308" height="26" rx="4"/><text class="mid small" x="170" y="155">→ 基于 AST 的压缩</text></g>
+<rect class="window" x="16" y="174" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="187">子进程 bridge 与调度管道</text>
+<path class="edge " d="M170 201 V206"/>
+<g class="node blue"><rect x="16" y="208" width="308" height="26" rx="4"/><text class="mid small" x="170" y="221">→ 执行队列、沙箱调度</text></g>
+<rect class="window" x="16" y="240" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="253">300 行工具示例文档</text>
+<path class="edge " d="M170 267 V272"/>
+<g class="node blue"><rect x="16" y="274" width="308" height="26" rx="4"/><text class="mid small" x="170" y="287">→ TypeBox 参数 Schema</text></g>
+<rect class="panel" x="0" y="332" width="340" height="232" rx="12"/>
+<text class="caps" x="16" y="358">留下的约 8,000 行：群聊语义</text>
+<g class="node teal"><rect x="16" y="374" width="308" height="34" rx="4"/><text class="mid small" x="170" y="391">消息归档与 Trigram 检索</text></g>
+<g class="node teal"><rect x="16" y="418" width="308" height="34" rx="4"/><text class="mid small" x="170" y="435">前缀不变的批次序列化</text></g>
+<g class="node teal"><rect x="16" y="462" width="308" height="34" rx="4"/><text class="mid small" x="170" y="479">小分类模型的接话裁决</text></g>
+<g class="node teal"><rect x="16" y="506" width="308" height="34" rx="4"/><text class="mid small" x="170" y="523">rootless 容器的安全边界</text></g>
+</svg>
+```
+
 在软件工程中，最纯粹的快感从来不是敲出成千上万行架构代码，而是**在保证系统更坚固的同时，一次性删去数千行臃肿的自嗨**。这种“负代码”的愉悦，正是极简美学的最佳写照。
 
 ---
@@ -1207,6 +1408,57 @@ text({
 
 **而我们选择的是“专用的部署，通用的 Agent”。**
 正因为我们坚决抛弃了“支持成百上千个群”的世俗诱惑，将边界限定在一个自己绝对信任的群聊生态里，系统的外层复杂度才得以压缩到极点；而省下来的全部架构冗余与信任资产，被我们毫无保留地砸向了 Agent 的内核——**我们敢于把一整台真实的 Linux 交给它，敢于让它调度 Shell，敢于让它并发编程。**
+
+```sketch title="复杂度放在哪里" note="两个项目都不简单，只是把复杂度放在了不同的地方：塑料碗放在外层的产品能力上，本项目放在 Agent 的内核里。内容取自上面的对比表。"
+<svg viewBox="0 0 704 360">
+<rect class="panel" x="0" y="0" width="342" height="360" rx="12"/>
+<text class="b" x="20" y="28">塑料碗：通用的产品，克制的 Agent</text>
+<rect class="window" x="20" y="48" width="302" height="270" rx="10"/>
+<text class="small" x="34" y="66">外层：给陌生人在陌生群里用</text>
+<g class="node "><rect x="34" y="78" width="274" height="30" rx="4"/><text class="mid small" x="171" y="93">私聊、频道、论坛 Topic</text></g>
+<g class="node "><rect x="34" y="116" width="274" height="30" rx="4"/><text class="mid small" x="171" y="131">精细白名单与权限审计</text></g>
+<g class="node "><rect x="34" y="154" width="274" height="30" rx="4"/><text class="mid small" x="171" y="169">管理面板与调度</text></g>
+<g class="node "><rect x="34" y="192" width="274" height="30" rx="4"/><text class="mid small" x="171" y="207">随 Chat 切换人设与模型</text></g>
+<g class="node "><rect x="34" y="230" width="274" height="30" rx="4"/><text class="mid small" x="171" y="245">三层记忆：Memo Pad · 周期摘要 · 知识库</text></g>
+<g class="node teal"><rect x="34" y="274" width="274" height="34" rx="4"/><text class="mid small" x="171" y="291">Agent 内核：核心原语，不给 Shell</text></g>
+<text class="small mid" x="171" y="340">src/ 约 60,000 行</text>
+<rect class="panel" x="362" y="0" width="342" height="360" rx="12"/>
+<text class="b" x="382" y="28">本项目：专用的部署，通用的 Agent</text>
+<rect class="window" x="382" y="48" width="302" height="270" rx="10"/>
+<text class="small" x="396" y="66">外层：一个自己信任的群</text>
+<g class="node teal"><rect x="396" y="80" width="274" height="224" rx="8"/></g>
+<text class="b" x="410" y="102">Agent 内核</text>
+<g class="node plain"><rect x="410" y="118" width="246" height="34" rx="4"/><text class="mid small" x="533" y="135">完整的 rootless Linux 容器</text></g>
+<g class="node plain"><rect x="410" y="162" width="246" height="34" rx="4"/><text class="mid small" x="533" y="179">Shell、文件工具、codemode 并发</text></g>
+<g class="node plain"><rect x="410" y="206" width="246" height="34" rx="4"/><text class="mid small" x="533" y="223">判断模型只读切片决定接话</text></g>
+<g class="node plain"><rect x="410" y="250" width="246" height="34" rx="4"/><text class="mid small" x="533" y="267">零记忆层，按需查原文</text></g>
+<text class="small mid" x="533" y="340">src/ 约 8,100 行</text>
+</svg>
+<svg viewBox="0 0 340 736">
+<rect class="panel" x="0" y="0" width="340" height="360" rx="12"/>
+<text class="b" x="20" y="28">塑料碗：通用的产品，克制的 Agent</text>
+<rect class="window" x="20" y="48" width="300" height="270" rx="10"/>
+<text class="small" x="34" y="66">外层：给陌生人在陌生群里用</text>
+<g class="node "><rect x="34" y="78" width="272" height="30" rx="4"/><text class="mid small" x="170" y="93">私聊、频道、论坛 Topic</text></g>
+<g class="node "><rect x="34" y="116" width="272" height="30" rx="4"/><text class="mid small" x="170" y="131">精细白名单与权限审计</text></g>
+<g class="node "><rect x="34" y="154" width="272" height="30" rx="4"/><text class="mid small" x="170" y="169">管理面板与调度</text></g>
+<g class="node "><rect x="34" y="192" width="272" height="30" rx="4"/><text class="mid small" x="170" y="207">随 Chat 切换人设与模型</text></g>
+<g class="node "><rect x="34" y="230" width="272" height="30" rx="4"/><text class="mid small" x="170" y="245">三层记忆：Memo Pad · 周期摘要 · 知识库</text></g>
+<g class="node teal"><rect x="34" y="274" width="272" height="34" rx="4"/><text class="mid small" x="170" y="291">Agent 内核：核心原语，不给 Shell</text></g>
+<text class="small mid" x="170" y="340">src/ 约 60,000 行</text>
+<rect class="panel" x="0" y="376" width="340" height="360" rx="12"/>
+<text class="b" x="20" y="404">本项目：专用的部署，通用的 Agent</text>
+<rect class="window" x="20" y="424" width="300" height="270" rx="10"/>
+<text class="small" x="34" y="442">外层：一个自己信任的群</text>
+<g class="node teal"><rect x="34" y="456" width="272" height="224" rx="8"/></g>
+<text class="b" x="48" y="478">Agent 内核</text>
+<g class="node plain"><rect x="48" y="494" width="244" height="34" rx="4"/><text class="mid small" x="170" y="511">完整的 rootless Linux 容器</text></g>
+<g class="node plain"><rect x="48" y="538" width="244" height="34" rx="4"/><text class="mid small" x="170" y="555">Shell、文件工具、codemode 并发</text></g>
+<g class="node plain"><rect x="48" y="582" width="244" height="34" rx="4"/><text class="mid small" x="170" y="599">判断模型只读切片决定接话</text></g>
+<g class="node plain"><rect x="48" y="626" width="244" height="34" rx="4"/><text class="mid small" x="170" y="643">零记忆层，按需查原文</text></g>
+<text class="small mid" x="170" y="716">src/ 约 8,100 行</text>
+</svg>
+```
 
 在具体的架构推演上，我们依然坚信自己这套设计的优越性：
 
