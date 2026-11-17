@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -43,7 +43,28 @@ tags:
 
 ## Markdown
 
-GFM：段落、列表、引用、链接、表格（`---:` 右对齐）、删除线、任务列表。原始 HTML 和 `javascript:` 链接会被丢弃。不支持脚注、提示块（`[!NOTE]`）、MDX/JSX 和 Obsidian 嵌入。
+GFM：段落、列表、引用、链接、表格（`---:` 右对齐）、删除线、任务列表。原始 HTML 和 `javascript:` 链接会被丢弃。不支持脚注（用下面的参考资料）、提示块（`[!NOTE]`）、MDX/JSX 和 Obsidian 嵌入。
+
+## 参考资料
+
+正文里写 `[@key]` 引用一条文献，渲染成上标 `[n]`，点击跳到文献，鼠标悬停或键盘聚焦时预览全文；以 `[@key]` 开头的列表项定义这条文献，前面加上回到引用处的 ↑（被引用多次时是 ↑ 1 2）。
+
+```markdown
+一项元分析[@mccomb2023]发现……经典的角色榜样实验[@lockwood1997]又发现……
+
+## 参考资料
+
+### 比较与自我价值
+
+- [@mccomb2023] McComb, C. A., … (2023). [A Meta-Analysis of …](https://doi.org/10.1080/15213269.2023.2180647). _Media Psychology, 26_(5), 612–635.
+- [@lockwood1997] Lockwood, P., & Kunda, Z. (1997). [Superstars and Me](https://doi.org/10.1037/0022-3514.73.1.91). _JPSP, 73_(1), 91–103.
+```
+
+- 编号按定义的先后，从 1 开始，跨标题分组的多个列表连续编号（上例下一组从 3 开始）。按正文第一次引用的顺序排列定义，编号就从前往后递增。
+- key 只用字母、数字、`-` 和 `_`，以字母或数字开头，如 `flynn2008`。文献条目本身是普通 Markdown，格式自己写（建议 APA，标题链到 DOI）。
+- 引用了没定义的 key、同一个 key 定义两次、文献列表里混进不以 `[@key]` 开头的项，构建都会失败。定义了但没被引用的文献可以留着，只是没有 ↑。
+- 后面紧跟 `(` 或 `[` 的 `[@name](url)` 仍是普通链接，比如链到 GitHub 用户。
+- 同一处引用多条就连着写：`[@a][@b]` 渲染成 `[1][2]`。
 
 ## 图片
 

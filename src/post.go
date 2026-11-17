@@ -66,11 +66,12 @@ func init() {
 	gmhtml.ImageAttributeFilter = gmhtml.ImageAttributeFilter.Extend([]byte("fetchpriority"))
 }
 
-// newMarkdown is the renderer of one edition; only the ticker button text differs.
+// newMarkdown is the renderer of one edition; only the ticker button text and
+// the citation back-link label differ.
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, tickerExtension{button: ui.LiveChart}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -129,6 +130,9 @@ type contentHooks struct {
 func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (template.HTML, []Heading, error) {
 	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
 	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
+	if err := resolveCitations(doc); err != nil {
+		return "", nil, err
+	}
 	var toc []Heading
 	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if node, ok := n.(*ast.Image); entering && ok && hooks.image != nil {

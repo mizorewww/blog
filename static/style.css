@@ -110,6 +110,16 @@ mark{background:var(--sel);color:inherit}
 .prose li{margin:.3em 0}
 .prose li::marker{color:var(--faint)}
 .prose ol>li::marker{font-family:var(--mono);font-size:.85em}
+.prose sup.cite{margin-left:1px;font-size:.7em;line-height:0}
+.prose .cite a,.references .ref-back a{text-decoration:none}
+.prose ol.references{font-size:14px;line-height:1.9}
+.references .ref-back{margin-right:.4em;color:var(--faint);font-size:.85em}
+.prose :is(.references>li,.cite>a){scroll-margin-top:20vh}
+.prose :is(.references>li,.cite>a):target{background:var(--sel)}
+.cite-card{position:absolute;z-index:10;max-width:min(440px,calc(100vw - 16px));padding:10px 14px;border:1px solid var(--line);background:var(--card);box-shadow:0 4px 14px rgb(0 0 0/.08);font-size:13px;line-height:1.8;color:var(--body);overflow-wrap:anywhere}
+.cite-card::before{content:"";position:absolute;inset:-8px 0 100%}
+.cite-card>span:first-child{color:var(--faint)}
+.cite-card a{color:var(--green);text-underline-offset:3px}
 .prose ul:has(>li>input[type=checkbox]){padding-left:0}
 .prose li:has(>input[type=checkbox]){list-style:none}
 .prose li>input[type=checkbox]{margin:0 10px 0 0;accent-color:var(--green)}
