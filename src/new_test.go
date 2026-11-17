@@ -32,6 +32,9 @@ func TestNewPost(t *testing.T) {
 		t.Fatalf("invalid generated article: %+v, %v", post, err)
 	}
 	before, _ := os.ReadFile(path)
+	if !bytes.HasPrefix(before, []byte("---\n")) || bytes.Contains(before, []byte(`{"title"`)) {
+		t.Fatalf("new post must use YAML front matter:\n%s", before)
+	}
 	if err = newPost(args, &out); err == nil {
 		t.Fatal("must refuse overwrites")
 	}

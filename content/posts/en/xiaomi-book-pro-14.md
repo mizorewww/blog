@@ -1,4 +1,14 @@
-{"title":"Xiaomi Book Pro 14 on Linux","description":"Installing Arch Linux on the Xiaomi Book Pro 14: kernel parameters for screen artifacts and a dead keyboard, and the PAM pitfalls of using the fingerprint reader for sudo, Polkit and KWallet.","date":"2026-05-10","tag":"Tinkering","tags":["Linux","Laptop"],"aliases":["/en/折腾/xiaomi-book-pro-14/","/en/xiaomi-book-pro-14/"]}
+---
+title: "Xiaomi Book Pro 14 on Linux"
+description: "Installing Arch Linux on the Xiaomi Book Pro 14: kernel parameters for screen artifacts and a dead keyboard, and the PAM pitfalls of using the fingerprint reader for sudo, Polkit and KWallet."
+date: 2026-05-10
+tag: "Tinkering"
+tags:
+  - "Linux"
+  - "Laptop"
+aliases:
+  - "/en/折腾/xiaomi-book-pro-14/"
+  - "/en/xiaomi-book-pro-14/"
 ---
 The reason I picked up this Xiaomi Book Pro 14 is quite simple: I already have a MacBook Pro that works great for my daily needs, but there are always things that a Mac either can't do or does awkwardly. I needed an x86 thin-and-light to handle the tasks that are "best done on x86."
 

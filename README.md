@@ -1,6 +1,6 @@
 # mizore / notes
 
-一个用 Go 写的静态博客框架。文章是带 JSON 元数据的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表和 Mermaid 图，以及手写 SVG 的示意图，正文不依赖 JavaScript。
+一个用 Go 写的静态博客框架。文章是带 YAML Front Matter 的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表和 Mermaid 图，以及手写 SVG 的示意图，正文不依赖 JavaScript。
 
 文章里能用的组件见 [`.claude/skills/post-components/SKILL.md`](.claude/skills/post-components/SKILL.md)。
 
@@ -25,7 +25,7 @@ go run ./src -drafts -url http://localhost:8080 -serve localhost:8080   # 预览
 | --- | --- |
 | `-url` | 覆盖 `site.json` 的站点网址，用于 canonical、RSS、sitemap 等绝对地址 |
 | `-serve` | 构建完成后在这个地址启动预览服务器；修改内容后重新运行 |
-| `-drafts` | 同时构建元数据里有 `"draft": true` 的文章 |
+| `-drafts` | 同时构建元数据里有 `draft: true` 的文章 |
 
 构建失败时（元数据、公式、表格、图片或站内链接有错）不会改动上一次的 `public/`。把 `public/` 上传到任意静态托管即可；Cloudflare Pages 会读取其中的 `_headers` 和 `_redirects`。
 
@@ -45,7 +45,7 @@ go run ./src new -h                             # 全部参数
 | `-tag` | 分类 |
 | `-date` | 发布日期 `YYYY-MM-DD`，默认今天 |
 
-参数要放在标题前。同名文件已存在时报错，不会覆盖。正文模板是 `templates/post.md.tmpl`。
+参数要放在标题前。同名文件已存在时报错，不会覆盖。生成的文章使用 `---` 包围的 YAML Front Matter，正文模板是 `templates/post.md.tmpl`。
 
 ## 测试
 

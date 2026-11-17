@@ -1,4 +1,13 @@
-{"title":"New Blog Features: Language Icons, Source Quotes, Tickers, and Charts","description":"Authoring features added during the old Next.js + MDX blog era—code block language icons, GitHub source and diff embeds, TradingView ticker shortcodes, and ECharts blocks—and how they work at build time.","date":"2026-06-22","tag":"Tinkering","tags":["Blog","Next.js","MDX","ECharts"]}
+---
+title: "New Blog Features: Language Icons, Source Quotes, Tickers, and Charts"
+description: "Authoring features added during the old Next.js + MDX blog era—code block language icons, GitHub source and diff embeds, TradingView ticker shortcodes, and ECharts blocks—and how they work at build time."
+date: 2026-06-22
+tag: "Tinkering"
+tags:
+  - "Blog"
+  - "Next.js"
+  - "MDX"
+  - "ECharts"
 ---
 
 > This post was written during the old blog (Next.js + MDX) era. After migrating to the current static site, all of these features happen at build time: TradingView widgets became ticker cards that only load the live chart when you click "Live chart"; ECharts blocks became static SVG charts with hover values; source embeds are pinned commit snippets with line numbers; and language icons became corner language labels on code blocks.

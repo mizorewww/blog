@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"io"
@@ -20,6 +19,7 @@ import (
 	"github.com/yuin/goldmark/parser"
 	gmhtml "github.com/yuin/goldmark/renderer/html"
 	"github.com/yuin/goldmark/text"
+	"gopkg.in/yaml.v3"
 )
 
 type Heading struct {
@@ -28,14 +28,14 @@ type Heading struct {
 }
 
 type PostMetadata struct {
-	Title       string   `json:"title"`
-	Description string   `json:"description"`
-	Date        string   `json:"date"`
-	Tag         string   `json:"tag,omitempty"` // the category
-	Tags        []string `json:"tags,omitempty"`
-	Updated     string   `json:"updated,omitempty"`
-	Draft       bool     `json:"draft,omitempty"`
-	Aliases     []string `json:"aliases,omitempty"`
+	Title       string   `json:"title" yaml:"title"`
+	Description string   `json:"description" yaml:"description"`
+	Date        string   `json:"date" yaml:"date"`
+	Tag         string   `json:"tag,omitempty" yaml:"tag,omitempty"` // the category
+	Tags        []string `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Updated     string   `json:"updated,omitempty" yaml:"updated,omitempty"`
+	Draft       bool     `json:"draft,omitempty" yaml:"draft,omitempty"`
+	Aliases     []string `json:"aliases,omitempty" yaml:"aliases,omitempty"`
 }
 
 type Post struct {
@@ -175,18 +175,23 @@ func readPost(name string) (Post, error) {
 	if err != nil {
 		return p, err
 	}
-	parts := strings.SplitN(strings.ReplaceAll(string(src), "\r\n", "\n"), "\n---\n", 2)
-	if len(parts) != 2 {
-		return p, fmt.Errorf("%s: expected JSON metadata followed by ---", name)
+	normalized := strings.ReplaceAll(string(src), "\r\n", "\n")
+	parts := strings.SplitN(normalized, "\n---\n", 2)
+	if len(parts) != 2 || parts[0] != "---" && !strings.HasPrefix(parts[0], "---\n") {
+		return p, fmt.Errorf("%s: expected YAML metadata between --- delimiter lines", name)
+	}
+	metadata := strings.TrimPrefix(parts[0], "---\n")
+	if parts[0] == "---" {
+		metadata = ""
 	}
 	// Unknown keys fail the build, so a typo such as "udpated" is never silently dropped.
-	decoder := json.NewDecoder(strings.NewReader(parts[0]))
-	decoder.DisallowUnknownFields()
+	decoder := yaml.NewDecoder(strings.NewReader(metadata))
+	decoder.KnownFields(true)
 	if err := decoder.Decode(&p.PostMetadata); err != nil {
 		return p, fmt.Errorf("%s: metadata: %w", name, err)
 	}
 	if decoder.Decode(&struct{}{}) != io.EOF {
-		return p, fmt.Errorf("%s: metadata: unexpected data after the JSON object", name)
+		return p, fmt.Errorf("%s: metadata: unexpected data after the YAML document", name)
 	}
 	p.Slug = strings.TrimSuffix(filepath.Base(name), ".md")
 	if !slugPattern.MatchString(p.Slug) {

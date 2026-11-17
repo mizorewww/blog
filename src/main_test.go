@@ -22,16 +22,21 @@ func TestPostValidation(t *testing.T) {
 		name, input string
 		valid       bool
 	}{
-		{"valid", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n## 内容\n<script>alert(1)</script>\n[bad](javascript:alert(1))", true},
-		{"updated", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"updated\":\"2026-10-20\"}\n---\nHello", true},
-		{"updated-before-date", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"updated\":\"2026-10-01\"}\n---\nHello", false},
-		{"bad-date", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-02-30\"}\n---\nHello", false},
-		{"missing-title", "{\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\nHello", false},
-		{"bad-metadata", "not json\n---\nHello", false},
+		{"valid", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\ntag: 技术\ntags: [Go, YAML]\naliases: [/old/]\n---\n## 内容\n<script>alert(1)</script>\n[bad](javascript:alert(1))", true},
+		{"updated", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\nupdated: 2026-10-20\n---\nHello", true},
+		{"updated-before-date", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\nupdated: 2026-10-01\n---\nHello", false},
+		{"bad-date", "---\ntitle: A\ndescription: B\ndate: 2026-02-30\n---\nHello", false},
+		{"missing-title", "---\ndescription: B\ndate: 2026-10-02\n---\nHello", false},
+		{"bad-metadata", "---\ntitle: [\n---\nHello", false},
 		{"no-metadata", "Hello", false},
-		{"unknown-field", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"image\":\"a.png\"}\n---\nHello", false},
-		{"misspelled-field", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\",\"udpated\":\"2026-10-20\"}\n---\nHello", false},
-		{"trailing-data", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\"} x\n---\nHello", false},
+		{"json-metadata", "{\"title\":\"A\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\nHello", false},
+		{"missing-opening-delimiter", "title: A\ndescription: B\ndate: 2026-10-02\n---\nHello", false},
+		{"missing-closing-delimiter", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\nHello", false},
+		{"unknown-field", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\nimage: a.png\n---\nHello", false},
+		{"misspelled-field", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\nudpated: 2026-10-20\n---\nHello", false},
+		{"duplicate-field", "---\ntitle: A\ntitle: B\ndescription: B\ndate: 2026-10-02\n---\nHello", false},
+		{"wrong-field-type", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\ntags: Linux\n---\nHello", false},
+		{"trailing-data", "---\ntitle: A\ndescription: B\ndate: 2026-10-02\n...\nunexpected\n---\nHello", false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			path := filepath.Join(t.TempDir(), tc.name+".md")
@@ -62,11 +67,11 @@ func TestBuild(t *testing.T) {
 	}
 	// Fixture posts keep the test independent of real articles and their images.
 	fixtures := map[string]string{
-		"content/posts/alpha.md":    "{\"title\":\"Alpha\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tag\":\"技术\",\"tags\":[\"Next.js\",\"Linux\"]}\n---\n## 第一节\n\n正文。\n",
-		"content/posts/draft.md":    "{\"title\":\"Draft\",\"description\":\"D\",\"date\":\"2026-10-03\",\"draft\":true}\n---\n草稿。\n\n![unfinished](../images/missing.png)\n",
-		"content/posts/en/alpha.md": "{\"title\":\"Alpha EN\",\"description\":\"A\",\"date\":\"2026-10-02\",\"tags\":[\"Linux\"]}\n---\nText.\n",
-		"content/posts/beta.md":     "{\"title\":\"Beta\",\"description\":\"B\",\"date\":\"2026-10-02\"}\n---\n正文。\n",
-		"content/posts/gamma.md":    "{\"title\":\"Gamma\",\"description\":\"C\",\"date\":\"2026-09-28\"}\n---\n正文。\n",
+		"content/posts/alpha.md":    "---\ntitle: Alpha\ndescription: A\ndate: 2026-10-02\ntag: 技术\ntags: [Next.js, Linux]\n---\n## 第一节\n\n正文。\n",
+		"content/posts/draft.md":    "---\ntitle: Draft\ndescription: D\ndate: 2026-10-03\ndraft: true\n---\n草稿。\n\n![unfinished](../images/missing.png)\n",
+		"content/posts/en/alpha.md": "---\ntitle: Alpha EN\ndescription: A\ndate: 2026-10-02\ntags: [Linux]\n---\nText.\n",
+		"content/posts/beta.md":     "---\ntitle: Beta\ndescription: B\ndate: 2026-10-02\n---\n正文。\n",
+		"content/posts/gamma.md":    "---\ntitle: Gamma\ndescription: C\ndate: 2026-09-28\n---\n正文。\n",
 	}
 	for name, body := range fixtures {
 		if err := os.MkdirAll(filepath.Join(dir, filepath.Dir(name)), 0755); err != nil {

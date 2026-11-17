@@ -1,4 +1,14 @@
-{"title":"gdirect: Direct Google Drive Access from the Terminal — How It Works and Setup Guide","description":"TL;DR on how gdirect reaches Google Drive directly from mainland China: it finds genuine Google front ends that happen to be unblocked inside Google's published address space, falls back to a forged g.cn identity when the real SNI is reset, pins certificates to Google's GTS roots and fails over between endpoints. Then a 10-minute OAuth setup guide, a correction prompted by a reader (183.56.143.147 is a third-party relay, not Google) and a source walkthrough.","date":"2026-10-25","updated":"2026-10-26","tag":"Tech","tags":["Rust","Google Drive","CLI","Network"]}
+---
+title: "gdirect: Direct Google Drive Access from the Terminal — How It Works and Setup Guide"
+description: "TL;DR on how gdirect reaches Google Drive directly from mainland China: it finds genuine Google front ends that happen to be unblocked inside Google's published address space, falls back to a forged g.cn identity when the real SNI is reset, pins certificates to Google's GTS roots and fails over between endpoints. Then a 10-minute OAuth setup guide, a correction prompted by a reader (183.56.143.147 is a third-party relay, not Google) and a source walkthrough."
+date: 2026-10-25
+updated: 2026-10-26
+tag: "Tech"
+tags:
+  - "Rust"
+  - "Google Drive"
+  - "CLI"
+  - "Network"
 ---
 
 Pulling tens of gigabytes of datasets or backups from Google Drive over a proxy usually burns through expensive data quotas and bottlenecks on proxy node bandwidth; downloading in a browser often drops partway through and forces you to start over. To solve this, I wrote [gdirect](https://github.com/mizorewww/gdirect): a terminal tool for browsing, downloading, uploading, and mounting Google Drive.

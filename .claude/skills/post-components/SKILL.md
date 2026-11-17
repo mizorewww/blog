@@ -9,10 +9,17 @@ description: Reference for the Markdown components this blog framework supports 
 
 ## 元数据
 
-文件第一部分是 JSON，随后单独一行 `---`，再接 Markdown 正文。
+文件以单独一行 `---` 开头，随后是 YAML 元数据，再用单独一行 `---` 结束，最后接 Markdown 正文。
 
 ```markdown
-{"title":"标题","description":"一句话摘要","date":"2026-10-24","tag":"折腾","tags":["Linux","Laptop"]}
+---
+title: "标题"
+description: "一句话摘要"
+date: 2026-10-24
+tag: "折腾"
+tags:
+  - "Linux"
+  - "Laptop"
 ---
 正文。
 ```
@@ -28,7 +35,7 @@ description: Reference for the Markdown components this blog framework supports 
 | `draft` | 否 | `true` 时正式构建跳过，`-drafts` 才构建 |
 | `aliases` | 否 | 旧地址列表，如 `["/zh/折腾/x/"]`；生成 301 跳转，第一项也是 RSS guid |
 
-其他字段会让构建失败。slug（文件名）只能用小写字母、数字和单个连字符。
+其他字段会让构建失败。YAML 中包含冒号、井号等可能引起歧义的文本要加引号，最稳妥的方式是字符串统一使用双引号。slug（文件名）只能用小写字母、数字和单个连字符。
 
 ## 标题与目录
 

@@ -1,4 +1,14 @@
-{"title":"gdirect：终端直连 Google 云盘的原理与配置指南","description":"TL;DR 先看 gdirect 如何在大陆直连 Google 云盘：从 Google 公布的自有地址段里扫出恰好没被封的真实前端、真实 SNI 被重置时改用 g.cn 伪造身份、证书只锚定 GTS 根、端点失效自动切换；再照着 10 分钟图文指南配好 OAuth 客户端。附读者来信引出的勘误：183.56.143.147 是第三方中转，不是 Google。","date":"2026-10-25","updated":"2026-10-26","tag":"技术","tags":["Rust","Google Drive","CLI","Network"]}
+---
+title: "gdirect：终端直连 Google 云盘的原理与配置指南"
+description: "TL;DR 先看 gdirect 如何在大陆直连 Google 云盘：从 Google 公布的自有地址段里扫出恰好没被封的真实前端、真实 SNI 被重置时改用 g.cn 伪造身份、证书只锚定 GTS 根、端点失效自动切换；再照着 10 分钟图文指南配好 OAuth 客户端。附读者来信引出的勘误：183.56.143.147 是第三方中转，不是 Google。"
+date: 2026-10-25
+updated: 2026-10-26
+tag: "技术"
+tags:
+  - "Rust"
+  - "Google Drive"
+  - "CLI"
+  - "Network"
 ---
 
 平时从 Google Drive 拖几十 GB 的数据集或备份，走代理往往既烧流量又受限于节点带宽；用浏览器下载还经常在中途断流后从头再来。为此我写了 [gdirect](https://github.com/mizorewww/gdirect)：一个在终端里浏览、下载、上传和挂载 Google 云盘的工具。

@@ -1,4 +1,13 @@
-{"title":"在 Google Colab G4 上一键跑 Qwen3.8-Flash-Next (262K 上下文)","description":"用 colab CLI 在单张 Colab G4 (RTX PRO 6000 Blackwell 96GB) 上一键部署 dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4，开启 MTP 投机解码（130~176 tok/s）与 262K 上下文，并通过 Cloudflare Tunnel 接入本地 pi 使用。复制粘贴三步跑通。","date":"2026-11-10","tag":"技术","tags":["llm","sglang","Google Drive","CLI"]}
+---
+title: "在 Google Colab G4 上一键跑 Qwen3.8-Flash-Next (262K 上下文)"
+description: "用 colab CLI 在单张 Colab G4 (RTX PRO 6000 Blackwell 96GB) 上一键部署 dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4，开启 MTP 投机解码（130~176 tok/s）与 262K 上下文，并通过 Cloudflare Tunnel 接入本地 pi 使用。复制粘贴三步跑通。"
+date: 2026-11-10
+tag: "技术"
+tags:
+  - "llm"
+  - "sglang"
+  - "Google Drive"
+  - "CLI"
 ---
 
 Google Colab 的 **G4 GPU** 实例（NVIDIA RTX PRO 6000 Blackwell 96GB 显存 + 176GB 内存）刚好可以单卡跑满 [`dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4`](https://huggingface.co/dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4) 的 **262K 上下文**，开启 MTP 投机解码后单流生成速度可达 **130 ~ 176 tok/s**。

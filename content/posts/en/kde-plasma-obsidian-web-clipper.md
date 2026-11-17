@@ -1,4 +1,11 @@
-{"title":"Fixing Obsidian Web Clipper Not Working on KDE Plasma Wayland","description":"When Obsidian is already open, notes created by Web Clipper come up empty. The cause is KDE preventing the background Obsidian window from taking focus—adding a window rule fixes it.","date":"2026-05-10","tag":"Tinkering","tags":["Linux","Obsidian"]}
+---
+title: "Fixing Obsidian Web Clipper Not Working on KDE Plasma Wayland"
+description: "When Obsidian is already open, notes created by Web Clipper come up empty. The cause is KDE preventing the background Obsidian window from taking focus—adding a window rule fixes it."
+date: 2026-05-10
+tag: "Tinkering"
+tags:
+  - "Linux"
+  - "Obsidian"
 ---
 While using Obsidian on Plasma Wayland, I noticed that whenever Obsidian was already open, clicking **Add to Obsidian** in Chrome's **Obsidian Web Clipper** extension created a completely blank note.
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
@@ -12,6 +11,8 @@ import (
 	"strings"
 	"text/template"
 	"time"
+
+	"gopkg.in/yaml.v3"
 )
 
 // newPost scaffolds an article without building the site or replacing files.
@@ -68,7 +69,7 @@ func newPost(args []string, out io.Writer) error {
 	if err != nil {
 		return err
 	}
-	metadata, err := json.MarshalIndent(meta, "", "  ")
+	metadata, err := yaml.Marshal(meta)
 	if err != nil {
 		return err
 	}

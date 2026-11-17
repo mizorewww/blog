@@ -1,4 +1,14 @@
-{"title":"Putting Memoh Under the Knife: Specializing an Agent for Cheaper Telegram Group Chats","description":"Specializing the general-purpose agent framework Memoh into a Telegram group-chat bot—fewer LLM calls, smaller payloads, and 99.7% prompt-cache hit rates cut LLM costs by more than 80%.","date":"2026-08-03","tag":"Tech","tags":["Memoh","Telegram","LLM","Prompt Caching","Cost Optimization"]}
+---
+title: "Putting Memoh Under the Knife: Specializing an Agent for Cheaper Telegram Group Chats"
+description: "Specializing the general-purpose agent framework Memoh into a Telegram group-chat bot—fewer LLM calls, smaller payloads, and 99.7% prompt-cache hit rates cut LLM costs by more than 80%."
+date: 2026-08-03
+tag: "Tech"
+tags:
+  - "Memoh"
+  - "Telegram"
+  - "LLM"
+  - "Prompt Caching"
+  - "Cost Optimization"
 ---
 
 A while ago, I deployed [Memoh](https://github.com/memohai/memoh) as a few Telegram group-chat bots, mainly to burn through an Ollama subscription I couldn't possibly use up on my own (some idiot subscribed to a full year of Ollama at once).

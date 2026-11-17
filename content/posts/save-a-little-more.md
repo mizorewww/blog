@@ -1,4 +1,17 @@
-{"title":"省一点，再省一点","description":"两个住在 Telegram 群里的 bot，三个月、七万多次模型调用的账本：在 LLM 应用中，成本、上下文与代码量在物理上是同一种通货。每一处极致的克制，最后都会兑现为纯粹的自由与体验。","date":"2026-11-05","updated":"2026-11-10","tag":"技术","tags":["llm","telegram","prompt-caching","agent","架构设计","成本优化"],"draft":false}
+---
+title: "省一点，再省一点"
+description: "两个住在 Telegram 群里的 bot，三个月、七万多次模型调用的账本：在 LLM 应用中，成本、上下文与代码量在物理上是同一种通货。每一处极致的克制，最后都会兑现为纯粹的自由与体验。"
+date: 2026-11-05
+updated: 2026-11-10
+tag: "技术"
+tags:
+  - "llm"
+  - "telegram"
+  - "prompt-caching"
+  - "agent"
+  - "架构设计"
+  - "成本优化"
+draft: false
 ---
 
 我们群里住着两个 bot。
