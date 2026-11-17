@@ -15,11 +15,11 @@ draft: false
 
 ## 比较是信息，不是结算
 
-这种盯着上方看的冲动很真实，但“向上比较一定让人痛苦”并不是事实的全貌。一项汇总 48 篇文章、7,679 名参与者的[元分析](https://doi.org/10.1080/15213269.2023.2180647)发现，社交媒体里的向上比较平均更容易拉低自我评价和情绪；而经典的[角色榜样实验](https://doi.org/10.1037/0022-3514.73.1.91)又发现，当榜样的领域与你相关、他的成功看起来可达成时，向上比较反而可能带来激励。一个人站在那里，既可能像一面宣布你不行的墙，也可能像一张显示路径的地图。
+这种盯着上方看的冲动很真实，但“向上比较一定让人痛苦”并不是事实的全貌。一项汇总 48 篇文章、7,679 名参与者的元分析[@mccomb2023]发现，社交媒体里的向上比较平均更容易拉低自我评价和情绪；而经典的角色榜样实验[@lockwood1997]又发现，当榜样的领域与你相关、他的成功看起来可达成时，向上比较反而可能带来激励。一个人站在那里，既可能像一面宣布你不行的墙，也可能像一张显示路径的地图。
 
 所以，我现在越来越觉得，问题不是“要不要看见更厉害的人”，而是看完之后，你手里留下了什么：一个可以复现的下一步，还是一张写着自己不行的判决书。
 
-而 Ranking 最让人难受的时候，是它已经不只是一个信息，而开始给整个人结算。Crocker 等人做过一项[日常追踪研究](https://doi.org/10.1037/0022-3514.85.3.507)：学生收到好成绩的日子里，自尊和情绪会上升；收到差成绩时则会下降。越是把自尊建立在学业能力上，差成绩带来的自尊下坠就越明显。
+而 Ranking 最让人难受的时候，是它已经不只是一个信息，而开始给整个人结算。Crocker 等人做过一项日常追踪研究[@crocker2003]：学生收到好成绩的日子里，自尊和情绪会上升；收到差成绩时则会下降。越是把自尊建立在学业能力上，差成绩带来的自尊下坠就越明显。
 
 所以，看见高处不是错。真正折磨人的，是你不只看见了另一个人的高度，还顺手拿它给整个自己判了分。
 
@@ -96,7 +96,7 @@ draft: false
 这些事吸引我的地方，不是它们一定便宜，而是我可以在出手前先把成本问清楚：几分钟？一封邮件的时间？还是可能损害一段关系？只有当我愿意承担那个结果，它才是一张可选择的门票。
 我们的直觉在这里会出错，而且错误的方向并不固定。
 
-Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-3514.95.1.128)：先让参与者估计要当面问多少人才能完成任务，再让他们真的走到校园里向陌生人开口。在其中一些实验里，低估幅度最高约为 **50%**。后来，Zhao 和 Epley 也通过六项预注册实验、共 2,118 名参与者，发现了对帮助意愿的[系统性低估](https://doi.org/10.1177/09567976221097615)。
+Flynn 和 Lake 做过一组特别直观的实验[@flynn2008]：先让参与者估计要当面问多少人才能完成任务，再让他们真的走到校园里向陌生人开口。在其中一些实验里，低估幅度最高约为 **50%**。后来，Zhao 和 Epley 也通过六项预注册实验、共 2,118 名参与者，发现了对帮助意愿的系统性低估[@zhao2022]。
 
 ```chart bar title="当面请求：获得同意要问多少人？" yfmt="%.1f 人" note="哥伦比亚大学校园的当面请求。三项任务分别要获得 5、3、1 次同意；n=23、17、12，为各比较对应的完成者样本。来源：Flynn & Lake（2008），研究 1、2。"
 任务 | 预计人数 | 实际人数
@@ -107,7 +107,7 @@ Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-
 
 最夸张的是“请陌生人带路”：参与者以为平均要问 7.2 个人，实际只问了 2.3 个。开口的人通常只计算对方答应请求要付出的时间，却漏算了对方拒绝请求也要付出的尴尬和社交成本。
 
-但这张图不能拿去估算冷邮件。电子邮件里未必如此，有研究甚至发现了[相反方向的误差](https://doi.org/10.1016/j.jesp.2016.10.002)：参与者反而高估了邮件中的答应率。所以，直觉的错误方向也可能随渠道改变。
+但这张图不能拿去估算冷邮件。电子邮件里未必如此，有研究甚至发现了相反方向的误差[@roghanizad2017]：参与者反而高估了邮件中的答应率。所以，直觉的错误方向也可能随渠道改变。
 
 **勇气不是把拒绝率想成零，而是不再拿想象当数据。**
 
@@ -117,21 +117,21 @@ Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-
 
 主动出手为什么有时能带来机会？社会网络研究给了一个比“多抽奖”更细致的回答。
 
-2022 年《Science》的一项研究利用 LinkedIn 的推荐算法，对超过 2000 万用户做了[多项随机实验](https://doi.org/10.1126/science.abl4476)。结果支持弱关系对职业流动的作用，但不是越弱越好：以共同好友数衡量时，中等偏弱的关系最有用；在不同行业里，强弱关系的优势还会变化。
+2022 年《Science》的一项研究利用 LinkedIn 的推荐算法，对超过 2000 万用户做了多项随机实验[@rajkumar2022]。结果支持弱关系对职业流动的作用，但不是越弱越好：以共同好友数衡量时，中等偏弱的关系最有用；在不同行业里，强弱关系的优势还会变化。
 
-其他劳动力市场研究也提供了很实用的区分：弱关系可以带来[非冗余的信息](https://doi.org/10.1177/000312240507000303)，强关系则能传递[信任、义务与影响](https://doi.org/10.2307/2657311)。
+其他劳动力市场研究也提供了很实用的区分：弱关系可以带来非冗余的信息[@yakubovich2005]，强关系则能传递信任、义务与影响[@bian1997]。
 
 下面这张图是我对这些研究的行动综合；不同环境下，强弱关系的优势也会变化。
 
 对我来说，这个区分比“好运气大多来自弱关系”有用得多。弱关系可能把门指给你，强关系有时替你作证；作品和能力，则会影响你进门之后能做什么。
 
-职业咨询里还有一个很合我意的概念，叫[**“计划偶然性”**](https://doi.org/10.1002/j.1556-6676.1999.tb02431.x)：不是坐在那里等别人敲门，而是通过行动去生成和发现机会。我们能操作的从来不是运气本身，而是意外进入人生的入口，以及自己承接它的能力。
+职业咨询里还有一个很合我意的概念，叫**“计划偶然性”**[@mitchell1999]：不是坐在那里等别人敲门，而是通过行动去生成和发现机会。我们能操作的从来不是运气本身，而是意外进入人生的入口，以及自己承接它的能力。
 
 ## 失败不会自动复利，但可以设计剩余价值
 
 这是我最想改掉的一句成功学：**“每一次出手，不管成不成，都会给你留下技能、作品或者人脉。”**
 
-不，失败没有这么慷慨。五项研究、共 1,674 名参与者的[实验](https://doi.org/10.1177/0956797619881133)发现，即使成功反馈和失败反馈包含完全相同的答案信息，参与者从失败反馈中学到的东西仍然更少。关于[失败学习的综述](https://doi.org/10.5465/annals.2016.0049)也说得很清楚：学习需要信息、愿意复盘的动机，以及把信息转化为新方法的能力。一次无回应通常不能告诉你自己为什么失败，一次拒绝也不会自动替你留下一个可以复用的人。
+不，失败没有这么慷慨。五项研究、共 1,674 名参与者的实验[@eskreis2019]发现，即使成功反馈和失败反馈包含完全相同的答案信息，参与者从失败反馈中学到的东西仍然更少。关于失败学习的综述[@dahlin2018]也说得很清楚：学习需要信息、愿意复盘的动机，以及把信息转化为新方法的能力。一次无回应通常不能告诉你自己为什么失败，一次拒绝也不会自动替你留下一个可以复用的人。
 
 所以，失败本身不分红。**剩余价值不是失败自然长出来的，而是你在出发之前设计进去的。**
 
@@ -142,7 +142,7 @@ Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-
 
 第二份交付不是“我被拒绝了”这件事本身。没有回应往往只是一块信息很少的空白，不是一张证明你不行的成绩单。只有当它真的改变了你的下一步，它才从噪音变成了资产。
 
-这也改变了“多推几扇门”的意义。James March 在[探索与利用](https://doi.org/10.1287/orsc.2.1.71)的研究里提醒：只会利用，会被锁在局部最优；只会探索，则只会承担试验成本，留下很多没有发展出来的想法，却没有真正的能力。
+这也改变了“多推几扇门”的意义。James March 在探索与利用[@march1991]的研究里提醒：只会利用，会被锁在局部最优；只会探索，则只会承担试验成本，留下很多没有发展出来的想法，却没有真正的能力。
 
 所以，探索之后一定要有收割。每隔一段时间，我会问自己：
 
@@ -151,7 +151,7 @@ Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-
 - 哪个方向值得从探索转入深耕？
 - 哪个方向到了事先约定的上限，应该停止？
 
-“可承受损失”在这里也不是一句保证成功的咒语。它只是一条[预算原则](https://doi.org/10.1002/sej.66)：先想清楚自己能拿出什么、愿意失去什么，再决定是否尝试；它不是收益支票。
+“可承受损失”在这里也不是一句保证成功的咒语。它只是一条预算原则[@dew2009]：先想清楚自己能拿出什么、愿意失去什么，再决定是否尝试；它不是收益支票。
 
 而且，低成本必须按自己的处境计算。同样一封冷邮件、一次公开发布、一场申请，对不同人的时间、注意力、关系和声誉成本并不一样。不要用别人的“这有什么大不了”，替自己定价。
 
@@ -169,23 +169,23 @@ Flynn 和 Lake 做过一组特别直观的[实验](https://doi.org/10.1037/0022-
 
 ### 比较与自我价值
 
-- McComb, C. A., Vanman, E. J., & Tobin, S. J. (2023). [A Meta-Analysis of the Effects of Social Media Exposure to Upward Comparison Targets on Self-Evaluations and Emotions](https://doi.org/10.1080/15213269.2023.2180647). _Media Psychology, 26_(5), 612–635.
-- Lockwood, P., & Kunda, Z. (1997). [Superstars and Me: Predicting the Impact of Role Models on the Self](https://doi.org/10.1037/0022-3514.73.1.91). _Journal of Personality and Social Psychology, 73_(1), 91–103.
-- Crocker, J., Karpinski, A., Quinn, D. M., & Chase, S. K. (2003). [When Grades Determine Self-Worth](https://doi.org/10.1037/0022-3514.85.3.507). _Journal of Personality and Social Psychology, 85_(3), 507–516.
+- [@mccomb2023] McComb, C. A., Vanman, E. J., & Tobin, S. J. (2023). [A Meta-Analysis of the Effects of Social Media Exposure to Upward Comparison Targets on Self-Evaluations and Emotions](https://doi.org/10.1080/15213269.2023.2180647). _Media Psychology, 26_(5), 612–635.
+- [@lockwood1997] Lockwood, P., & Kunda, Z. (1997). [Superstars and Me: Predicting the Impact of Role Models on the Self](https://doi.org/10.1037/0022-3514.73.1.91). _Journal of Personality and Social Psychology, 73_(1), 91–103.
+- [@crocker2003] Crocker, J., Karpinski, A., Quinn, D. M., & Chase, S. K. (2003). [When Grades Determine Self-Worth](https://doi.org/10.1037/0022-3514.85.3.507). _Journal of Personality and Social Psychology, 85_(3), 507–516.
 
 ### 请求、渠道与关系
 
-- Flynn, F. J., & Lake, V. K. B. (2008). [If You Need Help, Just Ask](https://doi.org/10.1037/0022-3514.95.1.128). _Journal of Personality and Social Psychology, 95_(1), 128–143.
-- Zhao, X., & Epley, N. (2022). [Surprisingly Happy to Have Helped](https://doi.org/10.1177/09567976221097615). _Psychological Science, 33_(10), 1708–1731.
-- Roghanizad, M. M., & Bohns, V. K. (2017). [Ask in Person: You’re Less Persuasive Than You Think Over Email](https://doi.org/10.1016/j.jesp.2016.10.002). _Journal of Experimental Social Psychology, 69_, 223–226.
-- Rajkumar, K., et al. (2022). [A Causal Test of the Strength of Weak Ties](https://doi.org/10.1126/science.abl4476). _Science, 377_(6612), 1304–1310.
-- Yakubovich, V. (2005). [Weak Ties, Information, and Influence](https://doi.org/10.1177/000312240507000303). _American Sociological Review, 70_(3), 408–421.
-- Bian, Y. (1997). [Bringing Strong Ties Back In](https://doi.org/10.2307/2657311). _American Sociological Review, 62_(3), 366–385.
+- [@flynn2008] Flynn, F. J., & Lake, V. K. B. (2008). [If You Need Help, Just Ask](https://doi.org/10.1037/0022-3514.95.1.128). _Journal of Personality and Social Psychology, 95_(1), 128–143.
+- [@zhao2022] Zhao, X., & Epley, N. (2022). [Surprisingly Happy to Have Helped](https://doi.org/10.1177/09567976221097615). _Psychological Science, 33_(10), 1708–1731.
+- [@roghanizad2017] Roghanizad, M. M., & Bohns, V. K. (2017). [Ask in Person: You’re Less Persuasive Than You Think Over Email](https://doi.org/10.1016/j.jesp.2016.10.002). _Journal of Experimental Social Psychology, 69_, 223–226.
+- [@rajkumar2022] Rajkumar, K., et al. (2022). [A Causal Test of the Strength of Weak Ties](https://doi.org/10.1126/science.abl4476). _Science, 377_(6612), 1304–1310.
+- [@yakubovich2005] Yakubovich, V. (2005). [Weak Ties, Information, and Influence](https://doi.org/10.1177/000312240507000303). _American Sociological Review, 70_(3), 408–421.
+- [@bian1997] Bian, Y. (1997). [Bringing Strong Ties Back In](https://doi.org/10.2307/2657311). _American Sociological Review, 62_(3), 366–385.
 
 ### 探索、失败与收割
 
-- Mitchell, K. E., Levin, A. S., & Krumboltz, J. D. (1999). [Planned Happenstance: Constructing Unexpected Career Opportunities](https://doi.org/10.1002/j.1556-6676.1999.tb02431.x). _Journal of Counseling & Development, 77_(2), 115–124.
-- Dew, N., Sarasvathy, S., Read, S., & Wiltbank, R. (2009). [Affordable Loss: Behavioral Economic Aspects of the Plunge Decision](https://doi.org/10.1002/sej.66). _Strategic Entrepreneurship Journal, 3_, 105–126.
-- March, J. G. (1991). [Exploration and Exploitation in Organizational Learning](https://doi.org/10.1287/orsc.2.1.71). _Organization Science, 2_(1), 71–87.
-- Eskreis-Winkler, L., & Fishbach, A. (2019). [Not Learning From Failure—the Greatest Failure of All](https://doi.org/10.1177/0956797619881133). _Psychological Science, 30_(12), 1733–1744.
-- Dahlin, K. B., Chuang, Y.-T., & Roulet, T. J. (2018). [Opportunity, Motivation and Ability to Learn from Failures and Errors](https://doi.org/10.5465/annals.2016.0049). _Academy of Management Annals, 12_(1), 252–277.
+- [@mitchell1999] Mitchell, K. E., Levin, A. S., & Krumboltz, J. D. (1999). [Planned Happenstance: Constructing Unexpected Career Opportunities](https://doi.org/10.1002/j.1556-6676.1999.tb02431.x). _Journal of Counseling & Development, 77_(2), 115–124.
+- [@eskreis2019] Eskreis-Winkler, L., & Fishbach, A. (2019). [Not Learning From Failure—the Greatest Failure of All](https://doi.org/10.1177/0956797619881133). _Psychological Science, 30_(12), 1733–1744.
+- [@dahlin2018] Dahlin, K. B., Chuang, Y.-T., & Roulet, T. J. (2018). [Opportunity, Motivation and Ability to Learn from Failures and Errors](https://doi.org/10.5465/annals.2016.0049). _Academy of Management Annals, 12_(1), 252–277.
+- [@march1991] March, J. G. (1991). [Exploration and Exploitation in Organizational Learning](https://doi.org/10.1287/orsc.2.1.71). _Organization Science, 2_(1), 71–87.
+- [@dew2009] Dew, N., Sarasvathy, S., Read, S., & Wiltbank, R. (2009). [Affordable Loss: Behavioral Economic Aspects of the Plunge Decision](https://doi.org/10.1002/sej.66). _Strategic Entrepreneurship Journal, 3_, 105–126.
