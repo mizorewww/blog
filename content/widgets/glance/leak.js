@@ -73,7 +73,7 @@ export default async function leak(stage) {
       ? [el("p", {}, "注意力层的 mask 只挡住了每 4 层里的 1 层。另外 3 层是 Gated DeltaNet，它没有注意力矩阵可遮，问题 1 写进状态的东西，问题 2、3 照样读得到。"),
         el("div.g-leak-nums", {}, num("44.1%", "不加 mask：第 4 块和单独运行的隐状态差"), num("39.8%", "加上 block mask：几乎没变", "hot"), num("1.8%", "第 1 块：前面没有别的块，当对照"))]
       : [el("p", {}, "前缀只算一次，记下每个 GDN 层最后的递归状态和最后 3 个 conv 输入；每个问题块都从这份状态重新开始，注意力层只看前缀和自己。数学上等于把每个“前缀 + 问题”分开跑。"),
-        el("div.g-leak-nums", {}, num("≈1e-7", "fp32 下和逐个单独运行的相对误差", "good"), num("85.5 → 85.6 ms", "问 1 个和问 8 个框问题（v1，RTX PRO 6000）"))]));
+        el("div.g-leak-nums", {}, num("≈1e-7", "fp32 下和逐个单独运行的相对误差", "good"), num("67 → 67 ms", "问 1 个和问 8 个问题（RTX PRO 6000）"))]));
   }
   const num = (v, t, cls = "") => el("div.g-leak-num" + (cls ? "." + cls : ""), {}, el("b", { text: v }), el("span", { text: t }));
 

@@ -12,7 +12,6 @@ export function el(tag, props = {}, ...children) {
     if (v == null || v === false) continue;
     if (k == "on") for (const [e, f] of Object.entries(v)) node.addEventListener(e, f);
     else if (k == "text") node.textContent = v;
-    else if (k == "html") node.innerHTML = v;
     else node.setAttribute(k, v === true ? "" : v);
   }
   for (const c of children.flat()) if (c != null && c !== false) node.append(c);

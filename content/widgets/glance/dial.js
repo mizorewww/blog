@@ -8,7 +8,7 @@ const RULES = [["greedy", "贪心解码"], ["threshold", "阈值 0.5"], ["map", 
 const RULE_TEXT = {
   greedy: "每一步取最可能的 token，第一个 token 是 none 就算“不在”",
   threshold: "P(none) ≥ 0.5 就算“不在”",
-  map: "整串 none 的概率和贪心解出的整串坐标比，大的赢（beam search 近似做的事）",
+  map: "比较整串 none 和贪心解出的那串坐标的概率，大的赢；贪心串不一定是最可能的框，所以这是拒答率的上界",
 };
 
 export default async function dial(stage, { base }) {
@@ -35,7 +35,6 @@ export default async function dial(stage, { base }) {
 
   const bars = el("div.g-bars");
   const barsTitle = el("p.g-side-title");
-  const lat = el("div.g-bars.g-lat");
   const say = el("p.g-dial-say", { "aria-live": "polite" });
   const ruleNote = el("p.g-dial-rule");
   const gateDial = slider({ label: "门控的阈值 P(present)", value: gateAt, min: 0.02, max: 0.98, oninput: v => { gateAt = v; draw(); } });
@@ -50,14 +49,12 @@ export default async function dial(stage, { base }) {
     el("div.g-dial-body", {},
       el("div.g-dial-plot", {}, svg),
       el("div.g-dial-side", {},
-        barsTitle, bars,
-        el("p.g-side-title", { text: "8 个问题的延迟（RTX PRO 6000）" }), lat)),
+        barsTitle, bars)),
     say));
 
   // Bars are built once and animate between rules.
   const barRow = (h, value, max, text, cls = "") => el("div.g-bar-row" + cls, { "data-id": h.id },
     el("span.g-bar-name", { text: h.label }), el("span.g-bar-track", {}, el("i", { style: `width:${Math.min(100, value / max * 100)}%` })), el("b", { text }));
-  lat.append(...heads.map(h => barRow(h, h.lat[1], 640, `${Math.round(h.lat[1])} ms`, h.id == "gate" ? ".gate" : "")));
 
   // The gate's point for a threshold on P(present): interpolate its curve.
   function gatePoint() {
@@ -85,17 +82,16 @@ export default async function dial(stage, { base }) {
     const label = mark.querySelector("text");
     label.textContent = `${pct(px)} · ${py.toFixed(1)}%`;
     label.setAttribute("text-anchor", X(px) > W - 90 ? "end" : X(px) < L + 60 ? "start" : "middle");
-    barsTitle.textContent = `在场目标被说成“不在”（生成式头：${RULES.find(r => r[0] == rule)[1]}${gate ? "；门控：你的阈值" : "；门控：阈值 0.5"}）`;
-    bars.replaceChildren(...heads.map(o => {
-      const v = o.id == "gate" ? (o.id == head ? px : o.rules.threshold[0]) : o.rules[rule][0];
+    barsTitle.textContent = gate ? "在场目标被说成“不在”：门控按你的阈值，生成式头按" + RULES.find(r => r[0] == rule)[1] : `在场目标被说成“不在”：四种坐标写法，都用${RULES.find(r => r[0] == rule)[1]}`;
+    bars.replaceChildren(...(gate ? [heads[0]] : []).concat(ar).map(o => {
+      const v = o.id == "gate" ? px : o.rules[rule][0];
       return barRow(o, v, 45, pct(v), (o.id == head ? ".on" : "") + (o.id == "gate" ? ".gate" : ""));
     }));
-    lat.querySelectorAll(".g-bar-row").forEach(r => r.classList.toggle("on", r.dataset.id == head));
     const g = heads[0];
     say.replaceChildren(...(gate
       ? ["门控：阈值 ", el("b", { text: gateAt.toFixed(2) }), " 时，", el("b", { text: pct(px) }), " 的在场目标被说成“不在”，", el("b", { text: py.toFixed(1) + "%" }),
         " 的无目标表达式被拒掉。同一个底座上，四种坐标写法的曲线和它几乎重合：在 1% 误拒处都拒掉 81–82%，AUROC 都在 96.2–96.7。"]
-      : [`${h.label} 词表 + ${RULES.find(r => r[0] == rule)[1]}：`, el("b", { text: pct(px) }), " 的在场目标被说成“不在”。可它的曲线和门控几乎重合：在 1% 误拒处拒掉 ",
+      : [`${h.label} 词表 + ${RULES.find(r => r[0] == rule)[1]}：`, rule == "map" ? "最多 " : "", el("b", { text: pct(px) }), " 的在场目标被说成“不在”。可它的曲线和门控几乎重合：在 1% 误拒处拒掉 ",
         el("b", { text: h.at1 + "%" }), "（门控 " + g.at1 + "%），AUROC ", el("b", { text: String(h.auroc) }), "（门控 " + g.auroc + "）。模型知道东西在不在，是解码规则在替它选点。"]));
   }
 
