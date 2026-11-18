@@ -450,7 +450,7 @@ v1 也拿一部分框的精度换来了 GUI 能力和可信的“不在”：Ref
 
 - **视频原生的 Glance。** 不是逐帧问物体，而是在几秒长的小段上回答“这个动作发生了吗”，并且能数状态的变化，这是视频 agent 最缺的那种感知。
 - **对人的说法更稳。** 按用途描述、长描述、中英混用的问法，需要专门的训练数据和评测，而不是只靠指代表达式。
-- **开放。** 代码在 [Vision-Decision/Glance](https://github.com/Vision-Decision/Glance)（Apache-2.0），4B 的预览权重在 Hugging Face 的 [aac6fef/Glance-4B-preview](https://huggingface.co/aac6fef/Glance-4B-preview)（CC BY-NC 4.0，训练数据里的 gRefCOCO 只限非商用），一行 `pip install` 就能在 CUDA、Apple 芯片或 CPU 上跑起来。下一步是 27B 版本和训练代码。
+- **开放。** 代码在 [Vision-Decision/Glance](https://github.com/Vision-Decision/Glance)（Apache-2.0），4B 的预览权重在 Hugging Face 的 [Vision-Decision/Glance-4B-preview](https://huggingface.co/Vision-Decision/Glance-4B-preview)（CC BY-NC 4.0，训练数据里的 gRefCOCO 只限非商用），一行 `pip install` 就能在 CUDA、Apple 芯片或 CPU 上跑起来。下一步是 27B 版本和训练代码。
 
 回头看，最有价值的不是哪个分数，而是三次“和预想的不一样”：生成式头在“不在”上并不差，差在解码规则替它选了点；更大、更新的底座没学会说“不在”，难负样本学会了；视频 agent 输在“看”，而不是“想”。每一次都把我们从“换模型、换架构”推回到“数据和接口”。
 
