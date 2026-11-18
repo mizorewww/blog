@@ -33,6 +33,15 @@ export default async function hero(stage, { base }) {
     el("div.g-hero-foot", {}, dial, knob, tally),
     credits));
 
+  // The picture is painted on a canvas: the build's still is this page's
+  // largest paint, and swapping in a new <img> above the fold would make the
+  // browser count a second, later one.
+  function paint(img) {
+    const canvas = el("canvas", { width: img.naturalWidth, height: img.naturalHeight, "aria-hidden": "true" });
+    canvas.getContext("2d").drawImage(img, 0, 0);
+    return canvas;
+  }
+
   // Box questions draw a box; the others answer in the list.
   function boxNode(q, i) {
     const [w, h] = data.scenes[scene].size;
@@ -80,7 +89,7 @@ export default async function hero(stage, { base }) {
     const s = data.scenes[i];
     pinned = focus = -1;
     shot.replaceChildren(el("div.g-shot-frame", { style: `aspect-ratio:${s.size[0]}/${s.size[1]}` },
-      el("img", { src: pictures[i].src, alt: "", draggable: "false" }),
+      paint(pictures[i]),
       el("div.g-scan"),
       ...s.questions.map((q, j) => q.kind == "box" && q.box ? boxNode(q, j) : null)));
     list.replaceChildren(...s.questions.map(row));
@@ -143,6 +152,6 @@ export default async function hero(stage, { base }) {
     shot.classList.add("seen");
   });
   if (still.matches) shot.classList.add("seen");
-  // Fetch the other pictures once this one is up.
-  data.scenes.forEach((s, i) => { if (i) image(base + s.image).then(img => pictures[i] = img, () => {}); });
+  // Fetch the other pictures when the reader reaches for the tabs.
+  tabs.addEventListener("pointerenter", () => data.scenes.forEach((s, i) => { if (!pictures[i]) image(base + s.image).then(img => pictures[i] ??= img, () => {}); }), { once: true });
 }
