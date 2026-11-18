@@ -30,7 +30,9 @@ const mount = async figure => {
     console.warn("widget", figure.dataset.src, error);
   }
 };
-addEventListener("load", () => {
+// Start once the page is idle after load, so a figure never competes with the text for the network.
+const idle = f => "requestIdleCallback" in window ? requestIdleCallback(f, { timeout: 1500 }) : setTimeout(f, 200);
+addEventListener("load", () => idle(() => {
   const near = new IntersectionObserver(entries => entries.forEach(e => {
     if (e.isIntersecting) {
       near.unobserve(e.target);
@@ -38,4 +40,4 @@ addEventListener("load", () => {
     }
   }), { rootMargin: "600px 0px" });
   widgets.forEach(figure => near.observe(figure));
-});
+}));

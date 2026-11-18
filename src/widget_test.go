@@ -23,7 +23,7 @@ func TestWidget(t *testing.T) {
 	for _, want := range []string{
 		`<figure class="widget" data-src="../widgets/demo/hero.js"><figcaption>拖一拖 &amp; &lt;看&gt;</figcaption><div class="widget-stage">`,
 		`<picture><source media="(max-width: 640px)" srcset="/img/small 720w, /img/still-narrow.png 1600w" sizes="calc(100vw - 32px)" width="700" height="400">`,
-		`<img class="widget-still" src="/img/still.png" alt="静态图 &lt;a&gt;"`,
+		`<img fetchpriority="low" class="widget-still" src="/img/still.png" alt="静态图 &lt;a&gt;"`,
 		`</picture></div><p class="figure-note">注</p></figure>`,
 	} {
 		if !strings.Contains(html, want) {

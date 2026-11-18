@@ -154,7 +154,11 @@ func renderWidget(block *widgetBlock) (string, error) {
 		}
 		b.WriteString(">")
 	}
-	b.WriteString(strings.Replace(imageTag(wide, alt, "(max-width: 760px) calc(100vw - 64px), 704px"), "<img ", `<img class="widget-still" `, 1))
+	// The still is swapped out once the module draws, so it waits for the
+	// page's text and fonts, even as the first picture on the page.
+	still := strings.Replace(imageTag(wide, alt, "(max-width: 760px) calc(100vw - 64px), 704px"), "<img ", `<img class="widget-still" `, 1)
+	still = strings.Replace(still, ` fetchpriority="high"`, "", 1)
+	b.WriteString(strings.Replace(still, "<img ", `<img fetchpriority="low" `, 1))
 	if len(images) == 2 {
 		b.WriteString("</picture>")
 	}

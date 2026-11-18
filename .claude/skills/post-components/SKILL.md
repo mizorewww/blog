@@ -349,7 +349,7 @@ error | technical_error: unfinished tool activity at turn completion
 
 - 正文每行 `图片 | 替代文字`：第一行是静态图（必填），第二行可选，是 640 px 及以下显示的手机版。静态图走普通图片流水线；最好就是交互图默认状态的截图（浅色、正文宽度 704 px 和 390 px 各截一张），这样换成交互图时页面不跳。
 - 构建把 `src` 所在的**整个文件夹**发布到 `/widgets/<文件夹名>-<内容哈希>/`（以 `.` 开头的文件除外）。文件夹里只能放 `.js .json .css .webp .png .jpg .jpeg .svg .woff2`，不能有符号链接，否则构建失败，原始输出和生成脚本放在别处。模块可以用相对地址 `import`、`fetch` 同文件夹里的其他文件（数据 JSON、精灵图）；任何文件变了网址就变，可以永久缓存。同一个文件夹可以给几张图共用，每张图一个入口模块。
-- 页面 load 之后、图快滚进视口（提前 600 px）时，`templates/js/widget.js` 先加载同文件夹的 `style.css`（构建发现文件夹里有它，才让页面去取），再 `import()` 模块，调用它的默认导出：`export default async (stage, { figure, base }) => { … }`。`stage` 是一个空的 `div`，模块往里画；`base` 是文件夹的网址。返回（或 resolve）之后静态图隐藏、交互图显示；抛出异常就保留静态图。
+- 静态图以低优先级加载，不和正文、字体抢网络。页面 load 之后、浏览器空闲时，图快滚进视口（提前 600 px）时，`templates/js/widget.js` 先加载同文件夹的 `style.css`（构建发现文件夹里有它，才让页面去取），再 `import()` 模块，调用它的默认导出：`export default async (stage, { figure, base }) => { … }`。`stage` 是一个空的 `div`，模块往里画；`base` 是文件夹的网址。返回（或 resolve）之后静态图隐藏、交互图显示；抛出异常就保留静态图。
 - 文件夹里 `.js`、`.json` 的文字会并进这篇文章的字体子集，所以脚本里写的中文用的还是正文字体。
 - 模块自己负责：颜色只用 `var(--token)`（深浅色跟着切换，主题切换时不用重画）；`prefers-reduced-motion` 时不做动画；键盘能操作（`button`、`input type=range`）；390 px 宽也成立；不请求任何第三方网址，用到的库放进文件夹里并核对许可。
 - 数据必须是真实输出，预先算好放进 JSON；页面上只做筛选和插值，不跑模型。
