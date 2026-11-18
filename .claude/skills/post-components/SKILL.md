@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, annotated agent traces, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -292,6 +292,29 @@ Claude Opus 5.5 | bad | (C) red
 - 其余每行 `谁 | ok/bad/note | 回答`，每张卡片至少一行。
 - 属性只有 `title`（必填，图号自动编）和 `note`。
 
+## 轨迹节选 `trace`
+
+agent 运行记录的一段节选，关键的几行旁边写批注。等宽的“终端”面板，按类型上色，长输出自动折叠，`<details>` 折叠，不需要 JS。
+
+````markdown
+```trace title="评测框架报错时，答案已经写好了" note="GPT-6-Astra 在 Video-Index v1.1 Video-MME_2411 上的运行，节选。"
+user | Which of the following …
+cmd | ffmpeg -i video.mp4 -vf fps=1/8 sheet.jpg
+fold | 中间 6 次工具调用
+out | …
+end
+ans | {"answer_letter": "A"}
+note | 答案已经写在最后一条消息里，而且是对的
+error | technical_error: unfinished tool activity at turn completion
+```
+````
+
+- 每行 `类型 | 文本`，只按第一个 `|` 切分，所以命令里的管道符原样保留。类型：`user`（题目）、`cmd`（命令，显示 `$`）、`out`（输出，灰色）、`tool`、`say`（agent 说的话）、`ans`（答案，绿色）、`error`（红色）。
+- 以两个空格开头的行接在上一条后面（多行输出）；超过 6 行的条目只显示前 3 行，其余点开看。
+- `note | 批注` 写在它批注的那一条后面，每条最多一个；有批注的行整行浅色高亮，批注在右侧（手机上在下面）。
+- `fold | 摘要` 到单独一行 `end` 之间的条目折叠起来，只显示摘要；不能嵌套。
+- 文本必须是原始记录（可以截断，用 `…` 标出），`note` 写清模型、题目和来源。属性只有 `title`（必填，图号自动编）和 `note`。
+
 ## 图表风格
 
 图的样子参考 Anthropic 博客的图：安静、只强调一件事、数字直接写在图上。
@@ -305,7 +328,7 @@ Claude Opus 5.5 | bad | (C) red
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；agent 运行记录 → `trace`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
 
 ## 指标卡 `stats`
 

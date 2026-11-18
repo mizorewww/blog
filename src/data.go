@@ -38,6 +38,7 @@ var dataRenderers = map[string]func(info string, lines []string) (string, error)
 	"data":  renderData,
 	"chart": renderChart,
 	"stats": renderStats,
+	"trace": renderTrace,
 }
 
 type dataTransformer struct{}

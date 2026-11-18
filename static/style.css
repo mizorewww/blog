@@ -193,9 +193,9 @@ mark{background:var(--sel);color:inherit}
 .tip span i{width:8px;height:2px}
 .tip em{font-style:normal}
 /* ```echarts and ```mermaid figures (src/figures.go): open on the page, a numbered label over the title, the note under a rule. */
-:is(.echart,.diagram,.frames,.cases){margin:2.6em 0;counter-increment:figure}
-:is(.echart,.diagram,.frames,.cases) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
-:is(.echart,.diagram,.frames,.cases) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
+:is(.echart,.diagram,.frames,.cases,.trace){margin:2.6em 0;counter-increment:figure}
+:is(.echart,.diagram,.frames,.cases,.trace) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
+:is(.echart,.diagram,.frames,.cases,.trace) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
 /* Inline drawings are heavy to lay out and paint: skip them until they come near, so the first screen paints as fast as a page without them. */
 .figure-plot{position:relative;content-visibility:auto;contain-intrinsic-size:auto 480px}
 .echart .figure-plot{height:var(--h);contain-intrinsic-size:auto var(--h);font-family:var(--mono)}
@@ -269,6 +269,27 @@ mark{background:var(--sel);color:inherit}
 .case-rows i{display:inline-block;width:1.3em;font-style:normal}
 .case-rows .ok dd{color:var(--green)}
 .case-rows .bad dd{color:var(--red)}
+/* ```trace excerpts (src/trace.go): an agent's log in a terminal-like panel; annotated lines are tinted, the note beside them (below on phones). */
+.prose .trace-log{margin:0;padding:10px 0;list-style:none;background:var(--wash);border:1px solid var(--line);font-family:var(--mono);font-size:12px;line-height:1.7}
+.prose .trace-log>li{display:grid;grid-template-columns:4.2em minmax(0,1fr) minmax(0,12em);gap:0 14px;align-items:start;margin:0;padding:3px 16px}
+.prose .trace-log>li:has(>.t-note){background:var(--clay-wash)}
+.t-k{color:var(--faint);text-align:right;user-select:none}
+.t-x{min-width:0;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--body)}
+.t-cmd .t-x{color:var(--ink)}
+.t-out .t-x{color:var(--muted)}
+.t-user .t-x,.t-say .t-x{font-family:var(--sans);font-size:13px}
+.t-ans .t-x{color:var(--green)}
+.t-error .t-x{color:var(--red)}
+.t-note{padding-left:10px;border-left:2px solid var(--clay);font-family:var(--sans);font-size:12px;line-height:1.65;color:var(--clay-ink)}
+.t-x summary,.t-fold summary{cursor:pointer;list-style:none}
+.t-x summary::-webkit-details-marker,.t-fold summary::-webkit-details-marker{display:none}
+.t-x summary i{font-style:normal;color:var(--faint)}
+.t-x summary:hover i,.t-fold summary:hover{color:var(--green)}
+.prose .trace-log>li.t-fold{display:block;padding:2px 0}
+.t-fold summary{padding:0 16px 0 calc(4.2em + 30px);color:var(--muted)}
+.t-fold summary::before{content:"⋯ ";color:var(--faint)}
+.t-fold details[open]>summary::before{content:"▾ "}
+.prose .t-fold .trace-log{padding:2px 0 0;border:0;background:none}
 .stats-group{display:flex;align-items:baseline;gap:10px;margin:0;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:11px;color:var(--muted)}
 .stats-group b{font-weight:500;color:var(--ink)}
 .kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0;overflow:hidden;border-bottom:1px solid var(--line)}
@@ -422,6 +443,9 @@ main::after{bottom:0}
 .case.with-image{grid-template-columns:72px minmax(0,1fr)}
 .prose .case-image img{width:72px;height:72px}
 .case-rows>div{grid-template-columns:minmax(0,1fr);gap:0}
+.prose .trace-log>li{grid-template-columns:3.6em minmax(0,1fr);gap:0 10px;padding:3px 12px}
+.t-note{grid-column:2;margin:4px 0 2px}
+.t-fold summary{padding:0 12px 0 calc(3.6em + 22px)}
 .kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
 .kpi>div{padding:12px 14px}
 .kpi dd{font-size:18px}
