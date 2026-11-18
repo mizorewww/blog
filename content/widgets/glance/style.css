@@ -56,6 +56,7 @@
 .g-box.loose .g-box-tag em{display:inline}
 .g-q.loose .g-q-word{color:var(--muted);font-size:11.5px}
 .g-box.tag-in .g-box-tag{bottom:auto;top:100%;border-radius:0 5px 5px 5px}
+.g-box.tag-inside .g-box-tag{bottom:auto;top:0;left:0;border-radius:2px 0 5px 0}
 .g-box:not(.hot) .g-box-tag span{display:none}
 .g-shot.focused .g-box:not(.hot) .g-box-tag{opacity:0}
 .g-hero-main{min-width:0}
@@ -266,4 +267,5 @@
 @media(max-width:640px){.g-leak .g-pills{flex-wrap:wrap;border-radius:16px}}
 .g-hero .g-hero-foot .g-slider{flex:1 1 260px}
 .g-hero .g-slider-label{min-width:6.5em}
-@media(max-width:640px){.g-dial-chart .g-tick{font-size:14.5px}.g-dial-chart .g-axis-name{font-size:14.5px}.g-pt-label{font-size:15px}}
+.g-card .g-yname{display:none;margin:0 0 4px;font-size:11.5px;color:var(--muted)}
+@media(max-width:640px){.g-dial-chart .g-axis-name.y{display:none}.g-card .g-yname{display:block}.g-dial-chart .g-tick{font-size:17px}.g-dial-chart .g-axis-name{font-size:16px}.g-pt-label{font-size:17px}}

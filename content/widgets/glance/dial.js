@@ -26,7 +26,7 @@ export default async function dial(stage, { base }) {
   for (const v of [0.1, 0.3, 1, 3, 10, 30]) grid.append(el("line", { x1: X(v), x2: X(v), y1: T, y2: H - B }), el("text.g-tick", { x: X(v), y: H - B + 15, "text-anchor": "middle", text: v + "%" }));
   for (const v of [60, 70, 80, 90, 100]) grid.append(el("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v) }), el("text.g-tick", { x: L - 6, y: Y(v) + 3.5, "text-anchor": "end", text: v + "%" }));
   grid.append(el("text.g-axis-name", { x: (L + W - R) / 2, y: H - 6, "text-anchor": "middle", text: "在场的目标，被说成“不在”（对数轴）" }),
-    el("text.g-axis-name", { x: 12, y: (T + H - B) / 2, "text-anchor": "middle", transform: `rotate(-90 12 ${(T + H - B) / 2})`, text: "没有的目标，说对了“不在”" }));
+    el("text.g-axis-name.y", { x: 12, y: (T + H - B) / 2, "text-anchor": "middle", transform: `rotate(-90 12 ${(T + H - B) / 2})`, text: "没有的目标，说对了“不在”" }));
   const path = h => h.curve.filter(c => c[0] >= 0.05).map((c, i) => `${i ? "L" : "M"}${X(c[0]).toFixed(1)} ${Y(c[1]).toFixed(1)}`).join("");
   const curves = el("g", {}, ...heads.map(h => el("path.g-curve", { d: path(h), "data-id": h.id })));
   const others = el("g", {}, ...ar.map(h => el("g.g-pt.small", { "data-id": h.id }, el("circle", { r: 4 }))));
@@ -47,7 +47,7 @@ export default async function dial(stage, { base }) {
       el("div.g-ctl.g-ctl-rule", {}, el("span.g-ctl-name", { text: "解码规则" }), rulePills, gateDial)),
     ruleNote,
     el("div.g-dial-body", {},
-      el("div.g-dial-plot", {}, svg),
+      el("div.g-dial-plot", {}, el("p.g-yname", { text: "纵轴：没有的目标，说对了“不在”" }), svg),
       el("div.g-dial-side", {},
         barsTitle, bars)),
     say));

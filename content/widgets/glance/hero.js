@@ -53,8 +53,8 @@ export default async function hero(stage, { base }) {
     }, el("span.g-box-tag", {}, el("span", { text: q.text }), el("b", { text: fmt(q.p) }), el("em", { text: "框不准 " + fmt(q.iou) })));
     node.addEventListener("pointerenter", () => hover(i));
     node.addEventListener("pointerleave", () => hover(-1));
-    // Boxes near the top edge put their tag inside.
-    if (top < 9) node.classList.add("tag-in");
+    // A box at the top edge hangs its tag below it, or inside when it also reaches the bottom.
+    if (top < 9) node.classList.add(y2 / h > 0.9 ? "tag-inside" : "tag-in");
     return node;
   }
 
