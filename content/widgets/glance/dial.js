@@ -8,7 +8,7 @@ const RULES = [["greedy", "贪心解码"], ["threshold", "阈值 0.5"], ["map", 
 const RULE_TEXT = {
   greedy: "每一步取最可能的 token，第一个 token 是 none 就算“不在”",
   threshold: "P(none) ≥ 0.5 就算“不在”",
-  map: "规则 A 的近似：整串 none 和贪心解出的坐标串比概率，大的赢；在抽样子集上和精确搜索几乎一致",
+  map: "规则 A 的近似（全量）：整串 none 和贪心解出的坐标串比概率，大的赢；在抽样子集上和精确搜索几乎一致",
 };
 
 export default async function dial(stage, { base }) {
