@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -272,6 +272,26 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 只放有再发布许可的素材，在 `note` 里署名；评测集里只许用于评测的视频不要截帧。
 - 每帧的数字必须是模型真实输出，`note` 写清模型、设备和采样间隔。
 
+## 案例卡片 `cases`
+
+把统计结论落到具体题目上：每张卡片是一道题、标准答案和各个模型的回答，答对的绿色加 ✓，答错的红色加 ✗，附注灰色加 ·（没有 CSS 的 RSS 阅读器里也分得清）。纯 HTML/CSS。
+
+````markdown
+```cases title="看到了，但看错了" note="来源：video/analysis/trace_labels.json。"
+## ALLVB_2121 电影 · 感知
+tag: 看错了
+q: What colour is the man's shirt?
+答案 | ok | (E) purple
+Claude Opus 5.5 | bad | (C) red
+备注 | note | 9/21 个 agent 选了 red
+```
+````
+
+- `## ` 开始一张卡片，第一个词用等宽字（题号），其余是灰色说明。
+- `tag:` 右上角的红色标签（错误类型）；`q:` 题目，加粗；`image:` 左侧 112 px 的方形缩略图（手机上 72 px），走普通图片流水线。三者都可省略，图片只放有再发布许可的素材。
+- 其余每行 `谁 | ok/bad/note | 回答`，每张卡片至少一行。
+- 属性只有 `title`（必填，图号自动编）和 `note`。
+
 ## 图表风格
 
 图的样子参考 Anthropic 博客的图：安静、只强调一件事、数字直接写在图上。
@@ -285,7 +305,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
 
 ## 指标卡 `stats`
 

@@ -185,7 +185,7 @@ serif:
 		switch {
 		case e.is("key") || e.is("code-path") || e.tag == "span" && parent(i).tag == "a" && within("post-pagination"):
 			break serif // mono or sans inside a serif block
-		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats") || parent(i).is("echart") || parent(i).is("diagram") || parent(i).is("frames")):
+		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats") || parent(i).is("echart") || parent(i).is("diagram") || parent(i).is("frames") || parent(i).is("cases")):
 			return serif600
 		case e.tag == "h1" && within("article-header") || e.tag == "h2" && within("post-summary"):
 			return serif500
@@ -204,7 +204,8 @@ serif:
 			e.is("dl"),
 			e.tag == "b" && (parent(i).is("stats-group") || within("ticker")),
 			e.tag == "dd" && within("kpi") && !e.is("s"),
-			e.is("b") && within("sketch"):
+			e.is("b") && within("sketch"),
+			e.is("case-q"):
 			return sans500
 		}
 	}

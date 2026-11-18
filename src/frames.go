@@ -14,7 +14,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// Fences that show pictures (```frames) hold their pictures as ast.Image
+// Fences that may show pictures (```frames, ```cases) hold their pictures as ast.Image
 // children, so the build's image hook optimizes and publishes them like any
 // other image; the fence renders them itself, in order, once they are
 // processed. Lines are only split when the fence is found; they are checked
@@ -41,6 +41,7 @@ type mediaFence struct {
 
 var mediaFences = map[string]mediaFence{
 	"frames": {frameImage, renderFrames},
+	"cases":  {caseImage, renderCases},
 }
 
 type mediaTransformer struct{}

@@ -193,9 +193,9 @@ mark{background:var(--sel);color:inherit}
 .tip span i{width:8px;height:2px}
 .tip em{font-style:normal}
 /* ```echarts and ```mermaid figures (src/figures.go): open on the page, a numbered label over the title, the note under a rule. */
-:is(.echart,.diagram,.frames){margin:2.6em 0;counter-increment:figure}
-:is(.echart,.diagram,.frames) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
-:is(.echart,.diagram,.frames) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
+:is(.echart,.diagram,.frames,.cases){margin:2.6em 0;counter-increment:figure}
+:is(.echart,.diagram,.frames,.cases) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
+:is(.echart,.diagram,.frames,.cases) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
 /* Inline drawings are heavy to lay out and paint: skip them until they come near, so the first screen paints as fast as a page without them. */
 .figure-plot{position:relative;content-visibility:auto;contain-intrinsic-size:auto 480px}
 .echart .figure-plot{height:var(--h);contain-intrinsic-size:auto var(--h);font-family:var(--mono)}
@@ -253,6 +253,22 @@ mark{background:var(--sel);color:inherit}
 .frames-bar{display:block;height:3px;margin-top:4px;background:linear-gradient(90deg,var(--stone) var(--p),var(--line) 0)}
 .frames .in .frames-bar{background:linear-gradient(90deg,var(--clay) var(--p),var(--line) 0)}
 .frames .frames-cap{margin:4px 0 0;font-size:12px;line-height:1.6;color:var(--body)}
+/* ```cases cards (src/cases.go): the question, then the key and each model's answer, green when right and red when wrong. */
+.case-list{display:grid;gap:12px}
+.case{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;padding:16px 20px;background:var(--card);border:1px solid var(--line)}
+.case.with-image{grid-template-columns:112px minmax(0,1fr)}
+.prose .case-image img{width:112px;height:112px;object-fit:cover;border:0}
+.cases .case-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px;margin:0 0 6px;font-size:12px;line-height:1.6;color:var(--muted)}
+.case-head .key{color:var(--ink)}
+.case-tag{margin-left:auto;padding:0 8px;border:1px solid var(--red);border-radius:999px;font-size:11px;font-style:normal;color:var(--red)}
+.cases .case-q{margin:0 0 10px;font-size:14px;font-weight:500;line-height:1.75;color:var(--ink)}
+.case-rows{display:grid;gap:2px;margin:0;font-size:13px;line-height:1.7}
+.case-rows>div{display:grid;grid-template-columns:9.5em minmax(0,1fr);gap:12px}
+.case-rows dt{padding-top:1px;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.case-rows dd{margin:0;color:var(--body)}
+.case-rows i{display:inline-block;width:1.3em;font-style:normal}
+.case-rows .ok dd{color:var(--green)}
+.case-rows .bad dd{color:var(--red)}
 .stats-group{display:flex;align-items:baseline;gap:10px;margin:0;padding:10px 20px;border-bottom:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:11px;color:var(--muted)}
 .stats-group b{font-weight:500;color:var(--ink)}
 .kpi{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0;overflow:hidden;border-bottom:1px solid var(--line)}
@@ -402,6 +418,10 @@ main::after{bottom:0}
 .plot svg{aspect-ratio:auto;height:calc(var(--h) * .75px)}
 .plot .tag{transform:translate(calc(-100% - 4px),-50%)!important}
 .prose .frames-strip{grid-template-columns:repeat(var(--cols-n),minmax(0,1fr))}
+.case{padding:14px}
+.case.with-image{grid-template-columns:72px minmax(0,1fr)}
+.prose .case-image img{width:72px;height:72px}
+.case-rows>div{grid-template-columns:minmax(0,1fr);gap:0}
 .kpi{grid-template-columns:repeat(2,minmax(0,1fr))}
 .kpi>div{padding:12px 14px}
 .kpi dd{font-size:18px}
