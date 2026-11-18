@@ -193,9 +193,9 @@ mark{background:var(--sel);color:inherit}
 .tip span i{width:8px;height:2px}
 .tip em{font-style:normal}
 /* ```echarts and ```mermaid figures (src/figures.go): open on the page, a numbered label over the title, the note under a rule. */
-:is(.echart,.diagram,.frames,.cases,.trace){margin:2.6em 0;counter-increment:figure}
-:is(.echart,.diagram,.frames,.cases,.trace) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
-:is(.echart,.diagram,.frames,.cases,.trace) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
+:is(.echart,.diagram,.frames,.cases,.trace,.widget){margin:2.6em 0;counter-increment:figure}
+:is(.echart,.diagram,.frames,.cases,.trace,.widget) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
+:is(.echart,.diagram,.frames,.cases,.trace,.widget) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
 /* Inline drawings are heavy to lay out and paint: skip them until they come near, so the first screen paints as fast as a page without them. */
 .figure-plot{position:relative;content-visibility:auto;contain-intrinsic-size:auto 480px}
 .echart .figure-plot{height:var(--h);contain-intrinsic-size:auto var(--h);font-family:var(--mono)}
@@ -239,6 +239,11 @@ mark{background:var(--sel);color:inherit}
 .sketch .mute{fill:var(--muted)}
 .sketch .accent{fill:var(--clay)}
 .figure-note{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.8;color:var(--muted)}
+/* ```widget figures (src/widget.go, templates/js/widget.js): a still picture until the post's own module has drawn the live figure in its place. */
+.widget-stage{position:relative}
+.widget-still{display:block;width:100%;height:auto;border-radius:10px}
+.widget:not(.live) .widget-live{position:absolute;inset:0;visibility:hidden;overflow:hidden}
+.widget.live :is(picture,.widget-still){display:none}
 /* ```frames strips (src/frames.go): pictures in a row, the model's box placed over each in percent, P(present) as a number and a bar. Frames under the threshold fade. */
 .frames .frames-q{margin:-6px 0 12px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted)}
 .prose .frames-strip{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:12px 10px;margin:0;padding:0;list-style:none}

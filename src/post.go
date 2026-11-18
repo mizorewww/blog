@@ -51,6 +51,7 @@ type Post struct {
 	Source           string
 	Translation      *Post
 	body             []byte // Markdown after the metadata
+	scripted         string // text the post's widgets draw, for its font subsets
 }
 
 // Modified is the last substantive edit, for dateModified and sitemap lastmod.
@@ -71,7 +72,7 @@ func init() {
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, mediaExtension{}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, mediaExtension{}, widgetExtension{}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -124,6 +125,7 @@ func plainText(n ast.Node, src []byte) string {
 type contentHooks struct {
 	image  func(*ast.Image) error   // rewrites each image node
 	figure func(*figureBlock) error // draws each figure
+	widget func(*widgetBlock) error // publishes each widget's module
 }
 
 // renderContent renders a post body with an edition's renderer.
@@ -147,6 +149,11 @@ func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (
 			}
 			if err != nil {
 				return ast.WalkStop, fmt.Errorf("%s block %q: %w", node.Lang, node.Info, err)
+			}
+		}
+		if node, ok := n.(*widgetBlock); entering && ok && hooks.widget != nil {
+			if err := hooks.widget(node); err != nil {
+				return ast.WalkStop, fmt.Errorf("widget block %q: %w", node.Info, err)
 			}
 		}
 		if h, ok := n.(*ast.Heading); entering && ok && h.Level >= 2 && h.Level <= 3 {

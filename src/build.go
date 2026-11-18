@@ -42,6 +42,7 @@ type builder struct {
 	pages    map[string]*template.Template // the layout with each kind's "main", by Page.Kind
 	fonts    *fontSubsetter
 	images   imagePipeline
+	widgets  widgetPublisher
 	figures  figureDrawer
 	editions []*edition
 	feeds    map[string]Feed
@@ -173,6 +174,7 @@ func (b *builder) prepare() error {
 	}
 	b.fonts, err = newFontSubsetter(filepath.Join(b.stage, "static", b.version, "fonts"), b.prefix+"/static/"+b.version+"/fonts")
 	b.images = imagePipeline{stage: b.stage, base: b.site.URL}
+	b.widgets = widgetPublisher{stage: b.stage, prefix: b.prefix}
 	return err
 }
 
@@ -197,7 +199,7 @@ func (b *builder) readEditions() error {
 				continue
 			}
 			p.File, p.Lang, p.Path = name, e.lang, e.lang.Base+p.Path
-			if err = p.render(contentHooks{image: b.images.hook(name), figure: b.figures.draw}); err != nil {
+			if err = p.render(contentHooks{image: b.images.hook(name), figure: b.figures.draw, widget: b.widgets.hook(name, &p.scripted)}); err != nil {
 				return err
 			}
 			if p.History = gitHistory(name); len(p.History) > 0 && b.site.Repo != "" {
@@ -293,7 +295,7 @@ func (b *builder) writePosts(e *edition) error {
 		if p.Translation != nil {
 			sw = &Link{p.Translation.Lang.HTML, p.Translation.Path, e.lang.UI.Switch}
 		}
-		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + b.site.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, ""); err != nil {
+		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + b.site.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, p.scripted); err != nil {
 			return err
 		}
 		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + p.Path, p.Modified()})
@@ -376,7 +378,7 @@ func (b *builder) writeHeaders() error {
 	for _, entry := range entries {
 		name := entry.Name()
 		switch {
-		case name == "static" || name == "images" || name == "404.html" || strings.HasPrefix(name, "_"):
+		case name == "static" || name == "images" || name == "widgets" || name == "404.html" || strings.HasPrefix(name, "_"):
 		case entry.IsDir():
 			routes = append(routes, "/"+name+"/*")
 		case slices.Contains([]string{".html", ".xml", ".json", ".txt"}, filepath.Ext(name)):
@@ -387,7 +389,7 @@ func (b *builder) writeHeaders() error {
 	for _, route := range routes {
 		fmt.Fprintf(&headers, "%s%s\n  Cache-Control: no-cache\n", b.prefix, route)
 	}
-	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n", b.prefix, b.prefix, b.version, b.prefix)
+	fmt.Fprintf(&headers, "%s/404.html\n  Cache-Control: no-store\n%s/static/%s/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/images/*\n  Cache-Control: public, max-age=31536000, immutable\n%s/widgets/*\n  Cache-Control: public, max-age=31536000, immutable\n", b.prefix, b.prefix, b.version, b.prefix, b.prefix)
 	return b.write("_headers", []byte(headers.String()))
 }
 

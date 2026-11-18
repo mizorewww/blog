@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, annotated agent traces, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, annotated agent traces, interactive widgets a post scripts itself, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -328,7 +328,31 @@ error | technical_error: unfinished tool activity at turn completion
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；agent 运行记录 → `trace`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；agent 运行记录 → `trace`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；`echarts` 也做不到、需要读者自己操作的 → `widget`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+
+## 交互图 `widget`
+
+别的组件都做不到、非得让读者自己拖、点、切换才看得懂的图（滑块调阈值、时间轴拖动、切换几种设置看结果怎么变），用这篇文章自己的脚本画。脚本只做增强：构建时放一张静态图，没有 JS、RSS 阅读器和首屏看到的都是它。
+
+````markdown
+```widget src="../widgets/glance/hero.js" title="拖动阈值，看框出现和消失" note="数据来源、模型、素材许可。"
+../images/glance/hero.png | 静态图的替代文字：图上画了什么
+../images/glance/hero-narrow.png | 手机版静态图的替代文字
+```
+````
+
+| 属性 | 说明 |
+| --- | --- |
+| `src` | 必填，相对于 Markdown 文件的 ES module，必须在 `content/` 下某个文件夹里，一般是 `content/widgets/<名字>/xxx.js` |
+| `title` | 必填，图上方的标题；图号 FIGURE n 自动编 |
+| `note` | 图下注释 |
+
+- 正文每行 `图片 | 替代文字`：第一行是静态图（必填），第二行可选，是 640 px 及以下显示的手机版。静态图走普通图片流水线；最好就是交互图默认状态的截图（浅色、正文宽度 704 px 和 390 px 各截一张），这样换成交互图时页面不跳。
+- 构建把 `src` 所在的**整个文件夹**发布到 `/widgets/<文件夹名>-<内容哈希>/`（以 `.` 开头的文件除外），所以模块可以用相对地址 `import`、`fetch` 同文件夹里的其他文件（数据 JSON、精灵图）；任何文件变了网址就变，可以永久缓存。同一个文件夹可以给几张图共用，每张图一个入口模块。
+- 页面 load 之后、图快滚进视口（提前 600 px）时，`templates/js/widget.js` 先加载同文件夹的 `style.css`（有的话），再 `import()` 模块，调用它的默认导出：`export default async (stage, { figure, base }) => { … }`。`stage` 是一个空的 `div`，模块往里画；`base` 是文件夹的网址。返回（或 resolve）之后静态图隐藏、交互图显示；抛出异常就保留静态图。
+- 文件夹里 `.js`、`.json` 的文字会并进这篇文章的字体子集，所以脚本里写的中文用的还是正文字体。
+- 模块自己负责：颜色只用 `var(--token)`（深浅色跟着切换，主题切换时不用重画）；`prefers-reduced-motion` 时不做动画；键盘能操作（`button`、`input type=range`）；390 px 宽也成立；不请求任何第三方网址，用到的库放进文件夹里并核对许可。
+- 数据必须是真实输出，预先算好放进 JSON；页面上只做筛选和插值，不跑模型。
 
 ## 指标卡 `stats`
 
