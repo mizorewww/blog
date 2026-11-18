@@ -34,7 +34,8 @@ import (
 // and fetch its neighbours by relative URL, and a changed file gets a new URL.
 var widgetAttributes = []string{"title", "note", "src"}
 
-type widgetExtension struct{}
+// hint says, under the still, that the figure is interactive.
+type widgetExtension struct{ hint string }
 
 var kindWidget = ast.NewNodeKind("Widget")
 
@@ -65,11 +66,11 @@ func (n *widgetBlock) attrs() (map[string]string, error) {
 }
 
 type widgetTransformer struct{}
-type widgetRenderer struct{}
+type widgetRenderer struct{ hint string }
 
-func (widgetExtension) Extend(m goldmark.Markdown) {
+func (e widgetExtension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(widgetTransformer{}, 100)))
-	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(widgetRenderer{}, 100)))
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(widgetRenderer{hint: e.hint}, 100)))
 }
 
 func (widgetTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
@@ -99,13 +100,13 @@ func (widgetTransformer) Transform(doc *ast.Document, reader text.Reader, _ pars
 	}
 }
 
-func (widgetRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+func (r0 widgetRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(kindWidget, func(w util.BufWriter, _ []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
 		}
 		block := n.(*widgetBlock)
-		out, err := renderWidget(block)
+		out, err := renderWidget(block, r0.hint)
 		if err != nil {
 			return ast.WalkStop, fmt.Errorf("widget block %q: %w", block.Info, err)
 		}
@@ -114,7 +115,7 @@ func (widgetRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	})
 }
 
-func renderWidget(block *widgetBlock) (string, error) {
+func renderWidget(block *widgetBlock, hint string) (string, error) {
 	attrs, err := block.attrs()
 	if err != nil {
 		return "", err
@@ -163,6 +164,9 @@ func renderWidget(block *widgetBlock) (string, error) {
 		b.WriteString("</picture>")
 	}
 	b.WriteString(`</div>`)
+	if hint != "" {
+		fmt.Fprintf(&b, `<p class="widget-hint">%s</p>`, html.EscapeString(hint))
+	}
 	if attrs["note"] != "" {
 		fmt.Fprintf(&b, `<p class="figure-note">%s</p>`, html.EscapeString(attrs["note"]))
 	}

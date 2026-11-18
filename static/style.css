@@ -243,7 +243,8 @@ mark{background:var(--sel);color:inherit}
 .widget-stage{position:relative}
 .widget-still{display:block;width:100%;height:auto;border-radius:10px}
 .widget:not(.live) .widget-live{position:absolute;inset:0;visibility:hidden;overflow:hidden}
-.widget.live :is(picture,.widget-still){display:none}
+.widget.live :is(picture,.widget-still,.widget-hint){display:none}
+.widget-hint{margin:6px 0 0;font-size:12px;line-height:1.6;color:var(--faint)}
 /* ```frames strips (src/frames.go): pictures in a row, the model's box placed over each in percent, P(present) as a number and a bar. Frames under the threshold fade. */
 .frames .frames-q{margin:-6px 0 12px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted)}
 .prose .frames-strip{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:12px 10px;margin:0;padding:0;list-style:none}
