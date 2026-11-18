@@ -248,13 +248,13 @@ gRefCOCO 存在门控 ECE | 0.075 | 0.074
 
 在 COCO 上的分数很好看，于是我们把 v0 直接拿去测 GUI 定位的 ScreenSpot-v2[@screenspotv2]：
 
-```data title="v0 在 ScreenSpot-v2 上" bars="点击准确率" note="1,272 题，预测点落在目标框内算对。Glance v0 用 640 个视觉 token，生成式底座最多 4,000 个，分辨率差很多；但下面的 v1 同样只用 640 个就到了 89.4，所以分辨率不是主要原因。来源：outputs/eval_v0_xdomain/rows/。"
+```data title="v0 在 ScreenSpot-v2 上" bars="点击准确率" note="1,272 题，预测点落在目标框内算对。Glance v0 最多用 640 个视觉 token，生成式底座最多 4,000 个。来源：outputs/eval_v0_xdomain/rows/（ours_ss2_640、base_ss2_4000）。"
 模型 | 点击准确率
 Glance v0 | 28.6
 生成式底座 Qwen3.5-4B | 93.4
 ```
 
-28.6 对 93.4。底座本身会定位 UI 元素，v0 在 COCO 上训了 78 分钟，反而把它压没了：新加的头只见过自然图像里的物体。in-domain 的分数说明不了任何跨域的事。
+28.6 对 93.4。底座本身会定位 UI 元素，v0 在 COCO 上训了 78 分钟，到了截图上却几乎不会用：一种解释是新加的头只见过自然图像里的物体。不过这两边的分辨率也差得很远，v0 最多 640 个视觉 token，底座最多 4,000 个，截图上的小图标缩到 640 个 token 里可能已经看不清。下面的 v1 在 ScreenSpot-v2 上回到了 89.4，可它同时换了数据（加了 GUI 截图）、也把 GUI 评测的视觉 token 上限提到了 2,048，所以**这个跨域差距里有多少来自领域、多少来自分辨率，我们分不开**；要分开，得让 v0 也用 2,048 个 token 再测一次，我们还没做。能确定的只有一点：in-domain 的分数说明不了跨域的事。
 
 ## v1：类型化原语 + 混合数据 + 难负样本
 
@@ -288,7 +288,7 @@ RefCOCO val Acc@0.5 | — | 95.0 | 93.2
 
 - **RefCOCO 掉了 2 个点**（val 95.0 → 93.2，8 个评测集平均 92.8 → 90.8）。框也松了一些，平均 IoU 从 0.84 降到 0.77。自然图像只占全部问题的五分之一左右，COCO 上的专长被稀释了。
 - **多目标表达式的召回**从 98.8% 降到 94.9%：模型更敢说“不在”，代价是偶尔把在的也说成不在。
-- **ScreenSpot-Pro[@screenspotpro] 只有 29.3**。这个评测集是专业软件的高分辨率截图，图标很小，而 v1 的视觉 token 上限只有 640。生成式底座在 SS-Pro 上我们只跑完了 718/1,581 题，没法直接比。
+- **ScreenSpot-Pro[@screenspotpro] 只有 29.3**。这个评测集是专业软件的高分辨率截图，图标很小，而 v1 评测 GUI 时的视觉 token 上限是 2,048，大截图要缩小才放得下。生成式底座在 SS-Pro 上我们只跑完了 718/1,581 题，没法直接比。
 
 ## 受控实验：只换输出头
 
@@ -301,12 +301,12 @@ RefCOCO val Acc@0.5 | — | 95.0 | 93.2
 
 AR 头需要选一个解码规则来决定“说不说 none”。我们比较了三种：贪心解码；P(none) ≥ 0.5 的阈值；以及**序列级 MAP**：比较整串 `none` 的概率和贪心得到的整串坐标的概率，取大的那个，这近似于 beam search 会做的事。
 
-```data title="六组受控实验" mark="门控 25%" note="百分比后的数字是训练时“不在”的问题占比（5% 时只减少负样本，正样本完全相同）。拒答 = RefCOCO val 上目标在场、模型却说不在的比例；@1% = 把阈值调到恰好拒答 1% 的在场目标时的 N-acc；MAP 两列是序列级 MAP 解码下的 N-acc 和拒答。AR 头其余各列用贪心解码。25% 的四组存在概率 AUROC 在 96.2–96.6 之间，5% 的两组是 94.9 和 95.0。来源：outputs/ablation/main_table.md。"
+```data title="六组受控实验" mark="门控 25%" note="百分比后的数字是训练时“不在”的问题占比（5% 时只减少负样本，正样本完全相同）。拒答 = RefCOCO val 上目标在场、模型却说不在的比例；@1% = 把阈值调到恰好拒答 1% 的在场目标时的 N-acc；MAP 两列是序列级 MAP 解码下的 N-acc 和拒答。AR 头其余各列用语法约束的贪心解码：每一步只允许合法的坐标串或 none（AR 原子不加约束时 RefCOCO 只有 73.1，见正文）。25% 的四组存在概率 AUROC 在 96.2–96.6 之间，5% 的两组是 94.9 和 95.0。来源：outputs/ablation/main_table.md。"
 运行 | RefCOCO | N-acc | 拒答 | ECE | @1% | MAP N-acc | MAP 拒答
 门控 25% | 95.1 | 75.7 | 0.4 | 8.1 | 81.3 | — | —
 AR 数字 25% | 94.4 | 78.0 | 0.5 | 7.9 | 82.1 | 98.2 | 39.9
 AR 层级 25% | 94.4 | 78.3 | 0.5 | 8.0 | 81.7 | 96.6 | 21.9
-AR 原子 25% | 73.1 | 84.4 | 1.5 | 7.6 | 82.1 | 93.3 | 9.9
+AR 原子 25% | 93.8 | 84.4 | 1.5 | 7.6 | 82.1 | 93.3 | 9.9
 门控 5% | 94.8 | 64.3 | 0.1 | 12.7 | 80.0 | — | —
 AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 ```
@@ -317,7 +317,7 @@ AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 
 **二，表面形式竞争是真的，但只在序列级 MAP 下出现。** 一个框的概率分散在成千上万种坐标串上，而 `none` 只有一种写法。按整串概率比较时，`none` 赢得太多：AR 数字会把 **40%** 在场的目标说成不在，层级 22%，原子 9.9%。所以 AR 头的“不在”有多好，取决于你选哪种解码规则，而这在部署时往往不是一个显式的选择。
 
-```echarts title="同一个 AR 头，换个解码规则，拒答率差几十倍" height="360" note="RefCOCO val 上目标在场、模型却说“不在”的比例。灰点：贪心解码（与上表“拒答”列同口径）；橙点：序列级 MAP；连线越长，表面形式竞争越强。门控只有一种读法，所以只有一个点。AR 原子 1000 级在这个预算下没有学会（见上表），数字只作参考；100 级是另一次同配方的训练。来源：outputs/ablation/main_table.json（refusal_present_val、refusal_seqmap_val）。"
+```echarts title="同一个 AR 头，换个解码规则，拒答率差几十倍" height="360" note="RefCOCO val 上目标在场、模型却说“不在”的比例。灰点：贪心解码（与上表“拒答”列同口径）；橙点：序列级 MAP；连线越长，表面形式竞争越强。门控只有一种读法，所以只有一个点。AR 原子 1000 级的贪心点比别的头高，是框内部的表面形式竞争（见下文）；100 级是另一次同配方的训练。来源：outputs/ablation/main_table.json（refusal_present_val、refusal_seqmap_val）。"
 {"tooltip": {"trigger": "item"}, "grid": {"left": 112, "right": 56, "top": 16, "bottom": 40}, "xAxis": {"type": "value", "max": 45, "name": "在场却说“不在”", "nameLocation": "middle", "nameGap": 26, "axisLabel": {"formatter": "{value}%"}}, "yAxis": {"type": "category", "data": ["AR 数字", "AR 层级", "AR 原子 1000", "AR 原子 100", "AR 数字 · 负 5%", "门控", "门控 · 负 5%"], "inverse": true, "axisTick": {"show": false}}, "series": [{"type": "bar", "stack": "d", "silent": true, "itemStyle": {"color": "transparent"}, "data": [0.5, 0.5, 1.5, 0.8, 0.2, 0.4, 0.1], "tooltip": {"show": false}}, {"type": "bar", "stack": "d", "silent": true, "barWidth": 3, "itemStyle": {"color": "var(--line)"}, "data": [39.4, 21.4, 8.4, 2.6, 15.0, 0, 0], "tooltip": {"show": false}}, {"name": "贪心", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--stone)"}, "z": 3, "label": {"show": true, "position": "bottom", "distance": 4, "formatter": "{@[0]}%", "color": "var(--muted)", "fontSize": 10, "textBorderColor": "transparent"}, "data": [[0.5, 0], [0.5, 1], [1.5, 2], [0.8, 3], [0.2, 4], [0.4, 5], [0.1, 6]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "序列 MAP", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--clay)"}, "z": 4, "label": {"show": true, "position": "right", "formatter": "{@[0]}%", "color": "var(--ink)", "textBorderColor": "transparent"}, "data": [[39.9, 0], [21.9, 1], [9.9, 2], [3.4, 3], [15.2, 4]], "tooltip": {"formatter": "{a}：{@[0]}%"}}]}
 ```
 
@@ -327,7 +327,7 @@ AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 {"tooltip": {"trigger": "item"}, "legend": {"data": ["负样本 25%", "负样本 5%", "5% + 先验修正"]}, "grid": {"left": 112, "right": 56, "top": 40, "bottom": 40}, "xAxis": {"type": "value", "min": 15, "max": 40, "name": "无目标表达式上画了框", "nameLocation": "middle", "nameGap": 26, "axisLabel": {"formatter": "{value}%"}}, "yAxis": {"type": "category", "data": ["门控", "AR 数字 · 阈值", "AR 数字 · 贪心"], "inverse": true, "axisTick": {"show": false}}, "series": [{"type": "bar", "stack": "d", "silent": true, "itemStyle": {"color": "transparent"}, "data": [24.3, 24.2, 22.0], "tooltip": {"show": false}}, {"type": "bar", "stack": "d", "silent": true, "barWidth": 3, "itemStyle": {"color": "var(--line)"}, "data": [11.4, 10.8, 10.8], "tooltip": {"show": false}}, {"name": "负样本 25%", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--stone)"}, "z": 3, "label": {"show": true, "position": "left", "formatter": "{@[0]}%", "color": "var(--muted)", "textBorderColor": "transparent"}, "data": [[24.3, 0], [24.2, 1], [22.0, 2]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "负样本 5%", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--clay)"}, "z": 4, "label": {"show": true, "position": "right", "formatter": "{@[0]}%", "color": "var(--ink)", "textBorderColor": "transparent"}, "data": [[35.7, 0], [35.0, 1], [32.8, 2]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "5% + 先验修正", "type": "scatter", "symbolSize": 10, "itemStyle": {"color": "var(--paper)", "borderColor": "var(--clay)", "borderWidth": 2}, "z": 5, "label": {"show": true, "position": "top", "formatter": "{@[0]}%", "color": "var(--muted)", "fontSize": 10, "textBorderColor": "transparent"}, "data": [[27.3, 0], [24.6, 1]], "tooltip": {"formatter": "{a}：{@[0]}%"}}]}
 ```
 
-另外，AR 原子在这个预算下没学会：RefCOCO val 只有 73.1，24.2% 的输出连格式都解析不出来。每个坐标值一个新 token，1,000 个新 embedding 要从零学，3,058 步不够。
+AR 原子 1000 级还有一个更隐蔽的现象：**表面形式竞争也会发生在框的内部**。它并不是没学会定位：不加约束地贪心解码时，RefCOCO val 只有 73.1，因为 24.2% 的输出连格式都解析不出来；可只要用语法约束把每一步限制在合法的坐标 token 和 `none` 上，同一个模型的 Acc@0.5 就回到 93.8，和别的头差不多。原因是一个坐标值被摊在 1,000 个相邻的 token 上：在场目标的第一个 token 上，除 `none` 以外最可能的那个 token 平均只拿到 0.19 的概率（AR 数字 0.78，AR 原子 100 级 0.58），于是某个不是坐标的 token 就可能胜出。拒答也是同一个原因：不加约束的贪心解码下，它把 1.6% 的在场目标说成不在（AR 数字 0.6%），其中 68% 是 `none` 胜过了每一个单独的坐标 token，却没有胜过它们的总和（P(none) < 0.5）。
 
 这组实验改写了论文主张。我们**不能**说“门控在‘不在’上比自回归好”，数据不支持。能说的是：
 
