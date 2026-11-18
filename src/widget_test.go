@@ -50,6 +50,9 @@ func TestWidgetPublish(t *testing.T) {
 		"content/widgets/demo/hero.js":   "export default () => {}",
 		"content/widgets/demo/data.json": "{}",
 		"content/widgets/demo/.DS_Store": "x",
+		"content/widgets/demo/style.css": "",
+		"content/widgets/bad/x.js":       "",
+		"content/widgets/bad/notes.py":   "",
 		"outside/evil.js":                "",
 	}
 	for name, body := range files {
@@ -83,7 +86,13 @@ func TestWidgetPublish(t *testing.T) {
 	if err := hook(again); err != nil || again.Src != block.Src {
 		t.Errorf("a folder is published once per build: %s vs %s (%v)", again.Src, block.Src, err)
 	}
-	for _, src := range []string{"../../outside/evil.js", "../widgets/demo/missing.js"} {
+	if !block.Style {
+		t.Error("the folder's style.css must be named on the figure")
+	}
+	if err := os.Symlink(filepath.Join(dir, "outside"), "content/widgets/link"); err != nil {
+		t.Fatal(err)
+	}
+	for _, src := range []string{"../../outside/evil.js", "../widgets/demo/missing.js", "../widgets/link/evil.js", "../widgets/bad/x.js"} {
 		if err := hook(&widgetBlock{Info: `src="` + src + `" title="T"`}); err == nil {
 			t.Errorf("want an error for src %s", src)
 		}

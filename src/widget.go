@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 
 	"github.com/yuin/goldmark"
@@ -42,6 +43,7 @@ type widgetBlock struct {
 	Info  string
 	lines []string
 	Src   string // the module's published URL, set by the build's widget hook
+	Style bool   // the module's folder has a style.css
 }
 
 func (n *widgetBlock) Kind() ast.NodeKind            { return kindWidget }
@@ -129,7 +131,11 @@ func renderWidget(block *widgetBlock) (string, error) {
 	if src == "" {
 		src = attrs["src"] // no build hook, as in tests that render a fragment
 	}
-	fmt.Fprintf(&b, `<figure class="widget" data-src="%s"><figcaption>%s</figcaption><div class="widget-stage">`, html.EscapeString(src), html.EscapeString(attrs["title"]))
+	style := ""
+	if block.Style {
+		style = ` data-style="style.css"`
+	}
+	fmt.Fprintf(&b, `<figure class="widget" data-src="%s"%s><figcaption>%s</figcaption><div class="widget-stage">`, html.EscapeString(src), style, html.EscapeString(attrs["title"]))
 	wide := images[0]
 	alt := attrs["title"]
 	if cells := dataCells(block.lines[0]); len(cells) > 1 && cells[1] != "" {
@@ -180,11 +186,12 @@ func (p *widgetPublisher) hook(document string, scripted *string) func(*widgetBl
 		if _, err := os.Stat(entry); err != nil {
 			return fmt.Errorf("src: %w", err)
 		}
-		folder, err := filepath.Abs(filepath.Dir(entry))
+		// Resolve links first, so a link in content/ cannot publish a folder outside it.
+		folder, err := realPath(filepath.Dir(entry))
 		if err != nil {
 			return err
 		}
-		content, err := filepath.Abs("content")
+		content, err := realPath("content")
 		if err != nil {
 			return err
 		}
@@ -205,9 +212,24 @@ func (p *widgetPublisher) hook(document string, scripted *string) func(*widgetBl
 			*scripted += p.text[folder]
 		}
 		block.Src = base + filepath.Base(entry)
+		_, err = os.Stat(filepath.Join(folder, "style.css"))
+		block.Style = err == nil
 		return nil
 	}
 }
+
+func realPath(path string) (string, error) {
+	path, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return "", err
+	}
+	return filepath.Abs(path)
+}
+
+// widgetFiles are what a widget folder may hold: its code, data, styles,
+// pictures and fonts. Anything else (notes, scripts, raw outputs) fails the
+// build rather than being published by accident.
+var widgetFiles = []string{".js", ".json", ".css", ".webp", ".png", ".jpg", ".jpeg", ".svg", ".woff2"}
 
 // publish copies a folder to /widgets/<name>-<hash of its files>/.
 func (p *widgetPublisher) publish(folder string) (string, error) {
@@ -217,6 +239,12 @@ func (p *widgetPublisher) publish(folder string) (string, error) {
 	err := filepath.WalkDir(folder, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil || entry.IsDir() || strings.HasPrefix(entry.Name(), ".") {
 			return err
+		}
+		if entry.Type()&fs.ModeSymlink != 0 {
+			return fmt.Errorf("%s: widget folders may not hold links", path)
+		}
+		if !slices.Contains(widgetFiles, strings.ToLower(filepath.Ext(path))) {
+			return fmt.Errorf("%s: a widget folder holds only %s files", path, strings.Join(widgetFiles, " "))
 		}
 		name, err := filepath.Rel(folder, path)
 		if err != nil {
