@@ -13,6 +13,15 @@ draft: true
 
 这两天我们在 Qwen3.5-4B[@qwen35] 上训练了一个叫 **Glance** 的模型。它不生成文字，只做一次 prefill，就对一组带类型的问题给出概率：选哪个选项（choice）、打几分（score）、是还是否（noul），以及这篇的主角，**框出一个东西，或者说它不在图里**（box）。
 
+```frames title="同一个模型，一次 prefill：在就框出来，不在就说不在" q="问：the big white rabbit（最后一格换成问 a red car）" cols="6" note="Glance-4B-preview 的真实输出，Apple 芯片 MPS、fp32；每帧问 4 个问题共用一次 prefill，60 帧平均每帧约 1.5 s。P 是校准过的 P(present)，不低于 0.5 时画出 box 头的框。帧取自 Big Buck Bunny（© 2008 Blender Foundation，www.bigbuckbunny.org，CC BY 3.0；archive.org 上的 640×360 版本），只截取单帧并缩放，低于阈值的帧显示成灰度。原始输出：outputs/blog/glance_bbb.json。"
+../images/glance/bbb-056.jpg | 0:56 | 0.9964 | 410.7,77.5,640,360 | 从洞里出来
+../images/glance/bbb-064.jpg | 1:04 | 0.9862 | 469.2,235,596,360 | 远处，被花挡住一半
+../images/glance/bbb-128.jpg | 2:08 | 0.9886 | 109.2,127.8,537.8,360 | 头上停着蝴蝶
+../images/glance/bbb-152.jpg | 2:32 | 0.0162 | | 只有三只啮齿动物
+../images/glance/bbb-400.jpg | 6:40 | 0.0443 | | 飞鼠，不是兔子
+../images/glance/bbb-128.jpg | 2:08 | 0.0003 | | 问 a red car：同一帧，不在
+```
+
 这篇按时间顺序写：为什么要做、架构里踩到的坑、在 Colab 上怎么把训练跑完、v0 和 27B 的结果、跨域的翻车、v1，以及一组只换输出头的受控实验怎样改写了我们原本想写的论文主张。所有数字都来自训练和评测的输出文件；还没核对完的会标出来。
 
 ## 为什么要一个会说“不在”的框
@@ -288,16 +297,16 @@ RefCOCO val Acc@0.5 | — | 95.0 | 93.2
 - **本文门控**：v0 的 box 头。
 - **AR 数字**：生成 `x1,y1,x2,y2`，0–1000 的数字，每位数字一个 token；不在就生成 `none`。
 - **AR 层级**：每个坐标两个新 token，先粗后细（32×32 = 1,024 级），类似用 token 序列解码数值的做法[@song2025]。
-- **AR 原子**：每个坐标值一个新 token，1,000 级。另有一个 100 级的版本还在训练，结果待补。
+- **AR 原子**：每个坐标值一个新 token，1,000 级。另有一个 100 级的版本，只放在下面的哑铃图里。
 
 AR 头需要选一个解码规则来决定“说不说 none”。我们比较了三种：贪心解码；P(none) ≥ 0.5 的阈值；以及**序列级 MAP**：比较整串 `none` 的概率和贪心得到的整串坐标的概率，取大的那个，这近似于 beam search 会做的事。
 
 ```data title="六组受控实验" mark="门控 25%" note="百分比后的数字是训练时“不在”的问题占比（5% 时只减少负样本，正样本完全相同）。拒答 = RefCOCO val 上目标在场、模型却说不在的比例；@1% = 把阈值调到恰好拒答 1% 的在场目标时的 N-acc；MAP 两列是序列级 MAP 解码下的 N-acc 和拒答。AR 头其余各列用贪心解码。25% 的四组存在概率 AUROC 在 96.2–96.6 之间，5% 的两组是 94.9 和 95.0。来源：outputs/ablation/main_table.md。"
 运行 | RefCOCO | N-acc | 拒答 | ECE | @1% | MAP N-acc | MAP 拒答
 门控 25% | 95.1 | 75.7 | 0.4 | 8.1 | 81.3 | — | —
-AR 数字 25% | 94.4 | 78.0 | 0.5 | 7.9 | 82.1 | 98.2 | 40.0
-AR 层级 25% | 94.4 | 78.3 | 0.5 | 8.0 | 81.7 | 96.6 | 22.0
-AR 原子 25% | 73.1 | 84.4 | 1.5 | 7.6 | 82.1 | 93.3 | 9.5
+AR 数字 25% | 94.4 | 78.0 | 0.5 | 7.9 | 82.1 | 98.2 | 39.9
+AR 层级 25% | 94.4 | 78.3 | 0.5 | 8.0 | 81.7 | 96.6 | 21.9
+AR 原子 25% | 73.1 | 84.4 | 1.5 | 7.6 | 82.1 | 93.3 | 9.9
 门控 5% | 94.8 | 64.3 | 0.1 | 12.7 | 80.0 | — | —
 AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 ```
@@ -306,34 +315,16 @@ AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 
 **一，贪心解码下，AR 头在“不在”上和门控打平。** N-acc 是 78.0、78.3 对 75.7；把阈值调到同样拒答 1% 的在场目标时，是 82.1、81.7 对 81.3。AUROC 和 ECE 也几乎一样。门控在“不在”上并没有赢。
 
-**二，表面形式竞争是真的，但只在序列级 MAP 下出现。** 一个框的概率分散在成千上万种坐标串上，而 `none` 只有一种写法。按整串概率比较时，`none` 赢得太多：AR 数字会把 **40%** 在场的目标说成不在，层级 22%，原子 9.5%。所以 AR 头的“不在”有多好，取决于你选哪种解码规则，而这在部署时往往不是一个显式的选择。
+**二，表面形式竞争是真的，但只在序列级 MAP 下出现。** 一个框的概率分散在成千上万种坐标串上，而 `none` 只有一种写法。按整串概率比较时，`none` 赢得太多：AR 数字会把 **40%** 在场的目标说成不在，层级 22%，原子 9.9%。所以 AR 头的“不在”有多好，取决于你选哪种解码规则，而这在部署时往往不是一个显式的选择。
 
-```echarts title="AR 头说“不在”的比例，取决于怎么解码" height="300" note="RefCOCO val 上目标在场、模型却拒答的比例。门控只有一种读法，没有序列 MAP。AR 原子在这个训练预算下没有学会（RefCOCO val 只有 73.1，24.2% 的输出解析失败），它的数字只作参考。来源：outputs/ablation/main_table.md。"
-{
-  "tooltip": {"trigger": "axis", "valueFormatter": "{value}%"},
-  "legend": {},
-  "xAxis": {"type": "category", "data": ["门控", "AR 数字", "AR 层级", "AR 原子"]},
-  "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}%"}},
-  "series": [
-    {"name": "贪心", "type": "bar", "itemStyle": {"color": "var(--stone)"}, "label": {"show": true, "position": "top", "formatter": "{c}%"}, "data": [0.4, 0.5, 0.5, 1.5]},
-    {"name": "序列 MAP", "type": "bar", "itemStyle": {"color": "var(--clay)"}, "label": {"show": true, "position": "top", "formatter": "{c}%"}, "data": ["-", 40.0, 22.0, 9.5]}
-  ]
-}
+```echarts title="同一个 AR 头，换个解码规则，拒答率差几十倍" height="360" note="RefCOCO val 上目标在场、模型却说“不在”的比例。灰点：贪心解码（与上表“拒答”列同口径）；橙点：序列级 MAP；连线越长，表面形式竞争越强。门控只有一种读法，所以只有一个点。AR 原子 1000 级在这个预算下没有学会（见上表），数字只作参考；100 级是另一次同配方的训练。来源：outputs/ablation/main_table.json（refusal_present_val、refusal_seqmap_val）。"
+{"tooltip": {"trigger": "item"}, "grid": {"left": 112, "right": 56, "top": 16, "bottom": 40}, "xAxis": {"type": "value", "max": 45, "name": "在场却说“不在”", "nameLocation": "middle", "nameGap": 26, "axisLabel": {"formatter": "{value}%"}}, "yAxis": {"type": "category", "data": ["AR 数字", "AR 层级", "AR 原子 1000", "AR 原子 100", "AR 数字 · 负 5%", "门控", "门控 · 负 5%"], "inverse": true, "axisTick": {"show": false}}, "series": [{"type": "bar", "stack": "d", "silent": true, "itemStyle": {"color": "transparent"}, "data": [0.5, 0.5, 1.5, 0.8, 0.2, 0.4, 0.1], "tooltip": {"show": false}}, {"type": "bar", "stack": "d", "silent": true, "barWidth": 3, "itemStyle": {"color": "var(--line)"}, "data": [39.4, 21.4, 8.4, 2.6, 15.0, 0, 0], "tooltip": {"show": false}}, {"name": "贪心", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--stone)"}, "z": 3, "label": {"show": true, "position": "bottom", "distance": 4, "formatter": "{@[0]}%", "color": "var(--muted)", "fontSize": 10, "textBorderColor": "transparent"}, "data": [[0.5, 0], [0.5, 1], [1.5, 2], [0.8, 3], [0.2, 4], [0.4, 5], [0.1, 6]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "序列 MAP", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--clay)"}, "z": 4, "label": {"show": true, "position": "right", "formatter": "{@[0]}%", "color": "var(--ink)", "textBorderColor": "transparent"}, "data": [[39.9, 0], [21.9, 1], [9.9, 2], [3.4, 3], [15.2, 4]], "tooltip": {"formatter": "{a}：{@[0]}%"}}]}
 ```
 
 **三，负样本越少，所有头都越爱幻觉。** 训练负样本从 25% 降到 5%，在 gRefCOCO 无目标表达式上画出框的比例都升了 10 个点左右，门控也不例外。先验变了可以事后平移 logit 来修正：门控从 35.7 修到 27.3，AR 数字用 P(none) 阈值做同样的修正是 24.6，门控并没有更好。
 
-```echarts title="训练负样本从 25% 减到 5%，所有头的幻觉都变多" height="300" note="幻觉率 = gRefCOCO val 无目标表达式上没有说“不在”的比例。门控按 P(present) ≥ 0.5；AR 数字分别按贪心解码和 P(none) < 0.5。来源：outputs/ablation/halluc_vs_negratio.json。"
-{
-  "tooltip": {"trigger": "axis", "valueFormatter": "{value}%"},
-  "legend": {},
-  "xAxis": {"type": "category", "data": ["门控", "AR 数字 阈值", "AR 数字 贪心"]},
-  "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}%"}},
-  "series": [
-    {"name": "负样本 25%", "type": "bar", "itemStyle": {"color": "var(--stone)"}, "label": {"show": true, "position": "top", "formatter": "{c}%"}, "data": [24.3, 24.2, 22.0]},
-    {"name": "负样本 5%", "type": "bar", "itemStyle": {"color": "var(--clay)"}, "label": {"show": true, "position": "top", "formatter": "{c}%"}, "data": [35.7, 35.0, 32.8]}
-  ]
-}
+```echarts title="训练负样本从 25% 减到 5%，三种读法都往右移了 10 个点左右" height="260" note="幻觉率 = gRefCOCO val 无目标表达式上没有说“不在”的比例。门控按 P(present) ≥ 0.5；AR 数字分别按 P(none) < 0.5 的阈值和贪心解码。空心点：5% 的模型按训练先验平移 logit 之后（贪心解码没有可平移的阈值）。来源：outputs/ablation/halluc_vs_negratio.json。"
+{"tooltip": {"trigger": "item"}, "legend": {"data": ["负样本 25%", "负样本 5%", "5% + 先验修正"]}, "grid": {"left": 112, "right": 56, "top": 40, "bottom": 40}, "xAxis": {"type": "value", "min": 15, "max": 40, "name": "无目标表达式上画了框", "nameLocation": "middle", "nameGap": 26, "axisLabel": {"formatter": "{value}%"}}, "yAxis": {"type": "category", "data": ["门控", "AR 数字 · 阈值", "AR 数字 · 贪心"], "inverse": true, "axisTick": {"show": false}}, "series": [{"type": "bar", "stack": "d", "silent": true, "itemStyle": {"color": "transparent"}, "data": [24.3, 24.2, 22.0], "tooltip": {"show": false}}, {"type": "bar", "stack": "d", "silent": true, "barWidth": 3, "itemStyle": {"color": "var(--line)"}, "data": [11.4, 10.8, 10.8], "tooltip": {"show": false}}, {"name": "负样本 25%", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--stone)"}, "z": 3, "label": {"show": true, "position": "left", "formatter": "{@[0]}%", "color": "var(--muted)", "textBorderColor": "transparent"}, "data": [[24.3, 0], [24.2, 1], [22.0, 2]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "负样本 5%", "type": "scatter", "symbolSize": 11, "itemStyle": {"color": "var(--clay)"}, "z": 4, "label": {"show": true, "position": "right", "formatter": "{@[0]}%", "color": "var(--ink)", "textBorderColor": "transparent"}, "data": [[35.7, 0], [35.0, 1], [32.8, 2]], "tooltip": {"formatter": "{a}：{@[0]}%"}}, {"name": "5% + 先验修正", "type": "scatter", "symbolSize": 10, "itemStyle": {"color": "var(--paper)", "borderColor": "var(--clay)", "borderWidth": 2}, "z": 5, "label": {"show": true, "position": "top", "formatter": "{@[0]}%", "color": "var(--muted)", "fontSize": 10, "textBorderColor": "transparent"}, "data": [[27.3, 0], [24.6, 1]], "tooltip": {"formatter": "{a}：{@[0]}%"}}]}
 ```
 
 另外，AR 原子在这个预算下没学会：RefCOCO val 只有 73.1，24.2% 的输出连格式都解析不出来。每个坐标值一个新 token，1,000 个新 embedding 要从零学，3,058 步不够。
@@ -362,7 +353,239 @@ AR 数字 5% | 94.4 | 67.2 | 0.2 | 12.1 | 79.9 | 94.1 | 15.2
 答案可疑 | 6 | 12.5%
 ```
 
+具体看几道题。三张卡片分别是“看错了”“时间段找错”“没看到”，答案来自各 agent 的 `result.json`，备注来自我们读轨迹时的标注。题目保留原文；Video-Index 的视频只允许用于评测，所以这里不放任何画面。
+
+```cases title="三种感知错误，各一道题" note="21 个 agent 的选择分布按 result.json 统计（空答案也算一个）。“没看到”那题的 1,100 张缩略图、“时间段找错”那题的时间都出自 agent 自己的轨迹。来源：video/analysis/trace_labels.json 和 Video-Index v1.1 的公开轨迹。"
+## ALLVB_2121 电影 · 87 分钟 · 感知
+tag: 看错了
+q: … a woman is seen tending to a wounded person and later crawling through the muddy terrain while holding a gun. … What is the color of the woman's shirt in the scene?
+答案 | ok | (E) Purple
+Claude Opus 5.5 | bad | (B) Red
+备注 | note | 找到了对的场景，把栗色（maroon）说成了红色；21 个 agent 里 9 个选了 Red
+## S-EMBER_2431 第一人称 · 20 分钟 · 感知
+tag: 时间段找错
+q: How does this pair of shorts differ from the ones I just saw on the floor?
+答案 | ok | (E) This pair of shorts is black and smaller, whereas the ones on the floor were navy blue.
+Claude Opus 5.5 | bad | (C) This pair of shorts is olive-green on a hanger, whereas the ones on the floor were blue denim.
+Gemini 4 Argon | ok | (E)，只看了最后约 60 秒
+备注 | note | 问题是在视频结尾提出的。Opus 自己写下“她在 1185–1200 s 看的是黑色短裤，这会支持 E”，最后却锚定在 1174.5 s 那条挂着的橄榄绿短裤上
+## ALLVB_429 电影 · 132 分钟 · 空间
+tag: 没看到
+q: What is the movement path of the prescription Elizabeth receives from her doctor?
+答案 | ok | (C) From the doctor's hand to the trash can outside the office
+Claude Opus 5 | bad | (B) From the doctor's hand to Elizabeth's purse
+备注 | note | 翻了 1,100 张镜头缩略图，没找到处方被扔掉的那一刻，结论是医生从没出现在画面上；21 个 agent 里 11 个选了 B
+```
+
+“没看到”和“看错了”的边界，要把 agent 看过哪里画出来才分得清。下面这道计数题在标注里记作“没看到”：Gemini 4 Argon 数出 3 次，答案是 5 次。可把它实际抽帧的时间段和答对的 GPT-6-Astra 报告的 5 个时刻叠在一起，漏掉的两次（134 s、232 s）都落在 Argon 用 6 帧/秒细看过的窗口里：它看到了，只是没数对。
+
+```sketch title="Argon 细看过那两次指向，只是没数到" note="S-EMBER_7291（第一人称，319 s，“我指了乐高盒子几次？”，答案 5 次，21 个 agent 里 4 个答对）。数据集没有逐次的时间标注，编号的 5 个时刻是答对的 GPT-6-Astra 自己写的“around 129, 132, 134, 232, and 249 seconds”；黑框是 Argon 自己写的 3 段指向。色带按轨迹里每条抽帧命令的时间范围和帧率画；Codex 的轨迹不记录看图事件，所以 Astra 一行是“抽出来的帧”，不一定都看过。只用时间，不含任何画面。来源：outputs/blog/coverage.json，由 outputs/blog/make_coverage_sketch.py 生成。"
+<svg viewBox="0 0 704 392">
+<rect class="panel" x="0" y="0" width="704" height="392" rx="12"/>
+<text class="caps" x="24" y="30">整段视频 · 319 s</text>
+<line class="edge" x1="176" y1="144" x2="680" y2="144"/>
+<line class="edge" x1="176" y1="141" x2="176" y2="147"/><text class="small mid" x="176" y="158">0 s</text>
+<line class="edge" x1="334" y1="141" x2="334" y2="147"/><text class="small mid" x="334" y="158">100 s</text>
+<line class="edge" x1="492" y1="141" x2="492" y2="147"/><text class="small mid" x="492" y="158">200 s</text>
+<line class="edge" x1="650" y1="141" x2="650" y2="147"/><text class="small mid" x="650" y="158">300 s</text>
+<text class="small" x="24" y="62">回答正确者报告的指向</text>
+<text x="24" y="92">Gemini 4 Argon</text>
+<text x="24" y="120">GPT-6-Astra</text>
+<line x1="176" y1="92" x2="680" y2="92" stroke="var(--line)"/>
+<rect x="176" y="89" width="504" height="6" rx="2" fill="var(--stone)"/>
+<rect x="207.6" y="85" width="14.2" height="14" rx="2" fill="var(--blue)"/>
+<rect x="376.7" y="85" width="25.3" height="14" rx="2" fill="var(--blue)"/>
+<rect x="539.4" y="85" width="11.1" height="14" rx="2" fill="var(--blue)"/>
+<rect x="567.8" y="85" width="9.5" height="14" rx="2" fill="var(--blue)"/>
+<line x1="176" y1="120" x2="680" y2="120" stroke="var(--line)"/>
+<rect x="176" y="117" width="504" height="6" rx="2" fill="var(--stone)"/>
+<rect x="176" y="117" width="504" height="6" rx="2" fill="var(--stone)"/>
+<rect x="378.2" y="113" width="22.1" height="14" rx="2" fill="var(--blue)"/>
+<rect x="539.4" y="117" width="36.3" height="6" rx="2" fill="var(--stone)"/>
+<rect x="378.5" y="83" width="3" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="383.3" y="83" width="3" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="568.9" y="83" width="5.2" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="379.8" y1="66" x2="379.8" y2="128" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="379.8" cy="62" r="3.5" fill="var(--teal)"/>
+<line x1="384.6" y1="66" x2="384.6" y2="128" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="384.6" cy="62" r="3.5" fill="var(--teal)"/>
+<line x1="387.7" y1="66" x2="387.7" y2="128" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<circle cx="387.7" cy="62" r="3.5" fill="var(--clay)"/>
+<line x1="542.5" y1="66" x2="542.5" y2="128" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<circle cx="542.5" cy="62" r="3.5" fill="var(--clay)"/>
+<line x1="569.4" y1="66" x2="569.4" y2="128" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="569.4" cy="62" r="3.5" fill="var(--teal)"/>
+<text class="small" x="24" y="106">答 3 次</text><text class="small" x="24" y="134">答 5 次（正确）</text>
+<text class="caps" x="24" y="210">放大 120–145 s</text>
+<line class="edge" x1="80" y1="324" x2="340" y2="324"/>
+<line class="edge" x1="80" y1="321" x2="80" y2="327"/><text class="small mid" x="80" y="338">120 s</text>
+<line class="edge" x1="204.8" y1="321" x2="204.8" y2="327"/><text class="small mid" x="204.8" y="338">132 s</text>
+<line class="edge" x1="340" y1="321" x2="340" y2="327"/><text class="small mid" x="340" y="338">145 s</text>
+<line x1="80" y1="270" x2="340" y2="270" stroke="var(--line)"/>
+<rect x="80" y="267" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="152.8" y="263" width="166.4" height="14" rx="2" fill="var(--blue)"/>
+<line x1="80" y1="300" x2="340" y2="300" stroke="var(--line)"/>
+<rect x="80" y="297" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="80" y="297" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="163.2" y="293" width="145.6" height="14" rx="2" fill="var(--blue)"/>
+<rect x="165.3" y="261" width="10.4" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="196.5" y="261" width="10.4" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="173.6" y1="246" x2="173.6" y2="308" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="173.6" cy="238" r="8"/><text class="mid" x="173.6" y="238" font-size="11">1</text></g>
+<line x1="204.8" y1="246" x2="204.8" y2="308" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="204.8" cy="238" r="8"/><text class="mid" x="204.8" y="238" font-size="11">2</text></g>
+<line x1="225.6" y1="246" x2="225.6" y2="308" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<g class="node clay"><circle cx="225.6" cy="238" r="8"/><text class="mid" x="225.6" y="238" font-size="11">3</text></g>
+<text class="small" x="24" y="270">Argon</text><text class="small" x="24" y="300">Astra</text>
+<text class="caps" x="364" y="210">放大 225–258 s</text>
+<line class="edge" x1="420" y1="324" x2="680" y2="324"/>
+<line class="edge" x1="420" y1="321" x2="420" y2="327"/><text class="small mid" x="420" y="338">225 s</text>
+<line class="edge" x1="538.2" y1="321" x2="538.2" y2="327"/><text class="small mid" x="538.2" y="338">240 s</text>
+<line class="edge" x1="680" y1="321" x2="680" y2="327"/><text class="small mid" x="680" y="338">258 s</text>
+<line x1="420" y1="270" x2="680" y2="270" stroke="var(--line)"/>
+<rect x="420" y="267" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="459.4" y="263" width="55.2" height="14" rx="2" fill="var(--blue)"/>
+<rect x="601.2" y="263" width="47.3" height="14" rx="2" fill="var(--blue)"/>
+<line x1="420" y1="300" x2="680" y2="300" stroke="var(--line)"/>
+<rect x="420" y="297" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="420" y="297" width="260" height="6" rx="2" fill="var(--stone)"/>
+<rect x="459.4" y="297" width="181.2" height="6" rx="2" fill="var(--stone)"/>
+<rect x="606.7" y="261" width="26" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="475.2" y1="246" x2="475.2" y2="308" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<g class="node clay"><circle cx="475.2" cy="238" r="8"/><text class="mid" x="475.2" y="238" font-size="11">4</text></g>
+<line x1="609.1" y1="246" x2="609.1" y2="308" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="609.1" cy="238" r="8"/><text class="mid" x="609.1" y="238" font-size="11">5</text></g>
+<text class="small" x="364" y="270">Argon</text><text class="small" x="364" y="300">Astra</text>
+<rect x="24" y="356" width="18" height="6" rx="2" fill="var(--stone)"/><text class="small" x="48" y="359">≤1 帧/秒的整段浏览</text>
+<rect x="176" y="352" width="18" height="14" rx="2" fill="var(--blue)"/><text class="small" x="200" y="359">2–6 帧/秒的细看窗口</text>
+<rect x="340" y="351" width="16" height="16" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/><text class="small" x="362" y="359">Argon 数到的指向</text>
+<circle cx="480" cy="359" r="6" fill="var(--clay)"/><text class="small" x="492" y="359">落在 Argon 细看过的窗口里，却没数到</text>
+</svg>
+<svg viewBox="0 0 340 560">
+<rect class="panel" x="0" y="0" width="340" height="560" rx="12"/>
+<text class="caps" x="16" y="28">整段视频 · 319 s</text>
+<line class="edge" x1="96" y1="138" x2="320" y2="138"/>
+<line class="edge" x1="96" y1="135" x2="96" y2="141"/><text class="small mid" x="96" y="152">0 s</text>
+<line class="edge" x1="201.3" y1="135" x2="201.3" y2="141"/><text class="small mid" x="201.3" y="152">150 s</text>
+<line class="edge" x1="306.7" y1="135" x2="306.7" y2="141"/><text class="small mid" x="306.7" y="152">300 s</text>
+<text class="small" x="16" y="56">正确者报告</text>
+<text x="16" y="86">Argon</text>
+<text x="16" y="114">Astra</text>
+<line x1="96" y1="86" x2="320" y2="86" stroke="var(--line)"/>
+<rect x="96" y="83" width="224" height="6" rx="2" fill="var(--stone)"/>
+<rect x="110" y="79" width="6.3" height="14" rx="2" fill="var(--blue)"/>
+<rect x="185.2" y="79" width="11.2" height="14" rx="2" fill="var(--blue)"/>
+<rect x="257.5" y="79" width="4.9" height="14" rx="2" fill="var(--blue)"/>
+<rect x="270.1" y="79" width="4.2" height="14" rx="2" fill="var(--blue)"/>
+<line x1="96" y1="114" x2="320" y2="114" stroke="var(--line)"/>
+<rect x="96" y="111" width="224" height="6" rx="2" fill="var(--stone)"/>
+<rect x="96" y="111" width="224" height="6" rx="2" fill="var(--stone)"/>
+<rect x="185.9" y="107" width="9.8" height="14" rx="2" fill="var(--blue)"/>
+<rect x="257.5" y="111" width="16.2" height="6" rx="2" fill="var(--stone)"/>
+<rect x="186" y="77" width="3" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="188.1" y="77" width="3" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="270.6" y="77" width="3" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="186.6" y1="60" x2="186.6" y2="122" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="186.6" cy="56" r="3.5" fill="var(--teal)"/>
+<line x1="188.7" y1="60" x2="188.7" y2="122" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="188.7" cy="56" r="3.5" fill="var(--teal)"/>
+<line x1="190.1" y1="60" x2="190.1" y2="122" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<circle cx="190.1" cy="56" r="3.5" fill="var(--clay)"/>
+<line x1="258.9" y1="60" x2="258.9" y2="122" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<circle cx="258.9" cy="56" r="3.5" fill="var(--clay)"/>
+<line x1="270.8" y1="60" x2="270.8" y2="122" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<circle cx="270.8" cy="56" r="3.5" fill="var(--teal)"/>
+<text class="small" x="16" y="100">答 3 次</text><text class="small" x="16" y="128">答 5 次 ✓</text>
+<text class="caps" x="16" y="196">放大 120–145 s</text>
+<line class="edge" x1="72" y1="312" x2="320" y2="312"/>
+<line class="edge" x1="72" y1="309" x2="72" y2="315"/><text class="small mid" x="72" y="326">120 s</text>
+<line class="edge" x1="191" y1="309" x2="191" y2="315"/><text class="small mid" x="191" y="326">132 s</text>
+<line class="edge" x1="320" y1="309" x2="320" y2="315"/><text class="small mid" x="320" y="326">145 s</text>
+<line x1="72" y1="258" x2="320" y2="258" stroke="var(--line)"/>
+<rect x="72" y="255" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="141.4" y="251" width="158.7" height="14" rx="2" fill="var(--blue)"/>
+<line x1="72" y1="288" x2="320" y2="288" stroke="var(--line)"/>
+<rect x="72" y="285" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="72" y="285" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="151.4" y="281" width="138.9" height="14" rx="2" fill="var(--blue)"/>
+<rect x="153.3" y="249" width="9.9" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<rect x="183.1" y="249" width="9.9" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="161.3" y1="234" x2="161.3" y2="296" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="161.3" cy="226" r="8"/><text class="mid" x="161.3" y="226" font-size="11">1</text></g>
+<line x1="191" y1="234" x2="191" y2="296" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="191" cy="226" r="8"/><text class="mid" x="191" y="226" font-size="11">2</text></g>
+<line x1="210.9" y1="234" x2="210.9" y2="296" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<g class="node clay"><circle cx="210.9" cy="226" r="8"/><text class="mid" x="210.9" y="226" font-size="11">3</text></g>
+<text class="small" x="16" y="258">Argon</text><text class="small" x="16" y="288">Astra</text>
+<text class="caps" x="16" y="340">放大 225–258 s</text>
+<line class="edge" x1="72" y1="456" x2="320" y2="456"/>
+<line class="edge" x1="72" y1="453" x2="72" y2="459"/><text class="small mid" x="72" y="470">225 s</text>
+<line class="edge" x1="184.7" y1="453" x2="184.7" y2="459"/><text class="small mid" x="184.7" y="470">240 s</text>
+<line class="edge" x1="320" y1="453" x2="320" y2="459"/><text class="small mid" x="320" y="470">258 s</text>
+<line x1="72" y1="402" x2="320" y2="402" stroke="var(--line)"/>
+<rect x="72" y="399" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="109.6" y="395" width="52.6" height="14" rx="2" fill="var(--blue)"/>
+<rect x="244.8" y="395" width="45.1" height="14" rx="2" fill="var(--blue)"/>
+<line x1="72" y1="432" x2="320" y2="432" stroke="var(--line)"/>
+<rect x="72" y="429" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="72" y="429" width="248" height="6" rx="2" fill="var(--stone)"/>
+<rect x="109.6" y="429" width="172.8" height="6" rx="2" fill="var(--stone)"/>
+<rect x="250.1" y="393" width="24.8" height="18" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/>
+<line x1="124.6" y1="378" x2="124.6" y2="440" stroke="var(--clay)" stroke-dasharray="2 3"/>
+<g class="node clay"><circle cx="124.6" cy="370" r="8"/><text class="mid" x="124.6" y="370" font-size="11">4</text></g>
+<line x1="252.4" y1="378" x2="252.4" y2="440" stroke="var(--teal)" stroke-dasharray="2 3"/>
+<g class="node teal"><circle cx="252.4" cy="370" r="8"/><text class="mid" x="252.4" y="370" font-size="11">5</text></g>
+<text class="small" x="16" y="402">Argon</text><text class="small" x="16" y="432">Astra</text>
+<rect x="16" y="484" width="18" height="6" rx="2" fill="var(--stone)"/><text class="small" x="40" y="487">≤1 帧/秒浏览</text>
+<rect x="170" y="480" width="18" height="14" rx="2" fill="var(--blue)"/><text class="small" x="194" y="487">2–6 帧/秒细看</text>
+<rect x="16" y="508" width="16" height="16" rx="2" fill="none" stroke="var(--ink)" stroke-width="1.5"/><text class="small" x="40" y="516">Argon 数到的指向</text>
+<circle cx="24" cy="542" r="6" fill="var(--clay)"/><text class="small" x="40" y="542">在 Argon 细看的窗口里，没数到</text>
+</svg>
+```
+
+第三个发现最好直接看一段轨迹的结尾。GPT-6-Astra 在这道题上最后一条消息已经给出了正确答案，评测框架却因为一条早先启动、没有返回的转写命令，把整次运行记成 `technical_error`：
+
+```trace title="评测框架报错时，答案已经写好了" note="GPT-6-Astra（Codex）在 Video-Index v1.1 Video-MME_2411 上的运行，共 6 条命令，154.5 s。按 stdout.jsonl 摘录，省略处标 …；中间 2 条命令折叠，开头 2 条（ffprobe、抽结尾的帧和音频）没有列出。最后一行是 result.json 的字段。"
+user | At the end of the video, why does James Corden sing a song with tears in his eyes?
+  A. He was reluctant to leave this job.
+  B. He expressed his satisfaction with the hard work of his colleagues.
+  C. He felt touched by the work he had done over the years.
+  D. He wept with joy at the achievements of the performance.
+cmd | python - <<'PY'
+  from faster_whisper import WhisperModel
+  model=WhisperModel('<lab>/models/faster-whisper/large-v3',device='cpu',compute_type='int8',cpu_threads=8)
+  segments,info=model.transcribe('scratch/end_audio.wav',language='en',beam_size=5,vad_filter=True)
+  …
+note | 在 CPU 上用 large-v3 转写最后 7 分钟音频。这条命令启动了，直到回合结束都没有返回
+fold | 另外 2 条命令：画一张全片缩略图，查进程（失败）
+cmd | python - <<'PY' … times=[20,300,600,900,1200,1500,1800,1980] … canvas.save('scratch/context_contact.jpg')
+out | [exit 0]
+cmd | ps -eo pid,etime,pcpu,pmem,cmd | grep -E '[p]ython -|[f]fmpeg'
+out | Error, do this: mount -t proc proc /proc
+end
+cmd | ffmpeg -v error -ss 2170 -i input/video.mp4 -vn -ar 16000 -ac 1 scratch/song.wav && python -u - <<'PY' … WhisperModel('<lab>/models/faster-whisper/small' …
+out | Loading model...
+  Transcribing...
+  [2170.00-2172.00]  1200 times in a row
+  [2173.48-2175.48]  So good night
+  [2175.52-2177.52]  Thanks for watching
+  [2177.52-2179.52]  That's our show
+  [2186.08-2189.48]  Now the last karaoke's been carpooled
+  …
+note | 换成 small 模型、只转写最后的歌，这次有了结果
+ans | {"answer_letter":"A","reason":"He is emotional about leaving his hosting job, singing that part of him wants to “stay here forever” even though it is time to go."}
+note | 最后一条消息给出 A，就是标准答案
+error | status: technical_error · error: ValueError: unfinished tool activity at turn completion
+note | 评分只看状态，这一题记为错。Codex 的 52 次 technical_error 里，51 次最后一条消息已经写好了答案字母
+```
+
 所以工具应该补感知。我们没有给 Glance 单独训练一个时间区间头，而是用 ffmpeg 把视频切成几秒长的小段，每段问一个 noul（“这一段里有没有 X”），得到一条 P(t) 曲线，再用阈值得到区间和次数。理由有三个：失败案例里最多的是数错次数和判断错方向，正好是逐段问是或否能直接回答的；它复用的是已经训练好、校准过的 noul，不用多训一个头；而且共享前缀让同一段上问多个问题几乎不加时间。只有需要精确起止时间（比如 Charades-STA 的 mIoU）时，才值得做专门的时间区间头。另外，Video-Index 的视频只允许用于评测，不能拿来训练。
+
+下面是这个做法在一段许可明确的视频上的样子（不是 Video-Index 的题）：Big Buck Bunny 的前 8 分钟，每 8 秒取一帧，每帧在一次 prefill 里同时问 box 和 noul，P 不低于 0.5 的相邻帧连成区间。蝴蝶那条曲线给出 3 段，对照帧看，三段里都确实有蝴蝶；兔子那条在他出场的镜头里几乎都贴着 1。真正用在 Video-Index 上时，每一帧换成几秒长的一小段。
+
+```echarts title="同一段视频上的两条 P(t)：兔子在不在，有没有蝴蝶" height="400" note="Glance-4B-preview，Big Buck Bunny 0–472 s 每 8 s 一帧（共 60 帧），MPS、fp32。上：box 问题 “the big white rabbit” 的 P(present)；下：noul 问题 “Is there a butterfly in this frame?” 的 P(yes)。色块是 P ≥ 0.5 的相邻帧，每帧按前后各 4 s 算。没有人工标注的真值区间。视频 © 2008 Blender Foundation，CC BY 3.0。原始输出：outputs/blog/glance_bbb.json。"
+{"tooltip": {"trigger": "axis"}, "grid": [{"left": 44, "right": 16, "top": 28, "height": 120}, {"left": 44, "right": 16, "top": 232, "height": 120}], "xAxis": [{"type": "value", "gridIndex": 0, "min": 0, "max": 480, "interval": 60, "name": "", "nameLocation": "middle", "nameGap": 24, "axisLabel": {"formatter": "{value} s"}}, {"type": "value", "gridIndex": 1, "min": 0, "max": 480, "interval": 60, "name": "视频时间", "nameLocation": "middle", "nameGap": 24, "axisLabel": {"formatter": "{value} s"}}], "yAxis": [{"type": "value", "gridIndex": 0, "min": 0, "max": 1, "interval": 0.5, "name": "P(present)：the big white rabbit", "nameLocation": "end", "nameTextStyle": {"align": "left"}}, {"type": "value", "gridIndex": 1, "min": 0, "max": 1, "interval": 0.5, "name": "P(yes)：Is there a butterfly in this frame?", "nameLocation": "end", "nameTextStyle": {"align": "left"}}], "series": [{"name": "兔子 P(present)", "type": "line", "xAxisIndex": 0, "yAxisIndex": 0, "showSymbol": true, "symbolSize": 4, "lineStyle": {"width": 1.5}, "itemStyle": {"color": "var(--stone)"}, "data": [[0, 0.146], [8, 0.003], [16, 0.003], [24, 0.012], [32, 0.004], [40, 0.006], [48, 0.936], [56, 0.996], [64, 0.986], [72, 0.757], [80, 0.991], [88, 0.996], [96, 0.997], [104, 0.986], [112, 0.991], [120, 0.081], [128, 0.989], [136, 0.996], [144, 0.197], [152, 0.016], [160, 0.992], [168, 0.022], [176, 0.992], [184, 0.034], [192, 0.992], [200, 0.106], [208, 0.978], [216, 0.019], [224, 0.004], [232, 0.031], [240, 0.791], [248, 0.908], [256, 0.483], [264, 0.977], [272, 0.971], [280, 0.992], [288, 0.104], [296, 0.008], [304, 0.141], [312, 0.696], [320, 0.692], [328, 0.148], [336, 0.181], [344, 0.017], [352, 0.001], [360, 0.979], [368, 0.964], [376, 0.976], [384, 0.005], [392, 0.002], [400, 0.044], [408, 0.982], [416, 0.628], [424, 0.002], [432, 0.005], [440, 0.005], [448, 0.003], [456, 0.973], [464, 0.004], [472, 0.96]], "markLine": {"silent": true, "symbol": "none", "lineStyle": {"color": "var(--muted)", "type": "dashed"}, "label": {"formatter": "阈值 0.5", "position": "insideEndTop", "color": "var(--muted)"}, "data": [{"yAxis": 0.5}]}, "markArea": {"silent": true, "itemStyle": {"color": "var(--wash)"}, "data": [[{"xAxis": 44}, {"xAxis": 116}], [{"xAxis": 124}, {"xAxis": 140}], [{"xAxis": 156}, {"xAxis": 164}], [{"xAxis": 172}, {"xAxis": 180}], [{"xAxis": 188}, {"xAxis": 196}], [{"xAxis": 204}, {"xAxis": 212}], [{"xAxis": 236}, {"xAxis": 252}], [{"xAxis": 260}, {"xAxis": 284}], [{"xAxis": 308}, {"xAxis": 324}], [{"xAxis": 356}, {"xAxis": 380}], [{"xAxis": 404}, {"xAxis": 420}], [{"xAxis": 452}, {"xAxis": 460}], [{"xAxis": 468}, {"xAxis": 476}]]}}, {"name": "蝴蝶 P(yes)", "type": "line", "xAxisIndex": 1, "yAxisIndex": 1, "showSymbol": true, "symbolSize": 4, "lineStyle": {"width": 1.5}, "itemStyle": {"color": "var(--clay)"}, "data": [[0, 0.316], [8, 0.0], [16, 0.0], [24, 0.002], [32, 0.001], [40, 0.0], [48, 0.002], [56, 0.002], [64, 0.001], [72, 0.031], [80, 0.944], [88, 0.834], [96, 0.834], [104, 0.001], [112, 0.0], [120, 0.0], [128, 1.0], [136, 1.0], [144, 0.0], [152, 0.0], [160, 0.416], [168, 0.0], [176, 0.0], [184, 0.0], [192, 0.001], [200, 0.0], [208, 0.0], [216, 0.0], [224, 0.001], [232, 0.828], [240, 0.001], [248, 0.002], [256, 0.0], [264, 0.0], [272, 0.001], [280, 0.0], [288, 0.003], [296, 0.001], [304, 0.011], [312, 0.029], [320, 0.0], [328, 0.0], [336, 0.001], [344, 0.039], [352, 0.001], [360, 0.0], [368, 0.0], [376, 0.004], [384, 0.0], [392, 0.0], [400, 0.008], [408, 0.367], [416, 0.196], [424, 0.007], [432, 0.001], [440, 0.0], [448, 0.0], [456, 0.0], [464, 0.0], [472, 0.0]], "markLine": {"silent": true, "symbol": "none", "lineStyle": {"color": "var(--muted)", "type": "dashed"}, "label": {"formatter": "阈值 0.5", "position": "insideEndTop", "color": "var(--muted)"}, "data": [{"yAxis": 0.5}]}, "markArea": {"silent": true, "itemStyle": {"color": "var(--clay-wash)"}, "data": [[{"xAxis": 76}, {"xAxis": 100}], [{"xAxis": 124}, {"xAxis": 140}], [{"xAxis": 228}, {"xAxis": 236}]]}}]}
+```
 
 ## 接下来
 
