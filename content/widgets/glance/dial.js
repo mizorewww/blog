@@ -8,7 +8,7 @@ const RULES = [["greedy", "贪心解码"], ["threshold", "阈值 0.5"], ["map", 
 const RULE_TEXT = {
   greedy: "每一步取最可能的 token，第一个 token 是 none 就算“不在”",
   threshold: "P(none) ≥ 0.5 就算“不在”",
-  map: "比较整串 none 和贪心解出的那串坐标的概率，大的赢；贪心串不一定是最可能的框，所以这是拒答率的上界",
+  map: "规则 A 的近似：整串 none 和贪心解出的坐标串比概率，大的赢；在抽样子集上和精确搜索几乎一致",
 };
 
 export default async function dial(stage, { base }) {
@@ -91,7 +91,7 @@ export default async function dial(stage, { base }) {
     say.replaceChildren(...(gate
       ? ["门控：阈值 ", el("b", { text: gateAt.toFixed(2) }), " 时，", el("b", { text: pct(px) }), " 的在场目标被说成“不在”，", el("b", { text: py.toFixed(1) + "%" }),
         " 的无目标表达式被拒掉。同一个底座上，四种坐标写法的曲线和它几乎重合：在 1% 误拒处都拒掉 81–82%，AUROC 都在 96.2–96.7。"]
-      : [`${h.label} 词表 + ${RULES.find(r => r[0] == rule)[1]}：`, rule == "map" ? "最多 " : "", el("b", { text: pct(px) }), " 的在场目标被说成“不在”。可它的曲线和门控几乎重合：在 1% 误拒处拒掉 ",
+      : [`${h.label} 词表 + ${RULES.find(r => r[0] == rule)[1]}：`, rule == "map" ? "约 " : "", el("b", { text: pct(px) }), " 的在场目标被说成“不在”。可它的曲线和门控几乎重合：在 1% 误拒处拒掉 ",
         el("b", { text: h.at1 + "%" }), "（门控 " + g.at1 + "%），AUROC ", el("b", { text: String(h.auroc) }), "（门控 " + g.auroc + "）。模型知道东西在不在，是解码规则在替它选点。"]));
   }
 

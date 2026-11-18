@@ -93,7 +93,7 @@ export default async function hero(stage, { base }) {
       el("div.g-scan"),
       ...s.questions.map((q, j) => q.kind == "box" && q.box ? boxNode(q, j) : null)));
     list.replaceChildren(...s.questions.map(row));
-    credits.replaceChildren(credit(s.credit), el("p.g-credit", { text: `这张图在 Apple 芯片的 MPS 上实测 ${s.mps_s} s（fp32）。` }));
+    credits.replaceChildren(credit(s.credit));
     shot.classList.remove("seen");
     if (shown) requestAnimationFrame(() => requestAnimationFrame(() => shot.classList.add("seen")));
     update();
