@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -246,6 +246,32 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 一张图讲一件事：对比就并排两块 `panel`，流程就一条主线，层级就嵌套 `window`。
 - 写完一定在浏览器里看：深浅两种配色、1280 和 390 两种宽度（390 时看到的是手机版），文字不出框、不压线。
 
+## 帧条 `frames`
+
+一排视频帧或照片，每张下面写模型给的 P(present)（数字加一条细横条），P 不低于阈值的帧在图上画出模型的框，低于阈值的帧变灰、不画框。纯 HTML/CSS，框按百分比定位，任何宽度都压在图上；图片走和普通图片一样的流水线（WebP、宽高、`srcset`、懒加载）。
+
+````markdown
+```frames title="同一个问题，问 6 帧" q="问：the big white rabbit" note="Glance-4B-preview，MPS fp32。帧来自 Big Buck Bunny（© Blender Foundation，CC BY 3.0）。" cols="6"
+../images/glance/bbb-0042.jpg | 0:42 | 0.99 | 212,88,520,402 | 兔子
+../images/glance/bbb-0100.jpg | 1:40 | 0.03 | | 不在
+```
+````
+
+每行 `图片 | 标签 | P | x1,y1,x2,y2 | 说明`：图片路径和普通图片一样（相对于 Markdown 文件）；标签一般是时间；P 是 0–1 的数；框是图片像素坐标（模型的原始输出），可以空着；说明可省略。
+
+| 属性 | 说明 |
+| --- | --- |
+| `title` | 必填，图上方的标题；图号 FIGURE n 自动编 |
+| `q` | 标题下的一行小字，写问的是什么 |
+| `note` | 图下注释：模型、采样方式、**素材来源和许可** |
+| `cols` | 每行几张，1–8，默认全部排一行；手机上最多 3 张 |
+| `threshold` | 画框的阈值，默认 0.5 |
+| `size` | 框所在的像素尺寸，如 `size="854x480"`；默认是图片文件自己的尺寸（构建时最宽 1600 px，原图更宽时要写） |
+
+- 图片的替代文字由标签、P 和说明拼成。
+- 只放有再发布许可的素材，在 `note` 里署名；评测集里只许用于评测的视频不要截帧。
+- 每帧的数字必须是模型真实输出，`note` 写清模型、设备和采样间隔。
+
 ## 图表风格
 
 图的样子参考 Anthropic 博客的图：安静、只强调一件事、数字直接写在图上。
@@ -259,7 +285,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
 
 ## 指标卡 `stats`
 

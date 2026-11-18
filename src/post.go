@@ -71,7 +71,7 @@ func init() {
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, mediaExtension{}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
