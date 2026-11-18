@@ -18,7 +18,7 @@ draft: false
 
 agent 看屏幕、看视频的时候，问的从来不是一个问题，而是一串：保存对话框开着吗？“导出”按钮在哪？点“全部删除”危险吗？这一段里有没有那只蝴蝶？更要紧的是，**东西不在的时候，它得敢说不在，而且这个“不在”有多确定，要靠得住。**
 
-Glance 是我们在 Qwen3.5-4B[@qwen35] 上训练的一个“看一眼”模型。熟悉 TypeSafe 的 Jev[@jev] 的话，可以把它看成会看图的 Jev。它不生成文字，只读一次图，就对任意多个问题各给出一个概率分布：框在哪里、是还是否、选哪一项、打几分，以及“它不在这里”。上面每个数字都是它的真实输出。两个阈值只管框问题：P(present) 低于第一个，它就回答“不在”；P(IoU ≥ 0.5) 低于第二个，框就标成“不准”。指一指问题、拖一拖阈值，有几处值得多看一眼：
+Glance 是我们在 Qwen3.5-4B[@qwen35] 上训练的一个“看一眼”模型。熟悉 TypeSafe 的 Jev[@jev] 的话，可以把它看成专为看画面做的 Jev：它的框会说“不在”，也会说自己框得准不准。它不生成文字，只读一次图，就对任意多个问题各给出一个概率分布：框在哪里、是还是否、选哪一项、打几分，以及“它不在这里”。上面每个数字都是它的真实输出。两个阈值只管框问题：P(present) 低于第一个，它就回答“不在”；P(IoU ≥ 0.5) 低于第二个，框就标成“不准”。指一指问题、拖一拖阈值，有几处值得多看一眼：
 
 - “一只狗”“生日蛋糕”不是没框出来，而是回答了“不在”，并且给出了概率。中文和英文的问题落在同一个框上。
 - “番茄酱”在（0.976），可框准的概率只有 0.386：它知道桌上有番茄酱，却不确定是哪一块。东西在不在、框准不准，是两个分开的旋钮。
@@ -41,19 +41,20 @@ Glance 对这三个毛病的回答是三件事，前两件是方法，第三件�
 
 现实意义也落在这三处。GUI agent 点击之前多了一道闸：目标不在屏幕上时，Glance 有八成会停下来（81.5%，已发表的最好结果是 78.1%），原来的底座只有 4%。agent 每一步都对着同一个画面问一串问题，一张图问 32 个问题，等待从 331 ms 降到 70 ms。同一个 4B 模型，换个阈值就能从谨慎切到激进，用它的人可以按业务设风险，而不是接受解码器替它选好的那一个点。
 
-和 Jev 比，差别在这几处。Jev 是文本上的 System One 决策模型：给一段文本或结构化状态和一组问题，一次查询并行给出每个答案的概率。它的输入是文本和结构化状态，官方博客说图像“还没有”支持。agent 要在屏幕和视频上做决定，就得先让一个生成式模型把画面写成文字，慢和“不会说没有”的问题又回来了。Glance 把同样的接口搬到了像素上，并加上了文本决策模型不需要的两样东西：框，和“它不在这里”。
+和 Jev 比，差别在框上。Jev 是 System One 决策模型：给一段状态和一组问题，一次查询并行给出每个答案的概率。从 1.14 起，它也实验性地支持了图片和 `box` 题型[@jev114]。但两边的框是两种东西。Jev 每题返回一个框，没有“不在”这个答案：文档写明，目标不在时它照样返回四条边，建议另问一个是否题来判断；框上只有一个 confidence。Glance 把“在不在”和“框准不准”做进了框本身，两个概率都校准过，也都有公开的评测。
 
-| | Jev | Glance |
+| | Jev 1.14 | Glance |
 | --- | --- | --- |
-| 输入 | 文本、结构化状态 | 截图、照片、视频帧，加文本 |
+| 输入 | 文本、结构化状态；静态图片（实验性） | 截图、照片、视频帧，加文本 |
 | 一次调用回答多个问题 | 是 | 是 |
-| 题型 | 分类、打分、是否 | 分类、打分、是否，加上框 |
-| 目标不在时 | 不适用（不看图） | 校准过的 P(present) |
-| 框准不准 | 不适用 | 校准过的 P(IoU ≥ 0.5) |
+| 题型 | 分类、打分、是否；框（实验性） | 分类、打分、是否、框 |
+| 目标不在时 | 框照样返回，要另问一个是否题 | 框自带校准过的 P(present) |
+| 框准不准 | 一个 confidence | 校准过的 P(IoU ≥ 0.5) |
+| 框的公开评测 | 暂无 | RefCOCO、gRefCOCO、ScreenSpot、VenusBench-GD |
 | 权重 | 闭源 API | 开放的 4B 预览权重 |
 | OpenDecisions capability | 80.1（Jev 1.13.0，论文报告） | 67.7（同一基准，我们自测） |
 
-文本决策是 Jev 的主场，OpenDecisions 上它比我们高 12 个点（两边分数各自报告，打分细节可能不完全相同）。两者正好可以接起来：Glance 负责看，Jev 负责在看到的东西上做决定。
+文本决策是 Jev 的主场，OpenDecisions 上它比我们高 12 个点（两边分数各自报告，打分细节可能不完全相同）。Glance 的主场是画面：框什么时候该说“不在”、框得准不准，正是 agent 点击之前最需要的两个数。
 
 后面按做的顺序讲：怎么在混合模型上做到一次前向而不串题，为什么生成式模型“说没有”由解码器决定，以及我们读 21 个视频 agent 的失败记录时发现，它们多半输在“看”。
 
@@ -462,6 +463,7 @@ v1 也拿一部分框的精度换来了 GUI 能力和可信的“不在”：Ref
 
 - [@qwen35] Qwen Team (2026). [Qwen3.5: Towards Native Multimodal Agents](https://qwen.ai/blog?id=qwen3.5). _Qwen blog_, February 2026.
 - [@jev] Almeida, D. (2026). [Introducing System One Models & Jev](https://typesafe.ai/blog/introducing-system-one-models-and-jev). _TypeSafe AI blog_, September 2026.
+- [@jev114] TypeSafe AI (2026). [Jev 1.14](https://typesafe.ai/blog/jev-1-14). _TypeSafe AI blog_, October 2026. Box 题型的说明见 [TypeSafe 文档](https://docs.typesafe.ai/primitives/box.md)。
 - [@opendecisions] Geuter, J., Cheng, A., & Alvarez-Melis, D. (2026). [Releasing the Inner Jev: A Simple Recipe for Open Decision Models](https://arxiv.org/abs/2610.17205). _arXiv preprint arXiv:2610.17205_.
 - [@guiactor] Wu, Q., Cheng, K., Yang, R., et al. (2025). [GUI-Actor: Coordinate-Free Visual Grounding for GUI Agents](https://arxiv.org/abs/2506.03143). _Advances in Neural Information Processing Systems 38 (NeurIPS 2025)_.
 - [@sam3] Carion, N., Gustafson, L., Hu, Y.-T., et al. (2026). [SAM 3: Segment Anything with Concepts](https://arxiv.org/abs/2511.16719). _International Conference on Learning Representations (ICLR 2026)_.
