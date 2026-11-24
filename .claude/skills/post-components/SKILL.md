@@ -1,6 +1,6 @@
 ---
 name: post-components
-description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Mermaid diagrams, hand-drawn SVG sketches, frame strips with model boxes, case cards, annotated agent traces, interactive widgets a post scripts itself, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
+description: Reference for the Markdown components this blog framework supports in content/posts/*.md — metadata, images, formulas, code and source quotes, citations and reference lists, data tables, charts, ECharts figures, Observable Plot figures (log axes, small multiples, bands, dot strips), Mermaid diagrams, hand-drawn SVG sketches with embedded pictures, video clips, frame strips with model boxes, case cards, annotated agent traces, interactive widgets a post scripts itself, stat cards and ticker cards — and the house style for charts and diagrams. Use when writing or editing a post, adding a chart or diagram, or when you need a component's exact syntax or options.
 ---
 
 # 文章组件
@@ -188,6 +188,73 @@ Delta | BTC  | ETH
 - 主题（`templates/js/chart-theme.js`）已经设好字体、坐标轴、网格、提示框、动画和系列配色，option 里不要再写这些样式。
 - 不要写 ECharts 的 `title` 组件，标题用 `title` 属性。`grid`、`legend` 位置一般不用改。
 
+## 科研数据图 `plot`
+
+对数坐标、多面板小图、拟合线加置信带、蜂群/点阵、斜率图、阈值线这类“论文里的图”用它。正文是 JSON，描述一个或几个 [Observable Plot](https://observablehq.com/plot/) 面板；构建时在无头 Chrome 里用 Plot 0.6.17 画成静态 SVG，**页面不加载任何库**。每个面板画两遍：正文栏里的宽度和 390 px 手机上的宽度，所以手机上刻度字仍是 11px，不会跟着缩小。带 `tip` 的点悬停时显示数值（`templates/js/plot.js`，约 1 KB）。
+
+````markdown
+```plot title="最优模型大小随算力增长" note="点：抛物线最低点；带：90% 区间（200 次重采样）。"
+{
+  "cols": 2,
+  "xlabel": "训练算力（FLOPs）",
+  "legend": [
+    {"label": "抛物线最低点", "color": "var(--ink)", "shape": "dot"},
+    {"label": "公式", "color": "var(--teal)", "shape": "line"},
+    {"label": "外推", "color": "var(--teal)", "shape": "dash"}
+  ],
+  "data": {
+    "pts": [{"c": 3.6e18, "n": 1.1e8}, {"c": 4.6e20, "n": 1.25e9}],
+    "fit": [{"c": 3.6e18, "n": 1.1e8, "lo": 1.0e8, "hi": 1.2e8, "seg": "fit"}, {"c": 1e21, "n": 1.9e9, "lo": 1.7e9, "hi": 2.1e9, "seg": "ext"}]
+  },
+  "panels": [
+    {"title": "最优参数量 N*",
+     "x": {"type": "log", "label": null, "tickFormat": "sci"},
+     "y": {"type": "log", "label": null, "tickFormat": "si"},
+     "grid": true,
+     "marks": [
+       {"mark": "areaY", "data": "fit", "x": "c", "y1": "lo", "y2": "hi", "fill": "var(--teal)", "fillOpacity": 0.15},
+       {"mark": "line", "data": "fit", "filter": {"seg": "ext"}, "x": "c", "y": "n", "stroke": "var(--teal)", "strokeDasharray": "5 4"},
+       {"mark": "dot", "data": "pts", "x": "c", "y": "n", "fill": "var(--ink)", "r": 4, "tip": ["c", "n"]}
+     ]},
+    {"title": "…第二个面板…", "marks": […]}
+  ]
+}
+```
+````
+
+**整张图**（顶层）：
+
+| 键 | 说明 |
+| --- | --- |
+| `panels` | 面板列表，1–16 个；只有一个面板时可以不写 `panels`，把面板的键直接写在顶层 |
+| `cols` | 桌面上每行几个面板，1–5，默认 1 |
+| `narrowCols` | 手机上每行几个，1 或 2，默认 1 |
+| `data` | 命名数据集 `{"名字": [行, …]}`，mark 用 `"data": "名字"` 引用；几个面板共用一份数据时写在这里 |
+| `legend` | 图例，画在标题下面：`{"label", "color": "var(--token)", "shape"}`，`shape` 是 `dot`、`line`、`dash`、`band`（浅色带）、`ramp`（同色深浅，表示一组有序的量） |
+| `xlabel` | 几个面板共用的 x 轴名字，在整张图下面写一次 |
+
+**面板**：Plot 的 `Plot.plot` 选项，只收这些键：`title`（面板小标题）、`height`（桌面高度，100–720，默认 1 列 320、2 列 260、3 列 220、4–5 列 200）、`narrowHeight`（手机高度，默认 240，两列 180）、`marks`，以及 Plot 的 `x y fx fy color opacity r symbol length grid inset* margin* facet clip`。宽度由列数决定，不能写。Plot 自己的 `title`、`caption`、`legend`、`style` 不能用：标题、图例由图本身画，字体和颜色跟随页面。
+
+**mark**：`{"mark": 名字, …Plot 的 mark 选项}`，再加几个本组件的键：
+
+| 键 | 说明 |
+| --- | --- |
+| `mark` | `dot line lineY areaY ruleX ruleY text barX barY rect cell tickX tickY link arrow frame linearRegressionY boxX density …`（Plot 的 mark 名） |
+| `data` | 行的列表，或顶层 `data` 里的名字；`ruleY` 这类可以直接写数值列表 `[1e8]`；`frame` 可以不写 |
+| `filter` | 只取这些行：`{"字段": 值}` 或 `{"字段": [值, …]}`，各条件同时成立 |
+| `transform`、`with` | Plot 的变换和它的选项，如 `"transform": "dodgeY", "with": {"anchor": "middle"}`（蜂群图）、`normalizeY`、`windowY`、`binX`、`groupX`、`stackY` |
+| `tip` | `true`（这一行的全部字段）或字段名列表：悬停时显示“字段 值”，每行一个 |
+
+- JSON 不能写函数，所以通道只能写字段名或常量；派生量（百分比、归一化）先算好放进数据里。
+- 刻度格式 `tickFormat` 是 [d3-format](https://d3js.org/d3-format) 字符串（`".0%"`、`"~s"`），另有两个简写：`"sci"` 写成 `1e19`，`"si"` 写成 `200M`、`2B`（十亿写 B，不写 d3 的 G）。对数轴默认的 SI 写法会出现 `10E`、`1Z`，算力这种量用 `"sci"`。
+- 坐标轴默认不画刻度线（`tickSize: 0`），要网格写 `"grid": true`；y 轴名字由 Plot 横着画在左上角（`"label": null` 去掉）。
+- Plot 按刻度字的长度估计边距；构建时会用页面字体量一遍，标签伸出去就自动加宽边距重画，一般不用写 `margin*`。
+- **颜色**：`fill`、`stroke` 写 `var(--token)`（`figureTokens` 全部可用：`clay stone sky olive kraft fig teal blue orange violet` 及其 `-wash`/`-ink`，`ink body muted faint line grid card paper wash panel node node-line edge`）或字段名；按字段上色时，用 `"color": {"domain": [...], "range": ["var(--clay)", "var(--stone)"]}` 给每个值指定 token。`scheme`、`interpolate`、写死的颜色都会构建失败。有序的一组量用同一个 token 加 `strokeOpacity`/`fillOpacity`，配 `ramp` 图例：写常量最简单；写字段时 Plot 会把它再过一遍 opacity 比例尺，要原样使用字段里的 0–1 值就加 `"opacity": {"type": "identity"}`。`"white"`、`"red"` 这类颜色名，或者数据里带的颜色，画出来不是 token 时构建失败。
+- 读屏器读的是图标题、面板小标题和 `note`，图本身对读屏器隐藏，所以结论要写进标题和 `note`。
+- 常用写法：对数轴 `"x": {"type": "log"}`；斜率图 `"x": {"type": "point", "inset": 40}` 加 `line`（`z` 分组）、`dot`、终点的 `text`；阈值线 `ruleX`/`ruleY` 加一个 `text` 标签（`"frameAnchor": "left", "dy": -8`）；面板内分行 `fy`。
+- 写错 mark 或变换名、引用不存在的数据集、Plot 画不出来（字段不存在通常不报错，只是画空，要自己看），构建都会失败并给出原因。
+- 图要在 1280 和 390 两种宽度、深浅两种配色下都看过；没有 JS 和 RSS 里看到的是同样的静态图（RSS 里换成指向原文的链接）。
+
 ## 示意图 `mermaid`
 
 流程、时序、状态、结构关系用 [Mermaid](https://mermaid.js.org/)，不要画 ASCII 图：
@@ -223,8 +290,9 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 
 - **画布**：`viewBox="0 0 宽 高"`，宽一般就是 704（正文栏），高按内容定；`<svg>` 上不写 `width`/`height`/`class`/颜色，页面会自适应。
 - **手机版**：手机正文栏只有约 324 px，704 宽的图会整体缩小到一半，小字看不清，并排的对比也挤成一团。所以稍复杂的图都在同一个代码块里再写第二个 `<svg>`：宽不超过 400 且比第一个窄（一般 340），把并排的东西改成上下排、把长标签换行。页面在 640 px 以下显示第二个，以上显示第一个。只有一个 `<svg>` 时，手机上整体缩小显示。
-- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath title desc`。`script`、`style` 属性、`foreignObject`、渐变、事件属性、外部链接都会让构建失败。
+- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath title desc image`。`script`、`style` 属性、`foreignObject`、渐变、事件属性、外部链接都会让构建失败。
 - **颜色用 class**，需要时 `fill`/`stroke` 写 `var(--token)`（同 echarts 的 token 表，另有 `panel node node-line edge` 和 `blue teal orange violet` 及其 `-wash`、`-ink`、`clay-ink`），写死的颜色会构建失败。
+- **图片**：`<image href="../images/x.jpg" x y width height/>` 嵌一张本地图片（路径和 Markdown 图片一样，相对于文章；`width`、`height` 必填，可加 `preserveAspectRatio="xMidYMid slice"` 裁切填满）。图片走普通图片流水线转成 WebP，标签、箭头、框全用矢量画在图片外面或上面，不要烤进图片里；样本网格先合成一张图再嵌进来。远程地址和 `data:` 会构建失败。手机版的 `<svg>` 可以再嵌同一张图。
 - **id 会自动加上图的前缀**，`url(#id)` 和 `href="#id"` 跟着改；`marker-end="url(#arrow)"` 是现成的开口箭头，不用自己定义。
 
 | class | 用在 | 样子 |
@@ -245,6 +313,22 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 - 连线用直角折线 `M x y H x2 V y2`，箭头指向节点边缘外 2–4px。
 - 一张图讲一件事：对比就并排两块 `panel`，流程就一条主线，层级就嵌套 `window`。
 - 写完一定在浏览器里看：深浅两种配色、1280 和 390 两种宽度（390 时看到的是手机版），文字不出框、不压线。
+
+## 视频片段 `video`
+
+动起来才看得懂的过程（曲面被一个平面扫过、训练中的样本一步步变清楚）用一段静音短片，不要用 GIF：
+
+````markdown
+```video title="iso-FLOP 平面扫过损失曲面" note="渲染：Blender；3.4e18 → 1e21 FLOPs。" autoplay="true"
+../images/scaling/surface.mp4 | 一个蓝色平面沿算力轴扫过橙色的损失曲面，最优点连成一条脊线
+../images/scaling/surface-poster.jpg
+```
+````
+
+- 第一行 `片段 | 它演示了什么`（必填，读屏器读的就是这句），`.mp4`（H.264，兼容最好）或 `.webm`；第二行是海报图，走普通图片流水线，也决定播放器的宽高比，所以页面不跳。片段原样发布到 `/images/<哈希>.mp4`，不能超过 25 MB（Cloudflare Pages 的上限），一般压到 1–3 MB。
+- 片段在读者点播放之前一个字节都不下载（`preload="none"`），页面只多一张海报图。
+- `autoplay="true"`：静音循环，滚到一半在屏幕上时自动播放、离开时暂停（`templates/js/video.js`）；读者设了“减少动态效果”时不自动播；读者自己按了暂停就不再自动播。不写时是普通的点播视频。没有 JS 时浏览器自带的控件照样能播。
+- 属性：`title`（必填，图号自动编）、`note`、`autoplay`。片段不要有声音，不要有烤进画面的字幕；说明写在 `note` 和正文里。
 
 ## 帧条 `frames`
 
@@ -328,7 +412,7 @@ error | technical_error: unfinished tool activity at turn completion
 - 数据来自某个快照或时间段时，`note` 写明截止时间；同一篇里和别的表口径不同时，说清差在哪里。
 - 不要 3D、渐变、阴影、圆角大柱子，不要双 y 轴硬凑两个无关的量（两组量纲不同的数据用两个 `grid` 上下排）。
 
-选组件：要读精确数值、或者行数多 → `data`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；agent 运行记录 → `trace`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；`echarts` 也做不到、需要读者自己操作的 → `widget`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
+选组件：要读精确数值、或者行数多 → `data`；对数轴、多面板、拟合加置信带、蜂群点阵、斜率图这类科研数据图 → `plot`；图片加标注 → `sketch` 里放 `<image>`；动起来才看得懂的过程 → `video`；模型对一组图片或视频帧的判断 → `frames`；具体的失败案例 → `cases`；agent 运行记录 → `trace`；几个关键数字 → `stats`；要动画、交互或其他图形 → `echarts`；`echarts` 也做不到、需要读者自己操作的 → `widget`；简单的静态线/柱且不想加载脚本 → `chart`；普通的关系和流程 → `mermaid`；要讲清一个结构（对比、比例、嵌套、色带上的位置）→ `sketch`。
 
 ## 交互图 `widget`
 

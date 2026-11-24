@@ -1,6 +1,6 @@
 # 雨夹雪 · mizorewww
 
-一个用 Go 写的静态博客框架。文章是带 YAML Front Matter 的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表和 Mermaid 图，手写 SVG 的示意图，带回链的参考文献引用，以及文章自带脚本的交互图（没有 JavaScript 时显示构建时的静态图），正文不依赖 JavaScript。
+一个用 Go 写的静态博客框架。文章是带 YAML Front Matter 的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表、Mermaid 图和 Observable Plot 科研数据图（对数轴、多面板、置信带），可以嵌图片的手写 SVG 示意图，点击才下载的视频片段，带回链的参考文献引用，以及文章自带脚本的交互图（没有 JavaScript 时显示构建时的静态图），正文不依赖 JavaScript。
 
 文章里能用的组件见 [`.claude/skills/post-components/SKILL.md`](.claude/skills/post-components/SKILL.md)。
 
@@ -8,7 +8,7 @@
 
 - Go 1.26 或更新版本（见 `go.mod`）。
 - [uv](https://docs.astral.sh/uv/)：只有新图片或改动过的图片需要，用来压缩图片。
-- Google Chrome（或 `uv run --with playwright==1.64.1 playwright install chromium`）：只有新的或改动过的 ` ```echarts ` / ` ```mermaid ` 图需要，`scripts/render-figures.py` 在无头浏览器里把它们画成 SVG，结果缓存在 `.cache/figures/`。第一次画 Mermaid 图时会下载固定版本、校验过哈希的 mermaid.js 到 `.cache/vendor/`。
+- Google Chrome（或 `uv run --with playwright==1.64.1 playwright install chromium`）：只有新的或改动过的 ` ```echarts ` / ` ```mermaid ` / ` ```plot ` 图需要，`scripts/render-figures.py` 在无头浏览器里把它们画成 SVG，结果缓存在 `.cache/figures/`。第一次画 Mermaid 或 Plot 图时会下载固定版本、校验过哈希的 mermaid.js 或 d3 + Observable Plot 到 `.cache/vendor/`，它们只在构建时运行，不会发布到页面上。
 
 所有命令都在仓库根目录运行。
 
