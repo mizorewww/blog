@@ -124,7 +124,7 @@ Delta | BTC  | ETH
 | `scale` | `shared`（默认，所有横条共用比例）或 `column`（每列各自缩放） |
 | `mark` | 强调的行，按第一列的值匹配，逗号分隔 |
 
-第一行是表头，`|` 分隔，首尾 `|` 和 `---` 分隔行可有可无。单元格是纯文本；单元格里的第一个数字决定横条长度（`+1.2 BTC`、`−3.4%`、`$64,395` 都能识别）。全是数字的列自动右对齐。
+第一行是表头，`|` 分隔，成对的首尾外框 `|` 和 `---` 分隔行可有可无。单元格是纯文本；单元格里的第一个数字决定横条长度（`+1.2 BTC`、`−3.4%`、`$64,395` 都能识别）。除第一列外，全是数字的列自动右对齐；不画横条的数字列中，末尾的括号附注（`(…)` 或 `（…）`）自动拆到下一行小字。
 
 ## 图表 `chart`
 
@@ -184,7 +184,7 @@ Delta | BTC  | ETH
 - 构建时在无头 Chrome 里画成静态 SVG，没有 JS 时也看得到（按正文宽度画好再缩放，手机上字会很小；RSS 阅读器不认 `var(--…)`，颜色会丢）。页面上图滚进视口时 ECharts 接管，图表动画画出，可悬停、可点图例。
 - 只能写 JSON，不能写函数：`formatter` 用字符串模板，如 `"{value}%"`、`"{b}: {c}"`；`tooltip.valueFormatter` 也写成模板 `"{value}%"`，页面会把它变成函数。其他只接受函数的选项不能用。
 - 系列类型写错（如 `"barz"`）、`series` 为空、或者某个系列画不出来，构建都会失败。
-- **颜色只能写 `var(--名字)`**：写 `#hex`、`rgb()`、`red` 这样的颜色名会构建失败，这样深浅色都对。颜色键（`color`、`borderColor`、`inRange.color` …）里还可以写 `transparent`、`none`、`auto`、`gradient` 等关键字。可用：`clay`（强调）、`stone`（对照的中性色）、`sky`、`olive`、`kraft`、`fig`，以及 `ink`、`body`、`muted`、`faint`、`line`、`grid`、`card`、`paper`、`wash`、`clay-wash`。
+- **颜色只能写 `var(--名字)`**：写 `#hex`、`rgb()`、`red` 这样的颜色名会构建失败，这样深浅色都对。颜色键（`color`、`borderColor`、`inRange.color` …）里还可以写 `transparent`、`none`、`inherit`、`auto`、`gradient`、`source`、`target`、`series`、`data` 等关键字。可用：`clay`（强调）、`clay-wash`、`clay-ink`、`stone`（对照的中性色）、`sky`、`olive`、`kraft`、`fig`，语义角色色 `blue`、`teal`、`orange`、`violet` 及其 `-wash`、`-ink`，示意图底色与线条 `panel`、`node`、`node-line`、`edge`，以及中性层级 `ink`、`body`、`muted`、`faint`、`line`、`grid`、`card`、`paper`、`wash`。
 - 主题（`templates/js/chart-theme.js`）已经设好字体、坐标轴、网格、提示框、动画和系列配色，option 里不要再写这些样式。
 - 不要写 ECharts 的 `title` 组件，标题用 `title` 属性。`grid`、`legend` 位置一般不用改。
 
@@ -235,7 +235,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 | `node plain` / `blue` / `teal` / `orange` / `violet` / `clay` | 同上 | 白底；或按角色上色：blue=system prompt/指令，teal=文档/产出/好的结果，orange=工具，violet=记忆/附注，clay=输入输出（配 `rx` 画成胶囊） |
 | `edge`、`edge dash`、`edge hot` | `path`/`line` | 1.25px 灰线；虚线=可选/并行；clay=出问题的地方 |
 | `caps` | `text` | 等宽小号、自动转大写，只用于板块标题，如“preprocessing” → PREPROCESSING；用户名、路径、参数这类区分大小写的名字不要放进去，用 `small` |
-| `small`、`b`、`mid`、`end`、`accent` | `text` | 11px 灰色说明、加粗、居中、右对齐、clay 强调色 |
+| `small`、`b`、`mid`、`end`、`ink`、`mute`、`accent` | `text` | 11px 灰色说明、加粗、居中、右对齐、正文墨色、次要灰、clay 强调色 |
 | `mono` | `text` | 11.5px 等宽，用来画请求原文、代码、哈希这类“原样”的内容 |
 | `glyph` | `circle` | 模型图标的小圆点（几个点排成网格） |
 
@@ -265,7 +265,7 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 | `q` | 标题下的一行小字，写问的是什么 |
 | `note` | 图下注释：模型、采样方式、**素材来源和许可** |
 | `cols` | 每行几张，1–8，默认全部排一行；手机上最多 3 张 |
-| `threshold` | 画框的阈值，默认 0.5 |
+| `threshold` | 画框的阈值，开区间 `(0, 1)`，默认 0.5 |
 | `size` | 框所在的像素尺寸，如 `size="854x480"`；默认是图片文件自己的尺寸（构建时最宽 1600 px，原图更宽时要写） |
 
 - 图片的替代文字由标签、P 和说明拼成。
@@ -337,7 +337,7 @@ error | technical_error: unfinished tool activity at turn completion
 ````markdown
 ```widget src="../widgets/glance/hero.js" title="拖动阈值，看框出现和消失" note="数据来源、模型、素材许可。"
 ../images/glance/hero.png | 静态图的替代文字：图上画了什么
-../images/glance/hero-narrow.png | 手机版静态图的替代文字
+../images/glance/hero-narrow.png
 ```
 ````
 
@@ -347,7 +347,7 @@ error | technical_error: unfinished tool activity at turn completion
 | `title` | 必填，图上方的标题；图号 FIGURE n 自动编 |
 | `note` | 图下注释 |
 
-- 正文每行 `图片 | 替代文字`：第一行是静态图（必填），第二行可选，是 640 px 及以下显示的手机版。静态图走普通图片流水线，下面自动加一行“这是静态截图，开启 JavaScript 后可以操作。”（交互图画出来后隐藏）；最好就是交互图默认状态的截图（浅色、正文宽度 704 px 和 390 px 各截一张），这样换成交互图时页面不跳。
+- 正文第一行写 `图片 | 替代文字`（省略替代文字时默认用 `title`），可选的第二行写 640 px 及以下显示的手机版图片路径（`<picture>` 共用第一行的替代文字）。静态图走普通图片流水线，下面自动加一行“这是静态截图，开启 JavaScript 后可以操作。”（交互图画出来后隐藏）；最好就是交互图默认状态的截图（浅色、正文宽度 704 px 和 390 px 各截一张），这样换成交互图时页面不跳。
 - 构建把 `src` 所在的**整个文件夹**发布到 `/widgets/<文件夹名>-<内容哈希>/`（以 `.` 开头的文件除外）。文件夹里只能放 `.js .json .css .webp .png .jpg .jpeg .svg .woff2`，不能有符号链接，否则构建失败，原始输出和生成脚本放在别处。模块可以用相对地址 `import`、`fetch` 同文件夹里的其他文件（数据 JSON、精灵图）；任何文件变了网址就变，可以永久缓存。同一个文件夹可以给几张图共用，每张图一个入口模块。
 - 静态图以低优先级加载，不和正文、字体抢网络。页面 load 之后、浏览器空闲时，图快滚进视口（提前 600 px）时，`templates/js/widget.js` 先加载同文件夹的 `style.css`（构建发现文件夹里有它，才让页面去取），再 `import()` 模块，调用它的默认导出：`export default async (stage, { figure, base }) => { … }`。`stage` 是一个空的 `div`，模块往里画；`base` 是文件夹的网址。返回（或 resolve）之后静态图隐藏、交互图显示；抛出异常就保留静态图。
 - 文件夹里 `.js`、`.json` 的文字会并进这篇文章的字体子集，所以脚本里写的中文用的还是正文字体。
