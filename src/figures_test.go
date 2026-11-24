@@ -56,6 +56,13 @@ func TestFigures(t *testing.T) {
 		"```echarts title=\"T\"\n{\"visualMap\": {\"inRange\": {\"color\": [\"var(--wash)\", \"orange\"]}}, \"series\": [{}]}\n```\n",
 		"```mermaid title=\"T\"\nflowchart TD\n  A --> B\n  style A fill:#f00\n```\n",
 		"```mermaid title=\"T\"\nflowchart TD\n  A --> B\n  classDef hot stroke:red\n```\n",
+		"```echarts title=\"T\" height=240\n{\"series\": [{}]}\n```\n",
+		"```echarts title='T'\n{\"series\": [{}]}\n```\n",
+		"```echarts title=\"T\n{\"series\": [{}]}\n```\n",
+		"```echarts title=\"T\" title=\"U\"\n{\"series\": [{}]}\n```\n",
+		"```echarts extra title=\"T\"\n{\"series\": [{}]}\n```\n",
+		"```chart line panels=true\nx | y\n1 | 2\n```\n",
+		"```go extra\nx := 1\n```\n",
 	} {
 		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("expected an error for %q", bad)

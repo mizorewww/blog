@@ -25,7 +25,7 @@ type dataExtension struct{}
 
 var (
 	kindData          = ast.NewNodeKind("Data")
-	dataAttribute     = regexp.MustCompile(`(\w+)="([^"]*)"`)
+	dataAttribute     = regexp.MustCompile(`^(\w+)="([^"]*)"`)
 	dataNumber        = regexp.MustCompile(`[-+−]?\d[\d,]*(?:\.\d+)?`)
 	dataNumericHead   = regexp.MustCompile(`^[\s$€¥£~≈<>≤≥+-−±]*\d`)
 	dataLeadingHyphen = regexp.MustCompile(`^([\s$€¥£~≈<>≤≥]*)-(\d)`)
@@ -235,12 +235,31 @@ func cellCharWidth(cell string) int {
 	return max(w, 3)
 }
 
-// blockAttributes reads key="value" pairs; allowed lists the keys a block accepts.
+// blockAttributes reads key="value" pairs after an optional leading fence
+// language; allowed lists the keys a block accepts.
 func blockAttributes(info string, allowed []string) (map[string]string, error) {
 	attrs := map[string]string{}
-	for _, m := range dataAttribute.FindAllStringSubmatch(info, -1) {
+	rest := strings.TrimSpace(info)
+	if i := strings.IndexFunc(rest, unicode.IsSpace); i >= 0 && !strings.ContainsAny(rest[:i], `="'`) {
+		rest = strings.TrimSpace(rest[i:])
+	} else if i < 0 && !strings.ContainsAny(rest, `="'`) {
+		rest = ""
+	}
+	for rest != "" {
+		m := dataAttribute.FindStringSubmatch(rest)
+		if m == nil {
+			return nil, fmt.Errorf(`invalid attribute %q (write key="value")`, rest)
+		}
+		rest = rest[len(m[0]):]
+		if rest != "" && !unicode.IsSpace(rune(rest[0])) {
+			return nil, fmt.Errorf(`invalid attribute %q (separate key="value" pairs with spaces)`, m[0]+rest)
+		}
+		rest = strings.TrimSpace(rest)
 		if !slices.Contains(allowed, m[1]) {
 			return nil, fmt.Errorf("unknown attribute %q (use %s)", m[1], strings.Join(allowed, ", "))
+		}
+		if _, dup := attrs[m[1]]; dup {
+			return nil, fmt.Errorf("duplicate attribute %q", m[1])
 		}
 		attrs[m[1]] = m[2]
 	}

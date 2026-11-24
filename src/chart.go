@@ -28,7 +28,7 @@ import (
 // stays readable when the chart shrinks.
 var (
 	chartAttributes = []string{"title", "note", "panels", "mirror", "diag", "ref", "mark", "xfmt", "xscale", "yfmt"}
-	chartType       = regexp.MustCompile(`^chart\s+(\w+)`)
+	chartType       = regexp.MustCompile(`^chart(?:\s+(\S+))?(.*)$`)
 	chartPalette    = []string{"var(--green)", "var(--c2)", "var(--c3)"}
 )
 
@@ -166,14 +166,14 @@ func f1(v float64) string {
 }
 
 func renderChart(info string, lines []string) (string, error) {
-	kind := ""
-	if m := chartType.FindStringSubmatch(info); m != nil {
-		kind = m[1]
+	kind, rest := "", info
+	if m := chartType.FindStringSubmatch(strings.TrimSpace(info)); m != nil {
+		kind, rest = m[1], "chart "+strings.TrimSpace(m[2])
 	}
 	if !slices.Contains([]string{"line", "area", "bar", "scatter"}, kind) {
 		return "", fmt.Errorf("start with a chart type: line, area, bar or scatter")
 	}
-	attrs, err := blockAttributes(info, chartAttributes)
+	attrs, err := blockAttributes(rest, chartAttributes)
 	if err != nil {
 		return "", err
 	}
