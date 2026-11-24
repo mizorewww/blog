@@ -10,8 +10,9 @@ const color = name => getComputedStyle(root).getPropertyValue("--" + name).trim(
 const live = v => typeof v == "string" ? v.replace(/var\(--([\w-]+)\)/g, (m, name) => color(name) || m)
   : Array.isArray(v) ? v.map(live)
   : v && typeof v == "object" ? Object.fromEntries(Object.entries(v).map(([k, x]) =>
-    [k, k == "valueFormatter" && typeof x == "string" ? value => x.replaceAll("{value}", value) : live(x)]))
+    [k, k == "valueFormatter" && typeof x == "string" ? value => value == null ? "—" : x.replaceAll("{value}", () => String(value)) : live(x)]))
   : v;
+const motion = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
 let library;
 const load = () => library ??= new Promise((resolve, reject) => {
   const script = document.createElement("script");
@@ -28,7 +29,7 @@ const draw = (figure, animate) => {
   try {
     echarts.registerTheme("blog", chartTheme(color));
     figure.chart = echarts.init(plot, "blog", { renderer: "svg" });
-    figure.chart.setOption({ ...live(JSON.parse(figure.querySelector("script").textContent)), animation: animate });
+    figure.chart.setOption({ ...live(JSON.parse(figure.querySelector("script").textContent)), animation: animate && motion() });
   } catch {
     figure.chart?.dispose();
     figure.chart = null;
@@ -54,7 +55,7 @@ addEventListener("load", () => {
   const near = new IntersectionObserver(entries => entries.forEach(e => {
     if (e.isIntersecting) {
       near.unobserve(e.target);
-      load().then(() => e.target.drawn || onScreen(e.target) || e.target.classList.add("wait"), () => {});
+      load().then(() => e.target.drawn || onScreen(e.target) || !motion() || e.target.classList.add("wait"), () => {});
     }
   }), { rootMargin: "50% 0px" });
   const seen = new IntersectionObserver(entries => entries.forEach(e => {
@@ -62,7 +63,7 @@ addEventListener("load", () => {
       seen.unobserve(e.target);
       show(e.target, true);
     }
-  }), { threshold: 0.35 });
+  }), { rootMargin: "0px 0px -15% 0px" });
   for (const figure of figures) {
     if (onScreen(figure)) {
       show(figure, false);
