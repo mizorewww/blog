@@ -234,20 +234,35 @@ func (p *Post) render(hooks contentHooks) (err error) {
 	return err
 }
 
+// fencePrefix returns a leading run of three or more backticks or tildes and the trimmed remainder.
+func fencePrefix(trimmed string) (string, string) {
+	if len(trimmed) < 3 || (trimmed[0] != '`' && trimmed[0] != '~') {
+		return "", ""
+	}
+	i := 0
+	for i < len(trimmed) && trimmed[i] == trimmed[0] {
+		i++
+	}
+	if i < 3 {
+		return "", ""
+	}
+	return trimmed[:i], strings.TrimSpace(trimmed[i:])
+}
+
 // readingUnits counts each Han character and each other word once, skipping
 // fenced code and data blocks, which readers scan rather than read.
 func readingUnits(src string) int {
 	units, fence, inWord := 0, "", false
 	for _, line := range strings.Split(src, "\n") {
-		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
-			if fence == "" {
-				fence = trimmed[:3]
-			} else if strings.HasPrefix(trimmed, fence) {
+		trimmed := strings.TrimSpace(line)
+		if fence != "" {
+			if mark, rest := fencePrefix(trimmed); rest == "" && len(mark) >= len(fence) && mark[0] == fence[0] {
 				fence = ""
 			}
 			continue
 		}
-		if fence != "" {
+		if mark, rest := fencePrefix(trimmed); mark != "" && (mark[0] != '`' || !strings.ContainsRune(rest, '`')) {
+			fence = mark
 			continue
 		}
 		for _, r := range line + " " {

@@ -480,6 +480,10 @@ func TestReadingUnits(t *testing.T) {
 	if n := readingUnits("中文字 and English words\n\n```go\nfunc ignored() {}\n```\n\n2026 年"); n != 3+3+1+1 {
 		t.Fatalf("got %d units", n)
 	}
+	nested := "前言\n\n````md\n```go\nignored code here\n```\n````\n\n~~~txt\n````\nignored tilde\n~~~~\n\n结尾"
+	if n := readingUnits(nested); n != 4 {
+		t.Fatalf("nested and tilde fences: got %d units, want 4", n)
+	}
 }
 
 func TestStructuredData(t *testing.T) {
