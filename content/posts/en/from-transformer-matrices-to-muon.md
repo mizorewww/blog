@@ -779,6 +779,585 @@ Now contrast **training**. During training, the complete ground-truth sequence $
 </svg>
 ```
 
+### 1.5 Unfolding the Matrices: Hand-Tracing a 3-Token Sentence Through `Prefill` and `Decode`
+
+Compact matrix equations and block-shape diagrams summarize the architecture cleanly, yet newcomers often hit a wall when asking what happens *inside* the brackets: how do actual numbers transform step by step from token IDs to attention outputs? Shrinking the dimensions to hand-calculable integers lets us unfold every matrix on the page.
+
+Take a 5-token toy vocabulary $V = 5$ (`0:<pad>`, `1:cat`, `2:chases`, `3:dog`, `4:runs`), hidden width $D = 3$, and single-head width $d_k = 2$. Suppose the input prompt is the 3-token prefix `["cat", "chases", "dog"]`, mapped to integer IDs $(1, 2, 3)$.
+
+**Step 1: Embedding lookup as one-hot row selection.** Unfold the static embedding table $E_{\mathrm{tok}} \in \mathbb{R}^{5 \times 3}$. Indexing rows $(1, 2, 3)$ is algebraically identical to left-multiplying by a $3 \times 5$ one-hot selector matrix $U$ (omitting positional offsets here and taking the normalized hidden state directly as $H$, whose three rows already share identical RMS):
+
+$$
+H = U E_{\mathrm{tok}} =
+\begin{bmatrix}
+0 & \mathbf{1} & 0 & 0 & 0 \\
+0 & 0 & \mathbf{1} & 0 & 0 \\
+0 & 0 & 0 & \mathbf{1} & 0
+\end{bmatrix}
+\begin{bmatrix}
+0 & 0 & 0 \\
+1 & 0 & 1 \\
+0 & 1 & 1 \\
+1 & 1 & 0 \\
+1 & 0 & -1
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0 & 1 \\
+0 & 1 & 1 \\
+1 & 1 & 0
+\end{bmatrix}
+\begin{matrix}
+\leftarrow \text{token 1 ("cat")} \\
+\leftarrow \text{token 2 ("chases")} \\
+\leftarrow \text{token 3 ("dog")}
+\end{matrix}
+$$
+
+Nothing mysterious happens here: embedding lookup simply copies rows 1, 2, and 3 out of the vocabulary table into a $3 \times 3$ activation matrix, leaving unused vocabulary rows (0 and 4) untouched.
+
+**Step 2: Linear projections into $Q, K, V_{\mathrm{val}}$.** Multiply $H\;(3 \times 3)$ on the right by the static transposed projection matrices $W_q^\top, W_k^\top, W_v^\top \in \mathbb{R}^{3 \times 2}$:
+
+$$
+Q = H W_q^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & -1 \end{bmatrix}
+=
+\begin{bmatrix} 2 & -1 \\ 1 & 0 \\ 1 & 1 \end{bmatrix}, \quad
+K = H W_k^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
+=
+\begin{bmatrix} 2 & 1 \\ 1 & 1 \\ 1 & 2 \end{bmatrix}, \quad
+V_{\mathrm{val}} = H W_v^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 2 & 0 \\ 0 & 2 \\ 1 & 1 \end{bmatrix}
+=
+\begin{bmatrix} 3 & 1 \\ 1 & 3 \\ 2 & 2 \end{bmatrix}
+$$
+
+For instance, top-left entry $Q_{1,1} = 2$ is the dot product of row 1 of $H$ ($[1, 0, 1]$) with column 1 of $W_q^\top$ ($[1, 0, 1]^\top$): $1\times 1 + 0\times 0 + 1\times 1 = 2$. Notice that **linear projections remix feature columns strictly within each token's own row—the 3 tokens have not exchanged information yet**. Meanwhile, $K$ and $V_{\mathrm{val}}$ are saved into VRAM as the initial 3-row `KV Cache`.
+
+**Step 3: Four-stage causal self-attention (dot products $\to$ mask $\to$ Softmax $\to$ weighted sum of $V$).** Now tokens interact across positions. First multiply $Q\;(3\times 2)$ by $K^\top\;(2\times 3)$ to get all pairwise dot products:
+
+$$
+Q K^\top =
+\begin{bmatrix} 2 & -1 \\ 1 & 0 \\ 1 & 1 \end{bmatrix}
+\begin{bmatrix} 2 & 1 & 1 \\ 1 & 1 & 2 \end{bmatrix}
+=
+\begin{bmatrix}
+3 & 1 & 0 \\
+2 & 1 & 1 \\
+3 & 2 & 3
+\end{bmatrix}
+$$
+
+Divide by $\sqrt{d_k} = \sqrt{2} \approx 1.414$, add the causal mask $M_{\mathrm{causal}}$ (replacing every above-diagonal entry $i < j$ with $-\infty$), and apply row-wise Softmax $P_{i,j} = e^{S_{i,j}} / \sum_c e^{S_{i,c}}$ (since $e^{-\infty} = 0$, future weights vanish identically):
+
+$$
+S = \frac{Q K^\top}{\sqrt{2}} + M_{\mathrm{causal}} \approx
+\begin{bmatrix}
+2.12 & -\infty & -\infty \\
+1.41 & 0.71 & -\infty \\
+2.12 & 1.41 & 2.12
+\end{bmatrix}
+\;\xrightarrow{\text{row Softmax}}\;
+P \approx
+\begin{bmatrix}
+1.00 & 0 & 0 \\
+0.67 & 0.33 & 0 \\
+0.40 & 0.20 & 0.40
+\end{bmatrix}
+$$
+
+Multiplying the lower-triangular probability table $P\;(3\times 3)$ into $V_{\mathrm{val}}\;(3\times 2)$ yields:
+
+$$
+O = P V_{\mathrm{val}} \approx
+\begin{bmatrix}
+1.00 & 0 & 0 \\
+0.67 & 0.33 & 0 \\
+0.40 & 0.20 & 0.40
+\end{bmatrix}
+\begin{bmatrix}
+3 & 1 \\
+1 & 3 \\
+2 & 2
+\end{bmatrix}
+=
+\begin{bmatrix}
+3.00 & 1.00 \\
+2.34 & 1.66 \\
+2.20 & 1.80
+\end{bmatrix}
+$$
+
+Reading $P V_{\mathrm{val}}$ one row at a time strips away all abstraction:
+- **Row 1 (`"cat"`)**: $1.00 \times [3, 1] + 0 + 0 = [3.00, 1.00]$, seeing only itself;
+- **Row 2 (`"chases"`)**: $0.67 \times [3, 1] + 0.33 \times [1, 3] + 0 = [2.34, 1.66]$, pulling $67\%$ of `"cat"`'s value vector into `"chases"` while remaining blind to future token `"dog"`;
+- **Row 3 (`"dog"`)**: $0.40 \times [3, 1] + 0.20 \times [1, 3] + 0.40 \times [2, 2] = [2.20, 1.80]$, pooling context across all 3 prefix tokens. At the end of `Prefill`, only this final row is projected through the FFN and LM head $W_{\mathrm{head}}^\top$—suppose sampling picks token `4:runs`.
+
+**Step 4: Advancing to `Decode` step $t = 4$ (why a single row suffices).** To predict token 5 given newly sampled `4:runs`, causal masking guarantees that rows 1..3 of $K$ and $V_{\mathrm{val}}$ would never change even if we reran the whole 4-word sequence. So step 4 **does not build a $4 \times 3$ input matrix**: it looks up only the single row $h_4 = [1, 0, -1] \in \mathbb{R}^{1 \times 3}$ and runs three vector-matrix products:
+
+$$
+q_4 = h_4 W_q^\top = \begin{bmatrix} 0 & 1 \end{bmatrix}, \qquad
+k_4 = h_4 W_k^\top = \begin{bmatrix} 0 & 1 \end{bmatrix}, \qquad
+v_4 = h_4 W_v^\top = \begin{bmatrix} 1 & -1 \end{bmatrix}
+$$
+
+Appending $k_4, v_4$ as row 4 of the cached $3 \times 2$ tables forms $K_{1:4}, V_{1:4} \in \mathbb{R}^{4 \times 2}$, after which attention reduces to a single $1 \times 4$ dot-product strip:
+
+$$
+q_4 K_{1:4}^\top =
+\begin{bmatrix} 0 & 1 \end{bmatrix}
+\begin{bmatrix}
+2 & 1 & 1 & \mathbf{0} \\
+1 & 1 & 2 & \mathbf{1}
+\end{bmatrix}
+= \begin{bmatrix} 1 & 1 & 2 & 1 \end{bmatrix}
+\;\xrightarrow{\mathrm{softmax}(\cdot / \sqrt{2})}\;
+p_4 \approx \begin{bmatrix} 0.20 & 0.20 & 0.40 & 0.20 \end{bmatrix}
+$$
+
+Taking that 4-weight average of $V_{1:4}$ gives $o_4 = p_4 V_{1:4} = 0.20[3,1] + 0.20[1,3] + 0.40[2,2] + 0.20[1,-1] = [1.80, 1.40] \in \mathbb{R}^{1 \times 2}$—without ever materializing the upper 3 rows of a $4 \times 4$ attention matrix.
+
+```sketch title="Unfolded Numeric Walkthrough: Cell-by-Cell Matrix Transformations in 3-Token Prefill and Step-4 Decode" note="Replacing abstract symbols with hand-verifiable numbers ($d_k=2$, scale $\sqrt{2}\approx 1.41$). Stage 1 shows how causal masking turns each output row into a convex combination of visible value vectors; Stage 2 shows step-4 decoding computing $o_4$ from a single query row $q_4$ and a 1-row append to the violet KV Cache."
+<svg viewBox="0 0 704 494">
+  <rect class="panel" x="0" y="0" width="704" height="256" rx="12"/>
+  <text class="caps" x="18" y="22">STAGE 1 · PREFILL NUMERIC TRACE</text>
+  <text class="small b" x="18" y="44">3-token prefix ["cat", "chases", "dog"] (highlighting Row 2 blending past &amp; masking future)</text>
+
+  <g>
+  <path d="M20.5 72.0 H16.0 V146.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M71.5 72.0 H76.0 V146.0 H71.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="32.5" y="85.0">2</text>
+  <rect x="47.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="59.5" y="85.0">-1</text>
+  <rect x="20.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="32.5" y="109.0">1</text>
+  <rect x="47.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="59.5" y="109.0">0</text>
+  <rect x="20.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="32.5" y="133.0">1</text>
+  <rect x="47.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="59.5" y="133.0">1</text>
+  <tex class="mid small" x="46.0" y="161.0">Q\;(3\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="88" y="109">×</text>
+  <g>
+  <path d="M104.5 84.0 H100.0 V134.0 H104.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M182.5 84.0 H187.0 V134.0 H182.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="104.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="116.5" y="97.0">2</text>
+  <rect x="131.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="143.5" y="97.0">1</text>
+  <rect x="158.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="170.5" y="97.0">1</text>
+  <rect x="104.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="116.5" y="121.0">1</text>
+  <rect x="131.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="143.5" y="121.0">1</text>
+  <rect x="158.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="170.5" y="121.0">2</text>
+  <tex class="mid small" x="143.5" y="161.0">K^\top\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M192 109 H222" marker-end="url(#arrow)"/>
+  <tex class="mid small mute" x="207" y="94">\div\sqrt{2}</tex>
+  <text class="mid small accent" x="207" y="125">+mask</text>
+
+  <g>
+  <path d="M232.5 72.0 H228.0 V146.0 H232.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M337.5 72.0 H342.0 V146.0 H337.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="232.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="85.0">2.12</text>
+  <rect x="268.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="285.0" y="85.0">-\infty</tex>
+  <rect x="304.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="321.0" y="85.0">-\infty</tex>
+  <rect x="232.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="109.0">1.41</text>
+  <rect x="268.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="285.0" y="109.0">0.71</text>
+  <rect x="304.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="321.0" y="109.0">-\infty</tex>
+  <rect x="232.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="133.0">2.12</text>
+  <rect x="268.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="285.0" y="133.0">1.41</text>
+  <rect x="304.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="321.0" y="133.0">2.12</text>
+  <tex class="mid small" x="285.0" y="161.0">S\;(3\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M348 109 H376" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="362" y="95">row</text>
+  <text class="mid small mute" x="362" y="124">exp</text>
+
+  <g>
+  <path d="M386.5 72.0 H382.0 V146.0 H386.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M491.5 72.0 H496.0 V146.0 H491.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="386.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="85.0">1.00</text>
+  <rect x="422.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="439.0" y="85.0" fill="var(--muted)">0</text>
+  <rect x="458.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="475.0" y="85.0" fill="var(--muted)">0</text>
+  <rect x="386.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="403.0" y="109.0">0.67</text>
+  <rect x="422.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="439.0" y="109.0">0.33</text>
+  <rect x="458.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="475.0" y="109.0" fill="var(--muted)">0</text>
+  <rect x="386.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="133.0">0.40</text>
+  <rect x="422.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="439.0" y="133.0">0.20</text>
+  <rect x="458.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="475.0" y="133.0">0.40</text>
+  <tex class="mid small" x="439.0" y="161.0">P\;(3\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="507" y="109">×</text>
+  <g>
+  <path d="M522.5 72.0 H518.0 V146.0 H522.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M573.5 72.0 H578.0 V146.0 H573.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="522.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="85.0">3</text>
+  <rect x="549.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="85.0">1</text>
+  <rect x="522.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="109.0">1</text>
+  <rect x="549.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="109.0">3</text>
+  <rect x="522.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="133.0">2</text>
+  <rect x="549.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="133.0">2</text>
+  <tex class="mid small" x="548.0" y="161.0">V\;(3\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="588" y="109">=</text>
+  <g>
+  <path d="M602.5 72.0 H598.0 V146.0 H602.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M675.5 72.0 H680.0 V146.0 H675.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="602.0" y="74.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="620.0" y="85.0">3.00</text>
+  <rect x="640.0" y="74.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="658.0" y="85.0">1.00</text>
+  <rect x="602.0" y="98.0" width="36.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="620.0" y="109.0">2.34</text>
+  <rect x="640.0" y="98.0" width="36.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="658.0" y="109.0">1.66</text>
+  <rect x="602.0" y="122.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="620.0" y="133.0">2.20</text>
+  <rect x="640.0" y="122.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="658.0" y="133.0">1.80</text>
+  <tex class="mid small" x="639.0" y="161.0">O\;(3\!\times\!2)</tex>
+  </g>
+
+  <rect class="window" x="18" y="206" width="668" height="34" rx="6"/>
+  <text class="small b" x="30" y="223">Row 2 ("chases"): 0.67×[3, 1] ("cat") + 0.33×[1, 3] ("chases") + 0×[2, 2] ("dog" masked) = [2.34, 1.66]</text>
+
+  <rect class="panel" x="0" y="272" width="704" height="222" rx="12"/>
+  <text class="caps" x="18" y="294">STAGE 2 · DECODE STEP 4 NUMERIC TRACE</text>
+  <text class="small b" x="18" y="316">Feed 1-row query q₄=[0, 1], append clay col/row 4 to KV Cache, compute 1×4 weights only</text>
+
+  <g>
+  <path d="M22.5 368.0 H18.0 V394.0 H22.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M75.5 368.0 H80.0 V394.0 H75.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="22.0" y="370.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="35.0" y="381.0">0</text>
+  <rect x="50.0" y="370.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="63.0" y="381.0">1</text>
+  <tex class="mid small" x="49.0" y="409.0">q_4\;(1\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="92" y="381">×</text>
+  <g>
+  <path d="M108.5 356.0 H104.0 V406.0 H108.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M217.5 356.0 H222.0 V406.0 H217.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="108.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="369.0">2</text>
+  <rect x="136.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="149.0" y="369.0">1</text>
+  <rect x="164.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="177.0" y="369.0">1</text>
+  <rect x="192.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="205.0" y="369.0">0</text>
+  <rect x="108.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="393.0">1</text>
+  <rect x="136.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="149.0" y="393.0">1</text>
+  <rect x="164.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="177.0" y="393.0">2</text>
+  <rect x="192.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="205.0" y="393.0">1</text>
+  <text class="mid small mute" x="163.0" y="347.0">3 cached + 1 new</text>
+  <tex class="mid small" x="163.0" y="421.0">K_{{1:4}}^\top\;(2\!\times\!4)</tex>
+  </g>
+  <path class="edge" d="M228 381 H268" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="248" y="367">softmax</text>
+
+  <g>
+  <path d="M278.5 368.0 H274.0 V394.0 H278.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M419.5 368.0 H424.0 V394.0 H419.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="278.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="381.0">0.20</text>
+  <rect x="314.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="331.0" y="381.0">0.20</text>
+  <rect x="350.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="367.0" y="381.0">0.40</text>
+  <rect x="386.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="381.0">0.20</text>
+  <tex class="mid small" x="349.0" y="409.0">p_4\;(1\!\times\!4)</tex>
+  </g>
+  <text class="mid b" x="436" y="381">×</text>
+  <g>
+  <path d="M452.5 332.0 H448.0 V430.0 H452.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M509.5 332.0 H514.0 V430.0 H509.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="452.0" y="334.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="345.0">3</text>
+  <rect x="482.0" y="334.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="345.0">1</text>
+  <rect x="452.0" y="358.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="369.0">1</text>
+  <rect x="482.0" y="358.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="369.0">3</text>
+  <rect x="452.0" y="382.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="393.0">2</text>
+  <rect x="482.0" y="382.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="393.0">2</text>
+  <rect x="452.0" y="406.0" width="28.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="466.0" y="417.0">1</text>
+  <rect x="482.0" y="406.0" width="28.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="496.0" y="417.0">-1</text>
+  <tex class="mid small" x="481.0" y="445.0">V_{{1:4}}\;(4\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="528" y="381">=</text>
+  <g>
+  <path d="M544.5 368.0 H540.0 V394.0 H544.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M625.5 368.0 H630.0 V394.0 H625.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="544.0" y="370.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="564.0" y="381.0">1.80</text>
+  <rect x="586.0" y="370.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="606.0" y="381.0">1.40</text>
+  <tex class="mid small" x="585.0" y="409.0">o_4\;(1\!\times\!2)</tex>
+  </g>
+
+  <text class="small" x="18" y="472">Weighted sum: 0.20×[3,1] + 0.20×[1,3] + 0.40×[2,2] + 0.20×[1,-1] (new row 4) = [1.80, 1.40] (rows 1..3 reused)</text>
+</svg>
+<svg viewBox="0 0 340 632">
+  <rect class="panel" x="0" y="0" width="340" height="368" rx="12"/>
+  <text class="caps" x="14" y="22">1 · PREFILL (3-TOKEN MATRICES)</text>
+  <text class="small b" x="14" y="44">1. Scores &amp; causal mask: upper triangle = -∞</text>
+
+  <g>
+  <path d="M16.5 60.0 H12.0 V128.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M63.5 60.0 H68.0 V128.0 H63.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="62.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="72.0">2</text>
+  <rect x="41.0" y="62.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="72.0">-1</text>
+  <rect x="16.0" y="84.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="94.0">1</text>
+  <rect x="41.0" y="84.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="94.0">0</text>
+  <rect x="16.0" y="106.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="116.0">1</text>
+  <rect x="41.0" y="106.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="116.0">1</text>
+  <tex class="mid small" x="40.0" y="143.0">Q</tex>
+  </g>
+  <text class="mid b" x="79" y="94">×</text>
+  <g>
+  <path d="M92.5 71.0 H88.0 V117.0 H92.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M161.5 71.0 H166.0 V117.0 H161.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="92.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="103.0" y="83.0">2</text>
+  <rect x="116.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="127.0" y="83.0">1</text>
+  <rect x="140.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="151.0" y="83.0">1</text>
+  <rect x="92.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="103.0" y="105.0">1</text>
+  <rect x="116.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="127.0" y="105.0">1</text>
+  <rect x="140.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="151.0" y="105.0">2</text>
+  <tex class="mid small" x="127.0" y="142.0">K^\top</tex>
+  </g>
+  <path class="edge" d="M170 94 H195" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M204.5 60.0 H200.0 V128.0 H204.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M309.5 60.0 H314.0 V128.0 H309.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="204.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="72.0">2.12</text>
+  <rect x="240.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="257.0" y="72.0">-\infty</tex>
+  <rect x="276.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="293.0" y="72.0">-\infty</tex>
+  <rect x="204.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="94.0">1.41</text>
+  <rect x="240.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="257.0" y="94.0">0.71</text>
+  <rect x="276.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="293.0" y="94.0">-\infty</tex>
+  <rect x="204.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="116.0">2.12</text>
+  <rect x="240.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="257.0" y="116.0">1.41</text>
+  <rect x="276.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="293.0" y="116.0">2.12</text>
+  <tex class="mid small" x="257.0" y="143.0">S_{{\mathrm{{mask}}}}</tex>
+  </g>
+
+  <text class="small b" x="14" y="182">2. Row softmax × V: weighted sum of visible rows</text>
+  <g>
+  <path d="M16.5 198.0 H12.0 V266.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M115.5 198.0 H120.0 V266.0 H115.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="32.0" y="210.0">1.00</text>
+  <rect x="50.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="66.0" y="210.0" fill="var(--muted)">0</text>
+  <rect x="84.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="100.0" y="210.0" fill="var(--muted)">0</text>
+  <rect x="16.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="32.0" y="232.0">0.67</text>
+  <rect x="50.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="66.0" y="232.0">0.33</text>
+  <rect x="84.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="100.0" y="232.0" fill="var(--muted)">0</text>
+  <rect x="16.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="32.0" y="254.0">0.40</text>
+  <rect x="50.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="66.0" y="254.0">0.20</text>
+  <rect x="84.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="100.0" y="254.0">0.40</text>
+  <tex class="mid small" x="66.0" y="281.0">P</tex>
+  </g>
+  <text class="mid b" x="132" y="232">×</text>
+  <g>
+  <path d="M144.5 198.0 H140.0 V266.0 H144.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M191.5 198.0 H196.0 V266.0 H191.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="144.0" y="200.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="210.0">3</text>
+  <rect x="169.0" y="200.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="210.0">1</text>
+  <rect x="144.0" y="222.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="232.0">1</text>
+  <rect x="169.0" y="222.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="232.0">3</text>
+  <rect x="144.0" y="244.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="254.0">2</text>
+  <rect x="169.0" y="244.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="254.0">2</text>
+  <tex class="mid small" x="168.0" y="281.0">V</tex>
+  </g>
+  <text class="mid b" x="208" y="232">=</text>
+  <g>
+  <path d="M220.5 198.0 H216.0 V266.0 H220.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M291.5 198.0 H296.0 V266.0 H291.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="220.0" y="200.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="237.5" y="210.0">3.00</text>
+  <rect x="257.0" y="200.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="274.5" y="210.0">1.00</text>
+  <rect x="220.0" y="222.0" width="35.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="237.5" y="232.0">2.34</text>
+  <rect x="257.0" y="222.0" width="35.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="274.5" y="232.0">1.66</text>
+  <rect x="220.0" y="244.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="237.5" y="254.0">2.20</text>
+  <rect x="257.0" y="244.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="274.5" y="254.0">1.80</text>
+  <tex class="mid small" x="256.0" y="281.0">O</tex>
+  </g>
+
+  <text class="small" x="14" y="318">Row 2: 0.67×[3,1] + 0.33×[1,3] = [2.34, 1.66]</text>
+  <text class="small mute" x="14" y="342">Row 1 weights [1,0,0] cannot peek at tokens 2..3</text>
+
+  <rect class="panel" x="0" y="384" width="340" height="248" rx="12"/>
+  <text class="caps" x="14" y="406">2 · DECODE (STEP 4 · 1 ROW + KV APPEND)</text>
+  <g>
+  <path d="M16.5 432.0 H12.0 V456.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M65.5 432.0 H70.0 V456.0 H65.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="434.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="28.0" y="444.0">0</text>
+  <rect x="42.0" y="434.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="54.0" y="444.0">1</text>
+  <tex class="mid small" x="41.0" y="471.0">q_4</tex>
+  </g>
+  <text class="mid b" x="83" y="444">×</text>
+  <g>
+  <path d="M96.5 422.0 H92.0 V468.0 H96.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M197.5 422.0 H202.0 V468.0 H197.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="96.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="108.0" y="434.0">2</text>
+  <rect x="122.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="134.0" y="434.0">1</text>
+  <rect x="148.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="160.0" y="434.0">1</text>
+  <rect x="174.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="186.0" y="434.0">0</text>
+  <rect x="96.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="108.0" y="456.0">1</text>
+  <rect x="122.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="134.0" y="456.0">1</text>
+  <rect x="148.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="160.0" y="456.0">2</text>
+  <rect x="174.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="186.0" y="456.0">1</text>
+  <tex class="mid small" x="147.0" y="483.0">K_{{1:4}}^\top</tex>
+  </g>
+  <path class="edge" d="M210 444 H234" marker-end="url(#arrow)"/>
+  <text class="small b" x="240" y="444">[1, 1, 2, 1]</text>
+
+  <g>
+  <path d="M16.5 522.0 H12.0 V546.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M145.5 522.0 H150.0 V546.0 H145.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="31.5" y="534.0">0.20</text>
+  <rect x="49.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="64.5" y="534.0">0.20</text>
+  <rect x="82.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="97.5" y="534.0">0.40</text>
+  <rect x="115.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="130.5" y="534.0">0.20</text>
+  <tex class="mid small" x="81.0" y="561.0">p_4\;(1\!\times\!4)</tex>
+  </g>
+  <text class="mid b" x="163" y="534">×</text>
+  <g>
+  <path d="M176.5 490.0 H172.0 V580.0 H176.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M225.5 490.0 H230.0 V580.0 H225.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="176.0" y="492.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="502.0">3</text>
+  <rect x="202.0" y="492.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="502.0">1</text>
+  <rect x="176.0" y="514.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="524.0">1</text>
+  <rect x="202.0" y="514.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="524.0">3</text>
+  <rect x="176.0" y="536.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="546.0">2</text>
+  <rect x="202.0" y="536.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="546.0">2</text>
+  <rect x="176.0" y="558.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="188.0" y="568.0">1</text>
+  <rect x="202.0" y="558.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="214.0" y="568.0">-1</text>
+  <tex class="mid small" x="201.0" y="595.0">V_{{1:4}}</tex>
+  </g>
+  <text class="mid b" x="242" y="534">=</text>
+  <g>
+  <path d="M254.5 522.0 H250.0 V546.0 H254.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M323.5 522.0 H328.0 V546.0 H323.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="254.0" y="524.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="271.0" y="534.0">1.80</text>
+  <rect x="290.0" y="524.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="307.0" y="534.0">1.40</text>
+  <tex class="mid small" x="289.0" y="561.0">o_4</tex>
+  </g>
+
+  <text class="small" x="14" y="612">Computes 1×4 row only; clay = appended token 4</text>
+</svg>
+```
+
 The two empirical figures below quantify both memory footprint and compute scaling. In the 6-layer `float32` model of the first chart ($V=2000, D=256, L=6$, 4 bytes per parameter), static weights total $5.82 \times 10^6$ parameters ($1.04 \times 10^6$ in embeddings/head and $4.72 \times 10^6$ in internal 2D matrices), occupying $22.2\;\text{MB}$; during training at $B=16, T=64$, cached forward activations across the 6 layers take $103.8\;\text{MB}$; and under `Muon+AdamW`, dropping the second-moment buffer $V$ from all internal 2D matrices leaves only $4.2\;\text{MB}$ of $V$ states on the boundary layers. The second chart tracks cumulative MACs across a 4-layer model decoding 112 tokens from $T_0=8$ to $t=120$.
 
 ```echarts title="VRAM Breakdown of a 6-Layer Transformer Across Inference and Three Training Optimizers" height="360" note="Measured tensor byte counts on a 6-layer Transformer ($V=2000, D=256$, 8 heads, fp32, batch $B=16$, length $T=64$). Training retains forward activations and allocates gradients $G$ plus state buffers; Muon+AdamW eliminates second-moment $V$ on all internal 2D layers (keeping only 4.2 MB on boundary params)."
@@ -1220,6 +1799,417 @@ These two compact equations simultaneously explain four central facts of LLM eng
 3. **Why `zero_grad()` is required before backward**: when full batches exceed GPU memory, training splits each step into micro-batches and calls `loss.backward()` repeatedly so PyTorch accumulates (`+=`) each micro-batch's $\Delta^\top X$ into `W.grad` before stepping once. Standard single-batch steps must therefore zero out stale gradients explicitly.
 4. **Why neural network gradient matrices exhibit extreme singular-value skew**: look at the outer-product sum $G = \sum_{n=1}^N \delta_n x_n^\top$. Natural language token frequencies follow a heavy-tailed Zipf distribution, so frequent function words and shared syntactic directions dominate every batch, concentrating the eigenvalues of $\frac{1}{N}X^\top X$ into a handful of top principal components. Consequently, $G$ is severely anisotropic: its top few singular values are orders of magnitude larger than the dozens or hundreds of tail singular directions carrying rare facts and fine-grained contextual circuits.
 
+### 2.4 Unfolding Backpropagation: Hand-Tracing 2-Token Cross-Entropy and Outer-Product Gradients
+
+Let us likewise substitute concrete numbers into Sections 2.2 and 2.3 so we can watch a single scalar loss $L$ differentiate back into a 2D weight gradient matrix $G$—and see firsthand why $G$ naturally exhibits severe singular-value skew.
+
+**Step 1: From logits $Z$ to top-level gradient $\Delta^{(Z)}$.** Consider $N = 2$ token positions over a 3-word vocabulary $V = 3$, with ground-truth target IDs $y_1 = 0$ and $y_2 = 1$ (one-hot matrix $Y_{\mathrm{true}} = \begin{bsmallmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{bsmallmatrix}$). Suppose forward logits $Z \in \mathbb{R}^{2 \times 3}$ are:
+
+$$
+Z = \begin{bmatrix} 2.0 & 1.0 & 0.0 \\ 0.0 & 2.0 & 1.0 \end{bmatrix}
+\;\xrightarrow{\text{row Softmax}}\;
+P \approx \begin{bmatrix} 0.67 & 0.24 & 0.09 \\ 0.09 & 0.67 & 0.24 \end{bmatrix}
+$$
+
+Mean cross-entropy is the scalar $L = -\frac{1}{2}(\ln 0.67 + \ln 0.67) \approx 0.40$. Plugging $P$ and $Y_{\mathrm{true}}$ into $\Delta^{(Z)} = \frac{1}{N}(P - Y_{\mathrm{true}})$ with $N = 2$ gives:
+
+$$
+\Delta^{(Z)} = \frac{1}{2}
+\left(
+\begin{bmatrix} 0.67 & 0.24 & 0.09 \\ 0.09 & 0.67 & 0.24 \end{bmatrix}
+-
+\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}
+\right)
+=
+\begin{bmatrix}
+\mathbf{-0.17} & +0.12 & +0.05 \\
++0.05 & \mathbf{-0.17} & +0.12
+\end{bmatrix}
+$$
+
+Every sign has a direct physical meaning: ground-truth columns receive negative derivatives ($-0.17$) so gradient descent $Z - \eta \Delta^{(Z)}$ pushes those target scores up, while wrong candidates receive positive derivatives ($+0.12, +0.05$) proportional to the probability mass mistakenly assigned to them.
+
+**Step 2: Forward caching and two-way backward split inside $Y = X W^\top$.** Zoom into an internal linear layer mapping $d_{\mathrm{in}} = 3 \to d_{\mathrm{out}} = 2$. Let the cached forward input for our $N = 2$ tokens be $X \in \mathbb{R}^{2 \times 3}$ and weights be $W \in \mathbb{R}^{2 \times 3}$:
+
+$$
+X = \begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}, \qquad
+W = \begin{bmatrix} 1.0 & 0.5 & -1.0 \\ -0.5 & 1.0 & 1.0 \end{bmatrix}, \qquad
+Y = X W^\top =
+\begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}
+\begin{bmatrix} 1.0 & -0.5 \\ 0.5 & 1.0 \\ -1.0 & 1.0 \end{bmatrix}
+= \begin{bmatrix} 2.0 & 1.5 \\ 1.0 & 2.5 \end{bmatrix}
+$$
+
+Suppose upstream backpropagation hands back $\Delta_Y = \begin{bsmallmatrix} -0.6 & 0.2 \\ -0.4 & 0.2 \end{bsmallmatrix} \in \mathbb{R}^{2 \times 2}$. The backward pass splits into two matrix products:
+
+1. **Left branch (propagating error to earlier layer input $X$)**: multiply by $W$ (untransposed), contracting out $d_{\mathrm{out}} = 2$ to recover a $2 \times 3$ activation gradient matching $X$:
+
+$$
+\Delta_X = \Delta_Y W =
+\begin{bmatrix} -0.6 & 0.2 \\ -0.4 & 0.2 \end{bmatrix}
+\begin{bmatrix} 1.0 & 0.5 & -1.0 \\ -0.5 & 1.0 & 1.0 \end{bmatrix}
+=
+\begin{bmatrix} -0.7 & -0.1 & 0.8 \\ -0.5 & 0.0 & 0.6 \end{bmatrix} \in \mathbb{R}^{2 \times 3}
+$$
+
+2. **Right branch (joining with cached $X$ to form weight gradient $G$)**: transpose $\Delta_Y$ and multiply into $X\;(2 \times 3)$. Expanding across tokens $n = 1, 2$ exposes the sum of rank-one outer products $\delta_1 x_1^\top + \delta_2 x_2^\top$:
+
+$$
+G = \Delta_Y^\top X =
+\begin{bmatrix} -0.6 & -0.4 \\ 0.2 & 0.2 \end{bmatrix}
+\begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}
+=
+\underbrace{\begin{bmatrix} -0.6 \\ 0.2 \end{bmatrix} \begin{bmatrix} 1 & 2 & 0 \end{bmatrix}}_{\text{token 1 outer }\delta_1 x_1^\top}
++
+\underbrace{\begin{bmatrix} -0.4 \\ 0.2 \end{bmatrix} \begin{bmatrix} 1 & 2 & 1 \end{bmatrix}}_{\text{token 2 outer }\delta_2 x_2^\top}
+=
+\begin{bmatrix} -0.6 & -1.2 & 0.0 \\ 0.2 & 0.4 & 0.0 \end{bmatrix}
++
+\begin{bmatrix} -0.4 & -0.8 & -0.4 \\ 0.2 & 0.4 & 0.2 \end{bmatrix}
+=
+\begin{bmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bmatrix}
+$$
+
+Inspect the resulting $2 \times 3$ gradient $G = \begin{bsmallmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bsmallmatrix}$: because both tokens shared the frequent prefix features $[1, 2]$ in columns 1 and 2, row 1 is $-2.5\times$ row 2 across the first two columns; only column 3 ($-0.4$ vs. $0.2$, contributed by token 2's unique 3rd coordinate `1`) breaks exact collinearity. Taking the square roots of the eigenvalues of $G G^\top = \begin{bsmallmatrix} 5.16 & -2.08 \\ -2.08 & 0.84 \end{bsmallmatrix}$ gives the two singular values of $G$:
+
+$$
+\sigma_1(G) \approx 2.449, \qquad \sigma_2(G) \approx 0.037 \qquad (\sigma_1 / \sigma_2 \approx 67.1)
+$$
+
+Even across a 2-token toy batch, shared input directions open a **$67\times$ singular-value gap**—setting the stage for Section 4.
+
+```sketch title="Unfolded Numeric Walkthrough: 2-Token Cross-Entropy Gradient and Rank-One Outer-Product Weight Gradient" note="Step 1 shows $\Delta^{(Z)} = (P - Y_{\mathrm{true}})/N$ assigning negative entries to ground-truth columns and positive entries elsewhere; Step 2 unfolds $G = \Delta_Y^\top X$ as the cellwise sum of token rank-1 matrices $\delta_1 x_1^\top + \delta_2 x_2^\top$, revealing how shared features create a 67× singular-value skew."
+<svg viewBox="0 0 704 432">
+  <rect class="panel" x="0" y="0" width="704" height="194" rx="12"/>
+  <text class="caps" x="18" y="22">STEP 1 · CROSS-ENTROPY GRADIENT UNFOLDED</text>
+  <text class="small b" x="18" y="44">Teal = true target cols (neg grad → raises logit); orange = wrong cols (pos grad → lowers logit)</text>
+
+  <g>
+  <path d="M24.5 70.0 H20.0 V120.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M135.5 70.0 H140.0 V120.0 H135.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="83.0">2.0</text>
+  <rect x="62.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="80.0" y="83.0">1.0</text>
+  <rect x="100.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="118.0" y="83.0">0.0</text>
+  <rect x="24.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="107.0">0.0</text>
+  <rect x="62.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="80.0" y="107.0">2.0</text>
+  <rect x="100.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="118.0" y="107.0">1.0</text>
+  <tex class="mid small" x="80.0" y="135.0">Z\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M148 95 H186" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="167" y="81">softmax</text>
+
+  <g>
+  <path d="M196.5 70.0 H192.0 V120.0 H196.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M313.5 70.0 H318.0 V120.0 H313.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="196.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="215.0" y="83.0">0.67</text>
+  <rect x="236.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="255.0" y="83.0">0.24</text>
+  <rect x="276.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="83.0">0.09</text>
+  <rect x="196.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="215.0" y="107.0">0.09</text>
+  <rect x="236.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="255.0" y="107.0">0.67</text>
+  <rect x="276.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="107.0">0.24</text>
+  <tex class="mid small" x="255.0" y="135.0">P\;(2\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="331" y="95">−</text>
+  <g>
+  <path d="M348.5 70.0 H344.0 V120.0 H348.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M435.5 70.0 H440.0 V120.0 H435.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="348.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="362.0" y="83.0">1</text>
+  <rect x="378.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="392.0" y="83.0">0</text>
+  <rect x="408.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="422.0" y="83.0">0</text>
+  <rect x="348.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="362.0" y="107.0">0</text>
+  <rect x="378.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="392.0" y="107.0">1</text>
+  <rect x="408.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="422.0" y="107.0">0</text>
+  <tex class="mid small" x="392.0" y="135.0">Y_{{\mathrm{{true}}}}\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M448 95 H486" marker-end="url(#arrow)"/>
+  <tex class="mid small mute" x="467" y="81">\div N</tex>
+
+  <g>
+  <path d="M496.5 70.0 H492.0 V120.0 H496.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M637.5 70.0 H642.0 V120.0 H637.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="496.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="519.0" y="83.0">-0.17</text>
+  <rect x="544.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="567.0" y="83.0">+0.12</text>
+  <rect x="592.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="615.0" y="83.0">+0.05</text>
+  <rect x="496.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="519.0" y="107.0">+0.05</text>
+  <rect x="544.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="567.0" y="107.0">-0.17</text>
+  <rect x="592.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="615.0" y="107.0">+0.12</text>
+  <tex class="mid small" x="567.0" y="135.0">\Delta^{{(Z)}}\;(2\!\times\!3)</tex>
+  </g>
+
+  <rect class="panel" x="0" y="210" width="704" height="222" rx="12"/>
+  <text class="caps" x="18" y="232">STEP 2 · LINEAR WEIGHT GRADIENT: TRANSPOSE MATMUL = SUM OF OUTER PRODUCTS</text>
+  <text class="small b" x="18" y="254">Token axis N=2 contracts out; because both tokens share [1, 2] in cols 1..2, G has a 67× singular-value skew (2.45 vs 0.037)</text>
+
+  <g>
+  <path d="M20.5 292.0 H16.0 V342.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M91.5 292.0 H96.0 V342.0 H91.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="294.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="37.5" y="305.0">-0.6</text>
+  <rect x="57.0" y="294.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="74.5" y="305.0">-0.4</text>
+  <rect x="20.0" y="318.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="37.5" y="329.0">0.2</text>
+  <rect x="57.0" y="318.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="74.5" y="329.0">0.2</text>
+  <tex class="mid small" x="56.0" y="357.0">\Delta_Y^\top\;(2\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="109" y="317">×</text>
+  <g>
+  <path d="M124.5 292.0 H120.0 V342.0 H124.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M205.5 292.0 H210.0 V342.0 H205.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="124.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="305.0">1</text>
+  <rect x="152.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="165.0" y="305.0">2</text>
+  <rect x="180.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="193.0" y="305.0">0</text>
+  <rect x="124.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="329.0">1</text>
+  <rect x="152.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="165.0" y="329.0">2</text>
+  <rect x="180.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="193.0" y="329.0">1</text>
+  <tex class="mid small" x="165.0" y="357.0">X\;(2\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="223" y="317">=</text>
+  <g>
+  <path d="M240.5 292.0 H236.0 V342.0 H240.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M357.5 292.0 H362.0 V342.0 H357.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="240.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="259.0" y="305.0">-0.6</text>
+  <rect x="280.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="299.0" y="305.0">-1.2</text>
+  <rect x="320.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="339.0" y="305.0">0.0</text>
+  <rect x="240.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="259.0" y="329.0">0.2</text>
+  <rect x="280.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="299.0" y="329.0">0.4</text>
+  <rect x="320.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="339.0" y="329.0">0.0</text>
+  <text class="mid small mute" x="299.0" y="283.0">token 1 outer</text>
+  <tex class="mid small" x="299.0" y="357.0">\delta_1 x_1^\top</tex>
+  </g>
+  <text class="mid b" x="374" y="317">+</text>
+  <g>
+  <path d="M390.5 292.0 H386.0 V342.0 H390.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M507.5 292.0 H512.0 V342.0 H507.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="390.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="409.0" y="305.0">-0.4</text>
+  <rect x="430.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="449.0" y="305.0">-0.8</text>
+  <rect x="470.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="489.0" y="305.0">-0.4</text>
+  <rect x="390.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="409.0" y="329.0">0.2</text>
+  <rect x="430.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="449.0" y="329.0">0.4</text>
+  <rect x="470.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="489.0" y="329.0">0.2</text>
+  <text class="mid small mute" x="449.0" y="283.0">token 2 outer</text>
+  <tex class="mid small" x="449.0" y="357.0">\delta_2 x_2^\top</tex>
+  </g>
+  <text class="mid b" x="524" y="317">=</text>
+  <g>
+  <path d="M540.5 292.0 H536.0 V342.0 H540.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M663.5 292.0 H668.0 V342.0 H663.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="540.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="560.0" y="305.0">-1.0</text>
+  <rect x="582.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="602.0" y="305.0">-2.0</text>
+  <rect x="624.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="644.0" y="305.0">-0.4</text>
+  <rect x="540.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="560.0" y="329.0">0.4</text>
+  <rect x="582.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="602.0" y="329.0">0.8</text>
+  <rect x="624.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="644.0" y="329.0">0.2</text>
+  <tex class="mid small" x="602.0" y="357.0">G\;(2\!\times\!3)</tex>
+  </g>
+
+  <text class="small accent" x="18" y="406">Only col 3 (clay -0.4, 0.2) breaks row collinearity → dominant σ₁=2.45 vs tiny σ₂=0.037</text>
+</svg>
+<svg viewBox="0 0 340 578">
+  <rect class="panel" x="0" y="0" width="340" height="232" rx="12"/>
+  <text class="caps" x="14" y="22">1 · CROSS-ENTROPY GRADIENT</text>
+  <g>
+  <path d="M18.5 40.0 H14.0 V86.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M129.5 40.0 H134.0 V86.0 H129.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="52.0">0.67</text>
+  <rect x="56.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="52.0">0.24</text>
+  <rect x="94.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="52.0">0.09</text>
+  <rect x="18.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="74.0">0.09</text>
+  <rect x="56.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="74.0">0.67</text>
+  <rect x="94.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="74.0">0.24</text>
+  <tex class="mid small" x="74.0" y="101.0">P</tex>
+  </g>
+  <text class="mid b" x="146" y="63">−</text>
+  <g>
+  <path d="M162.5 40.0 H158.0 V86.0 H162.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M243.5 40.0 H248.0 V86.0 H243.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="162.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="175.0" y="52.0">1</text>
+  <rect x="190.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="203.0" y="52.0">0</text>
+  <rect x="218.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="231.0" y="52.0">0</text>
+  <rect x="162.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="175.0" y="74.0">0</text>
+  <rect x="190.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="203.0" y="74.0">1</text>
+  <rect x="218.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="231.0" y="74.0">0</text>
+  <tex class="mid small" x="203.0" y="101.0">Y_{{\mathrm{{true}}}}</tex>
+  </g>
+  <path class="edge" d="M256 63 H282" marker-end="url(#arrow)"/>
+  <tex class="small mute" x="288" y="63">\div 2</tex>
+
+  <g>
+  <path d="M18.5 126.0 H14.0 V172.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M159.5 126.0 H164.0 V172.0 H159.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="41.0" y="138.0">-0.17</text>
+  <rect x="66.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="89.0" y="138.0">+0.12</text>
+  <rect x="114.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="138.0">+0.05</text>
+  <rect x="18.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="160.0">+0.05</text>
+  <rect x="66.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="89.0" y="160.0">-0.17</text>
+  <rect x="114.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="160.0">+0.12</text>
+  <tex class="mid small" x="89.0" y="187.0">\Delta^{{(Z)}} = \partial L / \partial Z</tex>
+  </g>
+  <text class="small" x="176" y="140">True col = -0.17</text>
+  <text class="small mute" x="176" y="160">Wrong cols &gt; 0</text>
+  <text class="small b" x="14" y="212">Subtracting ηΔ raises true-token logits</text>
+
+  <rect class="panel" x="0" y="248" width="340" height="330" rx="12"/>
+  <text class="caps" x="14" y="270">2 · WEIGHT GRAD = TOKEN OUTER SUM</text>
+  <g>
+  <path d="M18.5 288.0 H14.0 V334.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M89.5 288.0 H94.0 V334.0 H89.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="290.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="35.5" y="300.0">-0.6</text>
+  <rect x="55.0" y="290.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="72.5" y="300.0">-0.4</text>
+  <rect x="18.0" y="312.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="35.5" y="322.0">0.2</text>
+  <rect x="55.0" y="312.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="72.5" y="322.0">0.2</text>
+  <tex class="mid small" x="54.0" y="349.0">\Delta_Y^\top\;(2\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="108" y="311">×</text>
+  <g>
+  <path d="M124.5 288.0 H120.0 V334.0 H124.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M211.5 288.0 H216.0 V334.0 H211.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="124.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="138.0" y="300.0">1</text>
+  <rect x="154.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="168.0" y="300.0">2</text>
+  <rect x="184.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="198.0" y="300.0">0</text>
+  <rect x="124.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="138.0" y="322.0">1</text>
+  <rect x="154.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="168.0" y="322.0">2</text>
+  <rect x="184.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="198.0" y="322.0">1</text>
+  <tex class="mid small" x="168.0" y="349.0">X\;(2\!\times\!3)</tex>
+  </g>
+
+  <g>
+  <path d="M18.5 380.0 H14.0 V426.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M129.5 380.0 H134.0 V426.0 H129.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="392.0">-0.6</text>
+  <rect x="56.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="392.0">-1.2</text>
+  <rect x="94.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="392.0">0.0</text>
+  <rect x="18.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="414.0">0.2</text>
+  <rect x="56.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="414.0">0.4</text>
+  <rect x="94.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="414.0">0.0</text>
+  <tex class="mid small" x="74.0" y="441.0">\delta_1 x_1^\top</tex>
+  </g>
+  <text class="mid b" x="146" y="403">+</text>
+  <g>
+  <path d="M162.5 380.0 H158.0 V426.0 H162.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M273.5 380.0 H278.0 V426.0 H273.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="162.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="392.0">-0.4</text>
+  <rect x="200.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="392.0">-0.8</text>
+  <rect x="238.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="256.0" y="392.0">-0.4</text>
+  <rect x="162.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="414.0">0.2</text>
+  <rect x="200.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="414.0">0.4</text>
+  <rect x="238.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="256.0" y="414.0">0.2</text>
+  <tex class="mid small" x="218.0" y="441.0">\delta_2 x_2^\top</tex>
+  </g>
+
+  <text class="mid b" x="34" y="489">=</text>
+  <g>
+  <path d="M56.5 466.0 H52.0 V512.0 H56.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M185.5 466.0 H190.0 V512.0 H185.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="56.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="77.0" y="478.0">-1.0</text>
+  <rect x="100.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="478.0">-2.0</text>
+  <rect x="144.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="165.0" y="478.0">-0.4</text>
+  <rect x="56.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="77.0" y="500.0">0.4</text>
+  <rect x="100.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="500.0">0.8</text>
+  <rect x="144.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="165.0" y="500.0">0.2</text>
+  <tex class="mid small" x="121.0" y="527.0">G\;(2\!\times\!3)</tex>
+  </g>
+  <text class="small accent" x="206" y="480">σ₁ = 2.45</text>
+  <text class="small accent" x="206" y="500">σ₂ = 0.037 (67×)</text>
+  <text class="small mute" x="14" y="556">Shared prefix features naturally skew singular values</text>
+</svg>
+```
+
 Once $G$ is computed, how should `optimizer.step()` update the weights? We begin with flat vectors and derive four generations of entrywise optimizers.
 
 ---
@@ -1480,6 +2470,23 @@ Treating a $d_{\mathrm{out}} \times d_{\mathrm{in}}$ linear map as $d_{\mathrm{o
 
 1. **Basis dependence**: rotating the hidden representation by an orthogonal basis change $h \mapsto Q h$ ($Q^\top Q = I$) leaves Euclidean/RMS geometry invariant, yet entrywise sign is not rotation-equivariant ($\mathrm{sign}(Q G) \neq Q \,\mathrm{sign}(G)$).
 2. **Equalizing entries does not equalize singular subspaces**: if $G = \sum_n \delta_n x_n^\top$ is dominated by a rank-$1$ outer product $u v^\top$, taking elementwise signs yields $\mathrm{sign}(u v^\top) = \mathrm{sign}(u)\,\mathrm{sign}(v)^\top$—**still a rank-$1$ matrix**! Dividing each cell by $\sqrt{\hat{v}_{i, j}}$ cannot amplify updates along the dozens of low-singular-value subspaces buried underneath dominant directions.
+
+Substituting the exact $2 \times 3$ gradient matrix $G = \begin{bsmallmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bsmallmatrix}$ hand-computed in Section 2.4 into step $t = 1$ of bias-corrected `Adam` ($\hat{M}_1 = G$, $\hat{V}_1 = G \odot G = \begin{bsmallmatrix} 1.00 & 4.00 & 0.16 \\ 0.16 & 0.64 & 0.04 \end{bsmallmatrix}$, neglecting tiny $\epsilon$) makes this blind spot concrete:
+
+$$
+U_{\mathrm{Adam}, 1} = \frac{\hat{M}_1}{\sqrt{\hat{V}_1}} =
+\begin{bmatrix}
+-1.0 / 1.0 & -2.0 / 2.0 & -0.4 / 0.4 \\
+0.4 / 0.4 & 0.8 / 0.8 & 0.2 / 0.2
+\end{bmatrix}
+=
+\begin{bmatrix}
+-1 & -1 & -1 \\
++1 & +1 & +1
+\end{bmatrix}
+$$
+
+All six cells now have unit magnitude, yet because row 2 has become the exact negative of row 1, the update has collapsed into a **rank-1 matrix** ($\sigma_1 \approx 2.45,\; \sigma_2 = \mathbf{0.00}$)—completely erasing the subtle column-3 feature signal ($\sigma_2 \approx 0.037$) that distinguished token 2 from token 1. By contrast, the semi-orthogonal polar factor $U V^\top$ derived next maps the very same $G$ to the full-rank matrix $\begin{bsmallmatrix} -0.438 & -0.877 & +0.199 \\ +0.089 & +0.178 & \mathbf{+0.980} \end{bsmallmatrix}$ (orthogonal rows, $\sigma_1 = \sigma_2 = 1$), automatically steering $98\%$ of neuron 2's step along the novel 3rd feature.
 
 ### 4.2 Algebraic Simplification from `Shampoo` to Its Stateless Limit
 
@@ -1748,6 +2755,320 @@ Checking two numbers confirms the tradeoff:
 
 - **Small-singular-value amplification**: raising the origin slope from $1.875$ to $3.4445$ boosts 5-step linear gain to $3.4445^5 \approx 484.4\times$ ($20.9\times$ stronger than classical), lifting $\sigma_0 = 0.01$ right up to $\varphi^{(5)}(0.01) \approx 0.70$;
 - **Why $\varphi(1) = 3.4445 - 4.7750 + 2.0315 = 0.7010 \neq 1$**: this is not a typo, but the deliberate trough of the equiripple band—every $\sigma_0 \in [0.01, 1.0]$ lands inside $[0.68, 1.13]$ after 5 compositions (while tiny values in $(0, 0.01)$ climbing through the peak of $\varphi$ reach at most $\max \varphi \approx 1.20$).
+
+To demystify how pure matrix multiplications can uncover a buried singular direction without ever calling SVD, let us unfold all 5 iterations on a concrete $2 \times 2$ skewed momentum matrix:
+
+$$
+\tilde{M} =
+\underbrace{\begin{bmatrix} 10 & 10 \\ 10 & 10 \end{bmatrix}}_{\text{dominant mode }\sigma_1 = 20.0}
++
+\underbrace{\begin{bmatrix} -0.1 & +0.1 \\ +0.1 & -0.1 \end{bmatrix}}_{\text{weak orthogonal mode }\sigma_2 = 0.2}
+=
+\begin{bmatrix}
+9.9 & 10.1 \\
+10.1 & 9.9
+\end{bmatrix}
+$$
+
+At a glance, all four entries sit right around $+10$, differing by just $0.2$ between diagonal and anti-diagonal. Taking entrywise signs (the memoryless `Adam` limit) sees four positive numbers and outputs the rank-1 all-ones matrix $\mathrm{sign}(\tilde{M}) = \begin{bsmallmatrix} 1 & 1 \\ 1 & 1 \end{bsmallmatrix}$ ($\sigma = [2, 0]$), destroying the anti-diagonal subspace; whereas the exact orthogonal polar factor is the permutation matrix $U V^\top = \frac{1}{2}\begin{bsmallmatrix} 1 & 1 \\ 1 & 1 \end{bsmallmatrix} + \frac{1}{2}\begin{bsmallmatrix} -1 & 1 \\ 1 & -1 \end{bsmallmatrix} = \begin{bsmallmatrix} 0 & 1 \\ 1 & 0 \end{bsmallmatrix}$ ($\sigma = [1, 1]$).
+
+Now run `Muon`'s pre-normalization and quintic recursion $X_{k+1} = 3.4445 X_k + (-4.7750 A_k + 2.0315 A_k^2) X_k$ ($A_k = X_k X_k^\top$) with zero SVD:
+
+1. **Step 0 pre-normalization**: $\|\tilde{M}\|_F = \sqrt{9.9^2 + 10.1^2 + 10.1^2 + 9.9^2} = \sqrt{400.04} \approx 20.001$, giving $X_0 = \begin{bsmallmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bsmallmatrix}$ with singular values $(1.000, 0.010)$.
+2. **Why step 1 separates $0.495$ from $0.505$**: Gram matrix $A_0 = X_0 X_0^\top \approx \begin{bsmallmatrix} 0.50005 & 0.49995 \\ 0.49995 & 0.50005 \end{bsmallmatrix}$ has eigenvalue $1^2 = 1$ along the common-mode vector $\begin{bsmallmatrix} 1 \\ 1 \end{bsmallmatrix}$, so the negative cubic term $-4.7750 A_0 X_0$ strongly damps the dominant mode down to $3.4445 - 4.7750 + 2.0315 = 0.701$. Along the differential vector $\begin{bsmallmatrix} -1 \\ 1 \end{bsmallmatrix}$, however, $A_0$ has eigenvalue $0.01^2 = 0.0001$, so cubic and quintic terms virtually vanish while linear term $3.4445 X_0$ amplifies the anti-diagonal gap by $3.4445\times$, yielding $X_1 = \begin{bsmallmatrix} 0.333 & 0.368 \\ 0.368 & 0.333 \end{bsmallmatrix}$ ($\sigma = [0.701, 0.034]$).
+3. **Unfolding all five matrix-multiply iterations ($k = 1 \dots 5$)**:
+
+$$
+\begin{aligned}
+X_0 &= \begin{bmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bmatrix} \xrightarrow{k=1}
+X_1 = \begin{bmatrix} 0.333 & 0.368 \\ 0.368 & 0.333 \end{bmatrix} \xrightarrow{k=2}
+X_2 = \begin{bmatrix} 0.498 & 0.616 \\ 0.616 & 0.498 \end{bmatrix} \\[6pt]
+&\xrightarrow{k=3}
+X_3 = \begin{bmatrix} 0.160 & 0.560 \\ 0.560 & 0.160 \end{bmatrix} \xrightarrow{k=4}
+X_4 = \begin{bmatrix} -0.002 & 1.092 \\ 1.092 & -0.002 \end{bmatrix} \xrightarrow{k=5}
+X_5 = \begin{bmatrix} -0.001 & 0.698 \\ 0.698 & -0.001 \end{bmatrix}
+\end{aligned}
+$$
+
+In five plain matrix multiplications, $\begin{bsmallmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bsmallmatrix}$ cancels its diagonal common-mode background down to $-0.001$ and extracts the orthogonal swap operator $\approx 0.70\begin{bsmallmatrix} 0 & 1 \\ 1 & 0 \end{bsmallmatrix}$, flattening the singular-value ratio from $100:1$ to $(0.699,\; 0.697)$.
+
+```sketch title="Unfolded Numeric Walkthrough: Cell-by-Cell Evolution of a 100:1 Skewed Matrix Under SGD, Sign/Adam, and 5-Step Newton-Schulz" note="Input $\tilde{M} = \begin{bsmallmatrix}9.9 & 10.1\\10.1 & 9.9\end{bsmallmatrix}$ combines dominant $\sigma_1=20.0$ with tail $\sigma_2=0.2$. Entrywise sign collapses to a rank-1 all-ones matrix because all 4 entries are positive; 5 Newton-Schulz polynomial steps isolate the hidden orthogonal swap matrix via pure matrix multiplications."
+<svg viewBox="0 0 704 446">
+  <rect class="panel" x="0" y="0" width="704" height="206" rx="12"/>
+  <text class="caps" x="18" y="22">1 · SAME 100:1 SKEWED MATRIX UNDER THREE UPDATE RULES</text>
+  <text class="small b" x="18" y="44">Input = [[10,10],[10,10]] (σ₁=20) + [[-0.1,0.1],[0.1,-0.1]] (σ₂=0.2): tiny differential mode buried under +10</text>
+
+  <g>
+  <path d="M24.5 80.0 H20.0 V130.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M101.5 80.0 H106.0 V130.0 H101.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="82.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="43.0" y="93.0">9.9</text>
+  <rect x="64.0" y="82.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="83.0" y="93.0">10.1</text>
+  <rect x="24.0" y="106.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="43.0" y="117.0">10.1</text>
+  <rect x="64.0" y="106.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="83.0" y="117.0">9.9</text>
+  <text class="mid small mute" x="63.0" y="71.0">σ = (20.0, 0.2)</text>
+  <tex class="mid small" x="63.0" y="145.0">\tilde{{M}}</tex>
+  </g>
+  <path class="edge" d="M114 105 H150" marker-end="url(#arrow)"/>
+
+  <rect x="158" y="58" width="166" height="132" rx="8" fill="var(--card)" stroke="var(--line)"/>
+  <text class="mid small b" x="241" y="76">SGD / Frobenius Norm</text>
+  <g>
+  <path d="M196.5 88.0 H192.0 V138.0 H196.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M285.5 88.0 H290.0 V138.0 H285.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="196.0" y="90.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="101.0">0.495</text>
+  <rect x="242.0" y="90.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="264.0" y="101.0">0.505</text>
+  <rect x="196.0" y="114.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="125.0">0.505</text>
+  <rect x="242.0" y="114.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="264.0" y="125.0">0.495</text>
+  </g>
+  <text class="mid small mute" x="241" y="156">σ = (1.00, 0.01)</text>
+  <text class="mid small mute" x="241" y="175">Keeps 100:1 skew</text>
+
+  <rect x="336" y="58" width="166" height="132" rx="8" fill="var(--card)" stroke="var(--clay)"/>
+  <text class="mid small b" x="419" y="76" fill="var(--clay-ink)">Entrywise Sign / Adam</text>
+  <g>
+  <path d="M378.5 88.0 H374.0 V138.0 H378.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M459.5 88.0 H464.0 V138.0 H459.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="378.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="398.0" y="101.0">1.00</text>
+  <rect x="420.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="440.0" y="101.0">1.00</text>
+  <rect x="378.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="398.0" y="125.0">1.00</text>
+  <rect x="420.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="440.0" y="125.0">1.00</text>
+  </g>
+  <text class="mid small accent" x="419" y="156">σ = (2.00, 0.00)</text>
+  <text class="mid small accent" x="419" y="175">Wipes out σ₂ completely</text>
+
+  <rect x="514" y="58" width="172" height="132" rx="8" fill="var(--card)" stroke="var(--teal)"/>
+  <text class="mid small b" x="600" y="76" fill="var(--teal-ink)">Muon Exact Polar UVᵀ</text>
+  <g>
+  <path d="M559.5 88.0 H555.0 V138.0 H559.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M640.5 88.0 H645.0 V138.0 H640.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="559.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="579.0" y="101.0">0.00</text>
+  <rect x="601.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="621.0" y="101.0">1.00</text>
+  <rect x="559.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="579.0" y="125.0">1.00</text>
+  <rect x="601.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="621.0" y="125.0">0.00</text>
+  </g>
+  <text class="mid small b" x="600" y="156" fill="var(--teal-ink)">σ = (1.00, 1.00)</text>
+  <text class="mid small" x="600" y="175">Both subspaces step = 1</text>
+
+  <rect class="panel" x="0" y="222" width="704" height="224" rx="12"/>
+  <text class="caps" x="18" y="244">2 · 5-STEP NEWTON-SCHULZ PURE MATMUL EVOLUTION (ZERO SVD)</text>
+  <text class="small b" x="18" y="266">Watch diagonal common-mode shrink to ~0 while anti-diagonal differential mode amplifies into an orthogonal swap</text>
+
+  <g>
+  <path d="M24.5 304.0 H20.0 V354.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M113.5 304.0 H118.0 V354.0 H113.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="46.0" y="317.0">0.495</text>
+  <rect x="70.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="92.0" y="317.0">0.505</text>
+  <rect x="24.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="46.0" y="341.0">0.505</text>
+  <rect x="70.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="92.0" y="341.0">0.495</text>
+  <text class="mid small mute" x="69.0" y="295.0">σ:(1.00, 0.01)</text>
+  <tex class="mid small" x="69.0" y="369.0">X_0 = \tilde{{M}}/\|\tilde{{M}}\|_F</tex>
+  </g>
+  <path class="edge" d="M122 329 H148" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M158.5 304.0 H154.0 V354.0 H158.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M247.5 304.0 H252.0 V354.0 H247.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="158.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="317.0">0.333</text>
+  <rect x="204.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="226.0" y="317.0">0.368</text>
+  <rect x="158.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="341.0">0.368</text>
+  <rect x="204.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="226.0" y="341.0">0.333</text>
+  <text class="mid small mute" x="203.0" y="295.0">σ:(0.70, 0.03)</text>
+  <tex class="mid small" x="203.0" y="369.0">X_1\;(k=1)</tex>
+  </g>
+  <path class="edge" d="M256 329 H282" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M292.5 304.0 H288.0 V354.0 H292.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M381.5 304.0 H386.0 V354.0 H381.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="292.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="314.0" y="317.0">0.498</text>
+  <rect x="338.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="360.0" y="317.0">0.616</text>
+  <rect x="292.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="314.0" y="341.0">0.616</text>
+  <rect x="338.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="360.0" y="341.0">0.498</text>
+  <text class="mid small mute" x="337.0" y="295.0">σ:(1.11, 0.12)</text>
+  <tex class="mid small" x="337.0" y="369.0">X_2\;(k=2)</tex>
+  </g>
+  <path class="edge" d="M390 329 H416" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M426.5 304.0 H422.0 V354.0 H426.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M515.5 304.0 H520.0 V354.0 H515.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="426.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="448.0" y="317.0">0.160</text>
+  <rect x="472.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="494.0" y="317.0">0.560</text>
+  <rect x="426.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="448.0" y="341.0">0.560</text>
+  <rect x="472.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="494.0" y="341.0">0.160</text>
+  <text class="mid small mute" x="471.0" y="295.0">σ:(0.72, 0.40)</text>
+  <tex class="mid small" x="471.0" y="369.0">X_3\;(k=3)</tex>
+  </g>
+  <path class="edge hot" d="M524 329 H562" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="543" y="316">k=4..5</text>
+
+  <g>
+  <path d="M572.5 304.0 H568.0 V354.0 H572.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M669.5 304.0 H674.0 V354.0 H669.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="572.0" y="306.0" width="48.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="596.0" y="317.0">-0.001</text>
+  <rect x="622.0" y="306.0" width="48.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="646.0" y="317.0">0.698</text>
+  <rect x="572.0" y="330.0" width="48.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="596.0" y="341.0">0.698</text>
+  <rect x="622.0" y="330.0" width="48.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="646.0" y="341.0">-0.001</text>
+  <text class="mid small mute" x="621.0" y="295.0">σ:(0.70, 0.70)</text>
+  <tex class="mid small" x="621.0" y="369.0">X_5 \approx 0.70\,U V^\top</tex>
+  </g>
+
+  <text class="small" x="18" y="424">By step 5, diagonal drops to -0.001, anti-diagonal rises to 0.698, flattening singular ratio from 100:1 to 1.003:1</text>
+</svg>
+<svg viewBox="0 0 340 604">
+  <rect class="panel" x="0" y="0" width="340" height="278" rx="12"/>
+  <text class="caps" x="14" y="22">1 · THREE UPDATE RULES UNFOLDED</text>
+  <g>
+  <path d="M20.5 46.0 H16.0 V92.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M97.5 46.0 H102.0 V92.0 H97.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="48.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="39.0" y="58.0">9.9</text>
+  <rect x="60.0" y="48.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="79.0" y="58.0">10.1</text>
+  <rect x="20.0" y="70.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="39.0" y="80.0">10.1</text>
+  <rect x="60.0" y="70.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="79.0" y="80.0">9.9</text>
+  <tex class="mid small" x="59.0" y="107.0">\tilde{{M}}\;(\sigma=20, 0.2)</tex>
+  </g>
+  <text class="small" x="116" y="60">= 10×ones (dominant)</text>
+  <text class="small accent" x="116" y="80">+ 0.1×anti-diag (tail)</text>
+
+  <text class="small b" x="20" y="136" fill="var(--clay-ink)">Entrywise Sign</text>
+  <g>
+  <path d="M20.5 146.0 H16.0 V192.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M105.5 146.0 H110.0 V192.0 H105.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="158.0">1.00</text>
+  <rect x="64.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="85.0" y="158.0">1.00</text>
+  <rect x="20.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="180.0">1.00</text>
+  <rect x="64.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="85.0" y="180.0">1.00</text>
+  </g>
+  <text class="small accent" x="20" y="212">σ = (2.00, 0.00)</text>
+  <text class="small mute" x="20" y="232">Erases ±0.1 signal</text>
+
+  <text class="small b" x="182" y="136" fill="var(--teal-ink)">Muon Polar UVᵀ</text>
+  <g>
+  <path d="M182.5 146.0 H178.0 V192.0 H182.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M267.5 146.0 H272.0 V192.0 H267.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="182.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="203.0" y="158.0">0.00</text>
+  <rect x="226.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="247.0" y="158.0">1.00</text>
+  <rect x="182.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="203.0" y="180.0">1.00</text>
+  <rect x="226.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="247.0" y="180.0">0.00</text>
+  </g>
+  <text class="small b" x="182" y="212" fill="var(--teal-ink)">σ = (1.00, 1.00)</text>
+  <text class="small mute" x="182" y="232">Restores swap matrix</text>
+
+  <rect class="panel" x="0" y="294" width="340" height="310" rx="12"/>
+  <text class="caps" x="14" y="316">2 · 5-STEP NEWTON-SCHULZ TRACE</text>
+
+  <g>
+  <path d="M20.5 348.0 H16.0 V394.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M109.5 348.0 H114.0 V394.0 H109.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="360.0">0.495</text>
+  <rect x="66.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="360.0">0.505</text>
+  <rect x="20.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="382.0">0.505</text>
+  <rect x="66.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="382.0">0.495</text>
+  <text class="mid small mute" x="65.0" y="339.0">σ:(1.00, 0.01)</text>
+  <tex class="mid small" x="65.0" y="409.0">X_0</tex>
+  </g>
+  <path class="edge" d="M122 371 H158" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M168.5 348.0 H164.0 V394.0 H168.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M257.5 348.0 H262.0 V394.0 H257.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="168.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="190.0" y="360.0">0.333</text>
+  <rect x="214.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="236.0" y="360.0">0.368</text>
+  <rect x="168.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="190.0" y="382.0">0.368</text>
+  <rect x="214.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="236.0" y="382.0">0.333</text>
+  <text class="mid small mute" x="213.0" y="339.0">σ:(0.70, 0.03)</text>
+  <tex class="mid small" x="213.0" y="409.0">X_1</tex>
+  </g>
+
+  <g>
+  <path d="M20.5 460.0 H16.0 V506.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M109.5 460.0 H114.0 V506.0 H109.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="462.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="472.0">0.160</text>
+  <rect x="66.0" y="462.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="472.0">0.560</text>
+  <rect x="20.0" y="484.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="494.0">0.560</text>
+  <rect x="66.0" y="484.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="494.0">0.160</text>
+  <text class="mid small mute" x="65.0" y="451.0">σ:(0.72, 0.40)</text>
+  <tex class="mid small" x="65.0" y="521.0">X_3</tex>
+  </g>
+  <path class="edge hot" d="M122 483 H158" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M168.5 460.0 H164.0 V506.0 H168.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M265.5 460.0 H270.0 V506.0 H265.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="168.0" y="462.0" width="48.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="192.0" y="472.0">-0.001</text>
+  <rect x="218.0" y="462.0" width="48.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="242.0" y="472.0">0.698</text>
+  <rect x="168.0" y="484.0" width="48.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="192.0" y="494.0">0.698</text>
+  <rect x="218.0" y="484.0" width="48.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="242.0" y="494.0">-0.001</text>
+  <text class="mid small mute" x="217.0" y="451.0">σ:(0.70, 0.70)</text>
+  <tex class="mid small" x="217.0" y="521.0">X_5 \approx 0.70\,U V^\top</tex>
+  </g>
+
+  <text class="small" x="14" y="560">5 rounds of pure matrix multiplies, zero SVD</text>
+  <text class="small b" x="14" y="582" fill="var(--teal-ink)">Singular ratio flattens from 100:1 to 0.699 : 0.697</text>
+</svg>
+```
 
 The left panel below plots $\varphi^{(k)}(\sigma)$ at $k = 1, 3, 5$; the right panel measures all 64 singular values of Layer 1's `W_q` momentum at step 25 of our 2-layer Transformer. Raw momentum spans $13{,}669\times$, and even `AdamW`'s entrywise update still decays by over $2{,}000\times$—whereas 5 Newton-Schulz steps place the top 53 singular values squarely inside $[0.68, 1.20]$.
 

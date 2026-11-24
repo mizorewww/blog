@@ -779,10 +779,589 @@ $$
 </svg>
 ```
 
+### 1.5 把矩阵真正展开：一条 3 词例句的 `Prefill` 与 `Decode` 逐步手算
+
+前文用紧凑的矩阵符号和方格维度图概括了推理流程，但对于刚接触 Transformer 的读者来说，最容易卡壳的地方往往在于“这些矩阵乘起来时，里面的具体数字到底是怎么一步步变过去的”。下面我们把隐藏维度缩小到可以直接口算的迷你尺寸，将整条计算链上的每一张矩阵彻底展开。
+
+设迷你词表共有 $V = 5$ 个词元：`0:<pad>`、`1:猫`、`2:追`、`3:狗`、`4:跑`，隐藏维 $D = 3$，单头注意力维 $d_k = 2$。用户输入长度为 $T_0 = 3$ 的提示词前缀 `["猫", "追", "狗"]`，对应整数编号序列 $(1, 2, 3)$。
+
+**第一步：词嵌入查表（等价于独热矩阵左乘）。** 展开静态词嵌入表 $E_{\mathrm{tok}} \in \mathbb{R}^{5 \times 3}$。取编号 $(1, 2, 3)$ 对应的行，在代数上与左乘一张 $3 \times 5$ 的独热选择矩阵 $U$ 逐位相同（为突出矩阵变换主线，此处略去位置编码并设归一化后直接得到隐状态 $H$，易验证三行的均方根恰好相等）：
+
+$$
+H = U E_{\mathrm{tok}} =
+\begin{bmatrix}
+0 & \mathbf{1} & 0 & 0 & 0 \\
+0 & 0 & \mathbf{1} & 0 & 0 \\
+0 & 0 & 0 & \mathbf{1} & 0
+\end{bmatrix}
+\begin{bmatrix}
+0 & 0 & 0 \\
+1 & 0 & 1 \\
+0 & 1 & 1 \\
+1 & 1 & 0 \\
+1 & 0 & -1
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0 & 1 \\
+0 & 1 & 1 \\
+1 & 1 & 0
+\end{bmatrix}
+\begin{matrix}
+\leftarrow \text{词 1 “猫”} \\
+\leftarrow \text{词 2 “追”} \\
+\leftarrow \text{词 3 “狗”}
+\end{matrix}
+$$
+
+这一步看得很清楚：所谓“离散词元转连续向量”，只是按编号把词表矩阵的对应行原样抄出来排成 $3 \times 3$ 矩阵；未被选中的第 0 行与第 4 行完全没有参与运算。
+
+**第二步：线性投影生成 $Q, K, V_{\mathrm{val}}$。** 给定静态投影权重转置 $W_q^\top, W_k^\top, W_v^\top \in \mathbb{R}^{3 \times 2}$，将 $H\;(3 \times 3)$ 分别右乘三块权重矩阵：
+
+$$
+Q = H W_q^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 0 \\ 0 & 1 \\ 1 & -1 \end{bmatrix}
+=
+\begin{bmatrix} 2 & -1 \\ 1 & 0 \\ 1 & 1 \end{bmatrix}, \quad
+K = H W_k^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 1 & 1 \\ 0 & 1 \\ 1 & 0 \end{bmatrix}
+=
+\begin{bmatrix} 2 & 1 \\ 1 & 1 \\ 1 & 2 \end{bmatrix}, \quad
+V_{\mathrm{val}} = H W_v^\top =
+\begin{bmatrix} 1 & 0 & 1 \\ 0 & 1 & 1 \\ 1 & 1 & 0 \end{bmatrix}
+\begin{bmatrix} 2 & 0 \\ 0 & 2 \\ 1 & 1 \end{bmatrix}
+=
+\begin{bmatrix} 3 & 1 \\ 1 & 3 \\ 2 & 2 \end{bmatrix}
+$$
+
+以 $Q$ 左上角元素 $Q_{1,1} = 2$ 为例，它由 $H$ 第 1 行 $[1, 0, 1]$ 与 $W_q^\top$ 第 1 列 $[1, 0, 1]^\top$ 逐位乘加得到（$1\times 1 + 0\times 0 + 1\times 1 = 2$）。注意：**线性层只在同一行内部重组特征列，3 个词元之间在这一步互不通信**。算出的 $K$ 与 $V_{\mathrm{val}}$ 同时存入显存作为前 3 个位置的 `KV Cache`。
+
+**第三步：因果自注意力的四步矩阵变形（内积 $\to$ 掩码 $\to$ Softmax $\to$ 加权混洗 $V$）。** 现在词与词之间开始交互。先用 $Q\;(3\times 2)$ 右乘转置后的 $K^\top\;(2\times 3)$，算出两两词元之间的原始匹配内积：
+
+$$
+Q K^\top =
+\begin{bmatrix} 2 & -1 \\ 1 & 0 \\ 1 & 1 \end{bmatrix}
+\begin{bmatrix} 2 & 1 & 1 \\ 1 & 1 & 2 \end{bmatrix}
+=
+\begin{bmatrix}
+3 & 1 & 0 \\
+2 & 1 & 1 \\
+3 & 2 & 3
+\end{bmatrix}
+$$
+
+接着除以 $\sqrt{d_k} = \sqrt{2} \approx 1.414$，并加上主对角线以上全为 $-\infty$ 的因果掩码 $M_{\mathrm{causal}}$，再对每一行独立求指数归一化 $P_{i,j} = e^{S_{i,j}} / \sum_c e^{S_{i,c}}$（因 $e^{-\infty} = 0$，上三角概率严格归零）：
+
+$$
+S = \frac{Q K^\top}{\sqrt{2}} + M_{\mathrm{causal}} \approx
+\begin{bmatrix}
+2.12 & -\infty & -\infty \\
+1.41 & 0.71 & -\infty \\
+2.12 & 1.41 & 2.12
+\end{bmatrix}
+\;\xrightarrow{\text{按行 Softmax}}\;
+P \approx
+\begin{bmatrix}
+1.00 & 0 & 0 \\
+0.67 & 0.33 & 0 \\
+0.40 & 0.20 & 0.40
+\end{bmatrix}
+$$
+
+最后用下三角概率矩阵 $P\;(3\times 3)$ 左乘值矩阵 $V_{\mathrm{val}}\;(3\times 2)$：
+
+$$
+O = P V_{\mathrm{val}} \approx
+\begin{bmatrix}
+1.00 & 0 & 0 \\
+0.67 & 0.33 & 0 \\
+0.40 & 0.20 & 0.40
+\end{bmatrix}
+\begin{bmatrix}
+3 & 1 \\
+1 & 3 \\
+2 & 2
+\end{bmatrix}
+=
+\begin{bmatrix}
+3.00 & 1.00 \\
+2.34 & 1.66 \\
+2.20 & 1.80
+\end{bmatrix}
+$$
+
+把每一行的乘法拆开，就能直观看到自注意力究竟做了什么：
+- **第 1 行（“猫”）**：$1.00 \times [3, 1] + 0 + 0 = [3.00, 1.00]$，只能读取自身信息；
+- **第 2 行（“追”）**：$0.67 \times [3, 1] + 0.33 \times [1, 3] + 0 = [2.34, 1.66]$，把前文主语“猫”的值向量按 $67\%$ 权重融合进来，同时被掩码严密阻断了对第 3 个词“狗”的偷看；
+- **第 3 行（“狗”）**：$0.40 \times [3, 1] + 0.20 \times [1, 3] + 0.40 \times [2, 2] = [2.20, 1.80]$，汇总了整段 3 词前文。`Prefill` 结束时，网络只取最后这一行往后送入前馈层与词表分类头 $W_{\mathrm{head}}^\top$，假设采样生成了第 4 个词 `4:跑`。
+
+**第四步：推进到 `Decode` 阶段（$t=4$，为什么只需算 1 行？）。** 现在要把新生成的 `4:跑` 送入模型预测第 5 个词。观察上一步就会发现：由于前 3 个词看不到第 4 个词，它们的 $K, V_{\mathrm{val}}$ 行永远不会改变。因此第 4 步**不再输入 $4 \times 3$ 矩阵**，而是只取词嵌入表第 4 行单行向量 $h_4 = [1, 0, -1] \in \mathbb{R}^{1 \times 3}$，做三次单行向量乘矩阵：
+
+$$
+q_4 = h_4 W_q^\top = \begin{bmatrix} 0 & 1 \end{bmatrix}, \qquad
+k_4 = h_4 W_k^\top = \begin{bmatrix} 0 & 1 \end{bmatrix}, \qquad
+v_4 = h_4 W_v^\top = \begin{bmatrix} 1 & -1 \end{bmatrix}
+$$
+
+把 $k_4, v_4$ 直接拼接到刚才缓存的 $3 \times 2$ 键值表末尾，组成 $4 \times 2$ 的 $K_{1:4}$ 与 $V_{1:4}$，随后只需计算单行查询 $q_4\;(1\times 2)$ 与 $K_{1:4}^\top\;(2\times 4)$ 的内积：
+
+$$
+q_4 K_{1:4}^\top =
+\begin{bmatrix} 0 & 1 \end{bmatrix}
+\begin{bmatrix}
+2 & 1 & 1 & \mathbf{0} \\
+1 & 1 & 2 & \mathbf{1}
+\end{bmatrix}
+= \begin{bmatrix} 1 & 1 & 2 & 1 \end{bmatrix}
+\;\xrightarrow{\mathrm{softmax}(\cdot / \sqrt{2})}\;
+p_4 \approx \begin{bmatrix} 0.20 & 0.20 & 0.40 & 0.20 \end{bmatrix}
+$$
+
+再用这一排 4 个概率对 $V_{1:4}$ 的 4 行做加权平均：$o_4 = p_4 V_{1:4} = 0.20[3,1] + 0.20[1,3] + 0.40[2,2] + 0.20[1,-1] = [1.80, 1.40] \in \mathbb{R}^{1 \times 2}$。整座 $4 \times 4$ 注意力方阵的前 3 行自始至终无需构造。
+
+```sketch title="展开数值图解：3 词 Prefill 因果注意力与第 4 步 Decode 缓存追加的矩阵内部数值变换" note="把抽象符号替换成可直接口算的小整数与两位小数（$d_k=2$，缩放因子 $\sqrt{2}\approx 1.41$）。Stage 1 展示下三角掩码如何令每行输出成为历史值向量的凸组合；Stage 2 展示自回归解码如何仅凭单行 $q_4$ 与追加 1 行的紫色缓存算出 $o_4$。"
+<svg viewBox="0 0 704 494">
+  <rect class="panel" x="0" y="0" width="704" height="256" rx="12"/>
+  <text class="caps" x="18" y="22">STAGE 1 · PREFILL 展开数值追踪</text>
+  <text class="small b" x="18" y="44">输入 3 词“猫 追 狗”（高亮第 2 行“追”如何融合前文并屏蔽未来词“狗”）</text>
+
+  <g>
+  <path d="M20.5 72.0 H16.0 V146.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M71.5 72.0 H76.0 V146.0 H71.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="32.5" y="85.0">2</text>
+  <rect x="47.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="59.5" y="85.0">-1</text>
+  <rect x="20.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="32.5" y="109.0">1</text>
+  <rect x="47.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="59.5" y="109.0">0</text>
+  <rect x="20.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="32.5" y="133.0">1</text>
+  <rect x="47.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="59.5" y="133.0">1</text>
+  <tex class="mid small" x="46.0" y="161.0">Q\;(3\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="88" y="109">×</text>
+  <g>
+  <path d="M104.5 84.0 H100.0 V134.0 H104.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M182.5 84.0 H187.0 V134.0 H182.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="104.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="116.5" y="97.0">2</text>
+  <rect x="131.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="143.5" y="97.0">1</text>
+  <rect x="158.0" y="86.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="170.5" y="97.0">1</text>
+  <rect x="104.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="116.5" y="121.0">1</text>
+  <rect x="131.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="143.5" y="121.0">1</text>
+  <rect x="158.0" y="110.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="170.5" y="121.0">2</text>
+  <tex class="mid small" x="143.5" y="161.0">K^\top\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M192 109 H222" marker-end="url(#arrow)"/>
+  <tex class="mid small mute" x="207" y="94">\div\sqrt{2}</tex>
+  <text class="mid small accent" x="207" y="125">+掩码</text>
+
+  <g>
+  <path d="M232.5 72.0 H228.0 V146.0 H232.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M337.5 72.0 H342.0 V146.0 H337.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="232.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="85.0">2.12</text>
+  <rect x="268.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="285.0" y="85.0">-\infty</tex>
+  <rect x="304.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="321.0" y="85.0">-\infty</tex>
+  <rect x="232.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="109.0">1.41</text>
+  <rect x="268.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="285.0" y="109.0">0.71</text>
+  <rect x="304.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="321.0" y="109.0">-\infty</tex>
+  <rect x="232.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="249.0" y="133.0">2.12</text>
+  <rect x="268.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="285.0" y="133.0">1.41</text>
+  <rect x="304.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="321.0" y="133.0">2.12</text>
+  <tex class="mid small" x="285.0" y="161.0">S\;(3\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M348 109 H376" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="362" y="95">row</text>
+  <text class="mid small mute" x="362" y="124">exp</text>
+
+  <g>
+  <path d="M386.5 72.0 H382.0 V146.0 H386.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M491.5 72.0 H496.0 V146.0 H491.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="386.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="85.0">1.00</text>
+  <rect x="422.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="439.0" y="85.0" fill="var(--muted)">0</text>
+  <rect x="458.0" y="74.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="475.0" y="85.0" fill="var(--muted)">0</text>
+  <rect x="386.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="403.0" y="109.0">0.67</text>
+  <rect x="422.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="439.0" y="109.0">0.33</text>
+  <rect x="458.0" y="98.0" width="34.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="475.0" y="109.0" fill="var(--muted)">0</text>
+  <rect x="386.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="133.0">0.40</text>
+  <rect x="422.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="439.0" y="133.0">0.20</text>
+  <rect x="458.0" y="122.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="475.0" y="133.0">0.40</text>
+  <tex class="mid small" x="439.0" y="161.0">P\;(3\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="507" y="109">×</text>
+  <g>
+  <path d="M522.5 72.0 H518.0 V146.0 H522.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M573.5 72.0 H578.0 V146.0 H573.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="522.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="85.0">3</text>
+  <rect x="549.0" y="74.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="85.0">1</text>
+  <rect x="522.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="109.0">1</text>
+  <rect x="549.0" y="98.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="109.0">3</text>
+  <rect x="522.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="534.5" y="133.0">2</text>
+  <rect x="549.0" y="122.0" width="25.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="561.5" y="133.0">2</text>
+  <tex class="mid small" x="548.0" y="161.0">V\;(3\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="588" y="109">=</text>
+  <g>
+  <path d="M602.5 72.0 H598.0 V146.0 H602.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M675.5 72.0 H680.0 V146.0 H675.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="602.0" y="74.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="620.0" y="85.0">3.00</text>
+  <rect x="640.0" y="74.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="658.0" y="85.0">1.00</text>
+  <rect x="602.0" y="98.0" width="36.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="620.0" y="109.0">2.34</text>
+  <rect x="640.0" y="98.0" width="36.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="658.0" y="109.0">1.66</text>
+  <rect x="602.0" y="122.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="620.0" y="133.0">2.20</text>
+  <rect x="640.0" y="122.0" width="36.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="658.0" y="133.0">1.80</text>
+  <tex class="mid small" x="639.0" y="161.0">O\;(3\!\times\!2)</tex>
+  </g>
+
+  <rect class="window" x="18" y="206" width="668" height="34" rx="6"/>
+  <text class="small b" x="30" y="223">第 2 行（“追”）验算：0.67×[3, 1]（猫） + 0.33×[1, 3]（追） + 0×[2, 2]（狗被屏蔽） = [2.34, 1.66]</text>
+
+  <rect class="panel" x="0" y="272" width="704" height="222" rx="12"/>
+  <text class="caps" x="18" y="294">STAGE 2 · DECODE 第 4 步展开数值追踪</text>
+  <text class="small b" x="18" y="316">仅送入单行新词 q₄=[0, 1]，在缓存末尾追加橙色第 4 列/行，只算 1×4 权重</text>
+
+  <g>
+  <path d="M22.5 368.0 H18.0 V394.0 H22.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M75.5 368.0 H80.0 V394.0 H75.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="22.0" y="370.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="35.0" y="381.0">0</text>
+  <rect x="50.0" y="370.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="63.0" y="381.0">1</text>
+  <tex class="mid small" x="49.0" y="409.0">q_4\;(1\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="92" y="381">×</text>
+  <g>
+  <path d="M108.5 356.0 H104.0 V406.0 H108.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M217.5 356.0 H222.0 V406.0 H217.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="108.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="369.0">2</text>
+  <rect x="136.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="149.0" y="369.0">1</text>
+  <rect x="164.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="177.0" y="369.0">1</text>
+  <rect x="192.0" y="358.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="205.0" y="369.0">0</text>
+  <rect x="108.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="393.0">1</text>
+  <rect x="136.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="149.0" y="393.0">1</text>
+  <rect x="164.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="177.0" y="393.0">2</text>
+  <rect x="192.0" y="382.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="205.0" y="393.0">1</text>
+  <text class="mid small mute" x="163.0" y="347.0">3 旧 + 1 新</text>
+  <tex class="mid small" x="163.0" y="421.0">K_{{1:4}}^\top\;(2\!\times\!4)</tex>
+  </g>
+  <path class="edge" d="M228 381 H268" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="248" y="367">softmax</text>
+
+  <g>
+  <path d="M278.5 368.0 H274.0 V394.0 H278.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M419.5 368.0 H424.0 V394.0 H419.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="278.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="381.0">0.20</text>
+  <rect x="314.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="331.0" y="381.0">0.20</text>
+  <rect x="350.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="367.0" y="381.0">0.40</text>
+  <rect x="386.0" y="370.0" width="34.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="403.0" y="381.0">0.20</text>
+  <tex class="mid small" x="349.0" y="409.0">p_4\;(1\!\times\!4)</tex>
+  </g>
+  <text class="mid b" x="436" y="381">×</text>
+  <g>
+  <path d="M452.5 332.0 H448.0 V430.0 H452.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M509.5 332.0 H514.0 V430.0 H509.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="452.0" y="334.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="345.0">3</text>
+  <rect x="482.0" y="334.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="345.0">1</text>
+  <rect x="452.0" y="358.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="369.0">1</text>
+  <rect x="482.0" y="358.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="369.0">3</text>
+  <rect x="452.0" y="382.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="466.0" y="393.0">2</text>
+  <rect x="482.0" y="382.0" width="28.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="496.0" y="393.0">2</text>
+  <rect x="452.0" y="406.0" width="28.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="466.0" y="417.0">1</text>
+  <rect x="482.0" y="406.0" width="28.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="496.0" y="417.0">-1</text>
+  <tex class="mid small" x="481.0" y="445.0">V_{{1:4}}\;(4\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="528" y="381">=</text>
+  <g>
+  <path d="M544.5 368.0 H540.0 V394.0 H544.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M625.5 368.0 H630.0 V394.0 H625.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="544.0" y="370.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="564.0" y="381.0">1.80</text>
+  <rect x="586.0" y="370.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="606.0" y="381.0">1.40</text>
+  <tex class="mid small" x="585.0" y="409.0">o_4\;(1\!\times\!2)</tex>
+  </g>
+
+  <text class="small" x="18" y="472">加权验算：0.20×[3,1] + 0.20×[1,3] + 0.40×[2,2] + 0.20×[1,-1]（新追加行） = [1.80, 1.40]（省去前 3 行全部重算）</text>
+</svg>
+<svg viewBox="0 0 340 632">
+  <rect class="panel" x="0" y="0" width="340" height="368" rx="12"/>
+  <text class="caps" x="14" y="22">1 · PREFILL（3 词矩阵展开）</text>
+  <text class="small b" x="14" y="44">① 打分与因果掩码：上三角填 -∞ 阻断未来词</text>
+
+  <g>
+  <path d="M16.5 60.0 H12.0 V128.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M63.5 60.0 H68.0 V128.0 H63.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="62.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="72.0">2</text>
+  <rect x="41.0" y="62.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="72.0">-1</text>
+  <rect x="16.0" y="84.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="94.0">1</text>
+  <rect x="41.0" y="84.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="94.0">0</text>
+  <rect x="16.0" y="106.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="27.5" y="116.0">1</text>
+  <rect x="41.0" y="106.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="52.5" y="116.0">1</text>
+  <tex class="mid small" x="40.0" y="143.0">Q</tex>
+  </g>
+  <text class="mid b" x="79" y="94">×</text>
+  <g>
+  <path d="M92.5 71.0 H88.0 V117.0 H92.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M161.5 71.0 H166.0 V117.0 H161.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="92.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="103.0" y="83.0">2</text>
+  <rect x="116.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="127.0" y="83.0">1</text>
+  <rect x="140.0" y="73.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="151.0" y="83.0">1</text>
+  <rect x="92.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="103.0" y="105.0">1</text>
+  <rect x="116.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="127.0" y="105.0">1</text>
+  <rect x="140.0" y="95.0" width="22.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="151.0" y="105.0">2</text>
+  <tex class="mid small" x="127.0" y="142.0">K^\top</tex>
+  </g>
+  <path class="edge" d="M170 94 H195" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M204.5 60.0 H200.0 V128.0 H204.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M309.5 60.0 H314.0 V128.0 H309.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="204.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="72.0">2.12</text>
+  <rect x="240.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="257.0" y="72.0">-\infty</tex>
+  <rect x="276.0" y="62.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="293.0" y="72.0">-\infty</tex>
+  <rect x="204.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="94.0">1.41</text>
+  <rect x="240.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="257.0" y="94.0">0.71</text>
+  <rect x="276.0" y="84.0" width="34.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <tex class="mid small clay" x="293.0" y="94.0">-\infty</tex>
+  <rect x="204.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="221.0" y="116.0">2.12</text>
+  <rect x="240.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="257.0" y="116.0">1.41</text>
+  <rect x="276.0" y="106.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="293.0" y="116.0">2.12</text>
+  <tex class="mid small" x="257.0" y="143.0">S_{{\mathrm{{mask}}}}</tex>
+  </g>
+
+  <text class="small b" x="14" y="182">② 按行归一化乘 V：每行是对历史值的加权平均</text>
+  <g>
+  <path d="M16.5 198.0 H12.0 V266.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M115.5 198.0 H120.0 V266.0 H115.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="32.0" y="210.0">1.00</text>
+  <rect x="50.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="66.0" y="210.0" fill="var(--muted)">0</text>
+  <rect x="84.0" y="200.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="100.0" y="210.0" fill="var(--muted)">0</text>
+  <rect x="16.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="32.0" y="232.0">0.67</text>
+  <rect x="50.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="66.0" y="232.0">0.33</text>
+  <rect x="84.0" y="222.0" width="32.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15" stroke-dasharray="2.5 2"/>
+  <text class="mid small" x="100.0" y="232.0" fill="var(--muted)">0</text>
+  <rect x="16.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="32.0" y="254.0">0.40</text>
+  <rect x="50.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="66.0" y="254.0">0.20</text>
+  <rect x="84.0" y="244.0" width="32.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="100.0" y="254.0">0.40</text>
+  <tex class="mid small" x="66.0" y="281.0">P</tex>
+  </g>
+  <text class="mid b" x="132" y="232">×</text>
+  <g>
+  <path d="M144.5 198.0 H140.0 V266.0 H144.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M191.5 198.0 H196.0 V266.0 H191.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="144.0" y="200.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="210.0">3</text>
+  <rect x="169.0" y="200.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="210.0">1</text>
+  <rect x="144.0" y="222.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="232.0">1</text>
+  <rect x="169.0" y="222.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="232.0">3</text>
+  <rect x="144.0" y="244.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="155.5" y="254.0">2</text>
+  <rect x="169.0" y="244.0" width="23.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.5" y="254.0">2</text>
+  <tex class="mid small" x="168.0" y="281.0">V</tex>
+  </g>
+  <text class="mid b" x="208" y="232">=</text>
+  <g>
+  <path d="M220.5 198.0 H216.0 V266.0 H220.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M291.5 198.0 H296.0 V266.0 H291.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="220.0" y="200.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="237.5" y="210.0">3.00</text>
+  <rect x="257.0" y="200.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="274.5" y="210.0">1.00</text>
+  <rect x="220.0" y="222.0" width="35.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="237.5" y="232.0">2.34</text>
+  <rect x="257.0" y="222.0" width="35.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="274.5" y="232.0">1.66</text>
+  <rect x="220.0" y="244.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="237.5" y="254.0">2.20</text>
+  <rect x="257.0" y="244.0" width="35.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="274.5" y="254.0">1.80</text>
+  <tex class="mid small" x="256.0" y="281.0">O</tex>
+  </g>
+
+  <text class="small" x="14" y="318">第 2 行：0.67×[3,1] + 0.33×[1,3] = [2.34, 1.66]</text>
+  <text class="small mute" x="14" y="342">第 1 行“猫”权重 [1,0,0]，完全看不到后两词</text>
+
+  <rect class="panel" x="0" y="384" width="340" height="248" rx="12"/>
+  <text class="caps" x="14" y="406">2 · DECODE（第 4 步单行解码 + 缓存追加）</text>
+  <g>
+  <path d="M16.5 432.0 H12.0 V456.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M65.5 432.0 H70.0 V456.0 H65.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="434.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="28.0" y="444.0">0</text>
+  <rect x="42.0" y="434.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="54.0" y="444.0">1</text>
+  <tex class="mid small" x="41.0" y="471.0">q_4</tex>
+  </g>
+  <text class="mid b" x="83" y="444">×</text>
+  <g>
+  <path d="M96.5 422.0 H92.0 V468.0 H96.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M197.5 422.0 H202.0 V468.0 H197.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="96.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="108.0" y="434.0">2</text>
+  <rect x="122.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="134.0" y="434.0">1</text>
+  <rect x="148.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="160.0" y="434.0">1</text>
+  <rect x="174.0" y="424.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="186.0" y="434.0">0</text>
+  <rect x="96.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="108.0" y="456.0">1</text>
+  <rect x="122.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="134.0" y="456.0">1</text>
+  <rect x="148.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="160.0" y="456.0">2</text>
+  <rect x="174.0" y="446.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="186.0" y="456.0">1</text>
+  <tex class="mid small" x="147.0" y="483.0">K_{{1:4}}^\top</tex>
+  </g>
+  <path class="edge" d="M210 444 H234" marker-end="url(#arrow)"/>
+  <text class="small b" x="240" y="444">[1, 1, 2, 1]</text>
+
+  <g>
+  <path d="M16.5 522.0 H12.0 V546.0 H16.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M145.5 522.0 H150.0 V546.0 H145.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="16.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="31.5" y="534.0">0.20</text>
+  <rect x="49.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="64.5" y="534.0">0.20</text>
+  <rect x="82.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="97.5" y="534.0">0.40</text>
+  <rect x="115.0" y="524.0" width="31.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="130.5" y="534.0">0.20</text>
+  <tex class="mid small" x="81.0" y="561.0">p_4\;(1\!\times\!4)</tex>
+  </g>
+  <text class="mid b" x="163" y="534">×</text>
+  <g>
+  <path d="M176.5 490.0 H172.0 V580.0 H176.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M225.5 490.0 H230.0 V580.0 H225.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="176.0" y="492.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="502.0">3</text>
+  <rect x="202.0" y="492.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="502.0">1</text>
+  <rect x="176.0" y="514.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="524.0">1</text>
+  <rect x="202.0" y="514.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="524.0">3</text>
+  <rect x="176.0" y="536.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="188.0" y="546.0">2</text>
+  <rect x="202.0" y="536.0" width="24.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="214.0" y="546.0">2</text>
+  <rect x="176.0" y="558.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="188.0" y="568.0">1</text>
+  <rect x="202.0" y="558.0" width="24.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="214.0" y="568.0">-1</text>
+  <tex class="mid small" x="201.0" y="595.0">V_{{1:4}}</tex>
+  </g>
+  <text class="mid b" x="242" y="534">=</text>
+  <g>
+  <path d="M254.5 522.0 H250.0 V546.0 H254.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M323.5 522.0 H328.0 V546.0 H323.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="254.0" y="524.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="271.0" y="534.0">1.80</text>
+  <rect x="290.0" y="524.0" width="34.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="307.0" y="534.0">1.40</text>
+  <tex class="mid small" x="289.0" y="561.0">o_4</tex>
+  </g>
+
+  <text class="small" x="14" y="612">仅算单排 [1×4] 概率，橙色为新追加的第 4 词键值</text>
+</svg>
+```
+
 下面两组实测图定量展示了上述机制在张量字节与算力上的差异。在第一张图的 6 层 `float32` 模型（$V=2000, D=256, L=6$）中，单参数占 4 字节：静态参数共约 $5.82 \times 10^6$ 个（嵌入与分类头约 $1.04 \times 10^6$ 个，6 层内部二维权重约 $4.72 \times 10^6$ 个），对应权重显存 $22.2\;\text{MB}$；训练时 $B=16, T=64$ 的 6 层前向中间激活（含多头 $Q,K,V$、注意力矩阵与前馈升维激活）合计占去 $103.8\;\text{MB}$；而在 `Muon+AdamW` 模式下，内部二维层省去了二阶矩 $V$，仅保留词嵌入、分类头与归一化层的二阶矩（约 $1.05 \times 10^6 \times 4\;\text{B} \approx 4.2\;\text{MB}$）。第二张图记录了 4 层模型从 $t=8$（`Prefill`）逐词评估至 $t=120$（共 112 步 `Decode`，生成至第 121 个词）时的累计乘加次数对比。
 
 ```echarts title="6 层 Transformer 在推理与三种优化器训练模式下的显存构成对比" height="360" note="基于 6 层 Transformer（词表 $V=2000$，$D=256$，8 头，fp32，批大小 $B=16$，句长 $T=64$）实测张量字节。训练模式下需保留中间激活并分配梯度 $G$ 与状态张量；Muon+AdamW 省去了全部内部二维层的二阶矩 $V$（仅边界层保留 4.2 MB）。"
-{"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"valueFormatter":"{value} MB"},"legend":{},"grid":{"top":68,"left":56,"right":16,"bottom":32},"xAxis":{"type":"category","axisLabel":{"interval":0},"data":["推理","纯 SGD","AdamW","Muon+AdamW"]},"yAxis":{"type":"value","max":210,"axisLabel":{"formatter":"{value}M"}},"series":[{"name":"静态权重 W","type":"bar","stack":"vram","itemStyle":{"color":"var(--blue)"},"data":[22.2,22.2,22.2,22.2]},{"name":"KV Cache","type":"bar","stack":"vram","itemStyle":{"color":"var(--sky)"},"data":[12.0,0.0,0.0,0.0]},{"name":"梯度 G","type":"bar","stack":"vram","itemStyle":{"color":"var(--orange)"},"data":[0.0,22.2,22.2,22.2]},{"name":"动量 M","type":"bar","stack":"vram","itemStyle":{"color":"var(--violet)"},"data":[0.0,0.0,22.2,22.2]},{"name":"二阶矩 V","type":"bar","stack":"vram","itemStyle":{"color":"var(--clay)"},"data":[0.0,0.0,22.2,4.2]},{"name":"前向激活","type":"bar","stack":"vram","itemStyle":{"color":"var(--teal)"},"data":[0.2,103.8,103.8,103.8]}]}
+{"tooltip":{"trigger":"axis","axisPointer":{"type":"shadow"},"valueFormatter":"{value} MB"},"legend":{},"grid":{"top":68,"left":58,"right":16,"bottom":36},"xAxis":{"type":"category","axisLabel":{"interval":0},"data":["推理","纯 SGD","AdamW","Muon+AdamW"]},"yAxis":{"type":"value","max":200,"interval":50,"axisLabel":{"formatter":"{value} MB"}},"series":[{"name":"静态权重 W","type":"bar","stack":"vram","itemStyle":{"color":"var(--blue)"},"data":[22.2,22.2,22.2,22.2]},{"name":"KV Cache","type":"bar","stack":"vram","itemStyle":{"color":"var(--sky)"},"data":[12.0,0.0,0.0,0.0]},{"name":"梯度 G","type":"bar","stack":"vram","itemStyle":{"color":"var(--orange)"},"data":[0.0,22.2,22.2,22.2]},{"name":"动量 M","type":"bar","stack":"vram","itemStyle":{"color":"var(--violet)"},"data":[0.0,0.0,22.2,22.2]},{"name":"二阶矩 V","type":"bar","stack":"vram","itemStyle":{"color":"var(--clay)"},"data":[0.0,0.0,22.2,4.2]},{"name":"前向激活","type":"bar","stack":"vram","itemStyle":{"color":"var(--teal)"},"data":[0.2,103.8,103.8,103.8]}]}
 ```
 
 ```plot title="自回归解码从前缀 8 词推进至长度 120：KV Cache 将累计乘加降为近似线性" note="4 层 Transformer（$D=128$，词表 $V=512$），初始前缀长度 $T_0=8$（Prefill），随后从 $t=9$ 至 $t=120$ 连续执行 112 步自回归解码。累计乘加次数从 6,758.5M 降至 109.7M（减少 98.4%）。"
@@ -1222,6 +1801,417 @@ $$
 3. **为什么每步反向传播前需要调用 `zero_grad()`**：在显存有限的大模型训练中，工程上常把一个大批次拆成若干微批次（Micro-batches），多次调用 `loss.backward()` 将各微批次的 $\Delta^\top X$ 累加（`+=`）到同一块 `W.grad` 缓冲区上，再执行一次参数更新。因此 PyTorch 默认对梯度做累加而非覆盖；常规单批次更新前必须显式清零上一步的残留梯度。
 4. **为什么神经网络的梯度矩阵普遍具有高度偏斜的奇异值谱**：看外积展开式 $G = \sum_{n=1}^N \delta_n x_n^\top$。自然语言中的词频服从长尾的齐夫定律（Zipf's Law），少数高频语法词与公共语义方向在每个批次中反复出现，使输入协方差 $\frac{1}{N}X^\top X$ 的特征值高度集中在少数几个主方向上。叠加成的梯度矩阵 $G$ 因此呈现出显著的各向异性——前几个奇异值很大，而承载低频知识与精细上下文对齐的几十上百个奇异值方向微弱了数千乃至上万倍。
 
+### 2.4 把反向传播展开：手算 2 个词元的交叉熵误差与外积梯度矩阵 $G$
+
+同样地，我们用一组具体数字把第 2.2 节与第 2.3 节的反向传播公式完全展开，亲眼看看单个标量损失 $L$ 是如何一步步变回二维权重梯度矩阵 $G$ 的，以及为什么算出来的 $G$ 天然带有强烈的奇异值偏斜。
+
+**第一步：从预测打分矩阵 $Z$ 到顶层误差矩阵 $\Delta^{(Z)}$。** 设批次中共有 $N = 2$ 个预测位置，候选词表大小 $V = 3$，真实下一词编号分别为 $y_1 = 0$ 与 $y_2 = 1$（即独热目标矩阵 $Y_{\mathrm{true}} = \begin{bsmallmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{bsmallmatrix}$）。假设前向末端输出的打分矩阵 $Z \in \mathbb{R}^{2 \times 3}$ 为：
+
+$$
+Z = \begin{bmatrix} 2.0 & 1.0 & 0.0 \\ 0.0 & 2.0 & 1.0 \end{bmatrix}
+\;\xrightarrow{\text{按行 Softmax}}\;
+P \approx \begin{bmatrix} 0.67 & 0.24 & 0.09 \\ 0.09 & 0.67 & 0.24 \end{bmatrix}
+$$
+
+此时平均交叉熵损失标量为 $L = -\frac{1}{2}(\ln 0.67 + \ln 0.67) \approx 0.40$。代入 2.2 节导出的公式 $\Delta^{(Z)} = \frac{1}{N}(P - Y_{\mathrm{true}})$（此处 $N=2$）：
+
+$$
+\Delta^{(Z)} = \frac{1}{2}
+\left(
+\begin{bmatrix} 0.67 & 0.24 & 0.09 \\ 0.09 & 0.67 & 0.24 \end{bmatrix}
+-
+\begin{bmatrix} 1 & 0 & 0 \\ 0 & 1 & 0 \end{bmatrix}
+\right)
+=
+\begin{bmatrix}
+\mathbf{-0.17} & +0.12 & +0.05 \\
++0.05 & \mathbf{-0.17} & +0.12
+\end{bmatrix}
+$$
+
+展开后的数字非常直观：凡是真实答案所在的位置（第 1 行第 0 列、第 2 行第 1 列），导数都是负数 $-0.17$，意味着后续执行负梯度更新 $Z - \eta \Delta^{(Z)}$ 时，真实词的打分会被向上推高；其余错误候选词的导数全是正数（$+0.12, +0.05$），原本分错的概率越大，把它的打分往下压的力度就越强。
+
+**第二步：线性层 $Y = X W^\top$ 的前向驻留与反向双支路拆解。** 现在聚焦网络内部一层 $d_{\mathrm{in}} = 3 \to d_{\mathrm{out}} = 2$ 的线性层。设前向阶段暂存在显存中的 $N=2$ 行输入激活为 $X \in \mathbb{R}^{2 \times 3}$，当前权重为 $W \in \mathbb{R}^{2 \times 3}$：
+
+$$
+X = \begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}, \qquad
+W = \begin{bmatrix} 1.0 & 0.5 & -1.0 \\ -0.5 & 1.0 & 1.0 \end{bmatrix}, \qquad
+Y = X W^\top =
+\begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}
+\begin{bmatrix} 1.0 & -0.5 \\ 0.5 & 1.0 \\ -1.0 & 1.0 \end{bmatrix}
+= \begin{bmatrix} 2.0 & 1.5 \\ 1.0 & 2.5 \end{bmatrix}
+$$
+
+假设上游层传回对 $Y$ 的误差矩阵为 $\Delta_Y = \begin{bsmallmatrix} -0.6 & 0.2 \\ -0.4 & 0.2 \end{bsmallmatrix} \in \mathbb{R}^{2 \times 2}$。反向传播在此处一分为二：
+
+1. **左支（把误差继续传给前一层输入 $X$）**：直接右乘原权重矩阵 $W$（无需转置），消去输出维 $d_{\mathrm{out}}=2$，还原出与 $X$ 同形状的 $2 \times 3$ 误差：
+
+$$
+\Delta_X = \Delta_Y W =
+\begin{bmatrix} -0.6 & 0.2 \\ -0.4 & 0.2 \end{bmatrix}
+\begin{bmatrix} 1.0 & 0.5 & -1.0 \\ -0.5 & 1.0 & 1.0 \end{bmatrix}
+=
+\begin{bmatrix} -0.7 & -0.1 & 0.8 \\ -0.5 & 0.0 & 0.6 \end{bmatrix} \in \mathbb{R}^{2 \times 3}
+$$
+
+2. **右支（利用前向暂存的 $X$ 计算本层权重梯度 $G$）**：将 $\Delta_Y$ 转置为 $2 \times 2$ 后左乘 $X\;(2 \times 3)$。把矩阵乘法按样本维 $n = 1, 2$ 拆成两项秩一外积 $\delta_1 x_1^\top + \delta_2 x_2^\top$，每个格子的来龙去脉便一目了然：
+
+$$
+G = \Delta_Y^\top X =
+\begin{bmatrix} -0.6 & -0.4 \\ 0.2 & 0.2 \end{bmatrix}
+\begin{bmatrix} 1 & 2 & 0 \\ 1 & 2 & 1 \end{bmatrix}
+=
+\underbrace{\begin{bmatrix} -0.6 \\ 0.2 \end{bmatrix} \begin{bmatrix} 1 & 2 & 0 \end{bmatrix}}_{\text{词 1 外积 }\delta_1 x_1^\top}
++
+\underbrace{\begin{bmatrix} -0.4 \\ 0.2 \end{bmatrix} \begin{bmatrix} 1 & 2 & 1 \end{bmatrix}}_{\text{词 2 外积 }\delta_2 x_2^\top}
+=
+\begin{bmatrix} -0.6 & -1.2 & 0.0 \\ 0.2 & 0.4 & 0.0 \end{bmatrix}
++
+\begin{bmatrix} -0.4 & -0.8 & -0.4 \\ 0.2 & 0.4 & 0.2 \end{bmatrix}
+=
+\begin{bmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bmatrix}
+$$
+
+请仔细观察最终算出的这张 $2 \times 3$ 梯度矩阵 $G = \begin{bsmallmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bsmallmatrix}$：因为两个词元在前两维共享了相同的高频特征 $[1, 2]$，$G$ 的前两列满足严格的比例关系（第 1 行恰好是第 2 行的 $-2.5$ 倍）；唯独第 3 列（$-0.4$ 与 $0.2$，来自词元 2 独有的第 3 维特征 `1`）偏离了 $-2.5$ 倍比例（$-0.4 / 0.2 = -2.0$）。直接计算 $G G^\top = \begin{bsmallmatrix} 5.16 & -2.08 \\ -2.08 & 0.84 \end{bsmallmatrix}$ 的特征值平方根可知，$G$ 的两个奇异值分别为：
+
+$$
+\sigma_1(G) \approx 2.449, \qquad \sigma_2(G) \approx 0.037 \qquad (\sigma_1 / \sigma_2 \approx 67.1)
+$$
+
+仅仅叠加了两个词元，主方向与次方向之间就已经拉开了 **$67$ 倍**的奇异值鸿沟——这正是第 4 节将要解决的核心问题。
+
+```sketch title="展开数值图解：2 个词元的交叉熵误差起点与线性层秩一外积梯度叠加" note="Step 1 展示 $\Delta^{(Z)} = (P - Y_{\mathrm{true}})/N$ 如何给真实词列赋负值、其余候选词列赋正值；Step 2 将 $G = \Delta_Y^\top X$ 拆解为两个词元秩一矩阵 $\delta_1 x_1^\top + \delta_2 x_2^\top$ 的逐格相加，直观呈现共享高频输入特征如何导致 $67$ 倍奇异值偏斜。"
+<svg viewBox="0 0 704 432">
+  <rect class="panel" x="0" y="0" width="704" height="194" rx="12"/>
+  <text class="caps" x="18" y="22">STEP 1 · 顶层交叉熵梯度展开</text>
+  <text class="small b" x="18" y="44">青色格为真实答案列（负导数 → 更新时抬高打分）；橙色格为非答案列（正导数 → 压低打分），每行和恒为 0</text>
+
+  <g>
+  <path d="M24.5 70.0 H20.0 V120.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M135.5 70.0 H140.0 V120.0 H135.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="83.0">2.0</text>
+  <rect x="62.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="80.0" y="83.0">1.0</text>
+  <rect x="100.0" y="72.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="118.0" y="83.0">0.0</text>
+  <rect x="24.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="107.0">0.0</text>
+  <rect x="62.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="80.0" y="107.0">2.0</text>
+  <rect x="100.0" y="96.0" width="36.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="118.0" y="107.0">1.0</text>
+  <tex class="mid small" x="80.0" y="135.0">Z\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M148 95 H186" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="167" y="81">softmax</text>
+
+  <g>
+  <path d="M196.5 70.0 H192.0 V120.0 H196.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M313.5 70.0 H318.0 V120.0 H313.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="196.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="215.0" y="83.0">0.67</text>
+  <rect x="236.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="255.0" y="83.0">0.24</text>
+  <rect x="276.0" y="72.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="83.0">0.09</text>
+  <rect x="196.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="215.0" y="107.0">0.09</text>
+  <rect x="236.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="255.0" y="107.0">0.67</text>
+  <rect x="276.0" y="96.0" width="38.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="295.0" y="107.0">0.24</text>
+  <tex class="mid small" x="255.0" y="135.0">P\;(2\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="331" y="95">−</text>
+  <g>
+  <path d="M348.5 70.0 H344.0 V120.0 H348.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M435.5 70.0 H440.0 V120.0 H435.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="348.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="362.0" y="83.0">1</text>
+  <rect x="378.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="392.0" y="83.0">0</text>
+  <rect x="408.0" y="72.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="422.0" y="83.0">0</text>
+  <rect x="348.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="362.0" y="107.0">0</text>
+  <rect x="378.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="392.0" y="107.0">1</text>
+  <rect x="408.0" y="96.0" width="28.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="422.0" y="107.0">0</text>
+  <tex class="mid small" x="392.0" y="135.0">Y_{{\mathrm{{true}}}}\;(2\!\times\!3)</tex>
+  </g>
+  <path class="edge" d="M448 95 H486" marker-end="url(#arrow)"/>
+  <tex class="mid small mute" x="467" y="81">\div N</tex>
+
+  <g>
+  <path d="M496.5 70.0 H492.0 V120.0 H496.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M637.5 70.0 H642.0 V120.0 H637.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="496.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="519.0" y="83.0">-0.17</text>
+  <rect x="544.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="567.0" y="83.0">+0.12</text>
+  <rect x="592.0" y="72.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="615.0" y="83.0">+0.05</text>
+  <rect x="496.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="519.0" y="107.0">+0.05</text>
+  <rect x="544.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="567.0" y="107.0">-0.17</text>
+  <rect x="592.0" y="96.0" width="46.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="615.0" y="107.0">+0.12</text>
+  <tex class="mid small" x="567.0" y="135.0">\Delta^{{(Z)}}\;(2\!\times\!3)</tex>
+  </g>
+
+  <rect class="panel" x="0" y="210" width="704" height="222" rx="12"/>
+  <text class="caps" x="18" y="232">STEP 2 · 线性层权重梯度展开：转置矩阵乘 = 逐词元秩一外积之和</text>
+  <text class="small b" x="18" y="254">词元维 N=2 在矩阵乘中求和消去；因两词前两列同为 [1, 2]，叠加出的 G 奇异值相差 67 倍（2.45 vs 0.037）</text>
+
+  <g>
+  <path d="M20.5 292.0 H16.0 V342.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M91.5 292.0 H96.0 V342.0 H91.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="294.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="37.5" y="305.0">-0.6</text>
+  <rect x="57.0" y="294.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="74.5" y="305.0">-0.4</text>
+  <rect x="20.0" y="318.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="37.5" y="329.0">0.2</text>
+  <rect x="57.0" y="318.0" width="35.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="74.5" y="329.0">0.2</text>
+  <tex class="mid small" x="56.0" y="357.0">\Delta_Y^\top\;(2\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="109" y="317">×</text>
+  <g>
+  <path d="M124.5 292.0 H120.0 V342.0 H124.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M205.5 292.0 H210.0 V342.0 H205.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="124.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="305.0">1</text>
+  <rect x="152.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="165.0" y="305.0">2</text>
+  <rect x="180.0" y="294.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="193.0" y="305.0">0</text>
+  <rect x="124.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="329.0">1</text>
+  <rect x="152.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="165.0" y="329.0">2</text>
+  <rect x="180.0" y="318.0" width="26.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="193.0" y="329.0">1</text>
+  <tex class="mid small" x="165.0" y="357.0">X\;(2\!\times\!3)</tex>
+  </g>
+  <text class="mid b" x="223" y="317">=</text>
+  <g>
+  <path d="M240.5 292.0 H236.0 V342.0 H240.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M357.5 292.0 H362.0 V342.0 H357.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="240.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="259.0" y="305.0">-0.6</text>
+  <rect x="280.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="299.0" y="305.0">-1.2</text>
+  <rect x="320.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="339.0" y="305.0">0.0</text>
+  <rect x="240.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="259.0" y="329.0">0.2</text>
+  <rect x="280.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="299.0" y="329.0">0.4</text>
+  <rect x="320.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="339.0" y="329.0">0.0</text>
+  <text class="mid small mute" x="299.0" y="283.0">词 1 外积</text>
+  <tex class="mid small" x="299.0" y="357.0">\delta_1 x_1^\top</tex>
+  </g>
+  <text class="mid b" x="374" y="317">+</text>
+  <g>
+  <path d="M390.5 292.0 H386.0 V342.0 H390.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M507.5 292.0 H512.0 V342.0 H507.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="390.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="409.0" y="305.0">-0.4</text>
+  <rect x="430.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="449.0" y="305.0">-0.8</text>
+  <rect x="470.0" y="294.0" width="38.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="489.0" y="305.0">-0.4</text>
+  <rect x="390.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="409.0" y="329.0">0.2</text>
+  <rect x="430.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="449.0" y="329.0">0.4</text>
+  <rect x="470.0" y="318.0" width="38.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="489.0" y="329.0">0.2</text>
+  <text class="mid small mute" x="449.0" y="283.0">词 2 外积</text>
+  <tex class="mid small" x="449.0" y="357.0">\delta_2 x_2^\top</tex>
+  </g>
+  <text class="mid b" x="524" y="317">=</text>
+  <g>
+  <path d="M540.5 292.0 H536.0 V342.0 H540.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M663.5 292.0 H668.0 V342.0 H663.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="540.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="560.0" y="305.0">-1.0</text>
+  <rect x="582.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="602.0" y="305.0">-2.0</text>
+  <rect x="624.0" y="294.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="644.0" y="305.0">-0.4</text>
+  <rect x="540.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="560.0" y="329.0">0.4</text>
+  <rect x="582.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="602.0" y="329.0">0.8</text>
+  <rect x="624.0" y="318.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="644.0" y="329.0">0.2</text>
+  <tex class="mid small" x="602.0" y="357.0">G\;(2\!\times\!3)</tex>
+  </g>
+
+  <text class="small accent" x="18" y="406">仅第 3 列（红框 -0.4, 0.2）打破两行共线 → 主奇异值 σ₁=2.45，第 2 奇异值仅 σ₂=0.037</text>
+</svg>
+<svg viewBox="0 0 340 578">
+  <rect class="panel" x="0" y="0" width="340" height="232" rx="12"/>
+  <text class="caps" x="14" y="22">1 · 交叉熵误差展开</text>
+  <g>
+  <path d="M18.5 40.0 H14.0 V86.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M129.5 40.0 H134.0 V86.0 H129.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="52.0">0.67</text>
+  <rect x="56.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="52.0">0.24</text>
+  <rect x="94.0" y="42.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="52.0">0.09</text>
+  <rect x="18.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="74.0">0.09</text>
+  <rect x="56.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="74.0">0.67</text>
+  <rect x="94.0" y="64.0" width="36.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="74.0">0.24</text>
+  <tex class="mid small" x="74.0" y="101.0">P</tex>
+  </g>
+  <text class="mid b" x="146" y="63">−</text>
+  <g>
+  <path d="M162.5 40.0 H158.0 V86.0 H162.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M243.5 40.0 H248.0 V86.0 H243.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="162.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="175.0" y="52.0">1</text>
+  <rect x="190.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="203.0" y="52.0">0</text>
+  <rect x="218.0" y="42.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="231.0" y="52.0">0</text>
+  <rect x="162.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="175.0" y="74.0">0</text>
+  <rect x="190.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="203.0" y="74.0">1</text>
+  <rect x="218.0" y="64.0" width="26.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="231.0" y="74.0">0</text>
+  <tex class="mid small" x="203.0" y="101.0">Y_{{\mathrm{{true}}}}</tex>
+  </g>
+  <path class="edge" d="M256 63 H282" marker-end="url(#arrow)"/>
+  <tex class="small mute" x="288" y="63">\div 2</tex>
+
+  <g>
+  <path d="M18.5 126.0 H14.0 V172.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M159.5 126.0 H164.0 V172.0 H159.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="41.0" y="138.0">-0.17</text>
+  <rect x="66.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="89.0" y="138.0">+0.12</text>
+  <rect x="114.0" y="128.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="138.0">+0.05</text>
+  <rect x="18.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="160.0">+0.05</text>
+  <rect x="66.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="89.0" y="160.0">-0.17</text>
+  <rect x="114.0" y="150.0" width="46.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="137.0" y="160.0">+0.12</text>
+  <tex class="mid small" x="89.0" y="187.0">\Delta^{{(Z)}} = \partial L / \partial Z</tex>
+  </g>
+  <text class="small" x="176" y="140">真实词列为 -0.17</text>
+  <text class="small mute" x="176" y="160">错误词列为正值</text>
+  <text class="small b" x="14" y="212">负梯度经 -ηΔ 更新后自动抬高真实词打分</text>
+
+  <rect class="panel" x="0" y="248" width="340" height="330" rx="12"/>
+  <text class="caps" x="14" y="270">2 · 权重梯度 = 两词秩一外积相加</text>
+  <g>
+  <path d="M18.5 288.0 H14.0 V334.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M89.5 288.0 H94.0 V334.0 H89.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="290.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="35.5" y="300.0">-0.6</text>
+  <rect x="55.0" y="290.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="72.5" y="300.0">-0.4</text>
+  <rect x="18.0" y="312.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="35.5" y="322.0">0.2</text>
+  <rect x="55.0" y="312.0" width="35.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="72.5" y="322.0">0.2</text>
+  <tex class="mid small" x="54.0" y="349.0">\Delta_Y^\top\;(2\!\times\!2)</tex>
+  </g>
+  <text class="mid b" x="108" y="311">×</text>
+  <g>
+  <path d="M124.5 288.0 H120.0 V334.0 H124.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M211.5 288.0 H216.0 V334.0 H211.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="124.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="138.0" y="300.0">1</text>
+  <rect x="154.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="168.0" y="300.0">2</text>
+  <rect x="184.0" y="290.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="198.0" y="300.0">0</text>
+  <rect x="124.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="138.0" y="322.0">1</text>
+  <rect x="154.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="168.0" y="322.0">2</text>
+  <rect x="184.0" y="312.0" width="28.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="198.0" y="322.0">1</text>
+  <tex class="mid small" x="168.0" y="349.0">X\;(2\!\times\!3)</tex>
+  </g>
+
+  <g>
+  <path d="M18.5 380.0 H14.0 V426.0 H18.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M129.5 380.0 H134.0 V426.0 H129.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="18.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="392.0">-0.6</text>
+  <rect x="56.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="392.0">-1.2</text>
+  <rect x="94.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="392.0">0.0</text>
+  <rect x="18.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="36.0" y="414.0">0.2</text>
+  <rect x="56.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="74.0" y="414.0">0.4</text>
+  <rect x="94.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="112.0" y="414.0">0.0</text>
+  <tex class="mid small" x="74.0" y="441.0">\delta_1 x_1^\top</tex>
+  </g>
+  <text class="mid b" x="146" y="403">+</text>
+  <g>
+  <path d="M162.5 380.0 H158.0 V426.0 H162.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M273.5 380.0 H278.0 V426.0 H273.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="162.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="392.0">-0.4</text>
+  <rect x="200.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="392.0">-0.8</text>
+  <rect x="238.0" y="382.0" width="36.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="256.0" y="392.0">-0.4</text>
+  <rect x="162.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="414.0">0.2</text>
+  <rect x="200.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="414.0">0.4</text>
+  <rect x="238.0" y="404.0" width="36.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="256.0" y="414.0">0.2</text>
+  <tex class="mid small" x="218.0" y="441.0">\delta_2 x_2^\top</tex>
+  </g>
+
+  <text class="mid b" x="34" y="489">=</text>
+  <g>
+  <path d="M56.5 466.0 H52.0 V512.0 H56.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M185.5 466.0 H190.0 V512.0 H185.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="56.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="77.0" y="478.0">-1.0</text>
+  <rect x="100.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="478.0">-2.0</text>
+  <rect x="144.0" y="468.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="165.0" y="478.0">-0.4</text>
+  <rect x="56.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="77.0" y="500.0">0.4</text>
+  <rect x="100.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--orange-wash)" stroke="var(--orange)" stroke-width="1.15"/>
+  <text class="mid small" x="121.0" y="500.0">0.8</text>
+  <rect x="144.0" y="490.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small b" x="165.0" y="500.0">0.2</text>
+  <tex class="mid small" x="121.0" y="527.0">G\;(2\!\times\!3)</tex>
+  </g>
+  <text class="small accent" x="206" y="480">σ₁ = 2.45</text>
+  <text class="small accent" x="206" y="500">σ₂ = 0.037 (67×)</text>
+  <text class="small mute" x="14" y="556">两词共享前两列特征，叠加后奇异值天然严重偏斜</text>
+</svg>
+```
+
 拿到梯度之后，第 5 步 `optimizer.step()` 如何根据梯度更新参数？下面我们从标量与向量的情形起步，逐步推导出四代逐元素优化算法。
 
 ---
@@ -1482,6 +2472,23 @@ $$
 
 1. **依赖坐标基选取，忽略子空间旋转结构**：若对隐状态空间做一次正交换基 $h \mapsto Q h$（$Q^\top Q = I$），线性映射的几何实质完全未变，但逐元素符号算子 $\mathrm{sign}(\cdot)$ 在正交变换下并不等变（$\mathrm{sign}(Q G) \neq Q \,\mathrm{sign}(G)$）。
 2. **拉平的是单个矩阵格子，而非正交特征方向**：当梯度矩阵 $G = \sum_n \delta_n x_n^\top$ 被少数高频方向主导（比如秩接近 $1$ 的外积 $u v^\top$）时，逐元素取符号得到的矩阵 $\mathrm{sign}(u v^\top) = \mathrm{sign}(u)\,\mathrm{sign}(v)^\top$ **依然是一个秩为 $1$ 的矩阵**。也就是说，单靠逐格除以 $\sqrt{\hat{v}_{i, j}}$，无法有效放大尾部数十个低奇异值特征子空间上的更新步幅。
+
+把第 2.4 节刚刚手算出的那张 $2 \times 3$ 梯度矩阵 $G = \begin{bsmallmatrix} -1.0 & -2.0 & -0.4 \\ 0.4 & 0.8 & 0.2 \end{bsmallmatrix}$ 直接代入第 $t=1$ 步的 `Adam` 更新式（经冷启动偏差修正后 $\hat{M}_1 = G$，$\hat{V}_1 = G \odot G = \begin{bsmallmatrix} 1.00 & 4.00 & 0.16 \\ 0.16 & 0.64 & 0.04 \end{bsmallmatrix}$，忽略极小量 $\epsilon$），就能直观看到逐格缩放的盲区：
+
+$$
+U_{\mathrm{Adam}, 1} = \frac{\hat{M}_1}{\sqrt{\hat{V}_1}} =
+\begin{bmatrix}
+-1.0 / 1.0 & -2.0 / 2.0 & -0.4 / 0.4 \\
+0.4 / 0.4 & 0.8 / 0.8 & 0.2 / 0.2
+\end{bmatrix}
+=
+\begin{bmatrix}
+-1 & -1 & -1 \\
++1 & +1 & +1
+\end{bmatrix}
+$$
+
+结果令人警醒：6 个格子的绝对值确实被整齐拉平到了 $1$，但由于第 2 行变成了第 1 行的严格相反数，整张更新矩阵退化成了**秩为 $1$ 的矩阵**（奇异值变为 $\sigma_1 \approx 2.45,\; \sigma_2 = \mathbf{0.00}$）——原本隐藏在第 3 列中用来区分词元 2 与词元 1 的微弱独立特征信号（$\sigma_2 \approx 0.037$）被逐格除法彻底抹平了。作为预告，若对同一张 $G$ 计算下一小节即将导出的矩阵半正交极因子 $U V^\top$，结果则是满秩的 $\begin{bsmallmatrix} -0.438 & -0.877 & +0.199 \\ +0.089 & +0.178 & \mathbf{+0.980} \end{bsmallmatrix}$（两行严格正交，$\sigma_1 = \sigma_2 = 1$），第 2 个输出神经元会自动把 $98\%$ 的步幅精准投向第 3 列新特征。
 
 ### 4.2 从 `Shampoo` 双边预条件到无状态极限的代数化简
 
@@ -1750,6 +2757,320 @@ $$
 
 - **小奇异值放大能力**：原点斜率从 $1.875$ 提升至 $3.4445$，5 步累计线性放大倍数达到 $3.4445^5 \approx 484.4$ 倍（是经典系数的 $20.9$ 倍），初始 $\sigma_0 = 0.01$ 经过 5 步即可升至 $\varphi^{(5)}(0.01) \approx 0.70$；
 - **为什么代入 $\sigma = 1$ 算得 $\varphi(1) = 3.4445 - 4.7750 + 2.0315 = 0.7010 \neq 1$**：这并非笔误，而是极小极大设计主动让出的波谷下界——落在 $[0.01, 1.0]$ 内的奇异值经过 5 次复合后都会进入 $[0.68, 1.13]$ 窄带（而个别处于 $(0, 0.01)$ 的极小奇异值在爬升途中可能最高到达多项式峰值 $\max \varphi \approx 1.20$，故总体上界约为 $1.20$）。
+
+为了彻底打破“只做矩阵乘法怎么可能不靠 SVD 就找出微弱奇异方向”的黑盒感，我们拿一张具体的 $2 \times 2$ 偏斜动量矩阵把 5 步迭代完整展开。构造对称动量矩阵：
+
+$$
+\tilde{M} =
+\underbrace{\begin{bmatrix} 10 & 10 \\ 10 & 10 \end{bmatrix}}_{\text{主奇异方向 }\sigma_1 = 20.0}
++
+\underbrace{\begin{bmatrix} -0.1 & +0.1 \\ +0.1 & -0.1 \end{bmatrix}}_{\text{微弱正交子空间 }\sigma_2 = 0.2}
+=
+\begin{bmatrix}
+9.9 & 10.1 \\
+10.1 & 9.9
+\end{bmatrix}
+$$
+
+肉眼观察 $\tilde{M}$，四个格子全在 $10$ 附近，正对角线与反对角线仅相差 $0.2$。如果采用逐格取符号（无记忆 `Adam` 极限），由于四格皆为正数，输出直接坍缩为秩 $1$ 矩阵 $\mathrm{sign}(\tilde{M}) = \begin{bsmallmatrix} 1 & 1 \\ 1 & 1 \end{bsmallmatrix}$（$\sigma = [2, 0]$），微弱的反对角子空间完全归零；而它们的精确半正交目标解应当是正交置换阵 $U V^\top = \frac{1}{2}\begin{bsmallmatrix} 1 & 1 \\ 1 & 1 \end{bsmallmatrix} + \frac{1}{2}\begin{bsmallmatrix} -1 & 1 \\ 1 & -1 \end{bsmallmatrix} = \begin{bsmallmatrix} 0 & 1 \\ 1 & 0 \end{bsmallmatrix}$（$\sigma = [1, 1]$）。
+
+现在完全不调用特征分解，只执行 `Muon` 的预处理与五次多项式矩阵乘法 $X_{k+1} = 3.4445 X_k + (-4.7750 A_k + 2.0315 A_k^2) X_k$（其中 $A_k = X_k X_k^\top$）：
+
+1. **第 $0$ 步预归一化**：Frobenius 范数为 $\|\tilde{M}\|_F = \sqrt{9.9^2 + 10.1^2 + 10.1^2 + 9.9^2} = \sqrt{400.04} \approx 20.001$，整阵相除得 $X_0 = \begin{bsmallmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bsmallmatrix}$，此时奇异值为 $(1.000, 0.010)$。
+2. **第 $1$ 步为什么能把 $0.495$ 与 $0.505$ 拉开？** 算出格拉姆矩阵 $A_0 = X_0 X_0^\top \approx \begin{bsmallmatrix} 0.50005 & 0.49995 \\ 0.49995 & 0.50005 \end{bsmallmatrix}$。注意 $A_0$ 乘到主方向 $\begin{bsmallmatrix} 1 \\ 1 \end{bsmallmatrix}$ 上特征值为 $1^2 = 1$，因此三次项 $-4.7750 A_0 X_0$ 与五次项 $+2.0315 A_0^2 X_0$ 会强力抵消一次项，把主方向幅度压到 $3.4445 - 4.7750 + 2.0315 = 0.701$；相反，$A_0$ 乘到反对角差模方向 $\begin{bsmallmatrix} -1 \\ 1 \end{bsmallmatrix}$ 上特征值仅为 $0.01^2 = 0.0001$，三次与五次阻尼项几乎为零，一次项 $3.4445 X_0$ 得以无损地将反对角微弱差距放大 $3.4445$ 倍，得到 $X_1 = \begin{bsmallmatrix} 0.333 & 0.368 \\ 0.368 & 0.333 \end{bsmallmatrix}$（奇异值变为 $0.701$ 与 $0.034$）。
+3. **连续执行完第 $1 \sim 5$ 步的展开矩阵序列**：
+
+$$
+\begin{aligned}
+X_0 &= \begin{bmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bmatrix} \xrightarrow{k=1}
+X_1 = \begin{bmatrix} 0.333 & 0.368 \\ 0.368 & 0.333 \end{bmatrix} \xrightarrow{k=2}
+X_2 = \begin{bmatrix} 0.498 & 0.616 \\ 0.616 & 0.498 \end{bmatrix} \\[6pt]
+&\xrightarrow{k=3}
+X_3 = \begin{bmatrix} 0.160 & 0.560 \\ 0.560 & 0.160 \end{bmatrix} \xrightarrow{k=4}
+X_4 = \begin{bmatrix} -0.002 & 1.092 \\ 1.092 & -0.002 \end{bmatrix} \xrightarrow{k=5}
+X_5 = \begin{bmatrix} -0.001 & 0.698 \\ 0.698 & -0.001 \end{bmatrix}
+\end{aligned}
+$$
+
+仅仅做了 5 轮普通矩阵乘法，原本几乎相等的四个数 $\begin{bsmallmatrix} 0.495 & 0.505 \\ 0.505 & 0.495 \end{bsmallmatrix}$ 自动消去了主对角线上的共模背景（降至 $-0.001$），把深埋在小数点后一位的反对角置换算子清晰分离为 $\approx 0.70 \begin{bsmallmatrix} 0 & 1 \\ 1 & 0 \end{bsmallmatrix}$，两个奇异值从 $100:1$ 收敛至 $(0.699,\; 0.697)$。
+
+```sketch title="展开数值图解：偏斜动量矩阵在三种更新规则与 5 步牛顿-舒尔茨迭代下的逐格数值演变" note="输入矩阵 $\tilde{M} = \begin{bsmallmatrix}9.9 & 10.1\\10.1 & 9.9\end{bsmallmatrix}$ 含主奇异值 $20.0$ 与微弱正交奇异值 $0.2$。逐格取符号因四格皆正而退化为秩 $1$ 全 $1$ 阵；牛顿-舒尔茨五次多项式迭代无需分解特征向量，仅凭 5 步矩阵乘法便将隐藏在小数点后一位的反对角正交结构完整分离出来。"
+<svg viewBox="0 0 704 446">
+  <rect class="panel" x="0" y="0" width="704" height="206" rx="12"/>
+  <text class="caps" x="18" y="22">1 · 同一张 100:1 偏斜矩阵在三种更新规则下的展开结果对比</text>
+  <text class="small b" x="18" y="44">输入动量 = [[10,10],[10,10]]（σ₁=20）+ [[-0.1,0.1],[0.1,-0.1]]（σ₂=0.2），微弱差模信号被共模底数淹没</text>
+
+  <g>
+  <path d="M24.5 80.0 H20.0 V130.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M101.5 80.0 H106.0 V130.0 H101.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="82.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="43.0" y="93.0">9.9</text>
+  <rect x="64.0" y="82.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="83.0" y="93.0">10.1</text>
+  <rect x="24.0" y="106.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small b" x="43.0" y="117.0">10.1</text>
+  <rect x="64.0" y="106.0" width="38.0" height="22.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="83.0" y="117.0">9.9</text>
+  <text class="mid small mute" x="63.0" y="71.0">σ = (20.0, 0.2)</text>
+  <tex class="mid small" x="63.0" y="145.0">\tilde{{M}}</tex>
+  </g>
+  <path class="edge" d="M114 105 H150" marker-end="url(#arrow)"/>
+
+  <rect x="158" y="58" width="166" height="132" rx="8" fill="var(--card)" stroke="var(--line)"/>
+  <text class="mid small b" x="241" y="76">SGD / Frobenius 归一化</text>
+  <g>
+  <path d="M196.5 88.0 H192.0 V138.0 H196.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M285.5 88.0 H290.0 V138.0 H285.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="196.0" y="90.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="101.0">0.495</text>
+  <rect x="242.0" y="90.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="264.0" y="101.0">0.505</text>
+  <rect x="196.0" y="114.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="218.0" y="125.0">0.505</text>
+  <rect x="242.0" y="114.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="264.0" y="125.0">0.495</text>
+  </g>
+  <text class="mid small mute" x="241" y="156">σ = (1.00, 0.01)</text>
+  <text class="mid small mute" x="241" y="175">仍保持 100:1 严重偏斜</text>
+
+  <rect x="336" y="58" width="166" height="132" rx="8" fill="var(--card)" stroke="var(--clay)"/>
+  <text class="mid small b" x="419" y="76" fill="var(--clay-ink)">逐格符号 / 无记忆 Adam</text>
+  <g>
+  <path d="M378.5 88.0 H374.0 V138.0 H378.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M459.5 88.0 H464.0 V138.0 H459.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="378.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="398.0" y="101.0">1.00</text>
+  <rect x="420.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="440.0" y="101.0">1.00</text>
+  <rect x="378.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="398.0" y="125.0">1.00</text>
+  <rect x="420.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="440.0" y="125.0">1.00</text>
+  </g>
+  <text class="mid small accent" x="419" y="156">σ = (2.00, 0.00)</text>
+  <text class="mid small accent" x="419" y="175">四格皆正，抹平第 2 子空间</text>
+
+  <rect x="514" y="58" width="172" height="132" rx="8" fill="var(--card)" stroke="var(--teal)"/>
+  <text class="mid small b" x="600" y="76" fill="var(--teal-ink)">Muon 目标极分解 UVᵀ</text>
+  <g>
+  <path d="M559.5 88.0 H555.0 V138.0 H559.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M640.5 88.0 H645.0 V138.0 H640.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="559.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="579.0" y="101.0">0.00</text>
+  <rect x="601.0" y="90.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="621.0" y="101.0">1.00</text>
+  <rect x="559.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="579.0" y="125.0">1.00</text>
+  <rect x="601.0" y="114.0" width="40.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="621.0" y="125.0">0.00</text>
+  </g>
+  <text class="mid small b" x="600" y="156" fill="var(--teal-ink)">σ = (1.00, 1.00)</text>
+  <text class="mid small" x="600" y="175">两正交方向等步幅推进</text>
+
+  <rect class="panel" x="0" y="222" width="704" height="224" rx="12"/>
+  <text class="caps" x="18" y="244">2 · 牛顿-舒尔茨 5 步纯矩阵乘展开（无需 SVD 分解）</text>
+  <text class="small b" x="18" y="266">观察主对角共模项如何逐轮消退、反对角差模项如何放大 484 倍并在第 5 步还原正交置换结构</text>
+
+  <g>
+  <path d="M24.5 304.0 H20.0 V354.0 H24.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M113.5 304.0 H118.0 V354.0 H113.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="24.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="46.0" y="317.0">0.495</text>
+  <rect x="70.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="92.0" y="317.0">0.505</text>
+  <rect x="24.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="46.0" y="341.0">0.505</text>
+  <rect x="70.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="92.0" y="341.0">0.495</text>
+  <text class="mid small mute" x="69.0" y="295.0">σ:(1.00, 0.01)</text>
+  <tex class="mid small" x="69.0" y="369.0">X_0 = \tilde{{M}}/\|\tilde{{M}}\|_F</tex>
+  </g>
+  <path class="edge" d="M122 329 H148" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M158.5 304.0 H154.0 V354.0 H158.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M247.5 304.0 H252.0 V354.0 H247.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="158.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="317.0">0.333</text>
+  <rect x="204.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="226.0" y="317.0">0.368</text>
+  <rect x="158.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="180.0" y="341.0">0.368</text>
+  <rect x="204.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="226.0" y="341.0">0.333</text>
+  <text class="mid small mute" x="203.0" y="295.0">σ:(0.70, 0.03)</text>
+  <tex class="mid small" x="203.0" y="369.0">X_1\;(k=1)</tex>
+  </g>
+  <path class="edge" d="M256 329 H282" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M292.5 304.0 H288.0 V354.0 H292.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M381.5 304.0 H386.0 V354.0 H381.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="292.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="314.0" y="317.0">0.498</text>
+  <rect x="338.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="360.0" y="317.0">0.616</text>
+  <rect x="292.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="314.0" y="341.0">0.616</text>
+  <rect x="338.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="360.0" y="341.0">0.498</text>
+  <text class="mid small mute" x="337.0" y="295.0">σ:(1.11, 0.12)</text>
+  <tex class="mid small" x="337.0" y="369.0">X_2\;(k=2)</tex>
+  </g>
+  <path class="edge" d="M390 329 H416" marker-end="url(#arrow)"/>
+
+  <g>
+  <path d="M426.5 304.0 H422.0 V354.0 H426.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M515.5 304.0 H520.0 V354.0 H515.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="426.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="448.0" y="317.0">0.160</text>
+  <rect x="472.0" y="306.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="494.0" y="317.0">0.560</text>
+  <rect x="426.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="448.0" y="341.0">0.560</text>
+  <rect x="472.0" y="330.0" width="44.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="494.0" y="341.0">0.160</text>
+  <text class="mid small mute" x="471.0" y="295.0">σ:(0.72, 0.40)</text>
+  <tex class="mid small" x="471.0" y="369.0">X_3\;(k=3)</tex>
+  </g>
+  <path class="edge hot" d="M524 329 H562" marker-end="url(#arrow)"/>
+  <text class="mid small mute" x="543" y="316">k=4..5</text>
+
+  <g>
+  <path d="M572.5 304.0 H568.0 V354.0 H572.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M669.5 304.0 H674.0 V354.0 H669.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="572.0" y="306.0" width="48.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="596.0" y="317.0">-0.001</text>
+  <rect x="622.0" y="306.0" width="48.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="646.0" y="317.0">0.698</text>
+  <rect x="572.0" y="330.0" width="48.0" height="22.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="596.0" y="341.0">0.698</text>
+  <rect x="622.0" y="330.0" width="48.0" height="22.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="646.0" y="341.0">-0.001</text>
+  <text class="mid small mute" x="621.0" y="295.0">σ:(0.70, 0.70)</text>
+  <tex class="mid small" x="621.0" y="369.0">X_5 \approx 0.70\,U V^\top</tex>
+  </g>
+
+  <text class="small" x="18" y="424">第 5 步对角元退至 -0.001，反对角升至 0.698，两个奇异值之比从 100:1 拉平至 1.003:1</text>
+</svg>
+<svg viewBox="0 0 340 604">
+  <rect class="panel" x="0" y="0" width="340" height="278" rx="12"/>
+  <text class="caps" x="14" y="22">1 · 三种更新规则展开对比</text>
+  <g>
+  <path d="M20.5 46.0 H16.0 V92.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M97.5 46.0 H102.0 V92.0 H97.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="48.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="39.0" y="58.0">9.9</text>
+  <rect x="60.0" y="48.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="79.0" y="58.0">10.1</text>
+  <rect x="20.0" y="70.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="39.0" y="80.0">10.1</text>
+  <rect x="60.0" y="70.0" width="38.0" height="20.0" rx="3" fill="var(--violet-wash)" stroke="var(--violet)" stroke-width="1.15"/>
+  <text class="mid small" x="79.0" y="80.0">9.9</text>
+  <tex class="mid small" x="59.0" y="107.0">\tilde{{M}}\;(\sigma=20, 0.2)</tex>
+  </g>
+  <text class="small" x="116" y="60">= 10×全1阵 (主方向)</text>
+  <text class="small accent" x="116" y="80">+ 0.1×反对角阵 (微弱信号)</text>
+
+  <text class="small b" x="20" y="136" fill="var(--clay-ink)">逐格 Sign / Adam</text>
+  <g>
+  <path d="M20.5 146.0 H16.0 V192.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M105.5 146.0 H110.0 V192.0 H105.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="158.0">1.00</text>
+  <rect x="64.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="85.0" y="158.0">1.00</text>
+  <rect x="20.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="41.0" y="180.0">1.00</text>
+  <rect x="64.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--clay-wash)" stroke="var(--clay)" stroke-width="1.15"/>
+  <text class="mid small" x="85.0" y="180.0">1.00</text>
+  </g>
+  <text class="small accent" x="20" y="212">σ = (2.00, 0.00)</text>
+  <text class="small mute" x="20" y="232">抹平 ±0.1 差模信号</text>
+
+  <text class="small b" x="182" y="136" fill="var(--teal-ink)">Muon 极分解 UVᵀ</text>
+  <g>
+  <path d="M182.5 146.0 H178.0 V192.0 H182.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M267.5 146.0 H272.0 V192.0 H267.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="182.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="203.0" y="158.0">0.00</text>
+  <rect x="226.0" y="148.0" width="42.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="247.0" y="158.0">1.00</text>
+  <rect x="182.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="203.0" y="180.0">1.00</text>
+  <rect x="226.0" y="170.0" width="42.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="247.0" y="180.0">0.00</text>
+  </g>
+  <text class="small b" x="182" y="212" fill="var(--teal-ink)">σ = (1.00, 1.00)</text>
+  <text class="small mute" x="182" y="232">完美还原置换正交阵</text>
+
+  <rect class="panel" x="0" y="294" width="340" height="310" rx="12"/>
+  <text class="caps" x="14" y="316">2 · 牛顿-舒尔茨 5 步矩阵乘追踪</text>
+
+  <g>
+  <path d="M20.5 348.0 H16.0 V394.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M109.5 348.0 H114.0 V394.0 H109.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="360.0">0.495</text>
+  <rect x="66.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="360.0">0.505</text>
+  <rect x="20.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="382.0">0.505</text>
+  <rect x="66.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="382.0">0.495</text>
+  <text class="mid small mute" x="65.0" y="339.0">σ:(1.00, 0.01)</text>
+  <tex class="mid small" x="65.0" y="409.0">X_0</tex>
+  </g>
+  <path class="edge" d="M122 371 H158" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M168.5 348.0 H164.0 V394.0 H168.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M257.5 348.0 H262.0 V394.0 H257.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="168.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="190.0" y="360.0">0.333</text>
+  <rect x="214.0" y="350.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="236.0" y="360.0">0.368</text>
+  <rect x="168.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="190.0" y="382.0">0.368</text>
+  <rect x="214.0" y="372.0" width="44.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--node-line)" stroke-width="1.15"/>
+  <text class="mid small" x="236.0" y="382.0">0.333</text>
+  <text class="mid small mute" x="213.0" y="339.0">σ:(0.70, 0.03)</text>
+  <tex class="mid small" x="213.0" y="409.0">X_1</tex>
+  </g>
+
+  <g>
+  <path d="M20.5 460.0 H16.0 V506.0 H20.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M109.5 460.0 H114.0 V506.0 H109.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="20.0" y="462.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="472.0">0.160</text>
+  <rect x="66.0" y="462.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="472.0">0.560</text>
+  <rect x="20.0" y="484.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="42.0" y="494.0">0.560</text>
+  <rect x="66.0" y="484.0" width="44.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small" x="88.0" y="494.0">0.160</text>
+  <text class="mid small mute" x="65.0" y="451.0">σ:(0.72, 0.40)</text>
+  <tex class="mid small" x="65.0" y="521.0">X_3</tex>
+  </g>
+  <path class="edge hot" d="M122 483 H158" marker-end="url(#arrow)"/>
+  <g>
+  <path d="M168.5 460.0 H164.0 V506.0 H168.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <path d="M265.5 460.0 H270.0 V506.0 H265.5" fill="none" stroke="var(--ink)" stroke-width="1.35"/>
+  <rect x="168.0" y="462.0" width="48.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="192.0" y="472.0">-0.001</text>
+  <rect x="218.0" y="462.0" width="48.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="242.0" y="472.0">0.698</text>
+  <rect x="168.0" y="484.0" width="48.0" height="20.0" rx="3" fill="var(--teal-wash)" stroke="var(--teal)" stroke-width="1.15"/>
+  <text class="mid small b" x="192.0" y="494.0">0.698</text>
+  <rect x="218.0" y="484.0" width="48.0" height="20.0" rx="3" fill="var(--card)" stroke="var(--line)" stroke-width="1.15"/>
+  <text class="mid small" x="242.0" y="494.0">-0.001</text>
+  <text class="mid small mute" x="217.0" y="451.0">σ:(0.70, 0.70)</text>
+  <tex class="mid small" x="217.0" y="521.0">X_5 \approx 0.70\,U V^\top</tex>
+  </g>
+
+  <text class="small" x="14" y="560">仅靠 5 轮矩阵自乘，无需调用 SVD 分解</text>
+  <text class="small b" x="14" y="582" fill="var(--teal-ink)">奇异值比从 100:1 拉平为 0.699 : 0.697</text>
+</svg>
+```
 
 下图左侧面板画出了 $\varphi(\sigma)$ 复合 1、3、5 次后的精确函数图像，右侧面板展示了双层迷你 Transformer 在训练第 25 步时第 1 层 `W_q` 动量矩阵全部 64 个奇异值在更新前后的实测对比。可以看到，不仅原始动量首尾相差 $13,669$ 倍，即便用 `AdamW` 逐元素除以 $\sqrt{\hat{v}_t}$ 后，更新矩阵的奇异值谱依然衰减了逾两千倍；而经过 5 步牛顿-舒尔茨迭代后，前 53 个奇异值全部落入 $[0.68, 1.20]$ 区间。
 
