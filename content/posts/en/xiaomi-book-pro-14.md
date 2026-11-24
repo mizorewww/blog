@@ -54,16 +54,57 @@ This was the most irritating part of the whole ordeal. On macOS, `sudo` can use 
 
 It's not that "no one thought of it"; it's that the architectures are fundamentally different.
 
-The authentication chain for `sudo` looks like this:
+`sudo` and KDE's graphical fingerprint dialog follow two completely separate authentication chains:
 
-```
-sudo → PAM → Terminal session or askpass
-```
+```sketch title="sudo and KDE's Fingerprint Dialog Take Two Separate Paths" note="PAM only runs authentication logic and never draws UI; the fingerprint dialog comes from KDE Polkit Agent, which sudo never talks to."
+<svg viewBox="0 0 704 224">
+  <rect class="panel" x="0" y="0" width="704" height="224" rx="12"/>
+  <text class="caps" x="24" y="28">TERMINAL PATH (SUDO)</text>
+  <g class="node clay"><rect x="24" y="44" width="92" height="34" rx="17"/><text class="mid mono" x="70" y="61">sudo</text></g>
+  <path class="edge" d="M116 61 H146" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="150" y="44" width="96" height="34" rx="4"/><text class="mid" x="198" y="61">PAM</text></g>
+  <path class="edge" d="M246 61 H276" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="280" y="44" width="196" height="34" rx="4"/><text class="mid" x="378" y="61">TTY session / askpass</text></g>
+  <path class="edge hot" d="M476 61 H506" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="510" y="44" width="170" height="34" rx="4"/><text class="mid" x="595" y="61">No fingerprint GUI</text></g>
 
-The beautiful KDE fingerprint authentication dialog, on the other hand, follows a different path:
+  <line x1="24" y1="102" x2="680" y2="102" stroke="var(--line)"/>
 
-```
-App → Polkit → KDE Polkit Agent → PAM → fprintd
+  <text class="caps" x="24" y="128">GRAPHICAL PATH (POLKIT GUI)</text>
+  <g class="node clay"><rect x="24" y="144" width="92" height="34" rx="17"/><text class="mid" x="70" y="161">GUI App</text></g>
+  <path class="edge" d="M116 161 H138" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="142" y="144" width="88" height="34" rx="4"/><text class="mid" x="186" y="161">Polkit</text></g>
+  <path class="edge" d="M230 161 H252" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="256" y="144" width="164" height="34" rx="4"/><text class="mid b" x="338" y="161">KDE Polkit Agent</text></g>
+  <text class="small mid" x="338" y="196">Draws the fingerprint dialog</text>
+  <path class="edge" d="M420 161 H442" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="446" y="144" width="88" height="34" rx="4"/><text class="mid" x="490" y="161">PAM</text></g>
+  <path class="edge" d="M534 161 H556" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="560" y="144" width="120" height="34" rx="4"/><text class="mid mono" x="620" y="161">fprintd</text></g>
+</svg>
+<svg viewBox="0 0 340 448">
+  <rect class="panel" x="0" y="0" width="340" height="190" rx="12"/>
+  <text class="caps" x="20" y="26">TERMINAL PATH (SUDO)</text>
+  <g class="node clay"><rect x="20" y="42" width="128" height="32" rx="16"/><text class="mid mono" x="84" y="58">sudo</text></g>
+  <path class="edge" d="M148 58 H176" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="180" y="42" width="140" height="32" rx="4"/><text class="mid" x="250" y="58">PAM</text></g>
+  <path class="edge" d="M250 74 V86 H170 V96" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="40" y="100" width="260" height="32" rx="4"/><text class="mid" x="170" y="116">TTY session / askpass</text></g>
+  <text class="small mid accent" x="170" y="162">TTY or password box only—no fingerprint GUI</text>
+
+  <rect class="panel" x="0" y="204" width="340" height="244" rx="12"/>
+  <text class="caps" x="20" y="230">GRAPHICAL PATH (POLKIT GUI)</text>
+  <g class="node clay"><rect x="20" y="246" width="128" height="32" rx="16"/><text class="mid" x="84" y="262">GUI App</text></g>
+  <path class="edge" d="M148 262 H176" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="180" y="246" width="140" height="32" rx="4"/><text class="mid" x="250" y="262">Polkit</text></g>
+  <path class="edge" d="M250 278 V290 H170 V300" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="40" y="304" width="260" height="34" rx="4"/><text class="mid b" x="170" y="321">KDE Polkit Agent</text></g>
+  <path class="edge" d="M170 338 V350 H84 V360" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="20" y="364" width="128" height="32" rx="4"/><text class="mid" x="84" y="380">PAM</text></g>
+  <path class="edge" d="M148 380 H176" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="180" y="364" width="140" height="32" rx="4"/><text class="mid mono" x="250" y="380">fprintd</text></g>
+  <text class="small mid" x="170" y="424">KDE Polkit Agent is what draws the GUI dialog</text>
+</svg>
 ```
 
 That GUI is provided by the Polkit agent. It doesn't spring forth from PAM itself, nor is it part of `sudo`. The PAM module can only participate in the authentication flow; it can't magically transform a terminal-based `sudo` prompt into a KDE-style identity verification pop-up.
@@ -270,13 +311,16 @@ This is also why I don't recommend configuring too many authentication entry poi
 
 After all that tinkering, here's the current fingerprint and authentication configuration for this machine:
 
-- **fprintd:** Correctly identifies the Goodix device. I have enrolled my right index finger.
-- **KDE User Settings:** Fingerprint can be managed through `kcm_users`.
-- **Polkit:** Prioritizes fingerprint, falls back to password on failure.
-- **kio-admin:** Installed, allowing graphical root file operations via the `admin://` protocol.
-- **sudo:** Asks for password first; pressing Enter on empty triggers a fingerprint attempt (max 3 tries).
-- **Plasma Login Manager:** PAM is configured for fingerprint, but auto-login bypasses it.
-- **KWallet:** Cannot be unlocked with a fingerprint alone.
+```data title="Final Fingerprint & Authentication Setup"
+Component | Current Configuration
+fprintd | Recognizes the Goodix sensor; right index finger enrolled
+KDE Settings | Fingerprints managed via kcm_users
+Polkit | Fingerprint first, falls back to password on failure
+kio-admin | Installed for graphical root file operations via admin://
+sudo | Password prompt first; empty Enter triggers fingerprint (max 3 tries)
+Login Manager | Plasma Login Manager PAM wired to fingerprint, bypassed by auto-login
+KWallet | Cannot unlock via fingerprint alone (no decryption secret)
+```
 
 ## Conclusion
 
