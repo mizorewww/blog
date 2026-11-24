@@ -1,11 +1,13 @@
 // Posts with a table of contents: mark the section being read.
 {
   const toc = document.querySelector(".toc");
+  const wide = matchMedia("(min-width:901px)");
   const links = new Map([...toc.querySelectorAll("a")].map(a => [decodeURIComponent(a.hash.slice(1)), a]));
   const heads = [...document.querySelectorAll(".prose :is(h2,h3)[id]")].filter(h => links.has(h.id));
   let current, queued;
   const update = () => {
     queued = false;
+    if (!wide.matches) return;
     let h;
     if (innerHeight + scrollY >= document.documentElement.scrollHeight - 2) h = heads.at(-1);
     else for (const x of heads) {

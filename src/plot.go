@@ -142,6 +142,9 @@ func plotField(spec *plotSpec, key string, v json.RawMessage) error {
 				if l.Label == "" || m == nil || m[0] != l.Color || !slices.Contains(figureTokens, m[1]) || !slices.Contains(plotLegendShapes, l.Shape) {
 					return fmt.Errorf("each legend entry needs a label, a color var(--name) and a shape (%s)", strings.Join(plotLegendShapes, ", "))
 				}
+				if _, mathErr := inlineMathHTML(l.Label); mathErr != nil {
+					return mathErr
+				}
 			}
 		}
 	case "cols":
@@ -149,7 +152,9 @@ func plotField(spec *plotSpec, key string, v json.RawMessage) error {
 	case "narrowCols":
 		err = json.Unmarshal(v, &spec.Narrow)
 	case "xlabel":
-		err = json.Unmarshal(v, &spec.XLabel)
+		if err = json.Unmarshal(v, &spec.XLabel); err == nil {
+			_, err = inlineMathHTML(spec.XLabel)
+		}
 	}
 	if err != nil {
 		return fmt.Errorf("%s: %w", key, err)
@@ -169,6 +174,9 @@ func (spec *plotSpec) panel(panel map[string]json.RawMessage) (plotPanel, error)
 	if t, ok := panel["title"]; ok {
 		if err := json.Unmarshal(t, &p.title); err != nil {
 			return p, fmt.Errorf("title must be a string")
+		}
+		if _, err := inlineMathHTML(p.title); err != nil {
+			return p, err
 		}
 	}
 	// Smaller panels are shorter; each can say otherwise.
@@ -318,12 +326,13 @@ func (spec *plotSpec) plotWidths() (wide, phone int) {
 // style.css shows the one that fits.
 func renderPlot(w *bytes.Buffer, f *figureBlock) {
 	spec := f.plot
-	title := html.EscapeString(f.title)
+	title, _ := inlineMathHTML(f.title)
 	fmt.Fprintf(w, `<figure class="plotfig"><figcaption>%s</figcaption>`, title)
 	if len(spec.Legend) > 0 {
 		w.WriteString(`<ul class="plot-legend">`)
 		for _, l := range spec.Legend {
-			fmt.Fprintf(w, `<li class="%s" style="--c:%s">%s</li>`, l.Shape, html.EscapeString(l.Color), html.EscapeString(l.Label))
+			label, _ := inlineMathHTML(l.Label)
+			fmt.Fprintf(w, `<li class="%s" style="--c:%s">%s</li>`, l.Shape, html.EscapeString(l.Color), label)
 		}
 		w.WriteString(`</ul>`)
 	}
@@ -333,16 +342,19 @@ func renderPlot(w *bytes.Buffer, f *figureBlock) {
 	for _, p := range spec.drawn {
 		w.WriteString(`<div class="plot-panel">`)
 		if p.title != "" {
-			fmt.Fprintf(w, `<p class="plot-title">%s</p>`, html.EscapeString(p.title))
+			pTitle, _ := inlineMathHTML(p.title)
+			fmt.Fprintf(w, `<p class="plot-title">%s</p>`, pTitle)
 		}
 		fmt.Fprintf(w, `<div class="wide">%s</div><div class="phone">%s</div></div>`, p.wide, p.phone)
 	}
 	w.WriteString(`</div><!--/plot-grid-->`) // where the feed's link replaces the drawings (feed.go)
 	if spec.XLabel != "" {
-		fmt.Fprintf(w, `<p class="plot-xlabel">%s</p>`, html.EscapeString(spec.XLabel))
+		xlabel, _ := inlineMathHTML(spec.XLabel)
+		fmt.Fprintf(w, `<p class="plot-xlabel">%s</p>`, xlabel)
 	}
 	if f.note != "" {
-		fmt.Fprintf(w, `<p class="figure-note">%s</p>`, html.EscapeString(f.note))
+		note, _ := inlineMathHTML(f.note)
+		fmt.Fprintf(w, `<p class="figure-note">%s</p>`, note)
 	}
 	w.WriteString("</figure>\n")
 }

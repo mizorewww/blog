@@ -16,6 +16,8 @@ import (
 // figure's title and note and links to the post instead.
 var (
 	feedFigure     = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="[^"]*">.*?</div>(<script type="application/json">.*?</script>)?|<div class="plot"[^>]*>.*?</div>|(<ul class="plot-legend">.*?</ul>)?<div class="plot-grid".*?<!--/plot-grid-->`)
+	feedMathBlock  = regexp.MustCompile(`(?s)<div class="math"[^>]*>\s*<svg class="math-svg"[^>]*\saria-label="([^"]*)"[^>]*>.*?</svg>\s*</div>`)
+	feedMathInline = regexp.MustCompile(`(?s)<span class="math-inline"><svg class="math-svg"[^>]*\saria-label="([^"]*)"[^>]*>.*?</svg></span>`)
 	feedWidgetHint = regexp.MustCompile(`(?s)<p class="widget-hint">.*?</p>`)
 	feedRootAttr   = regexp.MustCompile(`\b(href|src)="/([^"]*)"`)
 )
@@ -23,6 +25,12 @@ var (
 // feedContent is a post's HTML as the feed carries it.
 func feedContent(content, siteURL, link string, ui UI) string {
 	out := feedFigure.ReplaceAllString(content, `<p><a href="`+html.EscapeString(link)+`">`+html.EscapeString(ui.FigureInPost)+`</a></p>`)
+	out = feedMathBlock.ReplaceAllStringFunc(out, func(m string) string {
+		return `<p><code>$$` + feedMathBlock.FindStringSubmatch(m)[1] + `$$</code></p>`
+	})
+	out = feedMathInline.ReplaceAllStringFunc(out, func(m string) string {
+		return `<code>$` + feedMathInline.FindStringSubmatch(m)[1] + `$</code>`
+	})
 	out = feedWidgetHint.ReplaceAllString(out, "")
 	origin, prefix := siteURL, ""
 	if u, err := url.Parse(siteURL); err == nil && u.Scheme != "" && u.Host != "" {

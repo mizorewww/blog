@@ -266,10 +266,12 @@ func pageText(page string) (first, rest [5]map[rune]bool) {
 				}
 			}
 		case html.TextToken:
-			// A figure's SVG and option hold text it shows, before and after ECharts takes over.
+			// A figure's SVG and option hold text it shows, before and after ECharts takes over;
+			// a MathJax SVG holds <text> only for non-ASCII characters inside \text{…}.
 			figure := slices.ContainsFunc(stack, func(e textElement) bool { return e.is("echart") || e.is("diagram") || e.is("plotfig") })
+			mathSVG := slices.ContainsFunc(stack, func(e textElement) bool { return e.tag == "svg" && e.is("math-svg") })
 			if slices.ContainsFunc(stack, func(e textElement) bool {
-				return slices.Contains(skippedText, e.tag) && !(figure && (e.tag == "svg" || e.tag == "script")) || e.is("sr-only")
+				return slices.Contains(skippedText, e.tag) && !(figure && (e.tag == "svg" || e.tag == "script")) && !(mathSVG && e.tag == "svg") || e.is("sr-only")
 			}) {
 				continue
 			}

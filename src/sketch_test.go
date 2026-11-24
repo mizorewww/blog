@@ -10,7 +10,8 @@ func TestSketch(t *testing.T) {
 		"<rect class=\"panel\" x=\"0\" y=\"0\" width=\"400\" height=\"120\" rx=\"12\"/>\n" +
 		"<g class=\"node blue\"><rect id=\"a\" x=\"10\" y=\"10\" width=\"80\" height=\"30\"/><text x=\"50\" y=\"25\">A &amp; &lt;b&gt;</text></g>\n" +
 		"<path class=\"edge\" d=\"M90 25 H200\" marker-end=\"url(#arrow)\"/>\n" +
-		"<use href=\"#a\" x=\"200\"/><circle cx=\"5\" cy=\"5\" r=\"2\" fill=\"var(--clay)\"/>\n</svg>\n```\n"
+		"<use href=\"#a\" x=\"200\"/><circle cx=\"5\" cy=\"5\" r=\"2\" fill=\"var(--clay)\"/>\n" +
+		"<tex class=\"mid\" x=\"200\" y=\"60\">Q = X W_q^\\top</tex>\n</svg>\n```\n"
 	body, _, err := render([]byte(src), nil)
 	if err != nil {
 		t.Fatal(err)
@@ -21,6 +22,7 @@ func TestSketch(t *testing.T) {
 		`<svg viewBox="0 0 400 120" class="sketch" xmlns="http://www.w3.org/2000/svg" style="max-width:400px"><defs><marker id="sketch-`,
 		`<text x="50" y="25">A &amp; &lt;b&gt;</text>`,
 		`style="fill:var(--clay)"`,
+		`<g class="sketch-tex mid"><svg class="math-svg"`,
 		`<p class="figure-note">注</p></figure>`,
 	} {
 		if !strings.Contains(html, want) {
@@ -41,6 +43,11 @@ func TestSketch(t *testing.T) {
 		`<svg viewBox="0 0 10 10"><rect fill="#f00"/></svg>`,
 		`<svg viewBox="0 0 10 10"><rect fill="var(--nope)"/></svg>`,
 		`<svg viewBox="0 0 10 10"><foreignObject/></svg>`,
+		`<svg viewBox="0 0 10 10"><tex x="5" y="5">\nope</tex></svg>`,
+		`<svg viewBox="0 0 10 10"><tex x="5" y="5"><b>x</b></tex></svg>`,
+		`<svg viewBox="0 0 10 10"><tex x="5">x</tex></svg>`,
+		`<svg viewBox="0 0 10 10"><tex x="5" y="5"> </tex></svg>`,
+		`<svg viewBox="0 0 10 10"><tex x="5" y="5" onclick="alert(1)">x</tex></svg>`,
 		`<svg viewBox="0 0 10 10"><use href="https://example.com/a.svg#x"/></svg>`,
 		`<svg viewBox="0 0 10 10"><path marker-end="url(https://x/#a)"/></svg>`,
 		`<svg viewBox="0 0 10 10"><svg viewBox="0 0 1 1"/></svg>`,
@@ -86,7 +93,7 @@ func TestSketchPhoneLayout(t *testing.T) {
 func TestFiguresInFeed(t *testing.T) {
 	src := "见[前文](/posts/b/)。\n\n" +
 		"```widget src=\"../widgets/demo/hero.js\" title=\"W\"\n../images/a.png | 静态图\n```\n\n" +
-		"```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n" +
+		"```sketch title=\"图 $x^2$\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/><tex x=\"10\" y=\"5\">a_1</tex></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n" +
 		"```mermaid title=\"M\"\nflowchart TD\n  A --> B\n```\n\n```echarts title=\"E\" note=\"n\"\n{\"series\": [{\"type\": \"bar\", \"data\": [1]}]}\n```\n\n" +
 		"```chart line title=\"C\"\nx | y\n1 | 2\n2 | 3\n```\n"
 	body, _, err := renderContent(languages[0].markdown(), []byte(src), contentHooks{figure: func(f *figureBlock) error {
@@ -100,7 +107,7 @@ func TestFiguresInFeed(t *testing.T) {
 	}
 	feed := feedContent(string(body), "https://example.com", "https://example.com/posts/a/?x=1&y=2", languages[0].UI)
 	link := `<p><a href="https://example.com/posts/a/?x=1&amp;y=2">（图见原文）</a></p>`
-	for _, want := range []string{`<a href="https://example.com/posts/b/">前文</a>`, `<figcaption>图</figcaption>` + link + `</figure>`, `<figcaption>M</figcaption>` + link + `</figure>`, `<figcaption>E</figcaption>` + link + `<p class="figure-note">n</p></figure>`} {
+	for _, want := range []string{`<a href="https://example.com/posts/b/">前文</a>`, `<code>$x^2$</code>`, `</figcaption>` + link + `</figure>`, `<figcaption>M</figcaption>` + link + `</figure>`, `<figcaption>E</figcaption>` + link + `<p class="figure-note">n</p></figure>`} {
 		if !strings.Contains(feed, want) {
 			t.Fatalf("missing %s in %s", want, feed)
 		}

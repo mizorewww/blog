@@ -120,6 +120,12 @@ func (n *figureBlock) parse() error {
 	if strings.TrimSpace(n.title) == "" {
 		return fmt.Errorf("needs a title")
 	}
+	if _, err := inlineMathHTML(n.title); err != nil {
+		return err
+	}
+	if _, err := inlineMathHTML(n.note); err != nil {
+		return err
+	}
 	if strings.TrimSpace(n.source) == "" {
 		return fmt.Errorf("is empty")
 	}
@@ -236,12 +242,16 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 				}
 			}
 		}
-		title := html.EscapeString(f.title)
+		titleHTML, err := inlineMathHTML(f.title)
+		if err != nil {
+			return ast.WalkStop, err
+		}
+		ariaTitle := html.EscapeString(strings.ReplaceAll(plainMathLabel(f.title), "\x00", "$"))
 		svg := f.SVG
 		for i, c := 0, f.FirstChild(); c != nil; i, c = i+1, c.NextSibling() {
 			svg = strings.Replace(svg, sketchImageMark(i), html.EscapeString(string(c.(*ast.Image).Destination)), 1)
 		}
-		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, svg)
+		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, titleHTML, ariaTitle, svg)
 		if f.Lang == "echarts" {
 			// The option is compacted JSON; escaping <, > and & keeps it inside its script element.
 			var option bytes.Buffer
@@ -249,9 +259,14 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			fmt.Fprintf(w, `<script type="application/json">%s</script>`, option.String())
 		}
 		if f.note != "" {
-			fmt.Fprintf(w, `<p class="figure-note">%s</p>`, html.EscapeString(f.note))
+			var noteHTML string
+			noteHTML, err = inlineMathHTML(f.note)
+			if err != nil {
+				return ast.WalkStop, err
+			}
+			fmt.Fprintf(w, `<p class="figure-note">%s</p>`, noteHTML)
 		}
-		_, err := w.WriteString("</figure>\n")
+		_, err = w.WriteString("</figure>\n")
 		return ast.WalkSkipChildren, err
 	})
 }

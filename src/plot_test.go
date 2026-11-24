@@ -52,6 +52,13 @@ func TestPlot(t *testing.T) {
 	if _, err := parsePlot(`{"data": {"d": [{"scheme": "cosine", "color": "RGB"}]}, "marks": [{"mark": "dot", "data": "d", "x": "scheme"}]}`); err != nil {
 		t.Fatal(err)
 	}
+	mathPlot, _, err := renderContent(languages[0].markdown(), []byte("```plot title=\"谱 $\\sigma_1$\" note=\"误差 $\\le 10^{-3}$\"\n"+`{"xlabel": "指标 $i$", "legend": [{"label": "$\\theta_1$", "color": "var(--teal)", "shape": "line"}], "title": "多项式 $\\varphi(\\sigma)$", "marks": [{"mark": "ruleY", "data": [1], "stroke": "var(--ink)"}]}`+"\n```\n"), contentHooks{figure: func(f *figureBlock) error {
+		f.plot.drawn[0].wide, f.plot.drawn[0].phone = "<svg>w</svg>", "<svg>p</svg>"
+		return nil
+	}})
+	if err != nil || strings.Count(string(mathPlot), `<span class="math-inline"><svg class="math-svg"`) != 5 {
+		t.Fatalf("expected 5 inline formulas in plot chrome: %v %s", err, mathPlot)
+	}
 	for _, bad := range []string{
 		`{"marks": []}`,
 		`{"marks": [{"mark": "pie"}]}`,
@@ -71,6 +78,7 @@ func TestPlot(t *testing.T) {
 		`{"legend": [{"label": "a", "color": "var(--typo)", "shape": "dot"}], "marks": [{"mark": "dot"}]}`,
 		`{"marks": [{"mark": "dot", "transform": "pointer"}]}`,
 		`{"facet": {"data": "missing", "y": "m"}, "marks": [{"mark": "dot"}]}`,
+		`{"title": "bad $\\nope$", "marks": [{"mark": "dot"}]}`,
 	} {
 		if _, err := parsePlot(bad); err == nil {
 			t.Errorf("%s: want an error", bad)

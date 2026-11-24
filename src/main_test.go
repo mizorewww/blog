@@ -434,26 +434,30 @@ func TestBlocks(t *testing.T) {
 }
 
 func TestMath(t *testing.T) {
-	body, _, err := render([]byte("面积 $\\pi r^2$ 与 $$f(h) = (1-h)$$。\n\n$$\n\\frac{a}{b}\n$$\n\n价格 $0.0028/$0.14，$5 和 $10，`$x$`，\\$y$。\n"), nil)
+	body, _, err := render([]byte("面积 $\\pi r^2$ 与 $$f(h) = (1-h)$$ 与 $\\|x\\|_2$ 与 $\\langle A, B \\rangle_F$。\n\n$$\n\\frac{a}{b}\n$$\n\n价格 $0.0028/$0.14，$5 和 $10，`$x$`，\\$y$。\n"), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
 	html := string(body)
-	for _, want := range []string{`<span class="math-inline"><math`, `display="inline"`, `<div class="math" tabindex="0"><math`, `display="block"`, "<mfrac>", "价格 $0.0028/$0.14，$5 和 $10，<code>$x$</code>，$y$。"} {
+	for _, want := range []string{`<span class="math-inline"><svg class="math-svg"`, `<div class="math" tabindex="0"><svg class="math-svg"`, `MJX-TEX-`, `aria-label="\frac{a}{b}"`, "价格 $0.0028/$0.14，$5 和 $10，<code>$x$</code>，$y$。"} {
 		if !strings.Contains(html, want) {
 			t.Fatalf("missing %q in %s", want, html)
 		}
 	}
-	if strings.Count(html, "<math") != 3 || strings.Contains(html, "\n  ") {
-		t.Fatalf("expected three compact formulas: %s", html)
+	if strings.Count(html, `<svg class="math-svg"`) != 5 || strings.Contains(html, "\n  ") {
+		t.Fatalf("expected five compact SVG formulas: %s", html)
+	}
+	hoisted := hoistMathDefs("<body>" + html + "</body>")
+	if strings.Count(hoisted, `<svg aria-hidden="true" class="math-defs"><defs>`) != 1 || strings.Contains(hoisted[:strings.Index(hoisted, `class="math-defs"`)], "<defs>") {
+		t.Fatalf("expected shared math-defs and stripped inline defs: %s", hoisted)
 	}
 	first, _, _ := render([]byte("$$\n\\left( \\frac{a}{b} \\right)\n$$\n"), nil)
 	for range 20 {
 		if again, _, _ := render([]byte("$$\n\\left( \\frac{a}{b} \\right)\n$$\n"), nil); again != first {
-			t.Fatalf("MathML must be identical on every build:\n%s\n%s", first, again)
+			t.Fatalf("Math SVG must be identical on every build:\n%s\n%s", first, again)
 		}
 	}
-	if _, _, err = render([]byte("$\\arg x$"), nil); err == nil {
+	if _, _, err = render([]byte("$\\nope$"), nil); err == nil {
 		t.Fatal("unsupported LaTeX must fail the build")
 	}
 }

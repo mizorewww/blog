@@ -51,8 +51,9 @@ jobs:
         with:
           path: |
             .cache/figures
+            .cache/math
             .cache/vendor
-          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'templates/js/chart-theme.js', 'static/vendor/**') }}
+          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'src/mathjax.js.gz', 'templates/js/chart-theme.js', 'static/vendor/**') }}
           restore-keys: figures-
 
       - name: Test
@@ -113,8 +114,9 @@ jobs:
         with:
           path: |
             .cache/figures
+            .cache/math
             .cache/vendor
-          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'templates/js/chart-theme.js', 'static/vendor/**') }}
+          key: figures-${{ hashFiles('content/posts/**', 'scripts/render-figures.py', 'src/mathjax.js.gz', 'templates/js/chart-theme.js', 'static/vendor/**') }}
           restore-keys: figures-
 
       - name: Setup Node

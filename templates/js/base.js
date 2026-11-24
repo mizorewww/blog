@@ -7,7 +7,7 @@ const root = document.documentElement;
 // a page that changes height would otherwise jump, most of all at its end.
 let fetching;
 const late = () => fetching ??= Promise.all([...document.fonts].filter(f => f.family.includes("Late")).map(f => f.load().catch(() => {}))).then(() => {
-  const anchor = document.elementFromPoint(innerWidth / 2, innerHeight / 2), top = anchor?.getBoundingClientRect().top;
+  const anchor = scrollY > 0 && document.elementFromPoint(innerWidth / 2, innerHeight / 2), top = anchor && anchor.getBoundingClientRect().top;
   root.classList.add("late");
   if (anchor) scrollBy({ top: anchor.getBoundingClientRect().top - top, behavior: "instant" });
 });

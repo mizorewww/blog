@@ -174,14 +174,53 @@ func (dr dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 
 func dataCells(line string) []string {
 	line = strings.TrimSpace(line)
-	if len(line) >= 2 && strings.HasPrefix(line, "|") && strings.HasSuffix(line, "|") {
+	if len(line) >= 2 && strings.HasPrefix(line, "|") && strings.HasSuffix(line, "|") && !strings.HasSuffix(line, `\|`) {
 		line = line[1 : len(line)-1]
 	}
-	cells := strings.Split(line, "|")
-	for i := range cells {
-		cells[i] = strings.TrimSpace(cells[i])
+	var cells []string
+	start := 0
+	inMath := false
+	for i := 0; i < len(line); i++ {
+		if line[i] == '\\' && i+1 < len(line) {
+			i++
+			continue
+		}
+		if line[i] == '$' {
+			inMath = !inMath
+			continue
+		}
+		if line[i] == '|' && !inMath {
+			cells = append(cells, unescapeOutsideMath(strings.TrimSpace(line[start:i])))
+			start = i + 1
+		}
 	}
+	cells = append(cells, unescapeOutsideMath(strings.TrimSpace(line[start:])))
 	return cells
+}
+
+func unescapeOutsideMath(cell string) string {
+	if !strings.Contains(cell, `\|`) {
+		return cell
+	}
+	var b strings.Builder
+	inMath := false
+	for i := 0; i < len(cell); i++ {
+		if cell[i] == '\\' && i+1 < len(cell) {
+			if cell[i+1] == '|' && !inMath {
+				b.WriteByte('|')
+			} else {
+				b.WriteByte('\\')
+				b.WriteByte(cell[i+1])
+			}
+			i++
+			continue
+		}
+		if cell[i] == '$' {
+			inMath = !inMath
+		}
+		b.WriteByte(cell[i])
+	}
+	return b.String()
 }
 
 func dataValue(cell string) (float64, bool) {
@@ -210,6 +249,11 @@ func dataIsNumericCell(cell string) bool {
 	if dataISODate.MatchString(cell) {
 		return false
 	}
+	if strings.Count(cell, "$") >= 2 {
+		if rendered, err := inlineMathHTML(cell); err != nil || strings.Contains(rendered, "math-inline") {
+			return false
+		}
+	}
 	if _, ok := dataValue(cell); !ok {
 		return false
 	}
@@ -229,9 +273,14 @@ func dataIsNumericCell(cell string) bool {
 	return letters <= 8 && cjk <= 2
 }
 
+var texCommand = regexp.MustCompile(`\\[a-zA-Z]+|[${}^_]`)
+
 // cellCharWidth estimates cell's monospace width in ch units so values in a bar
 // column share one fixed width and their bar tracks line up vertically.
 func cellCharWidth(cell string) int {
+	if strings.Count(cell, "$") >= 2 {
+		cell = texCommand.ReplaceAllString(cell, "")
+	}
 	w := 0
 	for _, r := range cell {
 		if r > unicode.MaxASCII && (unicode.Is(unicode.Han, r) || unicode.In(r, unicode.Hangul, unicode.Hiragana, unicode.Katakana) || strings.ContainsRune("（），。；：", r)) {
@@ -405,18 +454,26 @@ func renderData(info string, lines []string) (string, error) {
 	var b strings.Builder
 	fmt.Fprintf(&b, `<figure class="%s">`, strings.Join(figClasses, " "))
 	if attrs["title"] != "" {
-		fmt.Fprintf(&b, "<figcaption>%s</figcaption>", html.EscapeString(attrs["title"]))
+		titleHTML, err := inlineMathHTML(attrs["title"])
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&b, "<figcaption>%s</figcaption>", titleHTML)
 	}
 	b.WriteString(`<div class="data-scroll" tabindex="0"><table><thead><tr>`)
 	for col, cell := range header {
+		cellHTML, err := inlineMathHTML(cell)
+		if err != nil {
+			return "", err
+		}
 		lo, hi := low[group(col)], high[group(col)]
 		switch {
 		case bars[col] && hi > lo && lo >= 0:
-			fmt.Fprintf(&b, `<th class="num bar-head" style="--vw:%dch"><span class="bar-head-in">%s</span></th>`, valWidth[col], html.EscapeString(cell))
+			fmt.Fprintf(&b, `<th class="num bar-head" style="--vw:%dch"><span class="bar-head-in">%s</span></th>`, valWidth[col], cellHTML)
 		case numeric[col] && col > 0:
-			b.WriteString(`<th class="num">` + html.EscapeString(cell) + "</th>")
+			b.WriteString(`<th class="num">` + cellHTML + "</th>")
 		default:
-			b.WriteString("<th>" + html.EscapeString(cell) + "</th>")
+			b.WriteString("<th>" + cellHTML + "</th>")
 		}
 	}
 	b.WriteString("</tr></thead><tbody>")
@@ -490,18 +547,26 @@ func renderData(info string, lines []string) (string, error) {
 			if numeric[col] && col > 0 {
 				cellOut = disp
 			}
+			cellHTML, err := inlineMathHTML(cellOut)
+			if err != nil {
+				return "", err
+			}
 			if len(class) > 0 {
 				fmt.Fprintf(&b, `<td class="%s">`, strings.Join(class, " "))
 			} else {
 				b.WriteString("<td>")
 			}
-			b.WriteString(html.EscapeString(cellOut) + "</td>")
+			b.WriteString(cellHTML + "</td>")
 		}
 		b.WriteString("</tr>")
 	}
 	b.WriteString("</tbody></table></div>")
 	if attrs["note"] != "" {
-		fmt.Fprintf(&b, `<p class="data-note">%s</p>`, html.EscapeString(attrs["note"]))
+		noteHTML, err := inlineMathHTML(attrs["note"])
+		if err != nil {
+			return "", err
+		}
+		fmt.Fprintf(&b, `<p class="data-note">%s</p>`, noteHTML)
 	}
 	b.WriteString("</figure>\n")
 	return b.String(), nil

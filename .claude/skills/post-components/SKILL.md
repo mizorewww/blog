@@ -86,7 +86,7 @@ $$
 $$
 ```
 
-构建时转成 MathML。`$` 后是空格、结束的 `$` 前是空格或后面紧跟数字时不算公式，所以 `$5 和 $10` 保持原样；需要字面 `$` 时写 `\$`。不支持的命令会让构建失败，例如 `\arg` 要写成 `\mathrm{arg}`。
+构建时经 MathJax `tex2svg` 转为矢量 SVG（页面内共享字形 `<defs>`，零客户端脚本与字体请求）。`$` 后是空格、结束的 `$` 前是空格或后面紧跟数字时不算公式，所以 `$5 和 $10` 保持原样；需要字面 `$` 时写 `\$`。未知或拼写错误的 LaTeX 命令会让构建失败。
 
 ## 代码
 
@@ -124,7 +124,7 @@ Delta | BTC  | ETH
 | `scale` | `shared`（默认，所有横条共用比例）或 `column`（每列各自缩放） |
 | `mark` | 强调的行，按第一列的值匹配，逗号分隔 |
 
-第一行是表头，`|` 分隔，成对的首尾外框 `|` 和 `---` 分隔行可有可无。单元格是纯文本；单元格里的第一个数字决定横条长度（`+1.2 BTC`、`−3.4%`、`$64,395` 都能识别）。除第一列外，全是数字的列自动右对齐；不画横条的数字列中，末尾的括号附注（`(…)` 或 `（…）`）自动拆到下一行小字。
+第一行是表头，`|` 分隔，成对的首尾外框 `|` 和 `---` 分隔行可有可无。单元格支持纯文本与行内 `$…$` 公式；单元格里的第一个数字决定横条长度（`+1.2 BTC`、`−3.4%`、`$64,395` 都能识别）。除第一列外，全是数字的列自动右对齐；不画横条的数字列中，末尾的括号附注（`(…)` 或 `（…）`）自动拆到下一行小字。
 
 ## 图表 `chart`
 
@@ -290,7 +290,8 @@ Mermaid 自动排版不够用时（要并排对比、按比例画、画容器的
 
 - **画布**：`viewBox="0 0 宽 高"`，宽一般就是 704（正文栏），高按内容定；`<svg>` 上不写 `width`/`height`/`class`/颜色，页面会自适应。
 - **手机版**：手机正文栏只有约 324 px，704 宽的图会整体缩小到一半，小字看不清，并排的对比也挤成一团。所以稍复杂的图都在同一个代码块里再写第二个 `<svg>`：宽不超过 400 且比第一个窄（一般 340），把并排的东西改成上下排、把长标签换行。页面在 640 px 以下显示第二个，以上显示第一个。只有一个 `<svg>` 时，手机上整体缩小显示。
-- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan defs marker use symbol clipPath title desc image`。`script`、`style` 属性、`foreignObject`、渐变、事件属性、外部链接都会让构建失败。
+- **只能用画图元素**：`g rect circle ellipse line path polyline polygon text tspan tex defs marker use symbol clipPath title desc image`。`script`、`style` 属性、手写的 `foreignObject`、渐变、事件属性、外部链接都会让构建失败。
+- **图内公式 `<tex>`**：示意图里遇到上下标、根号、分式、范数、转置矩阵（如 $Q = X W_q^\top$、$\hat{m}_t / \sqrt{\hat{v}_t}$）时，不要用缩微 Unicode 字符拼凑，改用 `<tex class="mid" x="172" y="70">Q = X W_q^\top</tex>`。`x`、`y` 必填且与 `<text>` 坐标语义一致（默认左对齐并垂直居中，`mid` 水平垂直双居中，`end` 右对齐；可选 `width`、`height` 指定最大边界框自动等比缩入；可选 `small`、`mute`、`accent`、`blue`、`teal`、`orange`、`violet`、`clay`、`display`，也自动继承外层 `.node.blue` 等角色色）。构建时经 MathJax `tex2svg` 编译为纯矢量 SVG 直接嵌在画布内（无 `foreignObject`）。此外，`sketch` / `plot` / `echarts` / `mermaid` / `data` 的 `title`、`note`，以及 `plot` 的面板 `title`、`legend.label`、`xlabel`（JSON 字符串里反斜杠需双写如 `$\\varphi(\\sigma)$`）和 `data` 的单元格也支持行内 `$…$` 公式。
 - **颜色用 class**，需要时 `fill`/`stroke` 写 `var(--token)`（同 echarts 的 token 表，另有 `panel node node-line edge` 和 `blue teal orange violet` 及其 `-wash`、`-ink`、`clay-ink`），写死的颜色会构建失败。
 - **图片**：`<image href="../images/x.jpg" x y width height/>` 嵌一张本地图片（路径和 Markdown 图片一样，相对于文章；`width`、`height` 必填，可加 `preserveAspectRatio="xMidYMid slice"` 裁切填满）。图片走普通图片流水线转成 WebP，标签、箭头、框全用矢量画在图片外面或上面，不要烤进图片里；样本网格先合成一张图再嵌进来。远程地址和 `data:` 会构建失败。手机版的 `<svg>` 可以再嵌同一张图。
 - **id 会自动加上图的前缀**，`url(#id)` 和 `href="#id"` 跟着改；`marker-end="url(#arrow)"` 是现成的开口箭头，不用自己定义。

@@ -380,11 +380,12 @@ func (b *builder) page(path string, p Page, extra string) error {
 	if err := tmpl.Execute(&out, p); err != nil {
 		return err
 	}
-	faces, err := b.fonts.css(out.String(), extra)
+	rendered := hoistMathDefs(out.String())
+	faces, err := b.fonts.css(rendered, extra)
 	if err != nil {
 		return fmt.Errorf("%s: fonts: %w", name, err)
 	}
-	return b.write(name, []byte(strings.Replace(out.String(), pageFontsMarker, faces, 1)))
+	return b.write(name, []byte(strings.Replace(rendered, pageFontsMarker, faces, 1)))
 }
 
 // writeHeaders writes Cloudflare Pages cache rules: documents revalidate,

@@ -28,7 +28,8 @@ import (
 // A second <svg>, at most 400 wide, is the same figure laid out for a phone:
 // the page shows it instead of the first below 640 px (style.css).
 var (
-	sketchElements = []string{"svg", "g", "rect", "circle", "ellipse", "line", "path", "polyline", "polygon", "text", "tspan", "title", "desc", "defs", "marker", "use", "symbol", "clipPath", "image"}
+	sketchElements = []string{"svg", "g", "rect", "circle", "ellipse", "line", "path", "polyline", "polygon", "text", "tspan", "tex", "title", "desc", "defs", "marker", "use", "symbol", "clipPath", "image"}
+	sketchTexAttrs = []string{"x", "y", "width", "height", "class", "transform"}
 	sketchAttrs    = []string{"viewBox", "class", "id", "transform", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "width", "height", "d", "points",
 		"fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity", "fill-opacity", "stroke-opacity",
 		"text-anchor", "dominant-baseline", "font-size", "letter-spacing", "dx", "dy", "href", "clip-path", "marker-start", "marker-mid", "marker-end",
@@ -98,6 +99,14 @@ func sketchSVG(source string) (string, error) {
 				}
 				prefixes = append(prefixes, fmt.Sprintf("sketch-%x-%d", sum[:4], len(prefixes)))
 				widths = append(widths, 0)
+			}
+			if name == "tex" {
+				fo, err := sketchTex(decoder, t.Attr)
+				if err != nil {
+					return "", err
+				}
+				out.WriteString(fo)
+				continue
 			}
 			root := len(prefixes) - 1
 			scope := func(id string) string { return prefixes[root] + "-" + id }
@@ -220,6 +229,103 @@ func sketchSVG(source string) (string, error) {
 		svg = strings.Replace(svg, fmt.Sprintf("\x00class%d\x00", i), classes[i], 1)
 	}
 	return svg, nil
+}
+
+func sketchTex(decoder *xml.Decoder, rawAttrs []xml.Attr) (string, error) {
+	var x, y, maxW, maxH float64
+	hasX, hasY := false, false
+	var class, transform string
+	for _, a := range rawAttrs {
+		key, value := a.Name.Local, a.Value
+		if !slices.Contains(sketchTexAttrs, key) {
+			return "", fmt.Errorf("<tex %s> is not allowed; <tex> takes x, y, width, height, class and transform", key)
+		}
+		switch key {
+		case "x":
+			v, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				return "", fmt.Errorf("<tex x=%q> must be a number", value)
+			}
+			x, hasX = v, true
+		case "y":
+			v, err := strconv.ParseFloat(value, 64)
+			if err != nil {
+				return "", fmt.Errorf("<tex y=%q> must be a number", value)
+			}
+			y, hasY = v, true
+		case "width":
+			v, err := strconv.ParseFloat(value, 64)
+			if err != nil || v <= 0 {
+				return "", fmt.Errorf("<tex width=%q> must be a positive number", value)
+			}
+			maxW = v
+		case "height":
+			v, err := strconv.ParseFloat(value, 64)
+			if err != nil || v <= 0 {
+				return "", fmt.Errorf("<tex height=%q> must be a positive number", value)
+			}
+			maxH = v
+		case "class":
+			class = value
+		case "transform":
+			transform = value
+		}
+	}
+	if !hasX || !hasY {
+		return "", fmt.Errorf("<tex> needs x and y")
+	}
+	var tex strings.Builder
+	for {
+		tok, err := decoder.Token()
+		if err != nil {
+			return "", fmt.Errorf("unclosed <tex>: %w", err)
+		}
+		switch inner := tok.(type) {
+		case xml.EndElement:
+			if strings.TrimSpace(tex.String()) == "" {
+				return "", fmt.Errorf("<tex> is empty")
+			}
+			classes := strings.Fields(class)
+			wEx, hEx, viewBox, svgInner, err := sketchMathSVG(tex.String(), slices.Contains(classes, "display"))
+			if err != nil {
+				return "", err
+			}
+			exPx := 6.3
+			if slices.Contains(classes, "small") {
+				exPx = 5.3
+			}
+			pxW, pxH := wEx*exPx, hEx*exPx
+			scale := 1.0
+			if maxW > 0 && pxW > maxW {
+				scale = min(scale, maxW/pxW)
+			}
+			if maxH > 0 && pxH > maxH {
+				scale = min(scale, maxH/pxH)
+			}
+			pxW *= scale
+			pxH *= scale
+			svgX, svgY := x, y-pxH/2
+			if slices.Contains(classes, "mid") {
+				svgX = x - pxW/2
+			} else if slices.Contains(classes, "end") {
+				svgX = x - pxW
+			}
+			groupClass := "sketch-tex"
+			if len(classes) > 0 {
+				groupClass += " " + xmlEscape(strings.Join(classes, " "))
+			}
+			extra := ""
+			if transform != "" {
+				extra = fmt.Sprintf(` transform="%s"`, xmlEscape(transform))
+			}
+			return fmt.Sprintf(`<g class="%s"%s><svg class="math-svg" x="%.2f" y="%.2f" width="%.2f" height="%.2f" viewBox="%s">%s</svg></g>`,
+				groupClass, extra, svgX, svgY, pxW, pxH, viewBox, svgInner), nil
+		case xml.CharData:
+			tex.Write(inner)
+		case xml.StartElement:
+			return "", fmt.Errorf("<tex> holds LaTeX text, not <%s>", inner.Name.Local)
+		}
+	}
 }
 
 func xmlEscape(s string) string {

@@ -180,8 +180,9 @@ mark{background:var(--sel);color:inherit}
 .prose blockquote p{margin:0 0 .6em}
 .prose blockquote>:last-child{margin-bottom:0}
 .prose pre{overflow:auto;margin:1.8em 0;tab-size:4;padding:20px 22px;background:var(--wash);border:1px solid var(--line);font-size:13px;line-height:1.8;color:var(--ink)}
-/* Off-screen code blocks skip layout, so the late font swap on long posts stays cheap. */
+/* Off-screen blocks skip layout, so initial paint and the late font swap stay cheap on long posts. */
 .prose pre{content-visibility:auto;contain-intrinsic-size:auto 400px}
+.prose>:is(p,ol,ul,blockquote,.data,.table-scroll):nth-child(n+12){content-visibility:auto;contain-intrinsic-size:auto 96px}
 .prose code{font-family:var(--mono)}
 .code{position:relative;margin:1.8em 0}
 .prose .code pre{margin:0}
@@ -209,7 +210,10 @@ mark{background:var(--sel);color:inherit}
 .chroma .ge{font-style:italic}
 .prose img{display:block;max-width:100%;height:auto;border:1px solid var(--line)}
 .prose p>img+em{display:block;margin-top:8px;font-size:12.5px;line-height:1.75;color:var(--muted);font-style:normal}
-.prose .math{overflow-x:auto;margin:1.6em 0;padding:4px 0}
+.prose .math{overflow-x:auto;margin:1.6em 0;padding:4px 0;text-align:center;content-visibility:auto;contain-intrinsic-size:auto 56px}
+.prose>:nth-child(n+12){content-visibility:auto;contain-intrinsic-size:auto 84px}
+.math-svg{overflow:visible;fill:currentColor;stroke:currentColor;stroke-width:0}
+.math-defs{display:none}
 @property --ml{syntax:"<length>";inherits:false;initial-value:0px}
 @property --mr{syntax:"<length>";inherits:false;initial-value:0px}
 @keyframes scroll-mask{0%{--ml:0px;--mr:32px}6%{--ml:24px;--mr:32px}94%{--ml:32px;--mr:24px}100%{--ml:32px;--mr:0px}}
@@ -351,18 +355,30 @@ mark{background:var(--sel);color:inherit}
 .sketch .ink{fill:var(--ink)}
 .sketch .mute{fill:var(--muted)}
 .sketch .accent{fill:var(--clay)}
+.sketch-tex{color:var(--ink)}
+.sketch-tex.small,.sketch-tex.mute{color:var(--muted)}
+.sketch-tex.ink{color:var(--ink)}
+.sketch-tex.accent{color:var(--clay)}
+.sketch-tex.clay,.sketch .node.clay>.sketch-tex{color:var(--clay-ink)}
+.sketch-tex.blue,.sketch .node.blue>.sketch-tex{color:var(--blue-ink)}
+.sketch-tex.teal,.sketch .node.teal>.sketch-tex{color:var(--teal-ink)}
+.sketch-tex.orange,.sketch .node.orange>.sketch-tex{color:var(--orange-ink)}
+.sketch-tex.violet,.sketch .node.violet>.sketch-tex{color:var(--violet-ink)}
 .video video{display:block;width:100%;height:auto;border-radius:8px;background:var(--wash)}
-.plot-legend{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0 0 14px;padding:0;list-style:none;font-size:12.5px;color:var(--body)}
-.plot-legend li{display:flex;align-items:center;gap:7px}
-.plot-legend li::before{content:"";flex:none;width:16px;height:2px;background:var(--c)}
+.plot-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:0 0 14px;padding:0;list-style:none;font-size:12.5px;line-height:1.55;color:var(--body)}
+.plot-legend li{position:relative;padding-left:23px;min-width:0;max-width:100%;overflow-wrap:anywhere}
+.plot-legend li::before{content:"";position:absolute;left:0;top:.75em;transform:translateY(-50%);width:16px;height:2px;background:var(--c)}
+.plot-legend .dot{padding-left:15px}
 .plot-legend .dot::before{width:8px;height:8px;border-radius:50%}
 .plot-legend .dash::before{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 8px)}
-.plot-legend .band::before{height:10px;background:color-mix(in srgb,var(--c) 25%,transparent)}
+.plot-legend .band::before{height:10px;background:color-mix(in srgb,var(--c) 34%,transparent);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--c) 58%,transparent)}
+.plot-legend .ramp{padding-left:47px}
 .plot-legend .ramp::before{width:40px;height:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),var(--c))}
-.plot-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:20px 24px}
+.plot-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:20px 24px;content-visibility:auto;contain-intrinsic-size:auto 280px}
 .plot-title{margin:0 0 4px;font-size:13px;font-weight:500;line-height:1.4;color:var(--ink)}
 .plot-panel svg{display:block;width:100%;height:auto;overflow:visible;font-family:var(--sans);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
 .plot-panel svg text{fill:currentColor}
+.plot-title .math-svg{display:inline-block;color:inherit;font-size:inherit}
 .plot-panel svg .grid{color:var(--grid);stroke-opacity:1}
 .plot-panel{position:relative}
 .plot-panel .phone{display:none}
@@ -584,7 +600,7 @@ main::after{bottom:0}
 .post-article>.article-header h1{font-size:28px;line-height:1.45;margin:18px 0 12px;letter-spacing:-.5px}
 .post-article>.article-header .dek{font-size:14px;line-height:1.85}
 .article-body{padding:28px 20px 40px}
-.prose .math-inline{display:inline-block;max-width:100%;overflow-x:auto;overflow-y:hidden;vertical-align:middle}
+.prose .math-inline .math-svg{max-width:100%}
 .post-pagination{padding:24px 20px;gap:20px}
 .post-pagination a{font-size:15px;gap:6px}
 .data{--bw:64px}

@@ -114,6 +114,10 @@ func plainText(n ast.Node, src []byte) string {
 			if entering {
 				b.Write(t.Value)
 			}
+		case *mathInline:
+			if entering {
+				b.Write(t.TeX)
+			}
 		}
 		return ast.WalkContinue, nil
 	})
