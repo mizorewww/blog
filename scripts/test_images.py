@@ -30,6 +30,13 @@ class Images(unittest.TestCase):
             stamp = Path(result["path"]).stat().st_mtime_ns
             self.assertEqual(module.prepare(source, root / "cache"), result)
             self.assertEqual(Path(result["path"]).stat().st_mtime_ns, stamp)
+            noisy = root / "noisy.png"
+            Image.effect_noise((1200, 600), 64).save(noisy)
+            wide = module.prepare(noisy, root / "cache")
+            self.assertIn("small", wide)
+            Path(wide["small"]["path"]).unlink()
+            self.assertEqual(module.prepare(noisy, root / "cache"), wide)
+            self.assertTrue(Path(wide["small"]["path"]).is_file())
             Image.new("RGB", (400, 200), "red").save(source)
             self.assertNotEqual(module.prepare(source, root / "cache")["path"], result["path"])
 
