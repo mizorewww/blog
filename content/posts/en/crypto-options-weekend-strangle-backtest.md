@@ -669,13 +669,13 @@ Friday | BTC | ETH
 ```
 
 ```data title="Three Deepest Compounding Drawdowns at 35Δ" bars="Depth" note="Dates are Friday entry dates; underwater weeks count weeks below the prior equity peak."
-Asset | Start | Trough | Recovery | Underwater Weeks | Depth
-BTC | 2023-01-13 | 2023-01-20 | 2023-03-24 | 10 | -10.23%
-BTC | 2025-10-03 | 2025-10-10 | 2025-12-12 | 10 | -5.16%
-BTC | 2024-04-12 | 2024-04-12 | 2024-05-17 | 5 | -4.65%
-ETH | 2026-01-30 | 2026-02-13 | 2026-05-29 | 17 | -10.94%
-ETH | 2024-04-12 | 2024-04-26 | 2024-07-26 | 15 | -10.89%
-ETH | 2025-01-17 | 2025-01-31 | 2025-03-07 | 7 | -7.78%
+Asset | Depth | Weeks | Start | Trough | Recovery
+BTC | -10.23% | 10 | 2023-01-13 | 2023-01-20 | 2023-03-24
+BTC | -5.16% | 10 | 2025-10-03 | 2025-10-10 | 2025-12-12
+BTC | -4.65% | 5 | 2024-04-12 | 2024-04-12 | 2024-05-17
+ETH | -10.94% | 17 | 2026-01-30 | 2026-02-13 | 2026-05-29
+ETH | -10.89% | 15 | 2024-04-12 | 2024-04-26 | 2024-07-26
+ETH | -7.78% | 7 | 2025-01-17 | 2025-01-31 | 2025-03-07
 ```
 
 On a simple coin-margined basis, BTC 35Δ's maximum cumulative drawdown was −0.105 BTC (−10.23% on compounded equity), while ETH's maximum cumulative drawdown was −0.111 ETH (−10.94% on compounded equity). The two deepest drawdowns occurred during violent weekend gap moves in early 2023 and early 2026.
@@ -940,71 +940,37 @@ Weekly Return | BTC | ETH
 
 We also swept across all 12 symmetric Delta tiers from 0.05 to 0.60:
 
-```data title="Sharpe Ratio Across 12 Delta Tiers" bars="BTC,ETH" mark="Δ0.35" note="Weekly returns annualized by × √52."
-Delta | BTC | ETH
-Δ0.05 | 4.40 | 1.18
-Δ0.10 | 2.60 | 1.09
-Δ0.15 | 2.74 | 1.85
-Δ0.20 | 3.11 | 1.72
-Δ0.25 | 3.29 | 1.86
-Δ0.30 | 3.48 | 2.30
-Δ0.35 | 3.43 | 2.19
-Δ0.40 | 3.57 | 2.32
-Δ0.45 | 3.40 | 2.23
-Δ0.50 | 3.40 | 2.18
-Δ0.55 | 3.77 | 2.31
-Δ0.60 | 4.14 | 2.49
+```data title="BTC 12-Tier Delta Sensitivity Comparison" bars="Sharpe,Retained" scale="column" mark="Δ0.35" note="208 weeks, simple coin-margined (in BTC); Sharpe annualized by × √52; Retained = Net PnL ÷ Total premium collected."
+Delta | Total PnL | Sharpe | Retained | Win Rate | Mean Wk | Max DD
+Δ0.05 | +0.202 | 4.40 | 72.5% | 97.6% | 0.10% | −0.026
+Δ0.10 | +0.338 | 2.60 | 60.2% | 96.2% | 0.16% | −0.046
+Δ0.15 | +0.519 | 2.74 | 58.6% | 93.8% | 0.25% | −0.078
+Δ0.20 | +0.699 | 3.11 | 57.3% | 91.3% | 0.34% | −0.075
+Δ0.25 | +0.879 | 3.29 | 55.0% | 86.1% | 0.42% | −0.084
+Δ0.30 | +1.059 | 3.48 | 52.1% | 84.1% | 0.51% | −0.098
+Δ0.35 | +1.166 | 3.43 | 47.1% | 81.3% | 0.56% | −0.105
+Δ0.40 | +1.300 | 3.57 | 43.3% | 80.8% | 0.62% | −0.099
+Δ0.45 | +1.324 | 3.40 | 37.0% | 78.8% | 0.64% | −0.107
+Δ0.50 | +1.342 | 3.40 | 31.9% | 81.7% | 0.65% | −0.103
+Δ0.55 | +1.424 | 3.77 | 28.2% | 79.3% | 0.68% | −0.093
+Δ0.60 | +1.589 | 4.14 | 25.9% | 80.3% | 0.76% | −0.093
 ```
 
-```data title="Premium Retention Rate Across 12 Delta Tiers" bars="BTC,ETH" mark="Δ0.35" note="Retention rate = Net PnL ÷ Total premium collected."
-Delta | BTC | ETH
-Δ0.05 | 72.5% | 44.6%
-Δ0.10 | 60.2% | 38.8%
-Δ0.15 | 58.6% | 47.2%
-Δ0.20 | 57.3% | 39.6%
-Δ0.25 | 55.0% | 38.8%
-Δ0.30 | 52.1% | 39.4%
-Δ0.35 | 47.1% | 34.3%
-Δ0.40 | 43.3% | 33.1%
-Δ0.45 | 37.0% | 27.9%
-Δ0.50 | 31.9% | 24.7%
-Δ0.55 | 28.2% | 21.9%
-Δ0.60 | 25.9% | 19.5%
+```data title="ETH 12-Tier Delta Sensitivity Comparison" bars="Sharpe,Retained" scale="column" mark="Δ0.35" note="208 weeks, simple coin-margined (in ETH); definitions match BTC above."
+Delta | Total PnL | Sharpe | Retained | Win Rate | Mean Wk | Max DD
+Δ0.05 | +0.162 | 1.18 | 44.6% | 96.6% | 0.08% | −0.045
+Δ0.10 | +0.280 | 1.09 | 38.8% | 95.2% | 0.13% | −0.073
+Δ0.15 | +0.541 | 1.85 | 47.2% | 91.8% | 0.26% | −0.074
+Δ0.20 | +0.645 | 1.72 | 39.6% | 85.1% | 0.31% | −0.092
+Δ0.25 | +0.806 | 1.86 | 38.8% | 84.1% | 0.39% | −0.106
+Δ0.30 | +1.053 | 2.30 | 39.4% | 81.7% | 0.51% | −0.095
+Δ0.35 | +1.146 | 2.19 | 34.3% | 78.8% | 0.55% | −0.111
+Δ0.40 | +1.292 | 2.32 | 33.1% | 78.8% | 0.62% | −0.113
+Δ0.45 | +1.319 | 2.23 | 27.9% | 77.4% | 0.63% | −0.121
+Δ0.50 | +1.360 | 2.18 | 24.7% | 75.5% | 0.65% | −0.129
+Δ0.55 | +1.432 | 2.31 | 21.9% | 76.4% | 0.69% | −0.123
+Δ0.60 | +1.460 | 2.49 | 19.5% | 79.3% | 0.70% | −0.126
 ```
-
-### BTC 12-Tier Detailed Comparison
-
-| Delta    | Total PnL (BTC) | Mean Weekly | Win Rate  | Sharpe   | Max Drawdown | Premium Retained |
-| -------- | --------------: | ----------: | --------: | -------: | -----------: | ---------------: |
-| 0.05     | +0.202          | 0.10%       | 97.6%     | 4.40     | −0.026       | 72.5%            |
-| 0.10     | +0.338          | 0.16%       | 96.2%     | 2.60     | −0.046       | 60.2%            |
-| 0.15     | +0.519          | 0.25%       | 93.8%     | 2.74     | −0.078       | 58.6%            |
-| 0.20     | +0.699          | 0.34%       | 91.3%     | 3.11     | −0.075       | 57.3%            |
-| 0.25     | +0.879          | 0.42%       | 86.1%     | 3.29     | −0.084       | 55.0%            |
-| 0.30     | +1.059          | 0.51%       | 84.1%     | 3.48     | −0.098       | 52.1%            |
-| **0.35** | **+1.166**      | **0.56%**   | **81.3%** | **3.43** | **−0.105**   | **47.1%**        |
-| 0.40     | +1.300          | 0.62%       | 80.8%     | 3.57     | −0.099       | 43.3%            |
-| 0.45     | +1.324          | 0.64%       | 78.8%     | 3.40     | −0.107       | 37.0%            |
-| 0.50     | +1.342          | 0.65%       | 81.7%     | 3.40     | −0.103       | 31.9%            |
-| 0.55     | +1.424          | 0.68%       | 79.3%     | 3.77     | −0.093       | 28.2%            |
-| 0.60     | +1.589          | 0.76%       | 80.3%     | 4.14     | −0.093       | 25.9%            |
-
-### ETH 12-Tier Detailed Comparison
-
-| Delta    | Total PnL (ETH) | Mean Weekly | Win Rate  | Sharpe   | Max Drawdown | Premium Retained |
-| -------- | --------------: | ----------: | --------: | -------: | -----------: | ---------------: |
-| 0.05     | +0.162          | 0.08%       | 96.6%     | 1.18     | −0.045       | 44.6%            |
-| 0.10     | +0.280          | 0.13%       | 95.2%     | 1.09     | −0.073       | 38.8%            |
-| 0.15     | +0.541          | 0.26%       | 91.8%     | 1.85     | −0.074       | 47.2%            |
-| 0.20     | +0.645          | 0.31%       | 85.1%     | 1.72     | −0.092       | 39.6%            |
-| 0.25     | +0.806          | 0.39%       | 84.1%     | 1.86     | −0.106       | 38.8%            |
-| 0.30     | +1.053          | 0.51%       | 81.7%     | 2.30     | −0.095       | 39.4%            |
-| **0.35** | **+1.146**      | **0.55%**   | **78.8%** | **2.19** | **−0.111**   | **34.3%**        |
-| 0.40     | +1.292          | 0.62%       | 78.8%     | 2.32     | −0.113       | 33.1%            |
-| 0.45     | +1.319          | 0.63%       | 77.4%     | 2.23     | −0.121       | 27.9%            |
-| 0.50     | +1.360          | 0.65%       | 75.5%     | 2.18     | −0.129       | 24.7%            |
-| 0.55     | +1.432          | 0.69%       | 76.4%     | 2.31     | −0.123       | 21.9%            |
-| 0.60     | +1.460          | 0.70%       | 79.3%     | 2.49     | −0.126       | 19.5%            |
 
 ## The Weekend Effect and Variance Risk Premium (VRP): Where the Alpha Actually Comes From
 
@@ -1022,22 +988,13 @@ To test whether weekends carry a distinct structural edge, we extracted four non
 3. `Tue 16:00 -> Thu 08:00` (Weekday window Tue–Thu, 40h)
 4. `Wed 16:00 -> Fri 08:00` (Weekday window Wed–Fri, 40h)
 
-```data title="Annualized Realized Volatility (RV) Across 40-Hour Windows" bars="BTC Mean RV,ETH Mean RV" mark="Weekend Fri → Sun" note="Each window spans 40 hours starting at 16:00 UTC; sample from 2022-09 to 2026-08."
-Window | BTC Mean RV | ETH Mean RV
-Weekend Fri → Sun | 27.4% | 39.1%
-Weekday Mon → Wed | 45.0% | 58.8%
-Weekday Tue → Thu | 45.3% | 58.8%
-Weekday Wed → Fri | 46.9% | 61.0%
+```data title="Annualized Realized Volatility (RV) and Range Across 40-Hour Windows" bars="BTC Mean,ETH Mean" mark="Weekend Fri → Sun" note="Each window spans 40 hours starting at 16:00 UTC (2022-09 to 2026-08): Mean and Med. are annualized RV; P90 is the 90th-percentile 40h price range; Sim. Win is BTC / ETH."
+Window | BTC Mean | ETH Mean | BTC Med. | BTC P90 | ETH Med. | ETH P90 | Sim. Win
+Weekend Fri → Sun | 27.4% | 39.1% | 23.9% | 2.34% | 34.3% | 3.66% | 97.1% / 93.8%
+Weekday Mon → Wed | 45.0% | 58.8% | 40.3% | 5.30% | 53.7% | 6.65% | 86.0% / 79.2%
+Weekday Tue → Thu | 45.3% | 58.8% | 42.2% | 5.44% | 53.9% | 7.18% | 83.1% / 75.8%
+Weekday Wed → Fri | 46.9% | 61.0% | 41.0% | 5.43% | 54.3% | 8.21% | 84.5% / 74.9%
 ```
-
-### 40-Hour Window Volatility Comparison
-
-| Time Window (40h) | BTC Mean RV | BTC Median RV | BTC P90 Range | ETH Mean RV | ETH Median RV | ETH P90 Range | Simulated Win Rate (BTC / ETH) |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **Weekend (Fri 16:00 -> Sun 08:00)** | **27.4%** | **23.9%** | **2.34%** | **39.1%** | **34.3%** | **3.66%** | **97.1% / 93.8%** |
-| Weekday Mon–Wed | 45.0% | 40.3% | 5.30% | 58.8% | 53.7% | 6.65% | 86.0% / 79.2% |
-| Weekday Tue–Thu | 45.3% | 42.2% | 5.44% | 58.8% | 53.9% | 7.18% | 83.1% / 75.8% |
-| Weekday Wed–Fri | 46.9% | 41.0% | 5.43% | 61.0% | 54.3% | 8.21% | 84.5% / 74.9% |
 
 The data gives an unambiguous answer:
 - BTC's average weekend realized volatility is systematically **~40% lower** than on weekdays (27.4% vs. 45.0%–46.9%);

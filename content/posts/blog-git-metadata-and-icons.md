@@ -13,7 +13,7 @@ aliases:
   - "/zh/blog-git-metadata-and-icons/"
 ---
 
-> 这篇写于旧博客（Next.js + MDX）时期。迁移到现在的静态站后，这些功能都在构建时完成：TradingView 变成行情卡片，点「实时图表」才加载实时行情；ECharts 变成静态 SVG 图表，悬停显示数值，源码引用是带行号的固定 commit 片段，语言图标换成了代码块角落的语言名。
+> 这篇写于旧博客（Next.js + MDX）时期，记录的是当时的设计与代码。迁移到现在的 Go 静态站后，这些能力都收进了构建期：TradingView 变成点「实时图表」才加载外部脚本的行情卡片；简单序列用零脚本静态 SVG 的 `chart`，复杂或交互图表仍用 `echarts`（构建期预渲染静态 SVG 兜底，滚入视口再激活交互）；源码引用改用代码块上的固定 commit `src` 链接，角落的品牌图标换成了语言名。
 
 这次主要把博客的写作体验继续往前推了一步：代码块更容易扫读，代码引用能直接指向 GitHub，金融类内容可以用很短的语法插入 TradingView 图表。
 
@@ -106,7 +106,7 @@ $BINANCE:BTCUSDT.P
 
 ### 代码块直接渲染 ECharts
 
-写文章时用 ` ```echarts ` 代码块，内容是图表的 option JSON,meta 支持 `title` 和 `height`:
+当时写文章用 ` ```echarts ` 代码块，内容是图表的 option JSON，meta 支持 `title` 和 `height`：
 
 ````md
 ```echarts title="每周访问量" height=320
@@ -130,7 +130,7 @@ $BINANCE:BTCUSDT.P
 ```
 ````
 
-旧站上这里是两张 ECharts 图。现在的站点在构建时把同样的数据画成静态 SVG；饼图没有对应的图表类型，写成 `data` 表格：
+旧站上这里放了折线面积图和分类占比饼图两张 ECharts 实例。现在的站点依然原生支持 ` ```echarts `（包括饼图、散点、热力图等交互图表），同时也提供了零脚本的 ` ```chart ` 静态 SVG 图表和 ` ```data ` 横条表格——像下面这样简单的单序列趋势与四行占比，直接用后两者就够了：
 
 ```chart area title="每周访问量"
 日期 | 访问量
@@ -151,7 +151,7 @@ $BINANCE:BTCUSDT.P
 其他 | 10 | 10%
 ```
 
-JSON 不合法时会回退成普通代码块，不会把构建搞挂。需要函数等 JSON 表达不了的配置时，也可以直接用 `<ECharts>` 组件传 JS 对象。图表跟随站点明暗主题，echarts 库按需懒加载，不进首屏包。
+在当时的旧站实现里，JSON 不合法时会回退成普通代码块而不中断构建，需要函数等 JSON 表达不了的配置时也可以直接用 MDX 的 `<ECharts>` 组件传 JS 对象（现在的 Go 构建器则改为严格校验：非法 JSON 或写死的颜色都会直接让构建失败，并且不再支持 MDX 组件）。图表跟随站点明暗主题，`echarts` 库按需懒加载，不进首屏包。
 
 ## 代码逻辑
 
@@ -370,8 +370,8 @@ return createCodeNode(value || 'No diff matched this query.', attrs.lang || 'dif
 
 这也是为什么 GitHub 引用块能同时拥有：Shiki 颜色主题、语言图标、复制按钮、GitHub 跳转和 diff 背景。
 
-## 现在写博客的心智模型
+## 当时写博客的心智模型
 
-普通文章只管写 Markdown。需要图标时写 `:icon-code:`，需要行情时写 `$AAPL` 或 `::tv AAPL`，需要数据图表时写 ` ```echarts ` 代码块，需要引用源码时写 `::github-code`，需要引用改动时写 `::github-diff`。
+在旧站那套体系下，普通文章只管写 Markdown：需要图标时写 `:icon-code:`，需要行情时写 `$AAPL` 或 `::tv AAPL`，需要数据图表时写 ` ```echarts ` 代码块，需要引用源码时写 `::github-code`，需要引用改动时写 `::github-diff`。
 
-构建阶段会把这些短语法转换成稳定的 MDX 组件或 Shiki 代码块；运行时只负责交互和外部 widget 加载。这样写作语法短，页面输出也可控。
+构建阶段会把这些短语法转换成稳定的 MDX 组件或 Shiki 代码块；运行时只负责交互和外部 widget 加载——后来迁到现在的纯静态 Go 引擎时，也正是沿着“写作语法简短、重活留在构建期”这个思路继续演进的。

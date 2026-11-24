@@ -55,16 +55,57 @@ i8042.nopnp=1 i8042.dumbkbd=1
 
 不是“没人想过”，而是架构本身就不一样。
 
-`sudo` 的认证链路是这样的：
+`sudo` 和 KDE 图形指纹认证弹窗走的是两条完全独立的认证链路：
 
-```
-sudo → PAM → 终端会话或 askpass
-```
+```sketch title="sudo 和 KDE 指纹弹窗走的是两条认证链路" note="PAM 只负责认证逻辑，自己不会弹窗口；漂亮的指纹弹窗来自 KDE Polkit Agent，sudo 接不进去。"
+<svg viewBox="0 0 704 224">
+  <rect class="panel" x="0" y="0" width="704" height="224" rx="12"/>
+  <text class="caps" x="24" y="28">终端提权路径 (SUDO)</text>
+  <g class="node clay"><rect x="24" y="44" width="92" height="34" rx="17"/><text class="mid mono" x="70" y="61">sudo</text></g>
+  <path class="edge" d="M116 61 H146" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="150" y="44" width="96" height="34" rx="4"/><text class="mid" x="198" y="61">PAM</text></g>
+  <path class="edge" d="M246 61 H276" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="280" y="44" width="196" height="34" rx="4"/><text class="mid" x="378" y="61">终端会话 / askpass</text></g>
+  <path class="edge hot" d="M476 61 H506" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="510" y="44" width="170" height="34" rx="4"/><text class="mid" x="595" y="61">无指纹 GUI 弹窗</text></g>
 
-而 KDE 那个漂亮的指纹认证弹窗，走的是另一条路：
+  <line x1="24" y1="102" x2="680" y2="102" stroke="var(--line)"/>
 
-```
-应用 → Polkit → KDE Polkit Agent → PAM → fprintd
+  <text class="caps" x="24" y="128">图形提权路径 (POLKIT GUI)</text>
+  <g class="node clay"><rect x="24" y="144" width="92" height="34" rx="17"/><text class="mid" x="70" y="161">图形应用</text></g>
+  <path class="edge" d="M116 161 H138" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="142" y="144" width="88" height="34" rx="4"/><text class="mid" x="186" y="161">Polkit</text></g>
+  <path class="edge" d="M230 161 H252" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="256" y="144" width="164" height="34" rx="4"/><text class="mid b" x="338" y="161">KDE Polkit Agent</text></g>
+  <text class="small mid" x="338" y="196">由它负责弹出指纹认证窗口</text>
+  <path class="edge" d="M420 161 H442" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="446" y="144" width="88" height="34" rx="4"/><text class="mid" x="490" y="161">PAM</text></g>
+  <path class="edge" d="M534 161 H556" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="560" y="144" width="120" height="34" rx="4"/><text class="mid mono" x="620" y="161">fprintd</text></g>
+</svg>
+<svg viewBox="0 0 340 448">
+  <rect class="panel" x="0" y="0" width="340" height="190" rx="12"/>
+  <text class="caps" x="20" y="26">终端提权路径 (SUDO)</text>
+  <g class="node clay"><rect x="20" y="42" width="128" height="32" rx="16"/><text class="mid mono" x="84" y="58">sudo</text></g>
+  <path class="edge" d="M148 58 H176" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="180" y="42" width="140" height="32" rx="4"/><text class="mid" x="250" y="58">PAM</text></g>
+  <path class="edge" d="M250 74 V86 H170 V96" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="40" y="100" width="260" height="32" rx="4"/><text class="mid" x="170" y="116">终端会话 / askpass</text></g>
+  <text class="small mid accent" x="170" y="162">只走终端或密码框，没有指纹弹窗</text>
+
+  <rect class="panel" x="0" y="204" width="340" height="244" rx="12"/>
+  <text class="caps" x="20" y="230">图形提权路径 (POLKIT GUI)</text>
+  <g class="node clay"><rect x="20" y="246" width="128" height="32" rx="16"/><text class="mid" x="84" y="262">图形应用</text></g>
+  <path class="edge" d="M148 262 H176" marker-end="url(#arrow)"/>
+  <g class="node plain"><rect x="180" y="246" width="140" height="32" rx="4"/><text class="mid" x="250" y="262">Polkit</text></g>
+  <path class="edge" d="M250 278 V290 H170 V300" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="40" y="304" width="260" height="34" rx="4"/><text class="mid b" x="170" y="321">KDE Polkit Agent</text></g>
+  <path class="edge" d="M170 338 V350 H84 V360" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="20" y="364" width="128" height="32" rx="4"/><text class="mid" x="84" y="380">PAM</text></g>
+  <path class="edge" d="M148 380 H176" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="180" y="364" width="140" height="32" rx="4"/><text class="mid mono" x="250" y="380">fprintd</text></g>
+  <text class="small mid" x="170" y="424">KDE Polkit Agent 才是弹出指纹窗口的组件</text>
+</svg>
 ```
 
 那个 GUI 是 Polkit agent 提供的，不是 PAM 自己弹出来的，也不是 `sudo` 自带的。PAM 模块只能参与认证流程，没法凭空把终端里的 `sudo` 变成一个 KDE 风格的身份验证弹窗。
@@ -271,13 +312,16 @@ pkexec systemctl restart fprintd
 
 折腾完一圈，现在这台机器的指纹和认证相关配置是这样的：
 
-- **fprintd**：能正常识别 Goodix 设备，已录入右手食指
-- **KDE 用户设置**：可以通过 kcm_users 管理指纹
-- **Polkit**：优先指纹，失败后回退密码
-- **kio-admin**：已安装，可以用 `admin://` 做图形化 root 文件操作
-- **sudo**：先密码，空回车后指纹，最多尝试 3 次
-- **Plasma Login Manager**：PAM 已接入指纹，但自动登录会绕过
-- **KWallet**：不能单靠指纹解锁
+```data title="指纹与认证组件最终状态"
+组件 | 当前配置与状态
+fprintd | 正常识别 Goodix 指纹设备，已录入右手食指
+KDE 用户设置 | 通过 kcm_users 管理指纹
+Polkit | 优先指纹，失败后回退密码
+kio-admin | 已安装，可通过 admin:// 做图形化 root 文件操作
+sudo | 先密码，空回车后指纹（最多尝试 3 次）
+登录管理器 | Plasma Login Manager 的 PAM 已接入指纹，但自动登录会绕过
+KWallet | 不能单靠指纹解锁（缺少解密密钥）
+```
 
 ## 总结
 

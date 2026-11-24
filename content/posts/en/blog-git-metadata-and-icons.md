@@ -10,7 +10,7 @@ tags:
   - "ECharts"
 ---
 
-> This post was written during the old blog (Next.js + MDX) era. After migrating to the current static site, all of these features happen at build time: TradingView widgets became ticker cards that only load the live chart when you click "Live chart"; ECharts blocks became static SVG charts with hover values; source embeds are pinned commit snippets with line numbers; and language icons became corner language labels on code blocks.
+> This post was written during the old blog (Next.js + MDX) era and documents how those features worked at the time. Since migrating to the current Go static site, everything happens at build time: TradingView shortcodes became ticker cards that only load external scripts when you click "Live chart"; simple series use zero-JS static SVG `chart` blocks while interactive charts still use `echarts` (pre-rendered to static SVG at build time and hydrated on scroll); source embeds use pinned-commit `src` attributes on code fences; and brand icons became corner language labels.
 
 This update pushes the blog's writing experience another step forward: code blocks are easier to scan, code references link straight to GitHub, and financial posts can embed TradingView charts with a tiny shortcode.
 
@@ -103,7 +103,7 @@ On the old site this rendered an interactive Advanced Chart; here it is likewise
 
 ### Rendering ECharts Directly from Code Blocks
 
-Use an ` ```echarts ` code block whose body is the chart's option JSON, with `title` and `height` supported in the meta string:
+On the old site, posts used an ` ```echarts ` code block whose body was the chart's option JSON, with `title` and `height` supported in the meta string:
 
 ````md
 ```echarts title="Weekly Visits" height=320
@@ -127,7 +127,7 @@ Use an ` ```echarts ` code block whose body is the chart's option JSON, with `ti
 ```
 ````
 
-On the old site these were two ECharts instances. The current site draws the same data as static SVG at build time; since there is no pie chart type, the second example is represented as a `data` table:
+On the old site these were two ECharts instances (an area line chart and a category pie chart). The current site still natively supports interactive ` ```echarts ` (including pie, scatter, and heatmap charts), alongside zero-JS static SVG ` ```chart ` blocks and inline-bar ` ```data ` tables—for simple single-series trends and four-row breakdowns like the ones below, `chart` and `data` suffice on their own:
 
 ```chart area title="Weekly Visits"
 Day | Visits
@@ -148,7 +148,7 @@ Notes | 18 | 18%
 Other | 10 | 10%
 ```
 
-If the JSON is invalid, it gracefully falls back to a regular code block instead of breaking the build. When you need functions or other options that plain JSON cannot express, you can also pass a JS object directly to the `<ECharts>` component. Charts follow the site's light/dark theme, and the `echarts` library is lazy-loaded on demand so it stays out of the initial bundle.
+In that old Next.js implementation, invalid JSON fell back to a plain code block instead of breaking the build, and when a chart needed functions or other options beyond plain JSON, you could pass a JS object directly to the MDX `<ECharts>` component (by contrast, the current Go builder fails the build immediately on invalid JSON or hardcoded colors and drops MDX components). Charts follow the site's light/dark theme, and the `echarts` library is lazy-loaded on demand so it stays out of the initial bundle.
 
 ## How It Works Under the Hood
 
@@ -367,8 +367,8 @@ return createCodeNode(value || 'No diff matched this query.', attrs.lang || 'dif
 
 That's why GitHub embeds get the Shiki color theme, language icon, copy button, GitHub link, and diff line backgrounds all at once.
 
-## The Mental Model for Writing Posts
+## The Authoring Mental Model Back Then
 
-For normal posts, you just write Markdown. When you want an icon, write `:icon-code:`; for a market ticker, write `$AAPL` or `::tv AAPL`; for a data chart, write an ` ```echarts ` block; to quote source code, write `::github-code`; and to quote a commit diff, write `::github-diff`.
+Under that Next.js + MDX setup, normal posts stayed plain Markdown: `:icon-code:` for an icon, `$AAPL` or `::tv AAPL` for a market ticker, an ` ```echarts ` fence for a chart, `::github-code` to quote source files, and `::github-diff` to quote a commit diff.
 
-The build step turns these shortcodes into stable MDX components or Shiki code blocks, while the runtime only handles interactivity and external widgets. The authoring syntax stays brief, and the rendered page stays predictable.
+The build step turned those shortcodes into stable MDX components or Shiki code blocks, leaving the client runtime to handle only interactivity and external widgets—the same "terse authoring syntax, heavy lifting at build time" principle that later carried over into the current Go static generator.

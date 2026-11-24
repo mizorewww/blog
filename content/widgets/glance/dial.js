@@ -25,16 +25,16 @@ export default async function dial(stage, { base }) {
   const heads = [rawHeads.find(h => h.id == "gate"), ...ar];
   let head = "digits", rule = "map", gateAt = 0.5;
 
-  const W = 440, H = 304, L = 46, R = 12, T = 22, B = 40;
+  const W = 440, H = 314, L = 46, R = 12, T = 22, B = 50;
   const xmin = Math.log10(0.05), xmax = Math.log10(60), ymin = 55, ymax = 100;
   const X = v => L + (Math.log10(Math.max(v, 0.05)) - xmin) / (xmax - xmin) * (W - L - R);
   const Y = v => T + (ymax - v) / (ymax - ymin) * (H - T - B);
-  const svg = el("svg.g-dial-chart", { viewBox: `0 0 ${W} ${H}`, role: "img" });
+  const svg = el("svg.g-dial-chart", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": EN ? "ROC curves of five output heads showing false rejection vs. absent-target rejection across decoding rules" : "五个输出头在不同解码规则下的误拒率与无目标拒答率曲线" });
   const grid = el("g.g-grid");
   for (const v of [0.1, 0.3, 1, 3, 10, 30]) grid.append(el("line", { x1: X(v), x2: X(v), y1: T, y2: H - B }), el("text.g-tick", { x: X(v), y: H - B + 15, "text-anchor": "middle", text: v + "%" }));
   for (const v of [60, 70, 80, 90, 100]) grid.append(el("line", { x1: L, x2: W - R, y1: Y(v), y2: Y(v) }), el("text.g-tick", { x: L - 6, y: Y(v) + 3.5, "text-anchor": "end", text: v + "%" }));
   grid.append(
-    el("text.g-axis-name", { x: (L + W - R) / 2, y: H - 6, "text-anchor": "middle", text: EN ? "Present targets called “not present” (log)" : "在场的目标，被说成“不在”（对数轴）" }),
+    el("text.g-axis-name", { x: (L + W - R) / 2, y: H - 5, "text-anchor": "middle", text: EN ? "Present targets called “not present” (log)" : "在场的目标，被说成“不在”（对数轴）" }),
     el("text.g-axis-name.y", { x: 12, y: (T + H - B) / 2, "text-anchor": "middle", transform: `rotate(-90 12 ${(T + H - B) / 2})`, text: EN ? "Absent targets rejected (N-acc)" : "没有的目标，说对了“不在”" }));
   const path = h => h.curve.filter(c => c[0] >= 0.05).map((c, i) => `${i ? "L" : "M"}${X(c[0]).toFixed(1)} ${Y(c[1]).toFixed(1)}`).join("");
   const curves = el("g", {}, ...heads.map(h => el("path.g-curve", { d: path(h), "data-id": h.id })));

@@ -1,7 +1,7 @@
 // Big Buck Bunny, one frame every 4 s, four box questions per frame
 // (video.json: real outputs, plus the author's frame-by-frame labels).
 // Drag along the curves to scrub; the dial sets where "present" starts.
-import { el, EN, json, image, fmt, slider, whenSeen, credit, still } from "./common.js";
+import { el, EN, json, image, fmt, slider, credit } from "./common.js";
 
 const HUE = { rabbit: "clay", squirrel: "violet", butterfly: "teal", car: "blue" };
 const NAME = EN
@@ -68,8 +68,30 @@ export default async function video(stage, { base }) {
     agree,
     el("div.g-credits", {}, credit(["Big Buck Bunny", "© 2008 Blender Foundation · www.bigbuckbunny.org", "https://peach.blender.org/", "CC BY 3.0", "https://creativecommons.org/licenses/by/3.0/", EN ? "First 8 min, 1 frame every 4 s, resized to 448 px wide" : "前 8 分钟，每 4 秒一帧，缩放到 448 px 宽"]))));
 
+  let prefetched = false;
+  function prefetch() {
+    if (prefetched) return;
+    prefetched = true;
+    const order = [...data.t.keys()].sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
+    const next = async () => {
+      for (let i; (i = order.shift()) != null;) {
+        if (frames[i]) continue;
+        try { frames[i] = await image(base + `f/t${String(data.t[i]).padStart(3, "0")}.webp`); } catch {}
+        if (Math.abs(i - at) < 2) draw();
+      }
+    };
+    Promise.all([next(), next(), next(), next()]).then(() => draw());
+  }
+
   function seek(i) {
     at = Math.max(0, Math.min(n - 1, i));
+    if (!frames[at]) {
+      const target = at;
+      image(base + `f/t${String(data.t[target]).padStart(3, "0")}.webp`).then(im => {
+        frames[target] = im;
+        if (at == target) draw();
+      }, () => {});
+    }
     draw();
   }
 
@@ -125,6 +147,7 @@ export default async function video(stage, { base }) {
   }
   function toggle() {
     if (playing) return stop();
+    prefetch();
     if (at >= n - 1) at = 0;
     playing = 1;
     play.classList.add("on");
@@ -138,18 +161,11 @@ export default async function video(stage, { base }) {
     requestAnimationFrame(tick);
   }
 
+  for (const node of [play, svg]) {
+    node.addEventListener("pointerenter", prefetch, { once: true });
+    node.addEventListener("focus", prefetch, { once: true });
+  }
+  svg.addEventListener("pointerdown", prefetch, { once: true });
+
   draw();
-  whenSeen(stage, async () => {
-    const order = [...data.t.keys()].sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
-    const next = async () => {
-      for (let i; (i = order.shift()) != null;) {
-        if (frames[i]) continue;
-        try { frames[i] = await image(base + `f/t${String(data.t[i]).padStart(3, "0")}.webp`); } catch {}
-        if (Math.abs(i - at) < 2) draw();
-      }
-    };
-    await Promise.all([next(), next(), next(), next()]);
-    draw();
-  });
-  if (still.matches) return;
 }

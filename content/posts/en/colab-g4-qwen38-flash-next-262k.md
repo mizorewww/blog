@@ -1,6 +1,6 @@
 ---
 title: "One-Click Qwen3.8-Flash-Next (262K Context) on Google Colab G4"
-description: "Deploy dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4 on a single Colab G4 (RTX PRO 6000 Blackwell 96GB) using the colab CLI with MTP speculative decoding (130–176 tok/s) and a 262K context window, exposed via Cloudflare Tunnel to your local pi client in three copy-paste steps."
+description: "Deploy dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4 on a single Colab G4 (RTX PRO 6000 Blackwell 96GB) using the colab CLI with MTP speculative decoding (130–176 tok/s) and a 262K context window, exposed via Cloudflare Tunnel to your local pi client in four copy-paste steps."
 date: 2026-11-10
 tag: "Tech"
 tags:
@@ -12,7 +12,7 @@ tags:
 
 Google Colab's **G4 GPU** instance (NVIDIA RTX PRO 6000 Blackwell with 96GB VRAM + 176GB system RAM) is just big enough to run [`dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4`](https://huggingface.co/dealignai/Qwen3.8-Flash-Next-CYBERSECURITY-NVFP4) at its full **262K context window** on a single card, reaching **130–176 tok/s** single-stream generation with MTP speculative decoding enabled.
 
-I packed environment setup, precompiled kernel restoration, weight pulling / Google Drive mounting, SGLang startup, and Cloudflare Tunnel reverse proxying into a single script, open-sourced at [mizorewww/colab-qwen38-g4](https://github.com/mizorewww/colab-qwen38-g4). Follow the three copy-paste steps below to get it running.
+I packed environment setup, precompiled kernel restoration, weight pulling / Google Drive mounting, SGLang startup, and Cloudflare Tunnel reverse proxying into a single script, open-sourced at [mizorewww/colab-qwen38-g4](https://github.com/mizorewww/colab-qwen38-g4). Follow the four copy-paste steps below to deploy, connect, and shut down cleanly.
 
 ## Step 1: Install and Log In to the `colab` CLI
 

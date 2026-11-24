@@ -24,11 +24,12 @@ To be clear, this post isn't here to nitpick upstream. Memoh is a thoughtfully d
 
 First, here is the breakdown of a real request captured before my optimizations:
 
-| Component | Size | Share |
-| --- | ---: | ---: |
-| Messages (conversation history) | ~157.7 KB | 68.0% |
-| Tools (tool schemas) | ~49.5 KB | 21.3% |
-| System (system prompt) | ~24.7 KB | 10.7% |
+```data title="Breakdown of a Real Request Before Optimization" bars="Share" note="Total ~231.9 KB, roughly 50,000 tokens."
+Component | Size | Share
+Messages (history) | ~157.7 KB | 68.0%
+Tools (tool schemas) | ~49.5 KB | 21.3%
+System (system prompt) | ~24.7 KB | 10.7%
+```
 
 A single request is over 200 KB—roughly 50,000 tokens. The catch is what a general-purpose agent's tool loop does with that payload: **every extra tool call re-reads all 50,000 tokens from scratch**. And chat scenarios are packed with tool calls: sending a message is one, replying is one, sending a sticker is another, and after sending, a delivery status comes back for the model to read and confirm. Behind a single outgoing group-chat message, the full context is read 2 to 3 times over.
 
@@ -289,7 +290,7 @@ $$
 \frac{C_{\mathrm{before}}}{C_{\mathrm{after}}} = \frac{N_{\mathrm{old}}}{N_{\mathrm{new}}} \times \frac{T_{\mathrm{old}}}{T_{\mathrm{new}}} \times \frac{f(h_{\mathrm{old}})}{f(h_{\mathrm{new}})}
 $$
 
-where $$f(h) = (1-h) + h \times r$$. Each of the three factors is grounded in real measurements:
+where $f(h) = (1-h) + h \times r$. Each of the three factors is grounded in real measurements:
 
 - **N_old / N_new = 2–3**: pure text turns drop from 2 calls to 1, and reply + sticker turns drop from 3 calls to 1. This is structural—no estimation involved;
 - **T_old / T_new ≈ 70K / 52K ≈ 1.35**: stripping the unused tool schemas (49.5 KB), dynamic sticker catalog (18.3 KB), and repeated message headers removes ~20K tokens per request;
@@ -297,11 +298,13 @@ where $$f(h) = (1-h) + h \times r$$. Each of the three factors is grounded in re
 
 Using official provider pricing as of 2026-08-03—DeepSeek V4 Flash at $0.0028/$0.14 = **1/50**, Claude Sonnet 4.6 at 1/10, Kimi K2.6 at ~1/6, and Doubao seed-1.6 at 1/5—and plugging in conservative numbers (`N` ratio = 2, `h_old` = 95%):
 
-| Model | r | f(95%) / f(99.7%) | Total Factor 2 × 1.35 × f-ratio | Savings |
-| --- | ---: | ---: | ---: | ---: |
-| DeepSeek V4 Flash | 1/50 | 3.0 | ≈ 8.1× | ≈ 88% |
-| Claude Sonnet 4.6 | 1/10 | 1.4 | ≈ 3.8× | ≈ 74% |
-| Kimi K2.6 | ≈1/6 | 1.2 | ≈ 3.3× | ≈ 70% |
+```data title="Conservative Total Savings Across Provider Cache Discounts" bars="Savings" mark="DeepSeek V4 Flash" note="Conservative inputs: N ratio = 2, T ratio ≈ 1.35, h_old = 95%, h_new = 99.7%; Factor = 2 × 1.35 × f(95%)/f(99.7%)."
+Model | Savings | Factor | r | f(95%)/f(99.7%)
+DeepSeek V4 Flash | ≈ 88% | ≈ 8.1× | 1/50 | 3.0
+Claude Sonnet 4.6 | ≈ 74% | ≈ 3.8× | 1/10 | 1.4
+Kimi K2.6 | ≈ 70% | ≈ 3.3× | ≈1/6 | 1.2
+Doubao seed-1.6 | ≈ 69% | ≈ 3.2× | 1/5 | 1.2
+```
 
 The pattern is obvious: the steeper the cache discount, the more leverage you get from pushing the hit rate to 99.7%—DeepSeek's 50× cache discount pushes total savings close to 90%. Meanwhile, the call-count factor `N` doesn't depend on caching at all; it's free money. This matches what I see on my actual billing dashboard: costs dropped to well under 1/5 of what they were, and the conservative formula gives ~1/8 on DeepSeek even before counting the eliminated output tokens.
 
