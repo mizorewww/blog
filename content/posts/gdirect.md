@@ -87,7 +87,7 @@ brew install rclone   # 仅挂载功能需要；Linux 另需用系统包管理�
 
 ### 1. 新建项目并启用 Drive API
 
-1. 打开 [Google Cloud 控制台](https://console.cloud.google.com/)，点击页面顶部的项目选择器，再点击右上角的 **New project（新建项目）**。名称随意（例如 `gdirect`），个人账号的 **Location（位置）** 保持 **No organization（无组织）** 即可。点击 **Create（创建）** 后，确认顶部已经切换到这个新项目。
+1. 打开 [Google Cloud 控制台](https://console.cloud.google.com/)，点击页面顶部的项目选择器，再点击右上角的 **New project（新建项目）**。名称随意（例如 `gdirect`），个人账号的 **父级资源（Location）** 保持 **无组织（No organization）** 即可。点击 **Create（创建）** 后，确认顶部已经切换到这个新项目。
 
    ![在 Google Cloud 控制台中新建项目](../images/gdirect/01-project.png)
 

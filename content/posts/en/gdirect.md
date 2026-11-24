@@ -90,7 +90,7 @@ To avoid rate-limiting (`429 Too Many Requests`) or bans caused by everyone shar
 1. Open the [Google Cloud Console](https://console.cloud.google.com/), click the project picker at the top of the page, and click **New project** (`新建项目`) in the top-right corner. Name it anything you like (e.g. `gdirect`), leave **Location** (`父级资源`) as **No organization** (`无组织`) for a personal account, click **Create** (`创建`), and make sure the new project is selected at the top.
 
    ![Creating a new project in the Google Cloud Console](../../images/gdirect/01-project.png)
-   *`①` **Project name** (`项目名称`): `gdirect-personal-…` · `②` **Location** (`无组织` = **No organization**), then click **Create** (`创建`).*
+   *`①` **Project name** (`项目名称`): `gdirect-personal-…` · `②` **Location** (`父级资源`: `无组织` = **No organization**), then click **Create** (`创建`).*
 
 2. Open the [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com) page, confirm your new project is selected at the top, and click **Enable** (`启用`).
 
