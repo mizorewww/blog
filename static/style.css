@@ -180,6 +180,8 @@ mark{background:var(--sel);color:inherit}
 .prose blockquote p{margin:0 0 .6em}
 .prose blockquote>:last-child{margin-bottom:0}
 .prose pre{overflow:auto;margin:1.8em 0;tab-size:4;padding:20px 22px;background:var(--wash);border:1px solid var(--line);font-size:13px;line-height:1.8;color:var(--ink)}
+/* Off-screen code blocks skip layout, so the late font swap on long posts stays cheap. */
+.prose pre{content-visibility:auto;contain-intrinsic-size:auto 400px}
 .prose code{font-family:var(--mono)}
 .code{position:relative;margin:1.8em 0}
 .prose .code pre{margin:0}
