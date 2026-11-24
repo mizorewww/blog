@@ -88,7 +88,12 @@ func sketchSVG(source string) (string, error) {
 						if m == nil {
 							return "", fmt.Errorf(`viewBox must be "0 0 width height"`)
 						}
-						widths[root], _ = strconv.ParseFloat(m[1], 64)
+						w, errW := strconv.ParseFloat(m[1], 64)
+						h, errH := strconv.ParseFloat(m[2], 64)
+						if errW != nil || errH != nil || w <= 0 || h <= 0 {
+							return "", fmt.Errorf(`viewBox must have positive width and height`)
+						}
+						widths[root] = w
 						attrs = append(attrs, fmt.Sprintf(`viewBox="%s"`, value))
 					case "width", "height", "class", "preserveAspectRatio":
 						// the page sizes and styles the drawing

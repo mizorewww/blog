@@ -365,7 +365,11 @@ func renderData(info string, lines []string) (string, error) {
 	marks := map[string]bool{}
 	if attrs["mark"] != "" {
 		for _, name := range strings.Split(attrs["mark"], ",") {
-			marks[strings.TrimSpace(name)] = true
+			name = strings.TrimSpace(name)
+			if name == "" || !slices.ContainsFunc(rows[1:], func(row []string) bool { return row[0] == name }) {
+				return "", fmt.Errorf("mark %q is not a row label", name)
+			}
+			marks[name] = true
 		}
 	}
 	figClasses := []string{"data"}

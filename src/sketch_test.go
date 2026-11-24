@@ -53,6 +53,9 @@ func TestSketch(t *testing.T) {
 		`<svg viewBox="0 0 10 10"><rect/></svg>text`,
 		`<svg viewBox="0 0 704 10"><rect/></svg><svg viewBox="0 0 500 10"><rect/></svg>`,
 		`<svg viewBox="0 0 704 10"/><svg viewBox="0 0 300 10"/><svg viewBox="0 0 200 10"/>`,
+		`<svg viewBox="0 0 704 0"><rect/></svg>`,
+		`<svg viewBox="0 0 0 100"><rect/></svg>`,
+		`<svg viewBox="0 0 704 1..2"><rect/></svg>`,
 	} {
 		if _, _, err := render([]byte("```sketch title=\"T\"\n"+bad+"\n```\n"), nil); err == nil {
 			t.Errorf("expected an error for %s", bad)

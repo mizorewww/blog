@@ -390,6 +390,11 @@ func TestBlocks(t *testing.T) {
 		"```chart line yfmt=\"%.0f%\"\nx | y\n1 | 2\n```\n",
 		"```chart line xfmt=\"%d\"\nx | y\n1 | 2\n```\n",
 		"```stats\n## A\n```\n",
+		"::tv\n",
+		"::tv interval=W\n",
+		"::tv BINANCE:BTCUSDT intervl=W\n",
+		"::tv BINANCE:BTCUSDT height=480px\n",
+		"::tv BINANCE:BTCUSDT height=0\n",
 	} {
 		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("expected an error for %q", bad)
@@ -467,6 +472,7 @@ func TestDataTable(t *testing.T) {
 	for _, bad := range []string{
 		"```data colour=\"red\"\na | b\n1 | 2\n```",
 		"```data bars=\"C\"\na | b\n1 | 2\n```",
+		"```data mark=\"missing\"\na | b\n1 | 2\n```",
 		"```data\na | b\n1\n```",
 		"```data\na | b\n```",
 	} {
