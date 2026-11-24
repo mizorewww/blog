@@ -94,6 +94,7 @@ h1,.post-summary h2,.prose h2,.prose h3,.post-pagination a{font-family:var(--ser
 .about-mono{display:block;font-family:var(--mono);font-size:13px;line-height:1.88;color:var(--ink)}
 .about-hint{display:block;margin-top:2px;font-size:12.5px;line-height:1.65;color:var(--muted)}
 .about-actions{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 18px;margin-top:6px;font-family:var(--mono);font-size:12px}
+.pgp-toggle{display:contents}
 .pgp-toggle summary{cursor:pointer;list-style:none}
 .pgp-toggle summary::-webkit-details-marker{display:none}
 .pgp-toggle[open] .s-show,.pgp-toggle:not([open]) .s-hide{display:none}
@@ -103,8 +104,9 @@ h1,.post-summary h2,.prose h2,.prose h3,.post-pagination a{font-family:var(--ser
 .textbtn.copied{color:var(--ink);text-decoration-color:var(--ink)}
 .textbtn.copied .c-idle{display:none}
 .textbtn.copied .c-done{display:inline}
-.pgp-key{display:none;flex-basis:100%;margin:10px 0 2px;padding:2px 0 2px 14px;border-left:2px solid var(--line);font-family:var(--mono);font-size:11.5px;line-height:1.65;color:var(--body)}
-.pgp-box:has(.pgp-toggle[open]) .pgp-key{display:block}
+.pgp-toggle::details-content{order:1;flex-basis:100%;min-width:0}
+.pgp-toggle:not([open])::details-content{display:none}
+.pgp-key{order:1;flex-basis:100%;min-width:0;margin:10px 0 2px;padding:2px 0 2px 14px;border-left:2px solid var(--line);font-family:var(--mono);font-size:11.5px;line-height:1.65;color:var(--body)}
 .post-row{display:grid;grid-template-columns:160px 1fr;gap:32px;padding:36px 48px;position:relative;border:0}
 .post-meta{display:flex;flex-wrap:wrap;align-content:flex-start;gap:10px 8px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--muted);padding-right:24px}
 .post-meta time{flex-basis:100%}
