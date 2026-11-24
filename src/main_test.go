@@ -215,6 +215,14 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(en), `<html lang="en">`) || !strings.Contains(string(en), "1 min read") || !strings.Contains(string(en), `href="/notes/posts/alpha/" hreflang="zh-CN"`) {
 		t.Fatal("English edition must use its own language and link its translation")
 	}
+	linuxZH, _ := os.ReadFile("public/tags/linux/index.html")
+	nextjsZH, _ := os.ReadFile("public/tags/nextjs/index.html")
+	if !strings.Contains(string(linuxZH), `rel="alternate" hreflang="en" href="https://example.com/notes/en/tags/linux/"`) {
+		t.Fatal("matched tag pages must emit reciprocal hreflang")
+	}
+	if strings.Contains(string(nextjsZH), `rel="alternate" hreflang=`) || !strings.Contains(string(nextjsZH), `href="/notes/en/tags/" hreflang="en"`) {
+		t.Fatal("unmatched tag pages must omit hreflang while keeping the header language switch")
+	}
 	var index map[string]struct{ T, X string }
 	b, _ := os.ReadFile("public/search.json")
 	if err = json.Unmarshal(b, &index); err != nil || !strings.Contains(index["/posts/alpha/"].T, "Next.js") || !strings.Contains(index["/posts/alpha/"].X, "正文") {

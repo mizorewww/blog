@@ -74,6 +74,14 @@ func build(opts Options) error {
 	}
 	b.linkTranslations()
 	for _, e := range b.editions {
+		if e.published() {
+			if err = b.indexTerms(e); err != nil {
+				return err
+			}
+		}
+	}
+	b.linkTerms()
+	for _, e := range b.editions {
 		if !e.published() {
 			continue
 		}
@@ -265,9 +273,6 @@ func (b *builder) switchTo(from *edition, path string) *Link {
 
 // writeEdition writes every page and feed of one language.
 func (b *builder) writeEdition(e *edition) error {
-	if err := b.indexTerms(e); err != nil {
-		return err
-	}
 	steps := []func(*edition) error{b.writeHome, b.writeAbout, b.writePosts, b.writeNotFound}
 	if len(e.posts) > 0 {
 		steps = append(steps, b.writeTerms, b.writeSearch)
@@ -324,7 +329,11 @@ func (b *builder) writeTerms(e *edition) error {
 	}{{ui.Category, e.categories}, {ui.Tag, e.tags}} {
 		for _, t := range group.terms {
 			count := fmt.Sprintf(ui.Count, len(t.Posts))
-			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + ui.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+			sw := b.switchTo(e, "/tags/")
+			if t.Translation != nil {
+				sw = &Link{t.Translation.Lang.HTML, t.Translation.Path, e.lang.UI.Switch}
+			}
+			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + ui.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: sw}, ""); err != nil {
 				return err
 			}
 			b.feed(e.lang, t.Path+"feed.xml", t.Name+" — "+ui.Title, count, t.Posts)
@@ -357,7 +366,7 @@ func (b *builder) page(path string, p Page, extra string) error {
 		p.Path = path
 		name += "index.html"
 	}
-	if p.Switch != nil && p.Path != "" {
+	if p.Switch != nil && p.Path != "" && (p.Term == nil || p.Term.Translation != nil) {
 		p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
 	}
 	tmpl := b.pages[p.Kind]

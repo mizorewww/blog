@@ -12,7 +12,9 @@ import (
 // Term is a category or tag with the posts filed under it.
 type Term struct {
 	Name, Slug, Path string
+	Lang             *Lang
 	Posts            []*Post
+	Translation      *Term
 }
 
 // termSlug matches the old blog's github-slugger URLs: lowercase, spaces to
@@ -71,6 +73,12 @@ func (b *builder) indexTerms(e *edition) error {
 	}
 	if e.tags, err = collectTerms(e.posts, e.lang.Base, "tags", func(p *Post) []string { return p.Tags }); err != nil {
 		return err
+	}
+	for _, c := range e.categories {
+		c.Lang = e.lang
+	}
+	for _, t := range e.tags {
+		t.Lang = e.lang
 	}
 	units, minutes := 0, 0
 	for _, p := range e.posts {
@@ -134,4 +142,62 @@ func splitWordCount(lang *Lang, units int) (string, string) {
 	default:
 		return strconv.Itoa(units), ""
 	}
+}
+
+// linkTerms pairs categories and tags that represent the same page across editions.
+func (b *builder) linkTerms() {
+	for i, a := range b.editions {
+		if !a.published() {
+			continue
+		}
+		for _, o := range b.editions[i+1:] {
+			if !o.published() {
+				continue
+			}
+			pairTerms(a.categories, o.categories, true)
+			pairTerms(a.tags, o.tags, false)
+		}
+	}
+}
+
+func pairTerms(left, right []*Term, byPosts bool) {
+	for _, l := range left {
+		for _, r := range right {
+			if l.Slug == r.Slug {
+				l.Translation, r.Translation = r, l
+			}
+		}
+	}
+	if !byPosts {
+		return
+	}
+	for _, l := range left {
+		if l.Translation != nil {
+			continue
+		}
+		for _, r := range right {
+			if r.Translation == nil && sameTranslatedCategory(l, r) {
+				l.Translation, r.Translation = r, l
+				break
+			}
+		}
+	}
+}
+
+func sameTranslatedCategory(a, b *Term) bool {
+	paired := 0
+	for _, p := range a.Posts {
+		if p.Translation != nil {
+			if p.Translation.Category != b {
+				return false
+			}
+			paired++
+		}
+	}
+	for _, q := range b.Posts {
+		if q.Translation != nil && q.Translation.Category != a {
+			return false
+		}
+	}
+	return paired > 0
 }
