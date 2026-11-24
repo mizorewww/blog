@@ -166,7 +166,9 @@ func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 
 func dataCells(line string) []string {
 	line = strings.TrimSpace(line)
-	line = strings.TrimSuffix(strings.TrimPrefix(line, "|"), "|")
+	if len(line) >= 2 && strings.HasPrefix(line, "|") && strings.HasSuffix(line, "|") {
+		line = line[1 : len(line)-1]
+	}
 	cells := strings.Split(line, "|")
 	for i := range cells {
 		cells[i] = strings.TrimSpace(cells[i])

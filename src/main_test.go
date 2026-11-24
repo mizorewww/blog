@@ -437,6 +437,10 @@ func TestDataTable(t *testing.T) {
 			t.Fatalf("missing %q in %s", want, sub)
 		}
 	}
+	emptyEdge, _, err := render([]byte("```data\nA | B | C\n1 | 2 |\n| 3 | 4\n```\n\n```data\n| A | B | C |\n| 1 | 2 | |\n| | 3 | 4 |\n```\n"), nil)
+	if err != nil || strings.Count(string(emptyEdge), `<td class="num"></td>`) != 2 || strings.Count(string(emptyEdge), `<td class="row-key mono-key"></td>`) != 2 {
+		t.Fatalf("empty leading or trailing cells must be preserved: %v\n%s", err, emptyEdge)
+	}
 	gfm, _, _ := render([]byte("| Delta | PnL |\n| --- | ---: |\n| 0.05 | +1.2 |\n"), nil)
 	if !strings.Contains(string(gfm), `<div class="table-scroll" tabindex="0"><table>`) || !strings.Contains(string(gfm), `<td class="mono-key">0.05</td>`) || !strings.Contains(string(gfm), `<td class="num" style="text-align:right">+1.2</td>`) {
 		t.Fatalf("GFM table should wrap in .table-scroll and classify numeric cells: %s", gfm)
