@@ -100,13 +100,13 @@ So what exactly are those billions of tokens reading? We sampled and dissected o
 <rect x="46.0" y="250.1" width="70.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="46.0" y="265.1" width="77.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="88.0" y="280.1" width="98.0" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M200 85.8 H214"/>
+<path class="edge" d="M196 85.8 H214"/>
 <text class="small" x="218" y="85.832">system prompt <tspan class="b">10.2%</tspan></text>
-<path class="edge " d="M200 98.9 H210 V103.8 H214"/>
+<path class="edge" d="M196 98.9 H211 V103.8 H214"/>
 <text class="small" x="218" y="103.832">tool schemas <tspan class="b">1.1%</tspan></text>
-<path class="edge " d="M200 102.7 H210 V121.8 H214"/>
-<text class="small" x="218" y="121.832">compaction summary <tspan class="b">2.1%</tspan></text>
-<path class="edge " d="M200 205.5 H214"/>
+<path class="edge" d="M196 102.7 H207 V121.8 H214"/>
+<text class="small" x="218" y="121.832">compaction <tspan class="b">2.1%</tspan></text>
+<path class="edge" d="M196 205.5 H214"/>
 <text class="small" x="218" y="205.544">chat history <tspan class="b">86.6%</tspan></text>
 <text class="caps" x="372" y="30">MEMOH BEFORE</text>
 <text class="small" x="372" y="50">Single captured request · by bytes</text>
@@ -123,13 +123,13 @@ So what exactly are those billions of tokens reading? We sampled and dissected o
 <rect x="390.0" y="248.2" width="98.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="390.0" y="263.2" width="58.8" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="443.2" y="278.2" width="86.8" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M544 86.4 H558"/>
+<path class="edge" d="M540 86.4 H558"/>
 <text class="small" x="562" y="86.412">system prompt <tspan class="b">10.7%</tspan></text>
-<path class="edge " d="M544 123.5 H558"/>
+<path class="edge" d="M540 123.5 H558"/>
 <text class="small" x="562" y="123.532">tool schemas <tspan class="b">21.3%</tspan></text>
-<path class="edge " d="M544 227.1 H558"/>
+<path class="edge" d="M540 227.1 H558"/>
 <text class="small" x="562" y="227.12">chat history <tspan class="b">68.0%</tspan></text>
-<text class="small" x="562" y="245.12">compaction summary 0%</text>
+<text class="small" x="562" y="245.12">compaction 0%</text>
 </svg>
 <svg viewBox="0 0 340 556">
 <rect class="panel" x="0" y="0" width="340" height="556" rx="12"/>
@@ -150,13 +150,13 @@ So what exactly are those billions of tokens reading? We sampled and dissected o
 <rect x="34.0" y="207.3" width="43.7" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="73.5" y="222.3" width="64.5" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="237.3" width="52.0" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M152 76.0 H166"/>
+<path class="edge" d="M148 76.0 H166"/>
 <text class="small" x="170" y="75.996">system prompt <tspan class="b">10.2%</tspan></text>
-<path class="edge " d="M152 87.1 H162 V94.0 H166"/>
+<path class="edge" d="M148 87.1 H162 V94.0 H166"/>
 <text class="small" x="170" y="93.996">tool schemas <tspan class="b">1.1%</tspan></text>
-<path class="edge " d="M152 90.2 H162 V112.0 H166"/>
+<path class="edge" d="M148 90.2 H158 V112.0 H166"/>
 <text class="small" x="170" y="111.996">compaction <tspan class="b">2.1%</tspan></text>
-<path class="edge " d="M152 177.1 H166"/>
+<path class="edge" d="M148 177.1 H166"/>
 <text class="small" x="170" y="177.132">chat history <tspan class="b">86.6%</tspan></text>
 <text class="caps" x="16" y="294">MEMOH BEFORE</text>
 <text class="small" x="16" y="314">Single captured request · by bytes</text>
@@ -172,11 +172,11 @@ So what exactly are those billions of tokens reading? We sampled and dissected o
 <rect x="80.8" y="485.7" width="57.2" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="500.7" width="72.8" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="515.7" width="43.7" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M152 348.5 H166"/>
+<path class="edge" d="M148 348.5 H166"/>
 <text class="small" x="170" y="348.486">system prompt <tspan class="b">10.7%</tspan></text>
-<path class="edge " d="M152 379.8 H166"/>
+<path class="edge" d="M148 379.8 H166"/>
 <text class="small" x="170" y="379.846">tool schemas <tspan class="b">21.3%</tspan></text>
-<path class="edge " d="M152 467.4 H166"/>
+<path class="edge" d="M148 467.4 H166"/>
 <text class="small" x="170" y="467.36">chat history <tspan class="b">68.0%</tspan></text>
 <text class="small" x="170" y="485.36">compaction 0%</text>
 </svg>
@@ -277,14 +277,45 @@ The right solution must live at the intersection of the two: **it must have sema
 
 Follow those constraints and the answer becomes obvious: **introduce a dedicated small classifier model.**
 
-```mermaid title="How an Incoming Group Message Decides Whether to Wake the Primary Model" note="Direct mentions take a deterministic route without touching any model; all other messages send only the last few lines to the decider model, leaving the primary model's context and cache untouched."
-flowchart TD
-  M[Group Message] --> Q{"@ / Reply / Name?"}
-  Q -- Yes --> A["Primary Model<br/>Full context, ~93K tokens"]
-  Q -- No --> D["Decider Model<br/>Last 6 lines only, ~1,650 tokens"]
-  D -- "Prob ≥ Threshold" --> A
-  D -- "Prob < Threshold" --> S[Stay Silent]
-  A --> R[Speak or Stay Silent]
+```sketch title="How an Incoming Group Message Decides Whether to Wake the Primary Model" note="Direct mentions take a deterministic route without touching any model; all other messages send only the last few lines to the decider model, leaving the primary model's context and cache untouched."
+<svg viewBox="0 0 704 224">
+<rect class="panel" x="0" y="0" width="704" height="224" rx="12"/>
+<g class="node clay"><rect x="18" y="94" width="110" height="36" rx="18"/><text class="mid" x="73" y="112">Group Msg</text></g>
+<path class="edge" d="M128 112 H146" marker-end="url(#arrow)"/>
+<g class="node"><rect x="150" y="88" width="144" height="48" rx="4"/><text class="mid b" x="222" y="104">@ / Reply / Name?</text><text class="mid small" x="222" y="121">Deterministic code</text></g>
+<path class="edge" d="M294 100 H318 V58 H340" marker-end="url(#arrow)"/>
+<text class="small mid" x="306" y="90">Yes</text>
+<path class="edge" d="M294 124 H318 V164 H340" marker-end="url(#arrow)"/>
+<text class="small mid" x="306" y="140">No</text>
+<g class="node blue"><rect x="344" y="34" width="176" height="48" rx="4"/><text class="mid b" x="432" y="50">Primary Model</text><text class="mid small" x="432" y="67">Full context · ~93K tokens</text></g>
+<path class="edge" d="M520 58 H572" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="576" y="40" width="110" height="36" rx="18"/><text class="mid small" x="631" y="58">Speak or Silent</text></g>
+<g class="node orange"><rect x="344" y="140" width="176" height="48" rx="4"/><text class="mid b" x="432" y="156">Decider Model</text><text class="mid small" x="432" y="173">Last 6 lines · ~1,650 tokens</text></g>
+<path class="edge" d="M432 140 V86" marker-end="url(#arrow)"/>
+<text class="small" x="440" y="114">Prob ≥ thresh</text>
+<path class="edge" d="M520 164 H572" marker-end="url(#arrow)"/>
+<text class="small mid" x="546" y="152">&lt; thresh</text>
+<g class="node plain"><rect x="576" y="146" width="110" height="36" rx="18"/><text class="mid small" x="631" y="164">Stay Silent</text></g>
+</svg>
+<svg viewBox="0 0 340 356">
+<rect class="panel" x="0" y="0" width="340" height="356" rx="12"/>
+<g class="node clay"><rect x="92" y="16" width="156" height="34" rx="17"/><text class="mid" x="170" y="33">Group Message</text></g>
+<path class="edge" d="M170 50 V68" marker-end="url(#arrow)"/>
+<g class="node"><rect x="46" y="72" width="248" height="46" rx="4"/><text class="mid b" x="170" y="88">@ / Reply / Name?</text><text class="mid small" x="170" y="105">Deterministic code route</text></g>
+<path class="edge" d="M96 118 V226" marker-end="url(#arrow)"/>
+<text class="small" x="104" y="140">Yes</text>
+<path class="edge" d="M228 118 V144" marker-end="url(#arrow)"/>
+<text class="small" x="236" y="135">No</text>
+<g class="node orange"><rect x="132" y="148" width="192" height="48" rx="4"/><text class="mid b" x="228" y="164">Decider Model</text><text class="mid small" x="228" y="181">Last 6 lines · ~1,650 tokens</text></g>
+<path class="edge" d="M180 196 V226" marker-end="url(#arrow)"/>
+<text class="small end" x="174" y="214">≥ thresh</text>
+<path class="edge" d="M274 196 V236" marker-end="url(#arrow)"/>
+<text class="small" x="280" y="214">&lt; thresh</text>
+<g class="node blue"><rect x="16" y="230" width="192" height="48" rx="4"/><text class="mid b" x="112" y="246">Primary Model</text><text class="mid small" x="112" y="263">Full context · ~93K tokens</text></g>
+<g class="node plain"><rect x="224" y="240" width="100" height="36" rx="18"/><text class="mid small" x="274" y="258">Stay Silent</text></g>
+<path class="edge" d="M112 278 V298" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="44" y="302" width="136" height="36" rx="18"/><text class="mid small" x="112" y="320">Speak or Silent</text></g>
+</svg>
 ```
 
 I chose `pplx-decider-v1.2`, a specialized small classifier model on OpenRouter (driven via Pi 1.5's native `classify` abstraction). It is dirt cheap along three irreplaceable dimensions:
@@ -296,8 +327,8 @@ I chose `pplx-decider-v1.2`, a specialized small classifier model on OpenRouter 
 ```echarts title="Tokens Read to Decide 'Should I Chime In?'" height="200" note="Primary model shows the average request from our ledger; decider model shows the measured payload including all few-shot examples. Cost per 1,000 decisions: $0.033 for the decider model vs. ~$0.26 to $1.50+ for the primary model depending on provider."
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "grid": {"top": 8, "right": 64},
-  "xAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+  "grid": {"top": 8, "left": 4, "right": 64, "bottom": 4},
+  "xAxis": {"type": "value", "max": 100000, "interval": 50000, "axisLabel": {"formatter": "{value}"}},
   "yAxis": {"type": "category", "inverse": true, "data": ["Primary (full context)", "Decider (6-line slice)"]},
   "series": [{
     "name": "Input tokens", "type": "bar", "barWidth": 24,
@@ -314,13 +345,13 @@ The decider model only went live on November 5. For the three months prior, ambi
 {
   "tooltip": {"trigger": "item"},
   "series": [{
-    "name": "Trigger Reason", "type": "pie", "radius": ["40%", "62%"], "center": ["50%", "54%"],
+    "name": "Trigger Reason", "type": "pie", "radius": ["36%", "56%"], "center": ["52%", "55%"],
     "label": {"formatter": "{b}\n{d}%", "lineHeight": 16},
-    "labelLine": {"length": 10, "length2": 14},
+    "labelLine": {"length": 12, "length2": 10},
     "data": [
       {"name": "Probability Gate", "value": 52323, "itemStyle": {"color": "var(--clay)"}},
-      {"name": "Replied To", "value": 1394, "itemStyle": {"color": "var(--stone)"}},
-      {"name": "Called by Name", "value": 644, "itemStyle": {"color": "var(--kraft)"}},
+      {"name": "Reply", "value": 1394, "itemStyle": {"color": "var(--stone)"}},
+      {"name": "By Name", "value": 644, "itemStyle": {"color": "var(--kraft)"}},
       {"name": "@Mentioned", "value": 96, "itemStyle": {"color": "var(--sky)"}}
     ]
   }]
@@ -457,8 +488,8 @@ Let's run the numbers on the 5.34 billion input tokens we actually processed ove
 ```echarts title="5.34B Input Tokens Priced at DeepSeek V4 Flash Rates" height="220" note="Input tokens only; 14.3M output tokens excluded. 98.7% is our measured hit rate on DeepSeek; 0% is re-reading at full price every call. Hypothetical comparison across the full 3-month volume, not my literal invoice."
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "valueFormatter": "${value}"},
-  "grid": {"top": 8, "right": 56},
-  "xAxis": {"type": "value", "axisLabel": {"formatter": "${value}"}},
+  "grid": {"top": 8, "left": 4, "right": 56, "bottom": 4},
+  "xAxis": {"type": "value", "max": 800, "interval": 200, "axisLabel": {"formatter": "${value}"}},
   "yAxis": {"type": "category", "inverse": true, "data": ["No Cache (0%)", "85% Hit Rate", "98.7% Hit Rate"]},
   "series": [{
     "name": "Input Cost", "type": "bar", "barWidth": 22,
@@ -510,41 +541,43 @@ Where in the request payload should this dynamic list live? If we trace the engi
   If we can only append monotonically, what if we disguise the sticker metadata as message text inside the user's chat line?
   Disaster struck immediately: upon reading it, the model earnestly concluded that *"a group member just leaked my internal sticker catalog,"* and proceeded to accuse group members of spying on its backend. Worse still, when the session hit its context limit and triggered compaction, the summarizer distilled this absurd suspicion—*"group members leaked the bot's sticker catalog"*—into an established fact, baking it permanently into the long-term summary and causing irreversible cognitive poisoning.
 
-```sketch title="Only One Place Can Hold Dynamic Information" note="Each row shows a request after inserting a dynamic sticker list; the clay vertical line marks where prefix continuity breaks and the cache invalidates."
-<svg viewBox="0 0 704 288">
-<rect class="panel" x="0" y="0" width="704" height="288" rx="12"/>
+```sketch title="Only One Place Can Hold Dynamic Information" note="Each row shows a request after inserting a dynamic sticker list; the terracotta vertical line marks where prefix continuity breaks and the cache invalidates."
+<svg viewBox="0 0 704 328">
+<rect class="panel" x="0" y="0" width="704" height="328" rx="12"/>
 <text class="caps" x="24" y="24">WHERE TO PUT THE DYNAMIC STICKER LIST</text>
 <circle cx="32" cy="59" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 56 35 62 M35 56 29 62"/>
 <text class="b" x="48" y="52">Stuff into system prompt</text>
-<text class="small accent" x="48" y="70">Change 1 char and all 90K+ tokens of cache behind it invalidate</text>
-<g class="node blue"><rect x="352" y="44" width="59.1" height="30" rx="4"/><text class="mid" x="381.55" y="59">system</text></g>
-<g class="node orange"><rect x="414.1" y="44" width="47.3" height="30" rx="4"/><text class="mid small" x="437.75" y="59">stk</text></g>
-<g class="node plain"><rect x="464.3" y="44" width="153.6" height="30" rx="4"/><text class="mid" x="541.1" y="59">history</text></g>
-<g class="node plain"><rect x="620.9" y="44" width="59.1" height="30" rx="4"/><text class="mid small" x="650.45" y="59">new</text></g>
-<path class="edge hot" d="M412.6 38 V80"/>
-<circle cx="32" cy="119" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 116 35 122 M35 116 29 122"/>
-<text class="b" x="48" y="112">Hang at the end, replace next turn</text>
-<text class="small accent" x="48" y="130">Prefix breaks right where the old tail was swapped</text>
-<g class="node blue"><rect x="352" y="104" width="57" height="30" rx="4"/><text class="mid" x="380.5" y="119">system</text></g>
-<g class="node plain"><rect x="412" y="104" width="148.1" height="30" rx="4"/><text class="mid" x="486.05" y="119">history</text></g>
-<g class="node plain"><rect x="563.1" y="104" width="57" height="30" rx="4"/><text class="mid small" x="591.6" y="119">new</text></g>
-<g class="node orange"><rect x="623" y="104" width="57" height="30" rx="4"/><text class="mid small" x="651.5" y="119">stk</text></g>
-<path class="edge hot" d="M621.5 98 V140"/>
-<circle cx="32" cy="179" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 176 35 182 M35 176 29 182"/>
-<text class="b" x="48" y="172">Mix into chat transcript</text>
-<text class="small accent" x="48" y="190">Cache holds, but model thinks users said it &amp; compacts it as "fact"</text>
-<g class="node blue"><rect x="352" y="164" width="57.5" height="30" rx="4"/><text class="mid" x="380.75" y="179">system</text></g>
-<g class="node plain"><rect x="412.5" y="164" width="207.0" height="30" rx="4"/></g>
-<text class="" x="422.5" y="179">history</text>
-<g class="node orange"><rect x="559.5" y="170" width="52" height="18" rx="3"/><text class="mid small" x="585.5" y="179.0">stickers</text></g>
-<g class="node plain"><rect x="622.5" y="164" width="57.5" height="30" rx="4"/><text class="mid small" x="651.25" y="179">new</text></g>
-<circle cx="32" cy="239" r="8" fill="var(--teal-wash)" stroke="var(--teal)"/><path class="edge" d="M28 239 31 242 36 236" stroke="var(--teal)"/>
-<text class="b" x="48" y="232">[System Note] appended after that input batch</text>
-<text class="small " x="48" y="250">Append-only, immutable once written, distinct tag, excluded from session DB</text>
-<g class="node blue"><rect x="352" y="224" width="59.1" height="30" rx="4"/><text class="mid" x="381.55" y="239">system</text></g>
-<g class="node plain"><rect x="414.1" y="224" width="153.6" height="30" rx="4"/><text class="mid" x="490.9" y="239">history</text></g>
-<g class="node plain"><rect x="570.7" y="224" width="59.1" height="30" rx="4"/><text class="mid small" x="600.25" y="239">new</text></g>
-<g class="node violet"><rect x="632.7" y="224" width="47.3" height="30" rx="4"/><text class="mid" x="656.35" y="239">note</text></g>
+<text class="small accent" x="48" y="70">Change 1 char and 90K+ cached tokens invalidate</text>
+<g class="node blue"><rect x="376" y="44" width="54" height="30" rx="4"/><text class="mid small" x="403" y="59">system</text></g>
+<g class="node orange"><rect x="433" y="44" width="44" height="30" rx="4"/><text class="mid small" x="455" y="59">stk</text></g>
+<g class="node plain"><rect x="480" y="44" width="143" height="30" rx="4"/><text class="mid" x="551.5" y="59">history</text></g>
+<g class="node plain"><rect x="626" y="44" width="54" height="30" rx="4"/><text class="mid small" x="653" y="59">new</text></g>
+<path class="edge hot" d="M431.5 38 V80"/>
+<circle cx="32" cy="123" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 120 35 126 M35 120 29 126"/>
+<text class="b" x="48" y="116">Hang at the end, replace next turn</text>
+<text class="small accent" x="48" y="134">Prefix breaks right where the tail is swapped</text>
+<g class="node blue"><rect x="376" y="108" width="52" height="30" rx="4"/><text class="mid small" x="402" y="123">system</text></g>
+<g class="node plain"><rect x="431" y="108" width="139" height="30" rx="4"/><text class="mid" x="500.5" y="123">history</text></g>
+<g class="node plain"><rect x="573" y="108" width="52" height="30" rx="4"/><text class="mid small" x="599" y="123">new</text></g>
+<g class="node orange"><rect x="628" y="108" width="52" height="30" rx="4"/><text class="mid small" x="654" y="123">stk</text></g>
+<path class="edge hot" d="M626.5 102 V144"/>
+<circle cx="32" cy="189" r="8" fill="var(--clay-wash)" stroke="var(--clay)"/><path class="edge hot" d="M29 186 35 192 M35 186 29 192"/>
+<text class="b" x="48" y="182">Mix into chat transcript</text>
+<text class="small accent" x="48" y="200">Cache holds, but model thinks users said it</text>
+<text class="small accent" x="48" y="216">and compacts the guess into "fact"</text>
+<g class="node blue"><rect x="376" y="176" width="53" height="30" rx="4"/><text class="mid small" x="402.5" y="191">system</text></g>
+<g class="node plain"><rect x="432" y="176" width="192" height="30" rx="4"/></g>
+<text x="442" y="191">history</text>
+<g class="node orange"><rect x="564" y="182" width="52" height="18" rx="3"/><text class="mid small" x="590" y="191">stickers</text></g>
+<g class="node plain"><rect x="627" y="176" width="53" height="30" rx="4"/><text class="mid small" x="653.5" y="191">new</text></g>
+<circle cx="32" cy="265" r="8" fill="var(--teal-wash)" stroke="var(--teal)"/><path class="edge" d="M28 265 31 268 36 262" stroke="var(--teal)"/>
+<text class="b" x="48" y="258">[System Note] appended after input batch</text>
+<text class="small" x="48" y="276">Append-only, immutable, distinct marker,</text>
+<text class="small" x="48" y="292">and excluded from persistent session DB</text>
+<g class="node blue"><rect x="376" y="252" width="54" height="30" rx="4"/><text class="mid small" x="403" y="267">system</text></g>
+<g class="node plain"><rect x="433" y="252" width="143" height="30" rx="4"/><text class="mid" x="504.5" y="267">history</text></g>
+<g class="node plain"><rect x="579" y="252" width="54" height="30" rx="4"/><text class="mid small" x="606" y="267">new</text></g>
+<g class="node violet"><rect x="636" y="252" width="44" height="30" rx="4"/><text class="mid small" x="658" y="267">note</text></g>
 </svg>
 <svg viewBox="0 0 340 486">
 <rect class="panel" x="0" y="0" width="340" height="486" rx="12"/>
@@ -609,8 +642,8 @@ This strict derivation gave birth to our final request projection structure:
 <g class="node plain"><rect x="188" y="120" width="236" height="34" rx="4"/><text class="mid" x="306" y="137">chat history</text></g>
 <g class="node violet"><rect x="428" y="120" width="60" height="34" rx="4"/><text class="mid" x="458" y="137">note</text></g>
 <g class="node teal"><rect x="492" y="120" width="64" height="34" rx="4"/><text class="mid" x="524" y="137">output</text></g>
-<g class="node plain"><rect x="564" y="120" width="64" height="34" rx="4"/><text class="mid" x="596" y="137">new msg</text></g>
-<g class="node violet"><rect x="632" y="120" width="44" height="34" rx="4"/><text class="mid" x="654" y="137">note</text></g>
+<g class="node plain"><rect x="564" y="120" width="64" height="34" rx="4"/><text class="mid small" x="596" y="137">new msg</text></g>
+<g class="node violet"><rect x="632" y="120" width="44" height="34" rx="4"/><text class="mid small" x="654" y="137">note</text></g>
 <path class="edge dash" d="M558 46 V184"/>
 <text class="small accent" x="112" y="172">Byte-for-byte identical: cache hit, 1/50th price on DeepSeek</text>
 <text class="small mid" x="619" y="172">Added: full price</text>
@@ -618,97 +651,99 @@ This strict derivation gave birth to our final request projection structure:
 <text class="small" x="24" y="271">Turn n+1</text>
 <g class="node blue"><rect x="112" y="254" width="72" height="34" rx="4"/><text class="mid" x="148" y="271">system</text></g>
 <g class="node plain"><rect x="188" y="254" width="236" height="34" rx="4"/><text class="mid" x="306" y="271">chat history</text></g>
-<rect class="window" x="428" y="254" width="96" height="34" rx="4"/>
-<text class="small mid" x="476" y="271">old stickers</text>
-<circle cx="524" cy="254" r="7" fill="var(--card)" stroke="var(--clay)"/>
-<path class="edge hot" d="M521 251 527 257 M527 251 521 257"/>
-<g class="node plain"><rect x="528" y="254" width="64" height="34" rx="4"/><text class="mid" x="560" y="271">new msg</text></g>
-<g class="node orange"><rect x="596" y="254" width="84" height="34" rx="4"/><text class="mid" x="638" y="271">new stickers</text></g>
+<rect class="window" x="428" y="254" width="92" height="34" rx="4"/>
+<text class="small mid" x="474" y="271">old stickers</text>
+<g class="node plain"><rect x="532" y="254" width="64" height="34" rx="4"/><text class="mid small" x="564" y="271">new msg</text></g>
+<g class="node orange"><rect x="600" y="254" width="80" height="34" rx="4"/><text class="mid small" x="640" y="271">new stickers</text></g>
+<circle cx="520" cy="254" r="7" fill="var(--card)" stroke="var(--clay)"/>
+<path class="edge hot" d="M517 251 523 257 M523 251 517 257"/>
 <path class="edge hot" d="M426 246 V296"/>
 <text class="small accent" x="112" y="310">Prefix breaks here; every byte after is re-read at full price (13,600 cold tokens measured)</text>
 </svg>
-<svg viewBox="0 0 340 348">
-<rect class="panel" x="0" y="0" width="340" height="348" rx="12"/>
+<svg viewBox="0 0 340 356">
+<rect class="panel" x="0" y="0" width="340" height="356" rx="12"/>
 <text class="caps" x="16" y="28">APPEND-ONLY: STRICT PREFIXES</text>
 <text class="small" x="16" y="52">Turn n</text>
 <g class="node blue"><rect x="16" y="62" width="48" height="32" rx="4"/><text class="mid small" x="40" y="78">system</text></g>
 <g class="node plain"><rect x="67" y="62" width="84" height="32" rx="4"/><text class="mid small" x="109" y="78">history</text></g>
 <g class="node violet"><rect x="154" y="62" width="36" height="32" rx="4"/><text class="mid small" x="172" y="78">note</text></g>
 <g class="node teal"><rect x="193" y="62" width="36" height="32" rx="4"/><text class="mid small" x="211" y="78">out</text></g>
-<rect x="8" y="132" width="222.5" height="70" rx="8" fill="var(--clay-wash)"/>
-<text class="small" x="16" y="130">Turn n+1</text>
-<g class="node blue"><rect x="16" y="140" width="48" height="32" rx="4"/><text class="mid small" x="40" y="156">system</text></g>
-<g class="node plain"><rect x="67" y="140" width="84" height="32" rx="4"/><text class="mid small" x="109" y="156">history</text></g>
-<g class="node violet"><rect x="154" y="140" width="36" height="32" rx="4"/><text class="mid small" x="172" y="156">note</text></g>
-<g class="node teal"><rect x="193" y="140" width="36" height="32" rx="4"/><text class="mid small" x="211" y="156">out</text></g>
-<g class="node plain"><rect x="232" y="140" width="52" height="32" rx="4"/><text class="mid small" x="258" y="156">new</text></g>
-<g class="node violet"><rect x="287" y="140" width="34" height="32" rx="4"/><text class="mid small" x="304" y="156">note</text></g>
-<path class="edge dash" d="M230.5 56 V202"/>
-<text class="small accent" x="16" y="190">Byte-identical: cache hit (1/50 price)</text>
-<text class="small mid" x="277.25" y="190">Full price</text>
-<text class="caps" x="16" y="226">ANTI-PATTERN: SWAPPING TRAILING LIST</text>
-<text class="small" x="16" y="248">Turn n+1</text>
-<g class="node blue"><rect x="16" y="258" width="48" height="32" rx="4"/><text class="mid small" x="40" y="274">system</text></g>
-<g class="node plain"><rect x="67" y="258" width="84" height="32" rx="4"/><text class="mid small" x="109" y="274">history</text></g>
-<rect class="window" x="154" y="258" width="60" height="32" rx="4"/>
-<text class="small mid" x="184" y="274">old list</text>
-<circle cx="214" cy="258" r="7" fill="var(--card)" stroke="var(--clay)"/>
-<path class="edge hot" d="M211 255 217 261 M217 255 211 261"/>
-<g class="node plain"><rect x="217" y="258" width="44" height="32" rx="4"/><text class="mid small" x="239" y="274">new</text></g>
-<g class="node orange"><rect x="264" y="258" width="60" height="32" rx="4"/><text class="mid small" x="294" y="274">new list</text></g>
-<path class="edge hot" d="M152.5 250 V298"/>
-<text class="small accent" x="16" y="312">Prefix breaks here; everything after is full price:</text>
-<text class="small accent" x="16" y="330">13,600 cold tokens missed at start of next turn</text>
+<text class="small" x="16" y="120">Turn n+1</text>
+<rect x="8" y="134" width="222.5" height="70" rx="8" fill="var(--clay-wash)"/>
+<g class="node blue"><rect x="16" y="142" width="48" height="32" rx="4"/><text class="mid small" x="40" y="158">system</text></g>
+<g class="node plain"><rect x="67" y="142" width="84" height="32" rx="4"/><text class="mid small" x="109" y="158">history</text></g>
+<g class="node violet"><rect x="154" y="142" width="36" height="32" rx="4"/><text class="mid small" x="172" y="158">note</text></g>
+<g class="node teal"><rect x="193" y="142" width="36" height="32" rx="4"/><text class="mid small" x="211" y="158">out</text></g>
+<g class="node plain"><rect x="232" y="142" width="52" height="32" rx="4"/><text class="mid small" x="258" y="158">new</text></g>
+<g class="node violet"><rect x="287" y="142" width="34" height="32" rx="4"/><text class="mid small" x="304" y="158">note</text></g>
+<path class="edge dash" d="M230.5 56 V204"/>
+<text class="small accent" x="16" y="192">Byte-identical: cache hit (1/50 price)</text>
+<text class="small mid" x="277.25" y="192">Full price</text>
+<text class="caps" x="16" y="232">ANTI-PATTERN: SWAPPING TRAILING LIST</text>
+<text class="small" x="16" y="254">Turn n+1</text>
+<g class="node blue"><rect x="16" y="264" width="48" height="32" rx="4"/><text class="mid small" x="40" y="280">system</text></g>
+<g class="node plain"><rect x="67" y="264" width="84" height="32" rx="4"/><text class="mid small" x="109" y="280">history</text></g>
+<rect class="window" x="154" y="264" width="56" height="32" rx="4"/>
+<text class="small mid" x="182" y="280">old list</text>
+<g class="node plain"><rect x="220" y="264" width="42" height="32" rx="4"/><text class="mid small" x="241" y="280">new</text></g>
+<g class="node orange"><rect x="265" y="264" width="59" height="32" rx="4"/><text class="mid small" x="294.5" y="280">new list</text></g>
+<circle cx="210" cy="264" r="7" fill="var(--card)" stroke="var(--clay)"/>
+<path class="edge hot" d="M207 261 213 267 M213 261 207 267"/>
+<path class="edge hot" d="M152.5 256 V304"/>
+<text class="small accent" x="16" y="318">Prefix breaks here; everything after is full price:</text>
+<text class="small accent" x="16" y="336">13,600 cold tokens missed at start of next turn</text>
 </svg>
 ```
 
 Inside an actual request payload, it unfolds with a clean, disciplined rhythm:
 
-```sketch title="Anatomy of a Real Request" note="Excerpt with usernames and sticker intensity descriptions removed. The dashed box is the full input of one request, read top to bottom by the model; annotations on the right explain why each piece sits where it does."
-<svg viewBox="0 0 704 382">
-<rect class="panel" x="0" y="0" width="704" height="382" rx="12"/>
-<text class="caps" x="24" y="26">SINGLE REQUEST, TOP TO BOTTOM</text>
-<rect class="window" x="24" y="34" width="444" height="324" rx="8"/>
-<text class="mono mute" x="36" y="79">system</text>
-<g class="node blue"><rect x="112" y="44" width="344" height="70" rx="4"/><text class="mono" x="124" y="61">…group protocol, tool rules, persona…</text><text class="mono" x="124" y="79"># Sticker Catalog (frozen for session)</text><text class="mono" x="124" y="97">s3: 😺 smug approval  s4: 😭 crying</text></g>
-<path class="edge " d="M458 79.0 H478"/>
-<text class="small" x="484" y="79">Frozen: byte-identical all session</text>
-<text class="mono mute" x="36" y="150">user</text>
-<g class="node plain"><rect x="112" y="124" width="344" height="52" rx="4"/><text class="mono" x="124" y="141">[21:03:11] #18452 Alice: That's wild</text><text class="mono" x="124" y="159">[21:03:15] #18453 Bob: [sticker 😂]</text></g>
-<path class="edge " d="M458 150.0 H478"/>
-<text class="small" x="484" y="150">Group messages appended in order</text>
-<text class="mono mute" x="36" y="212">user</text>
-<g class="node violet"><rect x="112" y="186" width="344" height="52" rx="4"/><text class="mono" x="124" y="203">[System Note] Reusable sticker seen in</text><text class="mono" x="124" y="221">this batch: s2091 😂</text></g>
-<path class="edge " d="M458 212.0 H478"/>
-<text class="small" x="484" y="212">Note follows batch; stays immutable</text>
-<text class="mono mute" x="36" y="265">assistant</text>
-<g class="node teal"><rect x="112" y="248" width="344" height="34" rx="4"/><text class="mono" x="124" y="265">send({ message: "Truly wild", sticker: "s4" })</text></g>
-<path class="edge " d="M458 265.0 H478"/>
-<text class="small" x="484" y="265">Sent reply becomes prefix of next request</text>
-<text class="mono mute" x="36" y="318">user</text>
-<g class="node plain"><rect x="112" y="292" width="344" height="52" rx="4"/><text class="mono" x="124" y="309">[media_update #18453] [sticker: ROFL]</text><text class="mono" x="124" y="327">[21:04:02] #18460 Alice: What's next?</text></g>
-<path class="edge " d="M458 318.0 H478"/>
-<text class="small" x="484" y="310">Late vision result appended as new event;</text>
-<text class="small" x="484" y="326">never mutates #18453 in place</text>
+```sketch title="Anatomy of a Real Request" note="Excerpt with usernames and sticker intensity descriptions removed. The dashed box is the full input of one request, read top to bottom by the model; the annotations for each block explain why it sits where it does."
+<svg viewBox="0 0 704 388">
+<rect class="panel" x="0" y="0" width="704" height="388" rx="12"/>
+<text class="caps" x="24" y="22">SINGLE REQUEST, TOP TO BOTTOM</text>
+<rect class="window" x="24" y="38" width="416" height="326" rx="8"/>
+<text class="mono" fill="var(--muted)" x="34" y="83">system</text>
+<g class="node blue"><rect x="104" y="48" width="324" height="70" rx="4"/><text class="mono" x="114" y="65">…group protocol, tool rules, persona…</text><text class="mono" x="114" y="83"># Sticker Catalog (session-frozen)</text><text class="mono" x="114" y="101">s3: 😺 smug approval  s4: 😭 crying</text></g>
+<path class="edge" d="M430 83.0 H448"/>
+<text class="small" x="454" y="83">Frozen: byte-identical all session</text>
+<text class="mono" fill="var(--muted)" x="34" y="154">user</text>
+<g class="node plain"><rect x="104" y="128" width="324" height="52" rx="4"/><text class="mono" x="114" y="145">[21:03:11] #18452 Alice: That's wild</text><text class="mono" x="114" y="163">[21:03:15] #18453 Bob: [sticker 😂]</text></g>
+<path class="edge" d="M430 154.0 H448"/>
+<text class="small" x="454" y="154">Group messages appended in order</text>
+<text class="mono" fill="var(--muted)" x="34" y="216">user</text>
+<g class="node violet"><rect x="104" y="190" width="324" height="52" rx="4"/><text class="mono" x="114" y="207">[System Note] Reusable sticker seen</text><text class="mono" x="114" y="225">in this batch: s2091 😂</text></g>
+<path class="edge" d="M430 216.0 H448"/>
+<text class="small" x="454" y="216">Note follows batch; never edited</text>
+<text class="mono" fill="var(--muted)" x="34" y="269">assistant</text>
+<g class="node teal"><rect x="104" y="252" width="324" height="34" rx="4"/><text class="mono" x="114" y="269">send({ text: "Truly wild", sticker: "s4" })</text></g>
+<path class="edge" d="M430 269.0 H448"/>
+<text class="small" x="454" y="269">Reply becomes prefix of next call</text>
+<text class="mono" fill="var(--muted)" x="34" y="322">user</text>
+<g class="node plain"><rect x="104" y="296" width="324" height="52" rx="4"/><text class="mono" x="114" y="313">[media_update #18453] [sticker: ROFL]</text><text class="mono" x="114" y="331">[21:04:02] #18460 Alice: What's next?</text></g>
+<path class="edge" d="M430 322.0 H448"/>
+<text class="small" x="454" y="314">Late vision result appended;</text>
+<text class="small" x="454" y="330">never mutates #18453 in place</text>
 </svg>
-<svg viewBox="0 0 340 710">
-<rect class="panel" x="0" y="0" width="340" height="710" rx="12"/>
-<text class="caps" x="16" y="24">SINGLE REQUEST, TOP TO BOTTOM</text>
-<text class="mono mute" x="16" y="46">system</text>
-<g class="node blue"><rect x="16" y="56" width="308" height="88" rx="4"/><text class="mono" x="28" y="73">…group protocol, rules, persona…</text><text class="mono" x="28" y="91"># Sticker Catalog (session-frozen)</text><text class="mono" x="28" y="109">s3: 😺 smug approval</text><text class="mono" x="28" y="127">s4: 😭 crying</text></g>
-<text class="small accent" x="16" y="158">Frozen: byte-identical for the whole session</text>
-<text class="mono mute" x="16" y="190">user</text>
-<g class="node plain"><rect x="16" y="200" width="308" height="88" rx="4"/><text class="mono" x="28" y="217">[21:03:11] #18452 Alice:</text><text class="mono" x="28" y="235">  That's wild</text><text class="mono" x="28" y="253">[21:03:15] #18453 Bob:</text><text class="mono" x="28" y="271">  [sticker 😂]</text></g>
-<text class="small accent" x="16" y="302">Group messages appended chronologically</text>
-<text class="mono mute" x="16" y="334">user</text>
-<g class="node violet"><rect x="16" y="344" width="308" height="70" rx="4"/><text class="mono" x="28" y="361">[System Note] Reusable sticker</text><text class="mono" x="28" y="379">seen in this batch:</text><text class="mono" x="28" y="397">s2091 😂</text></g>
-<text class="small accent" x="16" y="428">Note follows batch; immutable once written</text>
-<text class="mono mute" x="16" y="460">assistant</text>
-<g class="node teal"><rect x="16" y="470" width="308" height="52" rx="4"/><text class="mono" x="28" y="487">send({ message: "Truly wild",</text><text class="mono" x="28" y="505">       sticker: "s4" })</text></g>
-<text class="small accent" x="16" y="536">Sent reply becomes prefix of next request</text>
-<text class="mono mute" x="16" y="568">user</text>
-<g class="node plain"><rect x="16" y="578" width="308" height="88" rx="4"/><text class="mono" x="28" y="595">[media_update #18453]</text><text class="mono" x="28" y="613">  [sticker: ROFL]</text><text class="mono" x="28" y="631">[21:04:02] #18460 Alice:</text><text class="mono" x="28" y="649">  What's next?</text></g>
-<text class="small accent" x="16" y="680">Late vision result appended; never mutates #18453</text>
+<svg viewBox="0 0 340 736">
+<rect class="panel" x="0" y="0" width="340" height="736" rx="12"/>
+<text class="caps" x="16" y="22">SINGLE REQUEST, TOP TO BOTTOM</text>
+<rect class="window" x="10" y="36" width="320" height="684" rx="8"/>
+<text class="mono" fill="var(--muted)" x="22" y="54">system</text>
+<g class="node blue"><rect x="22" y="64" width="296" height="88" rx="4"/><text class="mono" x="32" y="81">…group protocol, rules, persona…</text><text class="mono" x="32" y="99"># Sticker Catalog (session-frozen)</text><text class="mono" x="32" y="117">s3: 😺 smug approval</text><text class="mono" x="32" y="135">s4: 😭 crying</text></g>
+<text class="small" x="22" y="166">Frozen: byte-identical for the whole session</text>
+<text class="mono" fill="var(--muted)" x="22" y="196">user</text>
+<g class="node plain"><rect x="22" y="206" width="296" height="88" rx="4"/><text class="mono" x="32" y="223">[21:03:11] #18452 Alice:</text><text class="mono" x="32" y="241">  That's wild</text><text class="mono" x="32" y="259">[21:03:15] #18453 Bob:</text><text class="mono" x="32" y="277">  [sticker 😂]</text></g>
+<text class="small" x="22" y="308">Group messages appended chronologically</text>
+<text class="mono" fill="var(--muted)" x="22" y="338">user</text>
+<g class="node violet"><rect x="22" y="348" width="296" height="70" rx="4"/><text class="mono" x="32" y="365">[System Note] Reusable sticker</text><text class="mono" x="32" y="383">seen in this batch:</text><text class="mono" x="32" y="401">s2091 😂</text></g>
+<text class="small" x="22" y="432">Note follows batch; immutable once written</text>
+<text class="mono" fill="var(--muted)" x="22" y="462">assistant</text>
+<g class="node teal"><rect x="22" y="472" width="296" height="52" rx="4"/><text class="mono" x="32" y="489">send({ text: "Truly wild",</text><text class="mono" x="32" y="507">       sticker: "s4" })</text></g>
+<text class="small" x="22" y="538">Sent reply becomes prefix of next request</text>
+<text class="mono" fill="var(--muted)" x="22" y="568">user</text>
+<g class="node plain"><rect x="22" y="578" width="296" height="88" rx="4"/><text class="mono" x="32" y="595">[media_update #18453]</text><text class="mono" x="32" y="613">  [sticker: ROFL]</text><text class="mono" x="32" y="631">[21:04:02] #18460 Alice:</text><text class="mono" x="32" y="649">  What's next?</text></g>
+<text class="small" x="22" y="680">Late vision result appended as new event;</text>
+<text class="small" x="22" y="698">never mutates #18453 in place</text>
 </svg>
 ```
 
@@ -767,7 +802,7 @@ During earlier iterations, my bot lived through both extremes of this pendulum s
   ],
   "yAxis": [
     {"type": "value", "gridIndex": 0, "name": "Avg Input (K tokens)", "nameLocation": "end", "nameTextStyle": {"align": "left"}},
-    {"type": "value", "gridIndex": 1, "name": "Compaction Share", "nameLocation": "end", "nameTextStyle": {"align": "left"}, "axisLabel": {"formatter": "{value}%"}}
+    {"type": "value", "gridIndex": 1, "max": 55, "name": "Compaction Share", "nameLocation": "end", "nameTextStyle": {"align": "left"}, "axisLabel": {"formatter": "{value}%"}}
   ],
   "series": [
     {"name": "Avg Input (K tokens)", "type": "line", "xAxisIndex": 0, "yAxisIndex": 0, "showSymbol": true, "symbolSize": 5, "itemStyle": {"color": "var(--stone)"}, "areaStyle": {"color": "var(--stone)", "opacity": 0.12},
@@ -776,7 +811,7 @@ During earlier iterations, my bot lived through both extremes of this pendulum s
     {"name": "Compaction Share", "type": "line", "xAxisIndex": 1, "yAxisIndex": 1, "showSymbol": true, "symbolSize": 5, "itemStyle": {"color": "var(--clay)"}, "areaStyle": {"color": "var(--clay)", "opacity": 0.15},
       "tooltip": {"valueFormatter": "{value}%"},
       "data": [0.1, 1.3, 12.5, 20.1, 3.6, 30.1, 34.6, 44.6, 12.3, 0.5, 0.5, 1.0, 0.8, 0.4],
-      "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"position": "right", "formatter": "44.6%: nearly half of all calls were compacting", "color": "var(--clay)", "fontSize": 11}, "data": [{"type": "max"}]}}
+      "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"position": "top", "formatter": "44.6%: ~half compacting", "color": "var(--clay)", "fontSize": 11}, "data": [{"type": "max"}]}}
   ]
 }
 ```
@@ -787,47 +822,47 @@ Our current architecture rests at a battle-tested equilibrium:
 **The window is fixed at 128K**, triggering Pi's native structured compaction once context reaches 110K tokens and reliably preserving the most recent ~20K tokens verbatim. Heavy tasks (multi-step search, deep research, code debugging) are offloaded via `task` into isolated sub-sessions, bringing only the distilled answer back to the group chat. The primary session stays crystal clean—recording only *"what everyone is talking about"* and *"what I did,"* never degenerating into a bloated debugging log.
 
 ```sketch title="How Big Should the Context Window Be?" note="The color band is conceptual, not a plotted cost curve. Because cloud APIs bill linearly per token, too small a window lets compaction and cold-cache penalties outweigh smaller reads; too large a window forces every casual 'haha true' to haul a massive context. Numbers in the three cards come from the ledger above."
-<svg viewBox="0 0 704 262">
-<rect class="panel" x="0" y="0" width="704" height="262" rx="12"/>
-<text class="caps" x="24" y="30">TOO SMALL</text>
-<text class="caps mid" x="516" y="30">SWEET SPOT</text>
-<text class="caps end" x="680" y="30">TOO LARGE</text>
-<rect x="25.0" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
-<rect x="63.6" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
-<rect x="102.2" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.73"/>
-<rect x="140.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.63"/>
-<rect x="179.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
-<rect x="217.9" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.41"/>
-<rect x="256.5" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.30"/>
-<rect x="295.1" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
-<rect x="333.7" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.44"/>
-<rect x="372.3" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.58"/>
-<rect x="410.9" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
-<rect x="449.5" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.84"/>
-<rect x="488.1" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.97"/>
-<rect x="526.6" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
-<rect x="565.2" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
-<rect x="603.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
-<rect x="642.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
-<text class="small" x="26" y="86">16K</text>
-<text class="small mid" x="188" y="86">32K</text>
-<text class="small mid" x="352" y="86">64K</text>
-<text class="small mid" x="516" y="86">128K</text>
-<text class="small end" x="678" y="86">256K</text>
-<circle cx="119.9" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M119.9 65 V110 H128 V120"/>
-<g class="node orange"><rect x="24" y="120" width="208" height="118" rx="6"/><text class="b" x="38" y="142">16K–48K</text><text class="small" x="38" y="166">Small reads, frequent compaction</text><text class="small" x="38" y="186">Each compaction reads all &amp; summarizes</text><text class="small" x="38" y="206">Prefix dies; next turn pays full price</text></g>
-<circle cx="516.0" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M516.0 65 V110 H352 V120"/>
-<g class="node teal"><rect x="248" y="120" width="208" height="118" rx="6"/><text class="b" x="262" y="142">128K (Current)</text><text class="small" x="262" y="166">Compact at 110K, keep ~20K verbatim</text><text class="small" x="262" y="186">Offload search/research to sub-sessions</text><text class="small" x="262" y="206">Main session keeps only chat &amp; outcomes</text></g>
-<circle cx="656.0" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M656.0 65 V110 H576 V120"/>
-<g class="node orange"><rect x="472" y="120" width="208" height="118" rx="6"/><text class="b" x="486" y="142">256K</text><text class="small" x="486" y="166">Rarely needs compaction</text><text class="small" x="486" y="186">But every request reads ~130K tokens</text><text class="small" x="486" y="206">Even for a two-word "haha true"</text></g>
+<svg viewBox="0 0 704 268">
+<rect class="panel" x="0" y="0" width="704" height="268" rx="12"/>
+<text class="caps" x="24" y="24">TOO SMALL</text>
+<text class="caps mid" x="516" y="24">SWEET SPOT</text>
+<text class="caps end" x="680" y="24">TOO LARGE</text>
+<text class="small" x="26" y="44">16K</text>
+<text class="small mid" x="188" y="44">32K</text>
+<text class="small mid" x="352" y="44">64K</text>
+<text class="small mid" x="516" y="44">128K</text>
+<text class="small end" x="678" y="44">256K</text>
+<rect x="25.0" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
+<rect x="63.6" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<rect x="102.2" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.73"/>
+<rect x="140.8" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.63"/>
+<rect x="179.4" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="217.9" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.41"/>
+<rect x="256.5" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.30"/>
+<rect x="295.1" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
+<rect x="333.7" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.44"/>
+<rect x="372.3" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.58"/>
+<rect x="410.9" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
+<rect x="449.5" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.84"/>
+<rect x="488.1" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.97"/>
+<rect x="526.6" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
+<rect x="565.2" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
+<rect x="603.8" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="642.4" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<circle cx="119.9" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M119.9 73 V112 H128 V124"/>
+<g class="node orange"><rect x="24" y="124" width="208" height="118" rx="6"/><text class="b" x="38" y="146">16K–48K</text><text class="small" x="38" y="170">Small reads, frequent compaction</text><text class="small" x="38" y="190">Reads full context to summarize</text><text class="small" x="38" y="210">Prefix dies; next turn full price</text></g>
+<circle cx="516.0" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M516.0 73 V112 H352 V124"/>
+<g class="node teal"><rect x="248" y="124" width="208" height="118" rx="6"/><text class="b" x="262" y="146">128K (Current)</text><text class="small" x="262" y="170">Compact at 110K; keep ~20K raw</text><text class="small" x="262" y="190">Search &amp; research in sub-tasks</text><text class="small" x="262" y="210">Main chat keeps dialogue &amp; results</text></g>
+<circle cx="656.0" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M656.0 73 V112 H576 V124"/>
+<g class="node orange"><rect x="472" y="124" width="208" height="118" rx="6"/><text class="b" x="486" y="146">256K</text><text class="small" x="486" y="170">Rarely triggers compaction</text><text class="small" x="486" y="190">Every call reads ~130K tokens</text><text class="small" x="486" y="210">Even for a casual "haha true"</text></g>
 </svg>
 <svg viewBox="0 0 340 426">
 <rect class="panel" x="0" y="0" width="340" height="426" rx="12"/>
 <text class="caps" x="16" y="28">TOO SMALL</text>
-<text class="caps mid" x="247" y="28">SWEET SPOT</text>
+<text class="caps mid" x="175" y="28">SWEET SPOT</text>
 <text class="caps end" x="324" y="28">TOO LARGE</text>
 <rect x="17.0" y="42" width="16.1" height="22" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
 <rect x="35.1" y="42" width="16.1" height="22" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
@@ -869,8 +904,8 @@ Yet another incisive empirical study, *Is Complex Agentic Memory Always Needed?*
 ```echarts title="Overall Score Drop When Replacing Raw Dialogue with Processed Memory" height="200" note="Score delta relative to retrieving raw dialogue directly. Source: Bao et al., Is Complex Agentic Memory Always Needed? (arXiv:2610.30755)."
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "grid": {"top": 8, "left": 8, "right": 24},
-  "xAxis": {"type": "value", "max": 0, "min": -25},
+  "grid": {"top": 8, "left": 4, "right": 24, "bottom": 4},
+  "xAxis": {"type": "value", "max": 0, "min": -30, "interval": 10},
   "yAxis": {"type": "category", "inverse": true, "data": ["Atomic Facts", "Summaries", "+ Graph Expansion"], "axisLine": {"show": false}},
   "series": [{
     "name": "Score Change", "type": "bar", "barWidth": 22,
@@ -1029,15 +1064,15 @@ Right after the backfill finished, we hit a small plot twist: the indexer cursor
 <rect x="322" y="74" width="10" height="14" rx="2" fill="var(--line)"/>
 <rect x="338" y="74" width="10" height="14" rx="2" fill="var(--line)"/>
 <text class="small mid" x="136" y="118">800 chars</text>
-<text class="small mid" x="272" y="118">Silence &gt;30m</text>
-<text class="small mid" x="328" y="134">Still active</text>
+<text class="small mid" x="260" y="118">Silence &gt;30m</text>
+<text class="small mid" x="336" y="118">Still active</text>
 <path class="edge" d="M68 62 V46 H460 V54" marker-end="url(#arrow)"/>
 <path class="edge" d="M204 62 V46"/>
 <g class="node orange"><rect x="392" y="58" width="136" height="46" rx="4"/><text class="mid b" x="460" y="73">Gemini Embed</text><text class="mid small" x="460" y="90">768-d · once/window</text></g>
 <path class="edge" d="M528 81 H548" marker-end="url(#arrow)"/>
 <g class="node"><rect x="552" y="58" width="128" height="46" rx="4"/><text class="mid b" x="616" y="73">message_chunks</text><text class="mid small" x="616" y="90">float32 BLOB</text></g>
 <path class="edge dash" d="M616 106 V140 H416 V166" marker-end="url(#arrow)"/>
-<text class="small" x="424" y="134">Resident in RAM</text>
+<text class="small" x="424" y="126">Resident in RAM</text>
 <text class="caps" x="24" y="156">AT QUERY TIME</text>
 <g class="node clay"><rect x="24" y="176" width="140" height="34" rx="17"/><text class="mid" x="94" y="193">"keyboard rec"</text></g>
 <path class="edge" d="M164 193 H184" marker-end="url(#arrow)"/>
@@ -1070,18 +1105,18 @@ Right after the backfill finished, we hit a small plot twist: the indexer cursor
 <text class="small mid" x="290" y="30">Active</text>
 <path class="edge" d="M58 76 V106" marker-end="url(#arrow)"/>
 <path class="edge" d="M178 76 V106" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="16" y="110" width="308" height="46" rx="4"/><text class="mid b" x="170" y="125">Gemini Embed</text><text class="mid small" x="170" y="142">768-d · once per window</text></g>
-<path class="edge" d="M170 158 V176" marker-end="url(#arrow)"/>
-<g class="node"><rect x="16" y="180" width="308" height="46" rx="4"/><text class="mid b" x="170" y="195">message_chunks</text><text class="mid small" x="170" y="212">float32 BLOB · resident in RAM</text></g>
+<g class="node orange"><rect x="16" y="110" width="296" height="46" rx="4"/><text class="mid b" x="164" y="125">Gemini Embed</text><text class="mid small" x="164" y="142">768-d · once per window</text></g>
+<path class="edge" d="M164 158 V176" marker-end="url(#arrow)"/>
+<g class="node"><rect x="16" y="180" width="296" height="46" rx="4"/><text class="mid b" x="164" y="195">message_chunks</text><text class="mid small" x="164" y="212">float32 BLOB · resident in RAM</text></g>
 <text class="caps" x="16" y="258">AT QUERY TIME</text>
-<g class="node clay"><rect x="16" y="270" width="308" height="34" rx="17"/><text class="mid" x="170" y="287">"that keyboard recommendation"</text></g>
-<path class="edge" d="M170 306 V324" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="16" y="328" width="308" height="46" rx="4"/><text class="mid b" x="170" y="343">Gemini Embed</text><text class="mid small" x="170" y="360">Same model · query prefix</text></g>
-<path class="edge" d="M170 376 V394" marker-end="url(#arrow)"/>
-<g class="node"><rect x="16" y="398" width="300" height="46" rx="4"/><text class="mid b" x="166" y="413">Cosine Scan</text><text class="mid small" x="166" y="430">Brute-force scan in RAM</text></g>
-<path class="edge dash" d="M324 203 H332 V421 H320" marker-end="url(#arrow)"/>
-<path class="edge" d="M170 446 V464" marker-end="url(#arrow)"/>
-<g class="node teal"><rect x="16" y="468" width="308" height="46" rx="4"/><text class="mid b" x="170" y="483">Verbatim Windows</text><text class="mid small" x="170" y="500">+ matches scores</text></g>
+<g class="node clay"><rect x="16" y="270" width="296" height="34" rx="17"/><text class="mid" x="164" y="287">"that keyboard recommendation"</text></g>
+<path class="edge" d="M164 306 V324" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="16" y="328" width="296" height="46" rx="4"/><text class="mid b" x="164" y="343">Gemini Embed</text><text class="mid small" x="164" y="360">Same model · query prefix</text></g>
+<path class="edge" d="M164 376 V394" marker-end="url(#arrow)"/>
+<g class="node"><rect x="16" y="398" width="296" height="46" rx="4"/><text class="mid b" x="164" y="413">Cosine Scan</text><text class="mid small" x="164" y="430">Brute-force scan in RAM</text></g>
+<path class="edge dash" d="M312 203 H326 V421 H316" marker-end="url(#arrow)"/>
+<path class="edge" d="M164 446 V464" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="16" y="468" width="296" height="46" rx="4"/><text class="mid b" x="164" y="483">Verbatim Windows</text><text class="mid small" x="164" y="500">+ matches scores</text></g>
 <text class="small" x="16" y="536">Model pages via before_id / after_id as needed</text>
 </svg>
 ```
@@ -1196,38 +1231,38 @@ Laying the two execution models side by side makes the difference clear—look a
 <svg viewBox="0 0 704 452">
 <rect class="panel" x="0" y="0" width="342" height="452" rx="12"/>
 <text class="caps" x="24" y="30">SEQUENTIAL TOOL CALLS</text>
-<g class="node "><rect x="60" y="56" width="222" height="46" rx="4"/><text class="mid b" x="171" y="71">Primary Model</text><text class="mid small" x="171" y="88">Reads 93K tokens</text></g>
-<circle class="glyph" cx="74" cy="76" r="2.4"/><circle class="glyph" cx="74" cy="82" r="2.4"/><circle class="glyph" cx="82" cy="73" r="2.4"/><circle class="glyph" cx="82" cy="79" r="2.4"/><circle class="glyph" cx="82" cy="85" r="2.4"/><circle class="glyph" cx="90" cy="76" r="2.4"/><circle class="glyph" cx="90" cy="82" r="2.4"/>
-<path class="edge " d="M171 104 V121" marker-end="url(#arrow)"/>
+<g class="node "><rect x="42" y="56" width="258" height="46" rx="4"/><text class="mid b" x="171" y="71">Primary Model</text><text class="mid small" x="171" y="88">Reads 93K tokens</text></g>
+<circle class="glyph" cx="56" cy="76" r="2.4"/><circle class="glyph" cx="56" cy="82" r="2.4"/><circle class="glyph" cx="64" cy="73" r="2.4"/><circle class="glyph" cx="64" cy="79" r="2.4"/><circle class="glyph" cx="64" cy="85" r="2.4"/><circle class="glyph" cx="72" cy="76" r="2.4"/><circle class="glyph" cx="72" cy="82" r="2.4"/>
+<path class="edge" d="M171 104 V121" marker-end="url(#arrow)"/>
 <g class="node orange"><rect x="100" y="124" width="142" height="30" rx="4"/><text class="mid" x="171" y="139">search</text></g>
-<path class="edge " d="M171 156 V173" marker-end="url(#arrow)"/>
-<g class="node "><rect x="60" y="176" width="222" height="46" rx="4"/><text class="mid b" x="171" y="191">Primary Model</text><text class="mid small" x="171" y="208">Re-reads 93K + search results</text></g>
-<circle class="glyph" cx="74" cy="196" r="2.4"/><circle class="glyph" cx="74" cy="202" r="2.4"/><circle class="glyph" cx="82" cy="193" r="2.4"/><circle class="glyph" cx="82" cy="199" r="2.4"/><circle class="glyph" cx="82" cy="205" r="2.4"/><circle class="glyph" cx="90" cy="196" r="2.4"/><circle class="glyph" cx="90" cy="202" r="2.4"/>
-<path class="edge " d="M171 224 V241" marker-end="url(#arrow)"/>
+<path class="edge" d="M171 156 V173" marker-end="url(#arrow)"/>
+<g class="node "><rect x="42" y="176" width="258" height="46" rx="4"/><text class="mid b" x="171" y="191">Primary Model</text><text class="mid small" x="171" y="208">Re-reads 93K + search results</text></g>
+<circle class="glyph" cx="56" cy="196" r="2.4"/><circle class="glyph" cx="56" cy="202" r="2.4"/><circle class="glyph" cx="64" cy="193" r="2.4"/><circle class="glyph" cx="64" cy="199" r="2.4"/><circle class="glyph" cx="64" cy="205" r="2.4"/><circle class="glyph" cx="72" cy="196" r="2.4"/><circle class="glyph" cx="72" cy="202" r="2.4"/>
+<path class="edge" d="M171 224 V241" marker-end="url(#arrow)"/>
 <g class="node orange"><rect x="100" y="244" width="142" height="30" rx="4"/><text class="mid" x="171" y="259">fetch web page</text></g>
-<path class="edge " d="M171 276 V293" marker-end="url(#arrow)"/>
-<g class="node "><rect x="60" y="296" width="222" height="46" rx="4"/><text class="mid b" x="171" y="311">Primary Model</text><text class="mid small" x="171" y="328">Re-reads all + raw page text</text></g>
-<circle class="glyph" cx="74" cy="316" r="2.4"/><circle class="glyph" cx="74" cy="322" r="2.4"/><circle class="glyph" cx="82" cy="313" r="2.4"/><circle class="glyph" cx="82" cy="319" r="2.4"/><circle class="glyph" cx="82" cy="325" r="2.4"/><circle class="glyph" cx="90" cy="316" r="2.4"/><circle class="glyph" cx="90" cy="322" r="2.4"/>
-<path class="edge " d="M171 344 V361" marker-end="url(#arrow)"/>
+<path class="edge" d="M171 276 V293" marker-end="url(#arrow)"/>
+<g class="node "><rect x="42" y="296" width="258" height="46" rx="4"/><text class="mid b" x="171" y="311">Primary Model</text><text class="mid small" x="171" y="328">Re-reads all + raw page text</text></g>
+<circle class="glyph" cx="56" cy="316" r="2.4"/><circle class="glyph" cx="56" cy="322" r="2.4"/><circle class="glyph" cx="64" cy="313" r="2.4"/><circle class="glyph" cx="64" cy="319" r="2.4"/><circle class="glyph" cx="64" cy="325" r="2.4"/><circle class="glyph" cx="72" cy="316" r="2.4"/><circle class="glyph" cx="72" cy="322" r="2.4"/>
+<path class="edge" d="M171 344 V361" marker-end="url(#arrow)"/>
 <g class="node teal"><rect x="100" y="364" width="142" height="30" rx="4"/><text class="mid" x="171" y="379">send answer</text></g>
 <text class="small mid accent" x="171" y="424">Every result returns for a full-price re-read</text>
 <rect class="panel" x="362" y="0" width="342" height="452" rx="12"/>
 <text class="caps" x="386" y="30">CODEMODE</text>
 <g class="node "><rect x="398" y="56" width="270" height="46" rx="4"/><text class="mid b" x="533" y="71">Primary Model · Call 1</text><text class="mid small" x="533" y="88">Writes a short script</text></g>
 <circle class="glyph" cx="412" cy="76" r="2.4"/><circle class="glyph" cx="412" cy="82" r="2.4"/><circle class="glyph" cx="420" cy="73" r="2.4"/><circle class="glyph" cx="420" cy="79" r="2.4"/><circle class="glyph" cx="420" cy="85" r="2.4"/><circle class="glyph" cx="428" cy="76" r="2.4"/><circle class="glyph" cx="428" cy="82" r="2.4"/>
-<path class="edge " d="M533 104 V128" marker-end="url(#arrow)"/>
+<path class="edge" d="M533 104 V128" marker-end="url(#arrow)"/>
 <rect class="window" x="384" y="132" width="298" height="196" rx="8"/>
 <text class="caps" x="394" y="148">SCRIPT IN SANDBOX</text>
 <g class="node teal"><rect x="398" y="162" width="270" height="30" rx="4"/><text class="mid" x="533" y="177">send "Checking now, one sec!"</text></g>
-<path class="edge " d="M533 194 V204 H456 V214" marker-end="url(#arrow)"/>
-<path class="edge " d="M533 204 H610 V214" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="398" y="218" width="116" height="30" rx="4"/><text class="mid" x="456" y="233">search</text></g>
-<g class="node orange"><rect x="552" y="218" width="116" height="30" rx="4"/><text class="mid" x="610" y="233">tg_messages</text></g>
-<text class="small mid" x="533" y="233">parallel</text>
-<path class="edge " d="M456 250 V260 H533 V276" marker-end="url(#arrow)"/>
-<path class="edge " d="M610 250 V260 H533"/>
+<path class="edge" d="M533 194 V204 H448 V214" marker-end="url(#arrow)"/>
+<path class="edge" d="M533 204 H616 V214" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="398" y="218" width="100" height="30" rx="4"/><text class="mid" x="448" y="233">search</text></g>
+<g class="node orange"><rect x="564" y="218" width="104" height="30" rx="4"/><text class="mid" x="616" y="233">tg_messages</text></g>
+<text class="small mid" x="531" y="233">parallel</text>
+<path class="edge" d="M448 250 V260 H533 V276" marker-end="url(#arrow)"/>
+<path class="edge" d="M616 250 V260 H533"/>
 <g class="node plain"><rect x="398" y="280" width="270" height="34" rx="4"/><text class="mid" x="533" y="297">Slice to a few hundred chars</text></g>
-<path class="edge " d="M533 330 V352" marker-end="url(#arrow)"/>
+<path class="edge" d="M533 330 V352" marker-end="url(#arrow)"/>
 <g class="node "><rect x="398" y="356" width="270" height="46" rx="4"/><text class="mid b" x="533" y="371">Primary Model · Call 2</text><text class="mid small" x="533" y="388">Reads sliced results &amp; replies</text></g>
 <circle class="glyph" cx="412" cy="376" r="2.4"/><circle class="glyph" cx="412" cy="382" r="2.4"/><circle class="glyph" cx="420" cy="373" r="2.4"/><circle class="glyph" cx="420" cy="379" r="2.4"/><circle class="glyph" cx="420" cy="385" r="2.4"/><circle class="glyph" cx="428" cy="376" r="2.4"/><circle class="glyph" cx="428" cy="382" r="2.4"/>
 <text class="small mid accent" x="533" y="426">Only 2 calls; raw payloads stay in the sandbox</text>
@@ -1235,36 +1270,36 @@ Laying the two execution models side by side makes the difference clear—look a
 <svg viewBox="0 0 340 920">
 <rect class="panel" x="0" y="0" width="340" height="452" rx="12"/>
 <text class="caps" x="24" y="30">SEQUENTIAL TOOL CALLS</text>
-<g class="node "><rect x="59" y="56" width="222" height="46" rx="4"/><text class="mid b" x="170" y="71">Primary Model</text><text class="mid small" x="170" y="88">Reads 93K tokens</text></g>
-<circle class="glyph" cx="73" cy="76" r="2.4"/><circle class="glyph" cx="73" cy="82" r="2.4"/><circle class="glyph" cx="81" cy="73" r="2.4"/><circle class="glyph" cx="81" cy="79" r="2.4"/><circle class="glyph" cx="81" cy="85" r="2.4"/><circle class="glyph" cx="89" cy="76" r="2.4"/><circle class="glyph" cx="89" cy="82" r="2.4"/>
-<path class="edge " d="M170 104 V121" marker-end="url(#arrow)"/>
+<g class="node "><rect x="41" y="56" width="258" height="46" rx="4"/><text class="mid b" x="170" y="71">Primary Model</text><text class="mid small" x="170" y="88">Reads 93K tokens</text></g>
+<circle class="glyph" cx="55" cy="76" r="2.4"/><circle class="glyph" cx="55" cy="82" r="2.4"/><circle class="glyph" cx="63" cy="73" r="2.4"/><circle class="glyph" cx="63" cy="79" r="2.4"/><circle class="glyph" cx="63" cy="85" r="2.4"/><circle class="glyph" cx="71" cy="76" r="2.4"/><circle class="glyph" cx="71" cy="82" r="2.4"/>
+<path class="edge" d="M170 104 V121" marker-end="url(#arrow)"/>
 <g class="node orange"><rect x="99" y="124" width="142" height="30" rx="4"/><text class="mid" x="170" y="139">search</text></g>
-<path class="edge " d="M170 156 V173" marker-end="url(#arrow)"/>
-<g class="node "><rect x="59" y="176" width="222" height="46" rx="4"/><text class="mid b" x="170" y="191">Primary Model</text><text class="mid small" x="170" y="208">Re-reads 93K + search results</text></g>
-<circle class="glyph" cx="73" cy="196" r="2.4"/><circle class="glyph" cx="73" cy="202" r="2.4"/><circle class="glyph" cx="81" cy="193" r="2.4"/><circle class="glyph" cx="81" cy="199" r="2.4"/><circle class="glyph" cx="81" cy="205" r="2.4"/><circle class="glyph" cx="89" cy="196" r="2.4"/><circle class="glyph" cx="89" cy="202" r="2.4"/>
-<path class="edge " d="M170 224 V241" marker-end="url(#arrow)"/>
+<path class="edge" d="M170 156 V173" marker-end="url(#arrow)"/>
+<g class="node "><rect x="41" y="176" width="258" height="46" rx="4"/><text class="mid b" x="170" y="191">Primary Model</text><text class="mid small" x="170" y="208">Re-reads 93K + search results</text></g>
+<circle class="glyph" cx="55" cy="196" r="2.4"/><circle class="glyph" cx="55" cy="202" r="2.4"/><circle class="glyph" cx="63" cy="193" r="2.4"/><circle class="glyph" cx="63" cy="199" r="2.4"/><circle class="glyph" cx="63" cy="205" r="2.4"/><circle class="glyph" cx="71" cy="196" r="2.4"/><circle class="glyph" cx="71" cy="202" r="2.4"/>
+<path class="edge" d="M170 224 V241" marker-end="url(#arrow)"/>
 <g class="node orange"><rect x="99" y="244" width="142" height="30" rx="4"/><text class="mid" x="170" y="259">fetch web page</text></g>
-<path class="edge " d="M170 276 V293" marker-end="url(#arrow)"/>
-<g class="node "><rect x="59" y="296" width="222" height="46" rx="4"/><text class="mid b" x="170" y="311">Primary Model</text><text class="mid small" x="170" y="328">Re-reads all + raw page text</text></g>
-<circle class="glyph" cx="73" cy="316" r="2.4"/><circle class="glyph" cx="73" cy="322" r="2.4"/><circle class="glyph" cx="81" cy="313" r="2.4"/><circle class="glyph" cx="81" cy="319" r="2.4"/><circle class="glyph" cx="81" cy="325" r="2.4"/><circle class="glyph" cx="89" cy="316" r="2.4"/><circle class="glyph" cx="89" cy="322" r="2.4"/>
-<path class="edge " d="M170 344 V361" marker-end="url(#arrow)"/>
+<path class="edge" d="M170 276 V293" marker-end="url(#arrow)"/>
+<g class="node "><rect x="41" y="296" width="258" height="46" rx="4"/><text class="mid b" x="170" y="311">Primary Model</text><text class="mid small" x="170" y="328">Re-reads all + raw page text</text></g>
+<circle class="glyph" cx="55" cy="316" r="2.4"/><circle class="glyph" cx="55" cy="322" r="2.4"/><circle class="glyph" cx="63" cy="313" r="2.4"/><circle class="glyph" cx="63" cy="319" r="2.4"/><circle class="glyph" cx="63" cy="325" r="2.4"/><circle class="glyph" cx="71" cy="316" r="2.4"/><circle class="glyph" cx="71" cy="322" r="2.4"/>
+<path class="edge" d="M170 344 V361" marker-end="url(#arrow)"/>
 <g class="node teal"><rect x="99" y="364" width="142" height="30" rx="4"/><text class="mid" x="170" y="379">send answer</text></g>
 <text class="small mid accent" x="170" y="424">Every result returns for a full-price re-read</text>
 <rect class="panel" x="0" y="468" width="340" height="452" rx="12"/>
 <text class="caps" x="24" y="498">CODEMODE</text>
 <g class="node "><rect x="35" y="524" width="270" height="46" rx="4"/><text class="mid b" x="170" y="539">Primary Model · Call 1</text><text class="mid small" x="170" y="556">Writes a short script</text></g>
 <circle class="glyph" cx="49" cy="544" r="2.4"/><circle class="glyph" cx="49" cy="550" r="2.4"/><circle class="glyph" cx="57" cy="541" r="2.4"/><circle class="glyph" cx="57" cy="547" r="2.4"/><circle class="glyph" cx="57" cy="553" r="2.4"/><circle class="glyph" cx="65" cy="544" r="2.4"/><circle class="glyph" cx="65" cy="550" r="2.4"/>
-<path class="edge " d="M170 572 V596" marker-end="url(#arrow)"/>
+<path class="edge" d="M170 572 V596" marker-end="url(#arrow)"/>
 <rect class="window" x="21" y="600" width="298" height="196" rx="8"/>
 <text class="caps" x="31" y="616">SCRIPT IN SANDBOX</text>
 <g class="node teal"><rect x="35" y="630" width="270" height="30" rx="4"/><text class="mid" x="170" y="645">send "Checking now, one sec!"</text></g>
-<path class="edge " d="M170 662 V672 H93 V682" marker-end="url(#arrow)"/>
-<path class="edge " d="M170 672 H247 V682" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="35" y="686" width="116" height="30" rx="4"/><text class="mid" x="93" y="701">search</text></g>
-<g class="node orange"><rect x="189" y="686" width="116" height="30" rx="4"/><text class="mid" x="247" y="701">tg_messages</text></g>
-<text class="small mid" x="170" y="701">parallel</text>
-<path class="edge " d="M93 718 V728 H170 V744" marker-end="url(#arrow)"/>
-<path class="edge " d="M247 718 V728 H170"/>
+<path class="edge" d="M170 662 V672 H85 V682" marker-end="url(#arrow)"/>
+<path class="edge" d="M170 672 H253 V682" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="35" y="686" width="100" height="30" rx="4"/><text class="mid" x="85" y="701">search</text></g>
+<g class="node orange"><rect x="201" y="686" width="104" height="30" rx="4"/><text class="mid" x="253" y="701">tg_messages</text></g>
+<text class="small mid" x="168" y="701">parallel</text>
+<path class="edge" d="M85 718 V728 H170 V744" marker-end="url(#arrow)"/>
+<path class="edge" d="M253 718 V728 H170"/>
 <g class="node plain"><rect x="35" y="748" width="270" height="34" rx="4"/><text class="mid" x="170" y="765">Slice to a few hundred chars</text></g>
 <path class="edge " d="M170 798 V820" marker-end="url(#arrow)"/>
 <g class="node "><rect x="35" y="824" width="270" height="46" rx="4"/><text class="mid b" x="170" y="839">Primary Model · Call 2</text><text class="mid small" x="170" y="856">Reads sliced results &amp; replies</text></g>
@@ -1302,28 +1337,29 @@ For all of these capabilities, **we didn't write a single line of "plugin code."
 Around that clean container boundary, we built a defense-in-depth security perimeter:
 
 ```sketch title="A Complete Linux Machine Inside Layered Boundaries" note="The bot daemon and the container run under separate OS users; the container holds zero API keys, SSH keys, or secrets, and both model requests and outbound files pass through the daemon."
-<svg viewBox="0 0 704 344">
-<rect class="panel" x="0" y="0" width="704" height="344" rx="12"/>
+<svg viewBox="0 0 704 358">
+<rect class="panel" x="0" y="0" width="704" height="358" rx="12"/>
 <text class="caps" x="24" y="30">HOST MACHINE</text>
-<g class="node "><rect x="24" y="104" width="160" height="64" rx="4"/><text class="mid b" x="104" y="128">Bot Daemon</text><text class="mid small" x="104" y="145">Keys &amp; tokens live here</text></g>
-<g class="node clay"><rect x="24" y="250" width="160" height="40" rx="20"/><text class="mid" x="104" y="270">Model API</text></g>
-<path class="edge " d="M104 170 V246" marker-end="url(#arrow)"/>
-<text class="small" x="112" y="208">Proxies requests</text>
-<rect class="window" x="236" y="48" width="444" height="276" rx="10"/>
-<text class="small b" x="252" y="68">OS user tgbox · rootless Docker</text>
-<g class="node plain"><rect x="256" y="84" width="404" height="206" rx="8"/></g>
-<text class="small b" x="272" y="104">Container · uid 1000</text>
-<g class="node "><rect x="272" y="120" width="120" height="28" rx="3"/><text class="mid small" x="332" y="134">Read-only rootfs</text></g>
-<g class="node "><rect x="398" y="120" width="124" height="28" rx="3"/><text class="mid small" x="460" y="134">cap-drop ALL</text></g>
-<g class="node "><rect x="528" y="120" width="116" height="28" rx="3"/><text class="mid small" x="586" y="134">no-new-privileges</text></g>
-<g class="node "><rect x="464" y="156" width="180" height="28" rx="3"/><text class="mid small" x="554" y="170">/tmp: 256 MB tmpfs</text></g>
-<g class="node "><rect x="272" y="156" width="186" height="28" rx="3"/><text class="mid small" x="365" y="170">RAM, CPU &amp; PID limits</text></g>
-<g class="node teal"><rect x="272" y="202" width="372" height="72" rx="6"/><text class="mid b" x="458" y="230">/work</text><text class="mid small" x="458" y="247">Only writable persistent dir · wiped Mon 05:00</text></g>
-<path class="edge " d="M186 122 H252" marker-end="url(#arrow)"/>
-<text class="small mid" x="219" y="108">bash</text>
-<path class="edge " d="M252 150 H188" marker-end="url(#arrow)"/>
-<text class="small mid" x="219" y="166">send.files</text>
-<text class="small" x="256" y="308">Network kill-switch ready; outbound files resolve realpath so symlinks cannot escape</text>
+<g class="node "><rect x="24" y="104" width="148" height="64" rx="4"/><text class="mid b" x="98" y="128">Bot Daemon</text><text class="mid small" x="98" y="145">Keys &amp; tokens live here</text></g>
+<g class="node clay"><rect x="24" y="250" width="148" height="40" rx="20"/><text class="mid" x="98" y="270">Model API</text></g>
+<path class="edge" d="M98 170 V246" marker-end="url(#arrow)"/>
+<text class="small" x="106" y="208">Proxies requests</text>
+<rect class="window" x="248" y="48" width="432" height="292" rx="10"/>
+<text class="small b" x="264" y="68">OS user tgbox · rootless Docker</text>
+<g class="node plain"><rect x="266" y="84" width="396" height="206" rx="8"/></g>
+<text class="small b" x="280" y="104">Container · uid 1000</text>
+<g class="node "><rect x="280" y="120" width="118" height="28" rx="3"/><text class="mid small" x="339" y="134">Read-only rootfs</text></g>
+<g class="node "><rect x="404" y="120" width="120" height="28" rx="3"/><text class="mid small" x="464" y="134">cap-drop ALL</text></g>
+<g class="node "><rect x="530" y="120" width="118" height="28" rx="3"/><text class="mid small" x="589" y="134">no-new-privileges</text></g>
+<g class="node "><rect x="468" y="156" width="180" height="28" rx="3"/><text class="mid small" x="558" y="170">/tmp: 256 MB tmpfs</text></g>
+<g class="node "><rect x="280" y="156" width="182" height="28" rx="3"/><text class="mid small" x="371" y="170">RAM, CPU &amp; PID limits</text></g>
+<g class="node teal"><rect x="280" y="202" width="368" height="72" rx="6"/><text class="mid b" x="464" y="230">/work</text><text class="mid small" x="464" y="247">Only writable persistent dir · wiped Mon 05:00</text></g>
+<path class="edge" d="M174 122 H262" marker-end="url(#arrow)"/>
+<text class="small mid" x="210" y="108">bash</text>
+<path class="edge" d="M262 150 H176" marker-end="url(#arrow)"/>
+<text class="small mid" x="210" y="166">send.files</text>
+<text class="small" x="266" y="306">Network kill-switch ready; outbound files resolve realpath</text>
+<text class="small" x="266" y="324">so symlinks cannot escape</text>
 </svg>
 <svg viewBox="0 0 340 452">
 <rect class="panel" x="0" y="0" width="340" height="452" rx="12"/>
@@ -1365,16 +1401,16 @@ From day one, this project was built iteratively alongside a Coding Agent. In a 
 ```echarts title="Evolution of Lines of Code in src/" height="300" note="Total lines across src/**/*.ts on each commit date; horizontal axis is scaled proportionally to calendar time."
 {
   "tooltip": {"trigger": "axis", "valueFormatter": "{value} lines"},
-  "grid": {"right": 24, "top": 28},
+  "grid": {"left": 4, "right": 28, "top": 32, "bottom": 4},
   "xAxis": {"type": "time", "minInterval": 1209600000, "axisLabel": {"formatter": "{MM}-{dd}", "hideOverlap": true}},
-  "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+  "yAxis": {"type": "value", "max": 20000, "axisLabel": {"formatter": "{value}"}},
   "series": [{
     "name": "src/ lines", "type": "line", "showSymbol": true, "symbolSize": 5,
     "itemStyle": {"color": "var(--clay)"}, "areaStyle": {"color": "var(--clay)", "opacity": 0.12},
     "data": [["2026-08-07", 2079], ["2026-08-08", 7441], ["2026-08-09", 11661], ["2026-08-10", 13173], ["2026-08-13", 13639], ["2026-08-26", 14085], ["2026-09-07", 14532], ["2026-10-06", 14754], ["2026-11-01", 17522], ["2026-11-02", 13834], ["2026-11-04", 8452], ["2026-11-05", 8089]],
     "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"color": "var(--ink)", "fontSize": 11}, "data": [
-      {"coord": ["2026-11-01", 17522], "label": {"position": "left", "formatter": "17,522"}},
-      {"coord": ["2026-11-05", 8089], "label": {"position": "left", "formatter": "8,089"}}
+      {"coord": ["2026-11-01", 17522], "label": {"position": "top", "formatter": "17,522"}},
+      {"coord": ["2026-11-05", 8089], "label": {"position": "bottom", "offset": [-8, 2], "formatter": "8,089"}}
     ]}
   }]
 }
@@ -1390,29 +1426,55 @@ How? By enforcing one uncompromising rule:
 Look back at four of our worst production incidents:
 
 ```sketch title="Four Production Incidents" note="Dates are in 2026. The top half of each card shows the symptom group members saw; the bottom half shows the root cause we uncovered."
-<svg viewBox="0 0 704 244">
-<rect class="panel" x="0" y="0" width="704" height="244" rx="12"/>
-<path class="edge " d="M40 40 H664"/>
-<path class="edge" d="M40.0 36 V44"/>
+<svg viewBox="0 0 704 424">
+<rect class="panel" x="0" y="0" width="704" height="424" rx="12"/>
+<path class="edge" d="M40 42 H664"/>
+<path class="edge" d="M40.0 38 V46"/>
 <text class="small mid" x="40" y="24">09-10</text>
-<path class="edge" d="M248.0 36 V44"/>
+<path class="edge" d="M248.0 38 V46"/>
 <text class="small mid" x="248" y="24">09-20</text>
-<path class="edge" d="M456.0 36 V44"/>
+<path class="edge" d="M456.0 38 V46"/>
 <text class="small mid" x="456" y="24">09-30</text>
-<path class="edge" d="M664.0 36 V44"/>
+<path class="edge" d="M664.0 38 V46"/>
 <text class="small mid" x="664" y="24">10-10</text>
-<circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M164.8 46 V60 H97 V76"/>
-<g class="node plain"><rect x="24" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="36" y="98">09-16</text><text class="b" x="36" y="122">Compacting every turn,</text><text class="b" x="36" y="139">context never shrinks</text><text class="caps" x="36" y="166">ROOT CAUSE</text><text class="small" x="36" y="184">Char-based token count</text><text class="small" x="36" y="200">counted images as 0</text><g class="node clay"><rect x="76" y="88" width="84" height="20" rx="10"/><text class="mid small" x="118" y="98">DIY Compactor</text></g>
-<circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M164.8 46 V60 H267 V76"/>
-<g class="node plain"><rect x="194" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="206" y="98">09-16</text><text class="b" x="206" y="122">After 429, @mentions</text><text class="b" x="206" y="139">marked as completed</text><text class="caps" x="206" y="166">ROOT CAUSE</text><text class="small" x="206" y="184">State machine exited</text><text class="small" x="206" y="200">turn when retries died</text><g class="node clay"><rect x="250" y="88" width="76" height="20" rx="10"/><text class="mid small" x="288" y="98">DIY Retries</text></g>
-<circle cx="539.2" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M539.2 46 V60 H437 V76"/>
-<g class="node plain"><rect x="364" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="376" y="98">10-04</text><text class="b" x="376" y="122">20 min dead silence,</text><text class="b" x="376" y="139">completely unresponsive</text><text class="caps" x="376" y="166">ROOT CAUSE</text><text class="small" x="376" y="184">Image token spike blew</text><text class="small" x="376" y="200">budget; pre-check locked</text><g class="node clay"><rect x="418" y="88" width="84" height="20" rx="10"/><text class="mid small" x="460" y="98">DIY Pre-check</text></g>
-<circle cx="580.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M580.8 46 V60 H607 V76"/>
-<g class="node plain"><rect x="534" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="546" y="98">10-06</text><text class="b" x="546" y="122">Accused group members</text><text class="b" x="546" y="139">of stealing backend data</text><text class="caps" x="546" y="166">ROOT CAUSE</text><text class="small" x="546" y="184">Dynamic list in chat body</text><text class="small" x="546" y="200">baked into summary fact</text><g class="node clay"><rect x="586" y="88" width="84" height="20" rx="10"/><text class="mid small" x="628" y="98">DIY Summary</text></g>
+<circle cx="164.8" cy="42" r="5" fill="var(--clay)"/>
+<text class="small accent mid" x="164.8" y="59">09-16 ×2</text>
+<circle cx="539.2" cy="42" r="5" fill="var(--clay)"/>
+<text class="small accent end" x="534" y="59">10-04</text>
+<circle cx="580.8" cy="42" r="5" fill="var(--clay)"/>
+<text class="small accent" x="586" y="59">10-06</text>
+<g class="node plain"><rect x="24" y="78" width="316" height="152" rx="6"/></g>
+<text class="mono accent" x="38" y="98">09-16</text>
+<g class="node clay"><rect x="234" y="87" width="94" height="22" rx="11"/><text class="mid small" x="281" y="98">DIY Compactor</text></g>
+<text class="b" x="38" y="124">Compacting almost every turn,</text>
+<text class="b" x="38" y="142">yet context never shrinks</text>
+<text class="caps" x="38" y="168">ROOT CAUSE</text>
+<text class="small" x="38" y="188">Char-based token estimator</text>
+<text class="small" x="38" y="205">counted images as 0 tokens</text>
+<g class="node plain"><rect x="364" y="78" width="316" height="152" rx="6"/></g>
+<text class="mono accent" x="378" y="98">09-16</text>
+<g class="node clay"><rect x="584" y="87" width="84" height="22" rx="11"/><text class="mid small" x="626" y="98">DIY Retries</text></g>
+<text class="b" x="378" y="124">After HTTP 429, @mentioned</text>
+<text class="b" x="378" y="142">messages falsely marked done</text>
+<text class="caps" x="378" y="168">ROOT CAUSE</text>
+<text class="small" x="378" y="188">State machine exited turn early</text>
+<text class="small" x="378" y="205">once retries ran out</text>
+<g class="node plain"><rect x="24" y="248" width="316" height="152" rx="6"/></g>
+<text class="mono accent" x="38" y="268">10-04</text>
+<g class="node clay"><rect x="234" y="257" width="94" height="22" rx="11"/><text class="mid small" x="281" y="268">DIY Pre-check</text></g>
+<text class="b" x="38" y="294">20 minutes of dead silence,</text>
+<text class="b" x="38" y="312">completely unresponsive</text>
+<text class="caps" x="38" y="338">ROOT CAUSE</text>
+<text class="small" x="38" y="358">Image token spike blew budget;</text>
+<text class="small" x="38" y="375">pre-flight check deadlocked</text>
+<g class="node plain"><rect x="364" y="248" width="316" height="152" rx="6"/></g>
+<text class="mono accent" x="378" y="268">10-06</text>
+<g class="node clay"><rect x="578" y="257" width="90" height="22" rx="11"/><text class="mid small" x="623" y="268">DIY Summary</text></g>
+<text class="b" x="378" y="294">Accused group members of</text>
+<text class="b" x="378" y="312">stealing its backend data</text>
+<text class="caps" x="378" y="338">ROOT CAUSE</text>
+<text class="small" x="378" y="358">Dynamic list spliced into body;</text>
+<text class="small" x="378" y="375">summary baked guess into fact</text>
 </svg>
 <svg viewBox="0 0 340 672">
 <rect class="panel" x="0" y="0" width="340" height="672" rx="12"/>
@@ -1444,7 +1506,7 @@ The remaining ~8,000 lines of pure code focus on doing one thing well: **mapping
 - It handles the small classifier model's chime-in decisions;
 - It builds the security moat around the rootless Linux container.
 
-```sketch title="What We Deleted Went to Pi; What Remains Is Pure Group Chat Semantics" note="The four blocks of homegrown code deleted in the migration commit and the Pi 1.5 capabilities that replaced them; the remaining ~8,000 lines do only the four jobs on the right."
+```sketch title="What We Deleted Went to Pi; What Remains Is Pure Group Chat Semantics" note="The four blocks of homegrown code deleted in the migration commit and the Pi 1.5 capabilities that replaced them; the remaining ~8,000 lines handle only group-chat semantics."
 <svg viewBox="0 0 704 300">
 <rect class="panel" x="0" y="0" width="452" height="300" rx="12"/>
 <text class="caps" x="24" y="28">DELETED 7,877 LINES → HANDED TO PI 1.5</text>
@@ -1472,31 +1534,32 @@ The remaining ~8,000 lines of pure code focus on doing one thing well: **mapping
 <g class="node teal"><rect x="488" y="228" width="196" height="40" rx="4"/><text class="mid small" x="586" y="248">Rootless container boundary</text></g>
 <text class="small mid accent" x="226" y="286">Nothing outside "Telegram group chat semantics" is homegrown</text>
 </svg>
-<svg viewBox="0 0 340 564">
-<rect class="panel" x="0" y="0" width="340" height="316" rx="12"/>
+<svg viewBox="0 0 340 648">
+<rect class="panel" x="0" y="0" width="340" height="378" rx="12"/>
 <text class="caps" x="16" y="26">DELETED 7,877 LINES → PI 1.5</text>
 <rect class="window" x="16" y="42" width="308" height="26" rx="4"/>
 <text class="small mid" x="170" y="55">Session state &amp; fingerprinting</text>
-<path class="edge " d="M170 69 V74"/>
-<g class="node blue"><rect x="16" y="76" width="308" height="26" rx="4"/><text class="mid small" x="170" y="89">→ Persistent sessions &amp; recovery</text></g>
-<rect class="window" x="16" y="108" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="121">Token estimator &amp; summarizer</text>
-<path class="edge " d="M170 135 V140"/>
-<g class="node blue"><rect x="16" y="142" width="308" height="26" rx="4"/><text class="mid small" x="170" y="155">→ AST-based compaction</text></g>
-<rect class="window" x="16" y="174" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="187">Child-process bridge &amp; queue</text>
-<path class="edge " d="M170 201 V206"/>
-<g class="node blue"><rect x="16" y="208" width="308" height="26" rx="4"/><text class="mid small" x="170" y="221">→ Execution queue &amp; sandbox</text></g>
-<rect class="window" x="16" y="240" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="253">300 lines of prompt tool docs</text>
-<path class="edge " d="M170 267 V272"/>
-<g class="node blue"><rect x="16" y="274" width="308" height="26" rx="4"/><text class="mid small" x="170" y="287">→ TypeBox parameter schemas</text></g>
-<rect class="panel" x="0" y="332" width="340" height="232" rx="12"/>
-<text class="caps" x="16" y="358">REMAINING ~8,000 LINES: GROUP SEMANTICS</text>
-<g class="node teal"><rect x="16" y="374" width="308" height="34" rx="4"/><text class="mid small" x="170" y="391">Message archive &amp; Trigram retrieval</text></g>
-<g class="node teal"><rect x="16" y="418" width="308" height="34" rx="4"/><text class="mid small" x="170" y="435">Prefix-invariant batch serialization</text></g>
-<g class="node teal"><rect x="16" y="462" width="308" height="34" rx="4"/><text class="mid small" x="170" y="479">Small classifier chime-in decisions</text></g>
-<g class="node teal"><rect x="16" y="506" width="308" height="34" rx="4"/><text class="mid small" x="170" y="523">Rootless container security boundary</text></g>
+<path class="edge" d="M170 68 V79" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="83" width="308" height="26" rx="4"/><text class="mid small" x="170" y="96">Persistent sessions &amp; recovery</text></g>
+<rect class="window" x="16" y="127" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="140">Token estimator &amp; summarizer</text>
+<path class="edge" d="M170 153 V164" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="168" width="308" height="26" rx="4"/><text class="mid small" x="170" y="181">AST-based compaction</text></g>
+<rect class="window" x="16" y="212" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="225">Child-process bridge &amp; queue</text>
+<path class="edge" d="M170 238 V249" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="253" width="308" height="26" rx="4"/><text class="mid small" x="170" y="266">Execution queue &amp; sandbox</text></g>
+<rect class="window" x="16" y="297" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="310">300 lines of prompt tool docs</text>
+<path class="edge" d="M170 323 V334" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="338" width="308" height="26" rx="4"/><text class="mid small" x="170" y="351">TypeBox parameter schemas</text></g>
+<rect class="panel" x="0" y="392" width="340" height="256" rx="12"/>
+<text class="caps" x="16" y="418">REMAINING ~8,000 LINES: GROUP SEMANTICS</text>
+<g class="node teal"><rect x="16" y="434" width="308" height="32" rx="4"/><text class="mid small" x="170" y="450">Message archive &amp; Trigram retrieval</text></g>
+<g class="node teal"><rect x="16" y="476" width="308" height="32" rx="4"/><text class="mid small" x="170" y="492">Prefix-invariant batch serialization</text></g>
+<g class="node teal"><rect x="16" y="518" width="308" height="32" rx="4"/><text class="mid small" x="170" y="534">Small classifier chime-in decisions</text></g>
+<g class="node teal"><rect x="16" y="560" width="308" height="32" rx="4"/><text class="mid small" x="170" y="576">Rootless container security boundary</text></g>
+<text class="small mid accent" x="170" y="622">Nothing outside group-chat semantics is homegrown</text>
 </svg>
 ```
 
@@ -1608,7 +1671,7 @@ Online 24/7, hundreds of people firing off jokes and tangents every second, cont
 <g class="node orange"><rect x="24" y="24" width="320" height="118" rx="6"/><text class="b" x="38" y="46">Call Volume N</text></g><text class="small end" x="330" y="46">External Models</text><text class="small" x="38" y="74">Leave deterministic routing to code</text><text class="small" x="38" y="95">Delegate social tact to a slice classifier</text><text class="small" x="38" y="116">Terminate the turn locally right after send</text>
 <g class="node blue"><rect x="360" y="24" width="320" height="118" rx="6"/><text class="b" x="374" y="46">Cache Hit Rate h</text></g><text class="small end" x="666" y="46">Request Prefix</text><text class="small" x="374" y="74">Prefix immutability is an iron law</text><text class="small" x="374" y="95">Append dynamic info as incremental notes</text><text class="small" x="374" y="116">Guard every byte with Golden Hash tests</text>
 <g class="node violet"><rect x="24" y="160" width="320" height="118" rx="6"/><text class="b" x="38" y="182">Context Depth T</text></g><text class="small end" x="330" y="182">Runtime Context</text><text class="small" x="38" y="210">Optimize for your actual linear API bill</text><text class="small" x="38" y="231">Refuse lossy memory processing pipelines</text><text class="small" x="38" y="252">Keep verbatim words; query on demand</text>
-<g class="node teal"><rect x="360" y="160" width="320" height="118" rx="6"/><text class="b" x="374" y="182">Negative Code</text></g><text class="small end" x="666" y="182">Coding Agent</text><text class="small" x="374" y="210">Never reinvent wheels outside domain semantics</text><text class="small" x="374" y="231">One general Shell &amp; Linux container</text><text class="small" x="374" y="252">beats a hundred fragile plugins</text>
+<g class="node teal"><rect x="360" y="160" width="320" height="118" rx="6"/><text class="b" x="374" y="182">Negative Code</text></g><text class="small end" x="666" y="182">Coding Agent</text><text class="small" x="374" y="210">Never reinvent wheels outside domain logic</text><text class="small" x="374" y="231">One general Shell &amp; Linux container</text><text class="small" x="374" y="252">beats a hundred fragile plugins</text>
 </svg>
 <svg viewBox="0 0 340 540">
 <rect class="panel" x="0" y="0" width="340" height="540" rx="12"/>

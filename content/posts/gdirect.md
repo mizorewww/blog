@@ -169,7 +169,7 @@ gdirect login --client-secret ~/Downloads/client_secret.json
 
 3. 核对应用名称和 Google 云端硬盘权限，确认无误后点击 **Continue（继续）**。
 
-   ![勾选并确认授权访问 Google 云端硬盘](../images/gdirect/13-consent.png)
+   ![确认授权访问 Google 云端硬盘](../images/gdirect/13-consent.png)
 
 4. 回到终端，看到 `Logged in` 即大功告成。此时可以删掉下载的 JSON 文件（客户端信息已保存在本地 SQLite 中，以后切换账号或重登只需执行 `gdirect login --reauth`）。
 

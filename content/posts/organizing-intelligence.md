@@ -72,7 +72,7 @@ $$
 
 更进一步，如果往这 6 个专家里再加 1 个单兵得分垫底的项目协调者（$y_* = 0.97$），虽然团队的平均业务胜任力微降到了 $31/7 \approx 4.43$，但平均协同力从 $0.75$ 提升到了 $0.781$，让公司的最优规模从 6 人扩大到了 7 人，总产出反而进一步提升。
 
-```sketch title="拼图智能：偏科的人类组队后，能力包络跃升到平庸 AI 之上" note="据论文图 1(a) 与第 2.2 节算例绘制。灰色弧线为等胜任力曲线 L = 2/(1/y_1 + 1/y_2)。单个专家（L=1.8）与协调者（L=1.0）均位于低等高线；但人类能力凸包（蓝色三角形）的斜边跨过了高等高线，50:50 混编时达到 L=5.0。同质 AI 的 100 个复制品叠加仍在原地（红色点）。"
+```sketch title="拼图智能：偏科的人类组队后，能力包络跃升到平庸 AI 之上" note="据论文图 1(a) 与第 2.2 节算例绘制。在等胜任力公式 L = 2/(1/y₁ + 1/y₂) 下，单干的专家（L = 1.80）与协调者（L = 1.00）均受短板拖累，个体均值仅 1.69；但偏科人类组队后长短板互补（3 程序员 + 3 文案时达 L = 5.00，再加入 1 名协调者的 7 人企业技能均值 4.43，得 L = 4.43），远超 7 个同质 Minimal AGI 复制品的原地叠加（L = 1.69）。"
 <svg viewBox="0 0 704 290">
   <rect class="panel" x="0" y="0" width="344" height="290" rx="12"/>
   <rect class="panel" x="360" y="0" width="344" height="290" rx="12"/>
@@ -93,15 +93,15 @@ $$
   <text class="small" x="384" y="48">偏科人类互补取凸包 vs 同质 AI 原地复制</text>
   <rect class="window" x="384" y="64" width="296" height="92" rx="8"/>
   <text class="small" x="398" y="82">人类混编公司：3 程序员 + 3 文案 + 1 协调者</text>
-  <g class="node blue"><rect x="398" y="96" width="130" height="44" rx="4"/><text class="mid" x="463" y="118">长短板互补 (5, 5)</text></g>
-  <path class="edge" d="M528 118 H546" marker-end="url(#arrow)"/>
-  <g class="node teal"><rect x="550" y="96" width="116" height="44" rx="4"/><text class="mid" x="608" y="118">团队 L = 4.43</text></g>
+  <g class="node blue"><rect x="398" y="96" width="136" height="44" rx="4"/><text class="mid" x="466" y="118">互补均值 4.43</text></g>
+  <path class="edge" d="M534 118 H550" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="554" y="96" width="112" height="44" rx="4"/><text class="mid" x="610" y="118">团队 L = 4.43</text></g>
 
   <rect class="window" x="384" y="168" width="296" height="88" rx="8"/>
   <text class="small" x="398" y="186">纯 AI 公司：7 个 Minimal AGI 复制品</text>
-  <g class="node plain"><rect x="398" y="200" width="130" height="42" rx="4"/><text class="mid" x="463" y="221">长短板完全重合</text></g>
-  <path class="edge" d="M528 221 H546" marker-end="url(#arrow)"/>
-  <g class="node orange"><rect x="550" y="200" width="116" height="42" rx="4"/><text class="mid" x="608" y="221">团队 L = 1.69</text></g>
+  <g class="node plain"><rect x="398" y="200" width="136" height="42" rx="4"/><text class="mid" x="466" y="221">长短板完全重合</text></g>
+  <path class="edge" d="M534 221 H550" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="554" y="200" width="112" height="42" rx="4"/><text class="mid" x="610" y="221">团队 L = 1.69</text></g>
   <text class="small" x="384" y="276">结论：人类拼图智能 4.43 远胜同质 AI 团队 1.69</text>
 </svg>
 <svg viewBox="0 0 340 590">
@@ -124,15 +124,15 @@ $$
   <text class="small" x="20" y="348">偏科人类互补取凸包 vs 同质 AI 原地复制</text>
   <rect class="window" x="20" y="364" width="300" height="90" rx="8"/>
   <text class="small" x="32" y="382">人类混编：3 程序员 + 3 文案 + 1 协调者</text>
-  <g class="node blue"><rect x="32" y="396" width="132" height="42" rx="4"/><text class="mid" x="98" y="417">长短板互补 (5, 5)</text></g>
-  <path class="edge" d="M164 417 H182" marker-end="url(#arrow)"/>
-  <g class="node teal"><rect x="186" y="396" width="120" height="42" rx="4"/><text class="mid" x="246" y="417">团队 L = 4.43</text></g>
+  <g class="node blue"><rect x="32" y="396" width="136" height="42" rx="4"/><text class="mid" x="100" y="417">互补均值 4.43</text></g>
+  <path class="edge" d="M168 417 H184" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="188" y="396" width="118" height="42" rx="4"/><text class="mid" x="247" y="417">团队 L = 4.43</text></g>
 
   <rect class="window" x="20" y="466" width="300" height="86" rx="8"/>
   <text class="small" x="32" y="484">纯 AI 公司：7 个 Minimal AGI 复制品</text>
-  <g class="node plain"><rect x="32" y="498" width="132" height="40" rx="4"/><text class="mid" x="98" y="518">长短板完全重合</text></g>
-  <path class="edge" d="M164 518 H182" marker-end="url(#arrow)"/>
-  <g class="node orange"><rect x="186" y="498" width="120" height="40" rx="4"/><text class="mid" x="246" y="518">团队 L = 1.69</text></g>
+  <g class="node plain"><rect x="32" y="498" width="136" height="40" rx="4"/><text class="mid" x="100" y="518">长短板完全重合</text></g>
+  <path class="edge" d="M168 518 H184" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="188" y="498" width="118" height="40" rx="4"/><text class="mid" x="247" y="518">团队 L = 1.69</text></g>
   <text class="small" x="20" y="574">结论：人类拼图智能 4.43 远胜同质 AI 团队 1.69</text>
 </svg>
 ```
@@ -199,29 +199,39 @@ $$
 
 但是，协同力的影子价格 $\beta_*^f$ 有一个致命的性质：**它与企业产出的规模弹性 $\partial_2 \log S(m, \bar y_*) = \log(1+m)$ 成正比，同时也被团队的基础胜任力 $L(\nu_f)$ 放大**！当团队里全是从 $1.69$ 暴涨到 $12$ 的超级 AI 时，一个人类协调者加进来，把团队的平均协同力从 $0.78$ 拉高一点点，相当于**给一群法拉利装上了方向盘**——他虽然自己不踩油门（$y_1=1, y_2=1$），但他让整支超级 AI 舰队的规模瓶颈得以拓宽。
 
-```echarts title="单兵胜任力路线 vs 协同力路线：企业规模与人类工资的分岔" height="340" note="据论文图 6 与表 2 的四个均衡快照绘制。左半区（前两列）为沿胜任力提升路径（Minimal AGI → Supercompetent）：企业最优规模锁死在 ~7，协调者工资反超专家；右半区（第三列）为跨越超协同阈值（y_*^M = 1.60 > 1）：主流市场企业规模发散，协调者工资直接跌停至保留工资 0.25。"
+```echarts title="单兵胜任力路线 vs 协同力路线：人类专家与协调者工资的倒挂与归零" height="380" note="据论文图 6 与表 2 的五个均衡快照绘制（均衡工资以算力租金 r = 1 为单位，虚线为人类保留工资底线 w₀ = 0.25；技术专家指程序员与文案作家）。沿胜任力提升路径（Minimal AGI → Supercompetent），企业最优规模锁死在 ~7，协调者工资历史性反超技术专家；一旦跨越超协同阈值（Supercooperative，y*ᴹ = 1.60 > 1），主流市场企业规模发散，协调者工资直接跌停至保留底线 0.25。"
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "legend": {},
-  "xAxis": {
+  "legend": {"data": ["技术专家工资", "人类协调者工资"]},
+  "grid": {"top": 38, "right": 44, "bottom": 24},
+  "xAxis": {"type": "value", "max": 4.8},
+  "yAxis": {
     "type": "category",
-    "data": ["无 AI 基准\n(纯人类)", "第一幕：Minimal AGI\n(θ=1.69, y*=0.78)", "第二幕：Supercompetent\n(θ=12, y*=0.78)", "第三幕：Supercooperative\n(θ=1.69, y*=1.60)", "第四幕：ASI\n(θ=12, y*=1.05)"]
+    "inverse": true,
+    "axisTick": {"show": false},
+    "data": ["无 AI 基准\n(纯人类)", "Minimal AGI\n(1.69, 0.78)", "Supercomp.\n(12, 0.78)", "Supercoop.\n(1.69, 1.60)", "第四幕：ASI\n(12, 1.05)"]
   },
-  "yAxis": {"type": "value", "name": "均衡工资 (算力成本 r=1)"},
   "series": [
     {
-      "name": "技术专家工资 (Coder/Writer)",
+      "name": "技术专家工资",
       "type": "bar",
       "itemStyle": {"color": "var(--stone)"},
-      "label": {"show": true, "position": "top"},
-      "data": [4.15, 2.90, 0.39, 0.41, 0.27]
+      "label": {"show": true, "position": "right", "color": "var(--ink)", "textBorderColor": "transparent"},
+      "data": [4.15, {"value": 2.9, "label": {"formatter": "2.90"}}, 0.39, 0.41, 0.27],
+      "markLine": {
+        "silent": true,
+        "symbol": "none",
+        "lineStyle": {"color": "var(--muted)", "type": "dashed", "width": 1},
+        "label": {"show": false},
+        "data": [{"xAxis": 0.25}]
+      }
     },
     {
-      "name": "人类协调者工资 (Coordinator)",
+      "name": "人类协调者工资",
       "type": "bar",
       "itemStyle": {"color": "var(--clay)"},
-      "label": {"show": true, "position": "top"},
-      "data": [2.41, 1.30, 0.48, 0.25, 0.25]
+      "label": {"show": true, "position": "right", "color": "var(--ink)", "textBorderColor": "transparent"},
+      "data": [2.41, {"value": 1.3, "label": {"formatter": "1.30"}}, 0.48, 0.25, 0.25]
     }
   ]
 }
@@ -307,9 +317,10 @@ $$
 
   <text class="caps" x="384" y="28">路径 B：企业间断崖出清 (CONVEX)</text>
   <text class="small" x="384" y="48">协同放大规模 → 严格凸包络 → 纯人类 vs 纯 AI 分离</text>
-  <g class="node blue"><rect x="384" y="68" width="142" height="32" rx="4"/><text class="mid" x="455" y="84">纯人类公司 (100%)</text></g>
-  <g class="node orange"><rect x="538" y="68" width="142" height="32" rx="4"/><text class="mid" x="609" y="84">纯 AI 公司 (0%)</text></g>
-  <path class="edge hot" d="M532 104 V124" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="384" y="68" width="142" height="32" rx="4"/><text class="mid" x="455" y="84">纯人类公司</text></g>
+  <g class="node orange"><rect x="538" y="68" width="142" height="32" rx="4"/><text class="mid" x="609" y="84">纯 AI 公司</text></g>
+  <path class="edge hot" d="M455 100 V112 H609 V100"/>
+  <path class="edge hot" d="M532 112 V124" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="394" y="128" width="276" height="34" rx="17"/><text class="mid" x="532" y="145">临界点：AI 单位成本跌破人类底线</text></g>
   <path class="edge hot" d="M532 162 V180" marker-end="url(#arrow)"/>
   <g class="node plain"><rect x="384" y="184" width="296" height="32" rx="4"/><text class="mid" x="532" y="200">所有纯人类公司同日倒闭，就业 100% → 0%</text></g>
@@ -334,7 +345,8 @@ $$
   <text class="small" x="20" y="338">协同放大规模 → 严格凸包络 → 纯人类与纯 AI 分离</text>
   <g class="node blue"><rect x="20" y="356" width="144" height="32" rx="4"/><text class="mid" x="92" y="372">纯人类公司</text></g>
   <g class="node orange"><rect x="176" y="356" width="144" height="32" rx="4"/><text class="mid" x="248" y="372">纯 AI 公司</text></g>
-  <path class="edge hot" d="M170 392 V410" marker-end="url(#arrow)"/>
+  <path class="edge hot" d="M92 388 V399 H248 V388"/>
+  <path class="edge hot" d="M170 399 V410" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="26" y="414" width="288" height="34" rx="17"/><text class="mid" x="170" y="431">临界点：AI 成本跌破人类底线</text></g>
   <path class="edge hot" d="M170 448 V466" marker-end="url(#arrow)"/>
   <g class="node plain"><rect x="20" y="470" width="300" height="32" rx="4"/><text class="mid" x="170" y="486">纯人类公司同日倒闭，就业 100% → 0%</text></g>
@@ -385,26 +397,26 @@ $$
 
 但如果我们要拿这篇论文当作观测真实世界的罗盘，就必须看清它的数学假设在哪里为了优雅而切掉了现实的骨肉。具体而言，模型有六个关键的盲区：
 
-```sketch title="理论模型 vs 现实世界：被简化的六道制度与物理摩擦" note="左列为论文为保证均衡存在性与解析可解而采用的公理化假设；右列为现实经济中会扭曲、延缓或改写上述四幕剧本的真实摩擦。"
+```sketch title="理论模型 vs 现实世界：被简化的六道制度与物理摩擦" note="“论文的公理化假设”为保证均衡存在性与解析可解而采用；“现实世界的反作用力”则会扭曲、延缓或改写上述四幕剧本。"
 <svg viewBox="0 0 704 316">
   <rect class="panel" x="0" y="0" width="344" height="316" rx="12"/>
   <rect class="panel" x="360" y="0" width="344" height="316" rx="12"/>
 
   <text class="caps" x="24" y="28">论文的公理化假设 (MODEL ASSUMPTIONS)</text>
   <g class="node plain"><rect x="24" y="48" width="296" height="36" rx="4"/><text class="mid" x="172" y="66">1. 协同力取全员算术平均 (一阶矩假设)</text></g>
-  <g class="node plain"><rect x="24" y="92" width="296" height="36" rx="4"/><text class="mid" x="172" y="110">2. 算力按固定价格 r 无限弹性供给</text></g>
-  <g class="node plain"><rect x="24" y="136" width="296" height="36" rx="4"/><text class="mid" x="172" y="154">3. 全经济体只有单一同质 AI 模型 y^M</text></g>
+  <g class="node plain"><rect x="24" y="92" width="296" height="36" rx="4"/><text class="mid" x="172" y="110">2. 全经济体只有单一同质 AI 模型</text></g>
+  <g class="node plain"><rect x="24" y="136" width="296" height="36" rx="4"/><text class="mid" x="172" y="154">3. 算力按固定价格 r 无限弹性供给</text></g>
   <g class="node plain"><rect x="24" y="180" width="296" height="36" rx="4"/><text class="mid" x="172" y="198">4. 替代博弈均衡：巨型垄断企业零利润</text></g>
   <g class="node plain"><rect x="24" y="224" width="296" height="36" rx="4"/><text class="mid" x="172" y="242">5. 产出只取决于技能与协同，无法律摩擦</text></g>
   <g class="node plain"><rect x="24" y="268" width="296" height="36" rx="4"/><text class="mid" x="172" y="286">6. 需求曲线 P(Q) 外生固定，与工资脱钩</text></g>
 
   <text class="caps" x="384" y="28">现实世界的反作用力 (REAL-WORLD FRICTIONS)</text>
   <g class="node blue"><rect x="384" y="48" width="296" height="36" rx="4"/><text class="mid" x="532" y="66">1. 金字塔层级：1 个顶尖架构师可撬动全局</text></g>
-  <g class="node orange"><rect x="384" y="92" width="296" height="36" rx="4"/><text class="mid" x="532" y="110">2. 芯片与电力硬瓶颈：算力租金 r 陡峭递增</text></g>
-  <g class="node teal"><rect x="384" y="136" width="296" height="36" rx="4"/><text class="mid" x="532" y="154">3. 异质专用模型混编：AI 自己也能拼图智能</text></g>
-  <g class="node clay"><rect x="384" y="180" width="296" height="36" rx="18"/><text class="mid" x="532" y="198">4. 垄断定价与寻租：巨头攫取超额垄断暴利</text></g>
+  <g class="node teal"><rect x="384" y="92" width="296" height="36" rx="4"/><text class="mid" x="532" y="110">2. 异质专用模型混编：AI 自己也能拼图智能</text></g>
+  <g class="node orange"><rect x="384" y="136" width="296" height="36" rx="4"/><text class="mid" x="532" y="154">3. 芯片与电力硬瓶颈：算力租金 r 陡峭递增</text></g>
+  <g class="node clay"><rect x="384" y="180" width="296" height="36" rx="4"/><text class="mid" x="532" y="198">4. 垄断定价与寻租：巨头攫取超额垄断暴利</text></g>
   <g class="node violet"><rect x="384" y="224" width="296" height="36" rx="4"/><text class="mid" x="532" y="242">5. 法律背锅与真人偏好：AI 不能坐牢签字</text></g>
-  <g class="node clay"><rect x="384" y="268" width="296" height="36" rx="18"/><text class="mid" x="532" y="286">6. 宏观总需求坍缩：全员失业后谁来买单？</text></g>
+  <g class="node clay"><rect x="384" y="268" width="296" height="36" rx="4"/><text class="mid" x="532" y="286">6. 宏观总需求坍缩：全员失业后谁来买单？</text></g>
 </svg>
 <svg viewBox="0 0 340 645">
   <rect class="panel" x="0" y="0" width="340" height="315" rx="12"/>
@@ -412,19 +424,19 @@ $$
 
   <text class="caps" x="20" y="28">论文的公理化假设 (MODEL)</text>
   <g class="node plain"><rect x="20" y="48" width="300" height="36" rx="4"/><text class="mid" x="170" y="66">1. 协同力取全员算术平均 (一阶矩)</text></g>
-  <g class="node plain"><rect x="20" y="92" width="300" height="36" rx="4"/><text class="mid" x="170" y="110">2. 算力按固定价格 r 无限弹性供给</text></g>
-  <g class="node plain"><rect x="20" y="136" width="300" height="36" rx="4"/><text class="mid" x="170" y="154">3. 全经济体只有单一同质 AI 模型</text></g>
+  <g class="node plain"><rect x="20" y="92" width="300" height="36" rx="4"/><text class="mid" x="170" y="110">2. 全经济体只有单一同质 AI 模型</text></g>
+  <g class="node plain"><rect x="20" y="136" width="300" height="36" rx="4"/><text class="mid" x="170" y="154">3. 算力按固定价格 r 无限弹性供给</text></g>
   <g class="node plain"><rect x="20" y="180" width="300" height="36" rx="4"/><text class="mid" x="170" y="198">4. 可竞争市场：巨型垄断企业零利润</text></g>
   <g class="node plain"><rect x="20" y="224" width="300" height="36" rx="4"/><text class="mid" x="170" y="242">5. 产出只看技能与协同，无制度摩擦</text></g>
   <g class="node plain"><rect x="20" y="268" width="300" height="36" rx="4"/><text class="mid" x="170" y="286">6. 需求曲线外生固定，与工资脱钩</text></g>
 
   <text class="caps" x="20" y="358">现实世界的反作用力 (REALITY)</text>
   <g class="node blue"><rect x="20" y="378" width="300" height="36" rx="4"/><text class="mid" x="170" y="396">1. 金字塔层级：1 个架构师可撬动全局</text></g>
-  <g class="node orange"><rect x="20" y="422" width="300" height="36" rx="4"/><text class="mid" x="170" y="440">2. 芯片与电力硬瓶颈：算力租金递增</text></g>
-  <g class="node teal"><rect x="20" y="466" width="300" height="36" rx="4"/><text class="mid" x="170" y="484">3. 异质模型混编：AI 也能拼图智能</text></g>
-  <g class="node clay"><rect x="20" y="510" width="300" height="36" rx="18"/><text class="mid" x="170" y="528">4. 垄断定价：巨头攫取超额垄断暴利</text></g>
+  <g class="node teal"><rect x="20" y="422" width="300" height="36" rx="4"/><text class="mid" x="170" y="440">2. 异质模型混编：AI 也能拼图智能</text></g>
+  <g class="node orange"><rect x="20" y="466" width="300" height="36" rx="4"/><text class="mid" x="170" y="484">3. 芯片与电力硬瓶颈：算力租金递增</text></g>
+  <g class="node clay"><rect x="20" y="510" width="300" height="36" rx="4"/><text class="mid" x="170" y="528">4. 垄断定价：巨头攫取超额垄断暴利</text></g>
   <g class="node violet"><rect x="20" y="554" width="300" height="36" rx="4"/><text class="mid" x="170" y="572">5. 法律背锅：AI 不能坐牢签字担责</text></g>
-  <g class="node clay"><rect x="20" y="598" width="300" height="36" rx="18"/><text class="mid" x="170" y="616">6. 总需求坍缩：全员失业后谁来买单？</text></g>
+  <g class="node clay"><rect x="20" y="598" width="300" height="36" rx="4"/><text class="mid" x="170" y="616">6. 总需求坍缩：全员失业后谁来买单？</text></g>
 </svg>
 ```
 

@@ -204,7 +204,7 @@ Writing your own reward function isn't sour grapes or lowering your standards; i
   <g class="node plain"><rect x="36" y="118" width="84" height="34" rx="4"/><text class="mid" x="78" y="135">Ranking</text></g>
   <path class="edge hot" d="M120 135 H196" marker-end="url(#arrow)"/>
   <g class="node teal"><rect x="200" y="118" width="104" height="34" rx="4"/><text class="mid" x="252" y="135">Self-Worth</text></g>
-  <text class="small" x="24" y="226">One drop in rank and the whole house goes dark</text>
+  <text class="small" x="24" y="232">One drop in rank and the whole house goes dark</text>
   <rect class="panel" x="360" y="0" width="344" height="250" rx="12"/>
   <text class="caps" x="384" y="32">MULTI-LINE POWER GRID</text>
   <g class="node plain"><rect x="392" y="60" width="92" height="30" rx="4"/><text class="mid" x="438" y="75">Ranking</text></g>
@@ -216,7 +216,7 @@ Writing your own reward function isn't sour grapes or lowering your standards; i
   <path class="edge" d="M484 155 H528"/>
   <path class="edge" d="M484 195 H528 V135 H556" marker-end="url(#arrow)"/>
   <g class="node teal"><rect x="560" y="118" width="104" height="34" rx="4"/><text class="mid" x="612" y="135">Self-Worth</text></g>
-  <text class="small" x="384" y="236">If one line trips, the lights stay on</text>
+  <text class="small" x="384" y="232">If one line trips, the lights stay on</text>
 </svg>
 <svg viewBox="0 0 340 416">
   <rect class="panel" x="0" y="0" width="340" height="150" rx="12"/>
@@ -375,11 +375,11 @@ In 2008, Francis Flynn and Vanessa Lake ran a set of wonderfully direct experime
 
 The gap between prediction and reality stunned the participants themselves:
 
-```chart bar title="Direct In-Person Requests: How Many Strangers Must You Ask?" yfmt="%.0f" note="Y-axis: number of people approached. In-person requests on the Columbia University campus. The three tasks required getting 5, 3, and 1 yeses respectively; n = 23, 17, and 12 completers for each comparison. Source: Flynn & Lake (2008), Studies 1 and 2."
+```chart bar title="Direct In-Person Requests: How Many Strangers Must You Ask?" yfmt="%.0f" note="Y-axis: number of people approached. In-person requests on the Columbia University campus. The three tasks—filling out a survey, lending a cell phone, and escorting the requester to a gym—required getting 5, 3, and 1 yeses respectively; n = 23, 17, and 12 completers for each comparison. Source: Flynn & Lake (2008), Studies 1 and 2."
 Task | Predicted People | Actual People
-Fill out questionnaire | 20.5 | 10.5
-Borrow cell phone | 10.1 | 6.2
-Escort to gym | 7.2 | 2.3
+Survey | 20.5 | 10.5
+Cell phone | 10.1 | 6.2
+Gym escort | 7.2 | 2.3
 ```
 
 To get a stranger to walk them to the gym, students thought they would have to be turned down by 7.2 people on average before finding one kind soul; in reality, it took asking just 2.3 people. The same pattern held in real charity fundraising: volunteers predicted they would need to knock on 210 doors to hit their fundraising target, and actually needed only 122. In a 2016 review[@bohns2016] synthesizing requests made to more than 14,000 strangers across studies, Vanessa Bohns found that **on average, people underestimate the likelihood that others will say yes by nearly 50%.**
@@ -419,12 +419,12 @@ That said, do not take the charts above as a license to blast out mass cold emai
 
 M. Mahdi Roghanizad and Vanessa Bohns[@roghanizad2017] ran a telling comparison: participants asked 10 strangers at their university either to fill out a questionnaire or to proofread a document, doing so either **face-to-face** or **over email**:
 
-```chart bar title="Underestimated in Person, Overestimated Over Email" yfmt="%.0f%%" note="Requesters predicted how many people would comply before making the actual requests. Study 1 (26 in-person, 19 email): each asked 10 fellow students to complete a 44-item personality survey. Study 2 (30 per group): asked 7 people who had already agreed to a paid survey to also proofread a document for free. Counts converted to percentages (divided by 10 in Study 1, by 7 in Study 2). Source: Roghanizad & Bohns (2017) author manuscript, Studies 1 and 2."
+```chart bar title="Underestimated in Person, Overestimated Over Email" yfmt="%.0f%%" note="S1 / S2 = Study 1 / Study 2. Requesters predicted how many people would comply before making the actual requests. Study 1 (26 in-person, 19 email): each asked 10 fellow students to complete a 44-item personality survey. Study 2 (30 per group): asked 7 people who had already agreed to a paid survey to also proofread a document for free. Counts converted to percentages (divided by 10 in Study 1, by 7 in Study 2). Source: Roghanizad & Bohns (2017) author manuscript, Studies 1 and 2."
 Condition | Predicted Yes | Actual Yes
-Study 1: In Person | 50.8 | 71.5
-Study 1: Email | 55.3 | 2.1
-Study 2: In Person | 63.3 | 77.6
-Study 2: Email | 58.6 | 34.7
+S1 Person | 50.8 | 71.5
+S1 Email | 55.3 | 2.1
+S2 Person | 63.3 | 77.6
+S2 Email | 58.6 | 34.7
 ```
 
 In Study 1, requesters assumed email and in-person asks would perform similarly, expecting roughly half of recipients to say yes either way. When they asked in person, 71.5% agreed; when they asked by email, compliance collapsed to **2.1%**—a 34-fold difference! An impersonal email from an unknown sender looks indistinguishable from spam in an inbox and fails to engage human empathy or trust.
@@ -478,20 +478,20 @@ Put the Eastern and Western findings together, and you get a crystal-clear **div
 ```sketch title="How Opportunities Enter: Weak Ties Point the Way, Strong Ties Vouch, Your Work Holds the Room" note="Weak ties cross cluster boundaries to bring non-redundant information; strong ties provide high-trust endorsement; how far you go once inside depends on the work in your hands. Synthesizing Granovetter (1973), Bian (1997), and Rajkumar et al. (2022)."
 <svg viewBox="0 0 704 228">
   <rect class="panel" x="0" y="0" width="704" height="228" rx="12"/>
-  <rect class="window" x="24" y="24" width="208" height="164" rx="8"/>
-  <text class="caps" x="40" y="46">YOUR DAILY CIRCLE</text>
-  <g class="node plain"><rect x="40" y="64" width="176" height="36" rx="4"/><text class="mid b" x="128" y="82">You + Your Body of Work</text></g>
-  <g class="node blue"><rect x="40" y="124" width="176" height="44" rx="4"/><text class="mid b" x="128" y="140">Strong Ties (Close Friends)</text><text class="mid small" x="128" y="157">Redundant info, deep trust</text></g>
+  <rect class="window" x="20" y="24" width="212" height="164" rx="8"/>
+  <text class="caps" x="36" y="46">YOUR DAILY CIRCLE</text>
+  <g class="node plain"><rect x="34" y="64" width="184" height="36" rx="4"/><text class="mid b" x="126" y="82">You + Your Body of Work</text></g>
+  <g class="node blue"><rect x="34" y="124" width="184" height="44" rx="4"/><text class="mid b" x="126" y="140">Strong Ties (Friends)</text><text class="mid small" x="126" y="157">Redundant info, deep trust</text></g>
 
-  <rect class="window" x="464" y="24" width="216" height="164" rx="8"/>
-  <text class="caps" x="480" y="46">OUTSIDE CIRCLES</text>
-  <g class="node orange"><rect x="480" y="64" width="184" height="44" rx="4"/><text class="mid b" x="572" y="80">Weak Ties (Acquaintances)</text><text class="mid small" x="572" y="97">~10 mutual contacts works best</text></g>
-  <g class="node teal"><rect x="480" y="128" width="184" height="40" rx="4"/><text class="mid b" x="572" y="148">New Opportunity</text></g>
+  <rect class="window" x="468" y="24" width="216" height="164" rx="8"/>
+  <text class="caps" x="484" y="46">OUTSIDE CIRCLES</text>
+  <g class="node orange"><rect x="482" y="64" width="188" height="44" rx="4"/><text class="mid b" x="576" y="80">Weak Ties (Acquaintances)</text><text class="mid small" x="576" y="97">~10 mutual contacts works best</text></g>
+  <g class="node teal"><rect x="482" y="128" width="188" height="40" rx="4"/><text class="mid b" x="576" y="148">New Opportunity</text></g>
 
-  <path class="edge dash" d="M476 84 H220" marker-end="url(#arrow)"/>
-  <text class="small mid" x="348" y="74">① Cross-circle non-redundant info (points the way)</text>
-  <path class="edge" d="M218 148 H476" marker-end="url(#arrow)"/>
-  <text class="small mid" x="348" y="138">② High-stakes trust &amp; endorsement (vouches for you)</text>
+  <path class="edge dash" d="M478 84 H222" marker-end="url(#arrow)"/>
+  <text class="small mid" x="350" y="72">① New info across circles</text>
+  <path class="edge" d="M220 148 H478" marker-end="url(#arrow)"/>
+  <text class="small mid" x="350" y="136">② High-trust backing</text>
   <text class="small mid accent" x="352" y="210">Weak ties break information walls; strong ties back you with trust; your work carries you inside</text>
 </svg>
 <svg viewBox="0 0 340 424">
@@ -501,10 +501,10 @@ Put the Eastern and Western findings together, and you get a crystal-clear **div
   <g class="node plain"><rect x="36" y="54" width="268" height="34" rx="4"/><text class="mid b" x="170" y="71">You + Your Body of Work</text></g>
   <g class="node blue"><rect x="36" y="98" width="268" height="44" rx="4"/><text class="mid b" x="170" y="114">Strong Ties (Close Friends)</text><text class="mid small" x="170" y="131">Redundant info, but vouch for you</text></g>
 
-  <path class="edge dash" d="M120 226 V160" marker-end="url(#arrow)"/>
-  <text class="small" x="24" y="196">① Brings new info</text>
-  <path class="edge" d="M220 158 V224" marker-end="url(#arrow)"/>
-  <text class="small" x="226" y="196">② Vouches trust</text>
+  <path class="edge dash" d="M132 226 V160" marker-end="url(#arrow)"/>
+  <text class="small" x="28" y="196">① New info</text>
+  <path class="edge" d="M208 158 V224" marker-end="url(#arrow)"/>
+  <text class="small" x="218" y="196">② Trust backing</text>
 
   <rect class="window" x="20" y="230" width="300" height="136" rx="8"/>
   <text class="caps" x="36" y="252">OUTSIDE CIRCLES</text>
@@ -554,8 +554,8 @@ Through mathematical modeling and empirical fitting, the researchers uncovered a
 That is why I hold myself to a strict rule: **every single attempt must be designed with two deliverables.**
 
 ```sketch title="One Attempt, Two Engineered Deliverables" note="The outward deliverable depends on timing and luck—if it lands, great. The inward deliverable is 100% under your control: built as an inspectable, reusable component that slots straight into your next attempt. Adapted from Yin et al. (2019)."
-<svg viewBox="0 0 704 236">
-  <rect class="panel" x="0" y="0" width="704" height="236" rx="12"/>
+<svg viewBox="0 0 704 252">
+  <rect class="panel" x="0" y="0" width="704" height="252" rx="12"/>
   <g class="node"><rect x="20" y="88" width="144" height="44" rx="4"/><text class="mid b" x="92" y="105">One Active Attempt</text><text class="mid small" x="92" y="122">Pitch / Apply / Ship</text></g>
 
   <path class="edge dash" d="M166 98 H206 V56 H236" marker-end="url(#arrow)"/>
@@ -570,7 +570,7 @@ That is why I hold myself to a strict rule: **every single attempt must be desig
   <path class="edge" d="M466 156 H504" marker-end="url(#arrow)"/>
   <g class="node blue"><rect x="508" y="134" width="176" height="44" rx="4"/><text class="mid b" x="596" y="151">100% Retained Part</text><text class="mid small" x="596" y="168">Reused in the next attempt</text></g>
 
-  <path class="edge" d="M596 180 V208 H92 V136" marker-end="url(#arrow)"/>
+  <path class="edge" d="M596 180 V220 H92 V136" marker-end="url(#arrow)"/>
   <text class="small mid" x="352" y="202">Carry forward the working components; replace only the weakest link</text>
 </svg>
 <svg viewBox="0 0 340 388">
@@ -684,10 +684,10 @@ Welding all of the research and principles above into a single circuit gives the
 
 ```mermaid title="One Attempt: The Full Loop from Budget to Convergence" note="Price your downside and design two deliverables first, then reach out through the warmest channel available; salvage reusable parts regardless of outcome, audit periodically, and shift from exploration into deep focus once a door opens."
 flowchart TD
-  P["1. Log Prediction & Stop-Loss<br/>Estimate odds · Price your affordable loss"] --> D["2. Design Two Deliverables<br/>Outward for outcomes · Inward for reusable parts"]
-  D --> T["3. Show Your Face & Ask Directly<br/>In-person or high-warmth channel · Activate weak ties"]
-  T --> R["4. De-Egoed Post-Mortem<br/>Self-compassion first · Debug in the third person"]
-  R --> K["5. Iterate or Converge<br/>Keep working parts · Go deep once a door opens"]
+  P["1. Log Prediction & Stop-Loss<br/>Estimate odds · Price affordable loss"] --> D["2. Design Two Deliverables<br/>Outward outcome · Inward reusable part"]
+  D --> T["3. Show Your Face & Ask Directly<br/>Warm channel · Activate weak ties"]
+  T --> R["4. De-Egoed Post-Mortem<br/>Self-compassion · 3rd-person review"]
+  R --> K["5. Iterate or Converge<br/>Keep working parts · Go deep when open"]
 ```
 
 Every so often, I clear my desk by asking four questions:

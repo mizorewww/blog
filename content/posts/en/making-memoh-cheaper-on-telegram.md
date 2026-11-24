@@ -14,6 +14,7 @@ tags:
 A while ago, I deployed [Memoh](https://github.com/memohai/memoh) as a few Telegram group-chat bots, mainly to burn through an Ollama subscription I couldn't possibly use up on my own (some idiot subscribed to a full year of Ollama at once).
 
 ![The Memoh bot "Xiaoxue" chatting in a Telegram group and replying with a catgirl sticker](../../images/memoh-telegram-chat.png)
+*A live Telegram group-chat turn in Chinese: when a member jokes about DMing the bot to teach it political memes, the Memoh bot "Xiaoxue" (`小雪`) refuses in character ("Master said no politics—Xiaoxue won't listen to Yoshino, meow! Xiaoxue is a good catgirl") and drops a matching catgirl sticker (`いいよ！`) in the same turn.*
 
 After running it for a bit, I noticed that ten minutes of group chat could burn through half of my 5-hour limit, and a single day would eat half of my weekly quota. That got me thinking: in a pure chat scenario, how can I drive down both the number of LLM calls and the token consumption per call? I made a set of targeted changes for group chat, and my total cost dropped to less than a fifth of what it used to be.
 

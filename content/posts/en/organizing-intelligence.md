@@ -72,19 +72,19 @@ When 3 Coders and 3 Writers team up in a 6-person firm, the average skill vector
 
 Better still, adding 1 Coordinator ($y_* = 0.97$)—who ranks dead last on solo task benchmarks—to those 6 specialists slightly lowers the team's average task competence to $31/7 \approx 4.43$, but raises average coordination from $0.75$ to $0.781$. That expands the firm's optimal size from 6 to 7 workers and boosts total output even further.
 
-```sketch title="Mosaic Intelligence: Teaming Up Lifts Lopsided Humans Above Mediocre AI" note="Adapted from Figure 1(a) and Section 2.2 of the paper. Under L = 2/(1/y_1 + 1/y_2), individual specialists (L=1.8) and coordinators (L=1.0) sit on low iso-competence contours. Yet the convex hull of human skills spans high contours, reaching L=5.0 in a 50:50 mix (and L=4.43 with a coordinator). Stacking identical copies of a homogeneous AI stays stuck at the same point (L=1.69)."
+```sketch title="Mosaic Intelligence: Teaming Up Lifts Lopsided Humans Above Mediocre AI" note="Adapted from Figure 1(a) and Section 2.2 of the paper. Under L = 2/(1/y₁ + 1/y₂), individual specialists (L = 1.80) and coordinators (L = 1.00) sit on low iso-competence contours. Yet the convex hull of human skills spans high contours, reaching L = 5.00 in a 50:50 mix (and mean 4.43, L = 4.43 with a coordinator). Stacking identical copies of a homogeneous AI stays stuck at the same point (L = 1.69)."
 <svg viewBox="0 0 704 290">
   <rect class="panel" x="0" y="0" width="344" height="290" rx="12"/>
   <rect class="panel" x="360" y="0" width="344" height="290" rx="12"/>
 
   <text class="caps" x="24" y="28">SOLO EVALUATION (BENCHMARK)</text>
   <text class="small" x="24" y="48">Test each worker in isolation, then average</text>
-  <g class="node plain"><rect x="24" y="68" width="142" height="34" rx="4"/><text class="mid" x="95" y="85">Coder (9, 1)</text></g>
-  <g class="node plain"><rect x="178" y="68" width="142" height="34" rx="4"/><text class="mid" x="249" y="85">Bottlenecked L = 1.80</text></g>
-  <g class="node plain"><rect x="24" y="112" width="142" height="34" rx="4"/><text class="mid" x="95" y="129">Writer (1, 9)</text></g>
-  <g class="node plain"><rect x="178" y="112" width="142" height="34" rx="4"/><text class="mid" x="249" y="129">Bottlenecked L = 1.80</text></g>
-  <g class="node plain"><rect x="24" y="156" width="142" height="34" rx="4"/><text class="mid" x="95" y="173">Coordinator (1, 1)</text></g>
-  <g class="node plain"><rect x="178" y="156" width="142" height="34" rx="4"/><text class="mid" x="249" y="173">Lowest score L = 1.00</text></g>
+  <g class="node plain"><rect x="24" y="68" width="152" height="34" rx="4"/><text class="mid" x="100" y="85">Coder (9, 1)</text></g>
+  <g class="node plain"><rect x="188" y="68" width="132" height="34" rx="4"/><text class="mid" x="254" y="85">Solo L = 1.80</text></g>
+  <g class="node plain"><rect x="24" y="112" width="152" height="34" rx="4"/><text class="mid" x="100" y="129">Writer (1, 9)</text></g>
+  <g class="node plain"><rect x="188" y="112" width="132" height="34" rx="4"/><text class="mid" x="254" y="129">Solo L = 1.80</text></g>
+  <g class="node plain"><rect x="24" y="156" width="152" height="34" rx="4"/><text class="mid" x="100" y="173">Coordinator (1, 1)</text></g>
+  <g class="node plain"><rect x="188" y="156" width="132" height="34" rx="4"/><text class="mid" x="254" y="173">Solo L = 1.00</text></g>
   <path class="edge" d="M172 198 V218" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="34" y="222" width="276" height="36" rx="18"/><text class="mid" x="172" y="240">Human Solo Mean 1.69 = Minimal AGI</text></g>
   <text class="small accent" x="24" y="276">Illusion: AI has matched humans; full replacement looms</text>
@@ -93,15 +93,15 @@ Better still, adding 1 Coordinator ($y_* = 0.97$)—who ranks dead last on solo 
   <text class="small" x="384" y="48">Complementary human hull vs. cloned homogeneous AI</text>
   <rect class="window" x="384" y="64" width="296" height="92" rx="8"/>
   <text class="small" x="398" y="82">Human firm: 3 Coders + 3 Writers + 1 Coord</text>
-  <g class="node blue"><rect x="398" y="96" width="130" height="44" rx="4"/><text class="mid" x="463" y="118">Complements (5, 5)</text></g>
-  <path class="edge" d="M528 118 H546" marker-end="url(#arrow)"/>
-  <g class="node teal"><rect x="550" y="96" width="116" height="44" rx="4"/><text class="mid" x="608" y="118">Team L = 4.43</text></g>
+  <g class="node blue"><rect x="398" y="96" width="136" height="44" rx="4"/><text class="mid" x="466" y="118">Skill mean 4.43</text></g>
+  <path class="edge" d="M534 118 H550" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="554" y="96" width="112" height="44" rx="4"/><text class="mid" x="610" y="118">Team L = 4.43</text></g>
 
   <rect class="window" x="384" y="168" width="296" height="88" rx="8"/>
   <text class="small" x="398" y="186">Pure-AI firm: 7 Minimal AGI clones</text>
-  <g class="node plain"><rect x="398" y="200" width="130" height="42" rx="4"/><text class="mid" x="463" y="221">Identical profile</text></g>
-  <path class="edge" d="M528 221 H546" marker-end="url(#arrow)"/>
-  <g class="node orange"><rect x="550" y="200" width="116" height="42" rx="4"/><text class="mid" x="608" y="221">Team L = 1.69</text></g>
+  <g class="node plain"><rect x="398" y="200" width="136" height="42" rx="4"/><text class="mid" x="466" y="221">Identical profile</text></g>
+  <path class="edge" d="M534 221 H550" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="554" y="200" width="112" height="42" rx="4"/><text class="mid" x="610" y="221">Team L = 1.69</text></g>
   <text class="small" x="384" y="276">Result: Human mosaic (4.43) easily beats AI clones (1.69)</text>
 </svg>
 <svg viewBox="0 0 340 590">
@@ -110,12 +110,12 @@ Better still, adding 1 Coordinator ($y_* = 0.97$)—who ranks dead last on solo 
 
   <text class="caps" x="20" y="28">SOLO EVALUATION (BENCHMARK)</text>
   <text class="small" x="20" y="48">Test each worker in isolation, then average</text>
-  <g class="node plain"><rect x="20" y="66" width="140" height="32" rx="4"/><text class="mid" x="90" y="82">Coder (9, 1)</text></g>
-  <g class="node plain"><rect x="170" y="66" width="150" height="32" rx="4"/><text class="mid" x="245" y="82">Bottlenecked L = 1.80</text></g>
-  <g class="node plain"><rect x="20" y="108" width="140" height="32" rx="4"/><text class="mid" x="90" y="124">Writer (1, 9)</text></g>
-  <g class="node plain"><rect x="170" y="108" width="150" height="32" rx="4"/><text class="mid" x="245" y="124">Bottlenecked L = 1.80</text></g>
-  <g class="node plain"><rect x="20" y="150" width="140" height="32" rx="4"/><text class="mid" x="90" y="166">Coordinator (1, 1)</text></g>
-  <g class="node plain"><rect x="170" y="150" width="150" height="32" rx="4"/><text class="mid" x="245" y="166">Lowest score L = 1.00</text></g>
+  <g class="node plain"><rect x="20" y="66" width="152" height="32" rx="4"/><text class="mid" x="96" y="82">Coder (9, 1)</text></g>
+  <g class="node plain"><rect x="182" y="66" width="138" height="32" rx="4"/><text class="mid" x="251" y="82">Solo L = 1.80</text></g>
+  <g class="node plain"><rect x="20" y="108" width="152" height="32" rx="4"/><text class="mid" x="96" y="124">Writer (1, 9)</text></g>
+  <g class="node plain"><rect x="182" y="108" width="138" height="32" rx="4"/><text class="mid" x="251" y="124">Solo L = 1.80</text></g>
+  <g class="node plain"><rect x="20" y="150" width="152" height="32" rx="4"/><text class="mid" x="96" y="166">Coordinator (1, 1)</text></g>
+  <g class="node plain"><rect x="182" y="150" width="138" height="32" rx="4"/><text class="mid" x="251" y="166">Solo L = 1.00</text></g>
   <path class="edge" d="M170 190 V210" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="24" y="214" width="292" height="34" rx="17"/><text class="mid" x="170" y="231">Human Solo Mean 1.69 = Minimal AGI</text></g>
   <text class="small accent" x="20" y="270">Illusion: AI matches humans; replacement looms</text>
@@ -124,15 +124,15 @@ Better still, adding 1 Coordinator ($y_* = 0.97$)—who ranks dead last on solo 
   <text class="small" x="20" y="348">Complementary human hull vs. cloned AI</text>
   <rect class="window" x="20" y="364" width="300" height="90" rx="8"/>
   <text class="small" x="32" y="382">Human firm: 3 Coders + 3 Writers + 1 Coord</text>
-  <g class="node blue"><rect x="32" y="396" width="132" height="42" rx="4"/><text class="mid" x="98" y="417">Complements (5, 5)</text></g>
-  <path class="edge" d="M164 417 H182" marker-end="url(#arrow)"/>
-  <g class="node teal"><rect x="186" y="396" width="120" height="42" rx="4"/><text class="mid" x="246" y="417">Team L = 4.43</text></g>
+  <g class="node blue"><rect x="32" y="396" width="136" height="42" rx="4"/><text class="mid" x="100" y="417">Skill mean 4.43</text></g>
+  <path class="edge" d="M168 417 H184" marker-end="url(#arrow)"/>
+  <g class="node teal"><rect x="188" y="396" width="118" height="42" rx="4"/><text class="mid" x="247" y="417">Team L = 4.43</text></g>
 
   <rect class="window" x="20" y="466" width="300" height="86" rx="8"/>
   <text class="small" x="32" y="484">Pure-AI firm: 7 Minimal AGI clones</text>
-  <g class="node plain"><rect x="32" y="498" width="132" height="40" rx="4"/><text class="mid" x="98" y="518">Identical profile</text></g>
-  <path class="edge" d="M164 518 H182" marker-end="url(#arrow)"/>
-  <g class="node orange"><rect x="186" y="498" width="120" height="40" rx="4"/><text class="mid" x="246" y="518">Team L = 1.69</text></g>
+  <g class="node plain"><rect x="32" y="498" width="136" height="40" rx="4"/><text class="mid" x="100" y="518">Identical profile</text></g>
+  <path class="edge" d="M168 518 H184" marker-end="url(#arrow)"/>
+  <g class="node orange"><rect x="188" y="498" width="118" height="40" rx="4"/><text class="mid" x="247" y="518">Team L = 1.69</text></g>
   <text class="small" x="20" y="574">Result: Human mosaic (4.43) beats AI clones (1.69)</text>
 </svg>
 ```
@@ -199,29 +199,39 @@ Once AI reaches the Supercompetent stage ($y_d^M = 12 > 9$), every human has a *
 
 However, the shadow price of coordination $\beta_*^f$ has a crucial property: **it is proportional to the scale elasticity of firm output, $\partial_2 \log S(m, \bar y_*) = \log(1+m)$, and is simultaneously amplified by the team's baseline competence $L(\nu_f)$**! When a team is packed with super-AIs whose competence has jumped from $1.69$ to $12$, adding one human Coordinator who nudges the team's average coordination up from $0.78$ is like **fitting a steering wheel onto a fleet of Ferraris**—the Coordinator barely touches the gas pedal ($y_1=1, y_2=1$), yet widens the scale bottleneck of the entire super-AI fleet.
 
-```echarts title="Competence Path vs. Coordination Path: Divergence of Firm Size and Human Wages" height="340" note="Plotted from the four equilibrium snapshots in Figure 6 and Table 2 of the paper. Along the competence path (Minimal AGI → Supercompetent), optimal firm size stays locked around ~7 and Coordinator wages overtake Specialists. Once the supercooperative threshold is crossed (y_*^M = 1.60 > 1), deep-market firm size diverges and Coordinator wages hit the reservation floor of 0.25."
+```echarts title="Competence Path vs. Coordination Path: Wage Inversion and Collapse Across Regimes" height="380" note="Plotted from the five equilibrium snapshots in Figure 6 and Table 2 of the paper (wages in units of compute rent r = 1; dashed line marks the human reservation floor w₀ = 0.25; Specialists = Coders and Writers). Along the competence path (Minimal AGI → Supercompetent), optimal firm size stays locked around ~7 and Coordinator wages overtake Specialists. Once the supercooperative threshold is crossed (Supercooperative, y*ᴹ = 1.60 > 1), deep-market firm size diverges and Coordinator wages hit the 0.25 floor."
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "legend": {},
-  "xAxis": {
+  "legend": {"data": ["Specialist Wage", "Coordinator Wage"]},
+  "grid": {"top": 38, "right": 44, "bottom": 24},
+  "xAxis": {"type": "value", "max": 4.8},
+  "yAxis": {
     "type": "category",
-    "data": ["Pre-AI Baseline\n(Humans Only)", "Act I: Minimal AGI\n(θ=1.69, y*=0.78)", "Act II: Supercompetent\n(θ=12, y*=0.78)", "Act III: Supercoop\n(θ=1.69, y*=1.60)", "Act IV: ASI\n(θ=12, y*=1.05)"]
+    "inverse": true,
+    "axisTick": {"show": false},
+    "data": ["Pre-AI\n(Humans)", "Minimal AGI\n(1.69, 0.78)", "Supercomp.\n(12, 0.78)", "Supercoop.\n(1.69, 1.60)", "Act IV: ASI\n(12, 1.05)"]
   },
-  "yAxis": {"type": "value", "name": "Equilibrium Wage (compute r=1)"},
   "series": [
     {
-      "name": "Specialist Wage (Coder/Writer)",
+      "name": "Specialist Wage",
       "type": "bar",
       "itemStyle": {"color": "var(--stone)"},
-      "label": {"show": true, "position": "top"},
-      "data": [4.15, 2.90, 0.39, 0.41, 0.27]
+      "label": {"show": true, "position": "right", "color": "var(--ink)", "textBorderColor": "transparent"},
+      "data": [4.15, {"value": 2.9, "label": {"formatter": "2.90"}}, 0.39, 0.41, 0.27],
+      "markLine": {
+        "silent": true,
+        "symbol": "none",
+        "lineStyle": {"color": "var(--muted)", "type": "dashed", "width": 1},
+        "label": {"show": false},
+        "data": [{"xAxis": 0.25}]
+      }
     },
     {
-      "name": "Coordinator Wage (Coordinator)",
+      "name": "Coordinator Wage",
       "type": "bar",
       "itemStyle": {"color": "var(--clay)"},
-      "label": {"show": true, "position": "top"},
-      "data": [2.41, 1.30, 0.48, 0.25, 0.25]
+      "label": {"show": true, "position": "right", "color": "var(--ink)", "textBorderColor": "transparent"},
+      "data": [2.41, {"value": 1.3, "label": {"formatter": "1.30"}}, 0.48, 0.25, 0.25]
     }
   ]
 }
@@ -307,9 +317,10 @@ Why does unemployment unfold as a "slowly boiling frog" in some sectors, but an 
 
   <text class="caps" x="384" y="28">PATH B: SUDDEN WIPEOUT (CONVEX)</text>
   <text class="small" x="384" y="48">Scale amplification → convex envelope → firm segregation</text>
-  <g class="node blue"><rect x="384" y="68" width="142" height="32" rx="4"/><text class="mid" x="455" y="84">Pure-Human (100%)</text></g>
-  <g class="node orange"><rect x="538" y="68" width="142" height="32" rx="4"/><text class="mid" x="609" y="84">Pure-AI Firm (0%)</text></g>
-  <path class="edge hot" d="M532 104 V124" marker-end="url(#arrow)"/>
+  <g class="node blue"><rect x="384" y="68" width="142" height="32" rx="4"/><text class="mid" x="455" y="84">Pure-Human Firm</text></g>
+  <g class="node orange"><rect x="538" y="68" width="142" height="32" rx="4"/><text class="mid" x="609" y="84">Pure-AI Firm</text></g>
+  <path class="edge hot" d="M455 100 V112 H609 V100"/>
+  <path class="edge hot" d="M532 112 V124" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="394" y="128" width="276" height="34" rx="17"/><text class="mid" x="532" y="145">Tipping point: AI undercuts human floor</text></g>
   <path class="edge hot" d="M532 162 V180" marker-end="url(#arrow)"/>
   <g class="node plain"><rect x="384" y="184" width="296" height="32" rx="4"/><text class="mid" x="532" y="200">Human firms exit together: jobs 100% → 0%</text></g>
@@ -334,7 +345,8 @@ Why does unemployment unfold as a "slowly boiling frog" in some sectors, but an 
   <text class="small" x="20" y="338">Scale amplification → convex → firm segregation</text>
   <g class="node blue"><rect x="20" y="356" width="144" height="32" rx="4"/><text class="mid" x="92" y="372">Pure-Human Firm</text></g>
   <g class="node orange"><rect x="176" y="356" width="144" height="32" rx="4"/><text class="mid" x="248" y="372">Pure-AI Firm</text></g>
-  <path class="edge hot" d="M170 392 V410" marker-end="url(#arrow)"/>
+  <path class="edge hot" d="M92 388 V399 H248 V388"/>
+  <path class="edge hot" d="M170 399 V410" marker-end="url(#arrow)"/>
   <g class="node clay"><rect x="26" y="414" width="288" height="34" rx="17"/><text class="mid" x="170" y="431">Tipping point: AI undercuts human floor</text></g>
   <path class="edge hot" d="M170 448 V466" marker-end="url(#arrow)"/>
   <g class="node plain"><rect x="20" y="470" width="300" height="32" rx="4"/><text class="mid" x="170" y="486">Human firms exit together: jobs 100% → 0%</text></g>
@@ -385,26 +397,26 @@ Embedding Coasean firm boundaries[@coase1937][@williamson1967] into a general eq
 
 Still, if we want to use this paper as a compass for the real world, we must see clearly where its mathematical axioms pare away reality for analytical tractability. Specifically, the model has six critical blind spots:
 
-```sketch title="Theoretical Model vs. Real World: Six Institutional and Physical Frictions Simplified Away" note="Left: axiomatic assumptions adopted in the paper to guarantee equilibrium existence and closed-form solutions. Right: real-world economic frictions that will bend, delay, or rewrite the four-act script above."
+```sketch title="Theoretical Model vs. Real World: Six Institutional and Physical Frictions Simplified Away" note="Model assumptions are adopted to guarantee equilibrium existence and closed-form solutions; real-world frictions will bend, delay, or rewrite the four-act script above."
 <svg viewBox="0 0 704 316">
   <rect class="panel" x="0" y="0" width="344" height="316" rx="12"/>
   <rect class="panel" x="360" y="0" width="344" height="316" rx="12"/>
 
   <text class="caps" x="24" y="28">MODEL ASSUMPTIONS</text>
   <g class="node plain"><rect x="24" y="48" width="296" height="36" rx="4"/><text class="mid" x="172" y="66">1. Coordination is a flat arithmetic mean</text></g>
-  <g class="node plain"><rect x="24" y="92" width="296" height="36" rx="4"/><text class="mid" x="172" y="110">2. Infinite compute supply at fixed rent r</text></g>
-  <g class="node plain"><rect x="24" y="136" width="296" height="36" rx="4"/><text class="mid" x="172" y="154">3. Single homogeneous AI model y^M</text></g>
+  <g class="node plain"><rect x="24" y="92" width="296" height="36" rx="4"/><text class="mid" x="172" y="110">2. Single homogeneous AI model</text></g>
+  <g class="node plain"><rect x="24" y="136" width="296" height="36" rx="4"/><text class="mid" x="172" y="154">3. Infinite compute supply at fixed rent r</text></g>
   <g class="node plain"><rect x="24" y="180" width="296" height="36" rx="4"/><text class="mid" x="172" y="198">4. Contestable entry: zero monopoly profit</text></g>
   <g class="node plain"><rect x="24" y="224" width="296" height="36" rx="4"/><text class="mid" x="172" y="242">5. Pure production: zero legal liability</text></g>
   <g class="node plain"><rect x="24" y="268" width="296" height="36" rx="4"/><text class="mid" x="172" y="286">6. Exogenous demand decoupled from wages</text></g>
 
   <text class="caps" x="384" y="28">REAL-WORLD FRICTIONS</text>
   <g class="node blue"><rect x="384" y="48" width="296" height="36" rx="4"/><text class="mid" x="532" y="66">1. Pyramid hierarchy: top talent levers firm</text></g>
-  <g class="node orange"><rect x="384" y="92" width="296" height="36" rx="4"/><text class="mid" x="532" y="110">2. Fab &amp; power walls: steeply rising rent r</text></g>
-  <g class="node teal"><rect x="384" y="136" width="296" height="36" rx="4"/><text class="mid" x="532" y="154">3. Heterogeneous AI builds machine mosaics</text></g>
-  <g class="node clay"><rect x="384" y="180" width="296" height="36" rx="18"/><text class="mid" x="532" y="198">4. Monopoly pricing by giant AI leviathans</text></g>
+  <g class="node teal"><rect x="384" y="92" width="296" height="36" rx="4"/><text class="mid" x="532" y="110">2. Heterogeneous AI builds machine mosaics</text></g>
+  <g class="node orange"><rect x="384" y="136" width="296" height="36" rx="4"/><text class="mid" x="532" y="154">3. Fab &amp; power walls: steeply rising rent r</text></g>
+  <g class="node clay"><rect x="384" y="180" width="296" height="36" rx="4"/><text class="mid" x="532" y="198">4. Monopoly pricing by giant AI leviathans</text></g>
   <g class="node violet"><rect x="384" y="224" width="296" height="36" rx="4"/><text class="mid" x="532" y="242">5. Liability sinks: AI cannot go to prison</text></g>
-  <g class="node clay"><rect x="384" y="268" width="296" height="36" rx="18"/><text class="mid" x="532" y="286">6. Demand collapse: who buys if wages fall?</text></g>
+  <g class="node clay"><rect x="384" y="268" width="296" height="36" rx="4"/><text class="mid" x="532" y="286">6. Demand collapse: who buys if wages fall?</text></g>
 </svg>
 <svg viewBox="0 0 340 645">
   <rect class="panel" x="0" y="0" width="340" height="315" rx="12"/>
@@ -412,19 +424,19 @@ Still, if we want to use this paper as a compass for the real world, we must see
 
   <text class="caps" x="20" y="28">MODEL ASSUMPTIONS</text>
   <g class="node plain"><rect x="20" y="48" width="300" height="36" rx="4"/><text class="mid" x="170" y="66">1. Coordination is a flat arithmetic mean</text></g>
-  <g class="node plain"><rect x="20" y="92" width="300" height="36" rx="4"/><text class="mid" x="170" y="110">2. Infinite compute supply at fixed rent r</text></g>
-  <g class="node plain"><rect x="20" y="136" width="300" height="36" rx="4"/><text class="mid" x="170" y="154">3. Single homogeneous AI model y^M</text></g>
+  <g class="node plain"><rect x="20" y="92" width="300" height="36" rx="4"/><text class="mid" x="170" y="110">2. Single homogeneous AI model</text></g>
+  <g class="node plain"><rect x="20" y="136" width="300" height="36" rx="4"/><text class="mid" x="170" y="154">3. Infinite compute supply at fixed rent r</text></g>
   <g class="node plain"><rect x="20" y="180" width="300" height="36" rx="4"/><text class="mid" x="170" y="198">4. Contestable market: zero monopoly profit</text></g>
   <g class="node plain"><rect x="20" y="224" width="300" height="36" rx="4"/><text class="mid" x="170" y="242">5. Pure skill production; no legal friction</text></g>
   <g class="node plain"><rect x="20" y="268" width="300" height="36" rx="4"/><text class="mid" x="170" y="286">6. Exogenous demand decoupled from wages</text></g>
 
   <text class="caps" x="20" y="358">REAL-WORLD FRICTIONS</text>
-  <g class="node blue"><rect x="20" y="378" width="300" height="36" rx="4"/><text class="mid" x="170" y="396">1. Hierarchy: 1 top architect levers the firm</text></g>
-  <g class="node orange"><rect x="20" y="422" width="300" height="36" rx="4"/><text class="mid" x="170" y="440">2. Fab &amp; power walls: rising compute rent r</text></g>
-  <g class="node teal"><rect x="20" y="466" width="300" height="36" rx="4"/><text class="mid" x="170" y="484">3. Multi-model ensembles build AI mosaics</text></g>
-  <g class="node clay"><rect x="20" y="510" width="300" height="36" rx="18"/><text class="mid" x="170" y="528">4. Monopoly pricing &amp; giant rent-seeking</text></g>
-  <g class="node violet"><rect x="20" y="554" width="300" height="36" rx="4"/><text class="mid" x="170" y="572">5. Legal liability: AI cannot sign or serve time</text></g>
-  <g class="node clay"><rect x="20" y="598" width="300" height="36" rx="18"/><text class="mid" x="170" y="616">6. Demand collapse: who buys after job loss?</text></g>
+  <g class="node blue"><rect x="20" y="378" width="300" height="36" rx="4"/><text class="mid" x="170" y="396">1. Hierarchy: top architect levers firm</text></g>
+  <g class="node teal"><rect x="20" y="422" width="300" height="36" rx="4"/><text class="mid" x="170" y="440">2. Multi-model ensembles build AI mosaics</text></g>
+  <g class="node orange"><rect x="20" y="466" width="300" height="36" rx="4"/><text class="mid" x="170" y="484">3. Fab &amp; power walls: rising compute rent r</text></g>
+  <g class="node clay"><rect x="20" y="510" width="300" height="36" rx="4"/><text class="mid" x="170" y="528">4. Monopoly pricing &amp; giant rent-seeking</text></g>
+  <g class="node violet"><rect x="20" y="554" width="300" height="36" rx="4"/><text class="mid" x="170" y="572">5. Liability: AI cannot sign or serve time</text></g>
+  <g class="node clay"><rect x="20" y="598" width="300" height="36" rx="4"/><text class="mid" x="170" y="616">6. Demand collapse: who buys after job loss?</text></g>
 </svg>
 ```
 

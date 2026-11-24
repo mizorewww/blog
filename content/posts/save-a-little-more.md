@@ -81,7 +81,7 @@ draft: false
 ```sketch title="一次请求里都装了什么" note="本项目：40,593 次请求的平均值，平均每次 93,067 token；Memoh 改造前：抓到的一次请求，按字节计。虚线框是一次请求的全部输入，高度按比例。"
 <svg viewBox="0 0 704 336">
 <rect class="panel" x="0" y="0" width="704" height="336" rx="12"/>
-<text class="caps" x="28" y="30">本项目</text>
+<text class="small b" x="28" y="30">本项目</text>
 <text class="small" x="28" y="50">40,593 次请求的平均 · 93,067 token</text>
 <rect class="window" x="28" y="66" width="176" height="248" rx="8"/>
 <g class="node blue"><rect x="36" y="74.00" width="160" height="23.66" rx="1"/></g>
@@ -100,15 +100,15 @@ draft: false
 <rect x="46.0" y="250.1" width="70.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="46.0" y="265.1" width="77.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="88.0" y="280.1" width="98.0" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M200 85.8 H214"/>
+<path class="edge" d="M196 85.8 H214"/>
 <text class="small" x="218" y="85.832">system prompt <tspan class="b">10.2%</tspan></text>
-<path class="edge " d="M200 98.9 H210 V103.8 H214"/>
+<path class="edge" d="M196 98.9 H211 V103.8 H214"/>
 <text class="small" x="218" y="103.832">工具 schema <tspan class="b">1.1%</tspan></text>
-<path class="edge " d="M200 102.7 H210 V121.8 H214"/>
+<path class="edge" d="M196 102.7 H207 V121.8 H214"/>
 <text class="small" x="218" y="121.832">压缩摘要 <tspan class="b">2.1%</tspan></text>
-<path class="edge " d="M200 205.5 H214"/>
+<path class="edge" d="M196 205.5 H214"/>
 <text class="small" x="218" y="205.544">聊天历史 <tspan class="b">86.6%</tspan></text>
-<text class="caps" x="372" y="30">Memoh 改造前</text>
+<text class="small b" x="372" y="30">Memoh 改造前</text>
 <text class="small" x="372" y="50">抓到的一次请求 · 按字节</text>
 <rect class="window" x="372" y="66" width="176" height="248" rx="8"/>
 <g class="node blue"><rect x="380" y="74.00" width="160" height="24.82" rx="1"/></g>
@@ -123,17 +123,17 @@ draft: false
 <rect x="390.0" y="248.2" width="98.0" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="390.0" y="263.2" width="58.8" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="443.2" y="278.2" width="86.8" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M544 86.4 H558"/>
+<path class="edge" d="M540 86.4 H558"/>
 <text class="small" x="562" y="86.412">system prompt <tspan class="b">10.7%</tspan></text>
-<path class="edge " d="M544 123.5 H558"/>
+<path class="edge" d="M540 123.5 H558"/>
 <text class="small" x="562" y="123.532">工具 schema <tspan class="b">21.3%</tspan></text>
-<path class="edge " d="M544 227.1 H558"/>
+<path class="edge" d="M540 227.1 H558"/>
 <text class="small" x="562" y="227.12">聊天历史 <tspan class="b">68.0%</tspan></text>
 <text class="small" x="562" y="245.12">压缩摘要 0%</text>
 </svg>
 <svg viewBox="0 0 340 556">
 <rect class="panel" x="0" y="0" width="340" height="556" rx="12"/>
-<text class="caps" x="16" y="22">本项目</text>
+<text class="small b" x="16" y="22">本项目</text>
 <text class="small" x="16" y="42">40,593 次请求的平均 · 93,067 token</text>
 <rect class="window" x="16" y="58" width="140" height="212" rx="8"/>
 <g class="node blue"><rect x="24" y="66.00" width="124" height="19.99" rx="1"/></g>
@@ -150,15 +150,15 @@ draft: false
 <rect x="34.0" y="207.3" width="43.7" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="73.5" y="222.3" width="64.5" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="237.3" width="52.0" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M152 76.0 H166"/>
+<path class="edge" d="M148 76.0 H166"/>
 <text class="small" x="170" y="75.996">system prompt <tspan class="b">10.2%</tspan></text>
-<path class="edge " d="M152 87.1 H162 V94.0 H166"/>
+<path class="edge" d="M148 87.1 H162 V94.0 H166"/>
 <text class="small" x="170" y="93.996">工具 schema <tspan class="b">1.1%</tspan></text>
-<path class="edge " d="M152 90.2 H162 V112.0 H166"/>
+<path class="edge" d="M148 90.2 H158 V112.0 H166"/>
 <text class="small" x="170" y="111.996">压缩摘要 <tspan class="b">2.1%</tspan></text>
-<path class="edge " d="M152 177.1 H166"/>
+<path class="edge" d="M148 177.1 H166"/>
 <text class="small" x="170" y="177.132">聊天历史 <tspan class="b">86.6%</tspan></text>
-<text class="caps" x="16" y="294">Memoh 改造前</text>
+<text class="small b" x="16" y="294">Memoh 改造前</text>
 <text class="small" x="16" y="314">抓到的一次请求 · 按字节</text>
 <rect class="window" x="16" y="330" width="140" height="212" rx="8"/>
 <g class="node blue"><rect x="24" y="338.00" width="124" height="20.97" rx="1"/></g>
@@ -172,11 +172,11 @@ draft: false
 <rect x="80.8" y="485.7" width="57.2" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="500.7" width="72.8" height="7" rx="3.5" fill="var(--line)"/>
 <rect x="34.0" y="515.7" width="43.7" height="7" rx="3.5" fill="var(--line)"/>
-<path class="edge " d="M152 348.5 H166"/>
+<path class="edge" d="M148 348.5 H166"/>
 <text class="small" x="170" y="348.486">system prompt <tspan class="b">10.7%</tspan></text>
-<path class="edge " d="M152 379.8 H166"/>
+<path class="edge" d="M148 379.8 H166"/>
 <text class="small" x="170" y="379.846">工具 schema <tspan class="b">21.3%</tspan></text>
-<path class="edge " d="M152 467.4 H166"/>
+<path class="edge" d="M148 467.4 H166"/>
 <text class="small" x="170" y="467.36">聊天历史 <tspan class="b">68.0%</tspan></text>
 <text class="small" x="170" y="485.36">压缩摘要 0%</text>
 </svg>
@@ -277,14 +277,45 @@ bot 正忙，消息并入下一轮 | 50,532
 
 顺着约束推演，答案呼之欲出：**引入专职的分类器小模型。**
 
-```mermaid title="一条群友消息怎么决定要不要叫醒主模型" note="被点名走确定性路由，不经过任何模型；其余消息只把最近几行交给判断模型，主模型的上下文和缓存都不受影响。"
-flowchart TD
-  M[群友消息] --> Q{"@ / 回复 / 叫名字？"}
-  Q -- 是 --> A["主模型<br/>完整上下文，约 9.3 万 token"]
-  Q -- 否 --> D["判断模型<br/>只读最近 6 行，约 1,650 token"]
-  D -- 概率 ≥ 阈值 --> A
-  D -- 概率 < 阈值 --> S[静默围观]
-  A --> R[发言或沉默]
+```sketch title="一条群友消息怎么决定要不要叫醒主模型" note="被点名走确定性路由，不经过任何模型；其余消息只把最近几行交给判断模型，主模型的上下文和缓存都不受影响。"
+<svg viewBox="0 0 704 224">
+<rect class="panel" x="0" y="0" width="704" height="224" rx="12"/>
+<g class="node clay"><rect x="20" y="94" width="104" height="36" rx="18"/><text class="mid" x="72" y="112">群友消息</text></g>
+<path class="edge" d="M124 112 H144" marker-end="url(#arrow)"/>
+<g class="node"><rect x="148" y="88" width="144" height="48" rx="4"/><text class="mid b" x="220" y="104">@ / 回复 / 叫名字？</text><text class="mid small" x="220" y="121">确定性代码路由</text></g>
+<path class="edge" d="M292 100 H318 V58 H340" marker-end="url(#arrow)"/>
+<text class="small mid" x="305" y="90">是</text>
+<path class="edge" d="M292 124 H318 V164 H340" marker-end="url(#arrow)"/>
+<text class="small mid" x="305" y="140">否</text>
+<g class="node blue"><rect x="344" y="34" width="176" height="48" rx="4"/><text class="mid b" x="432" y="50">主模型</text><text class="mid small" x="432" y="67">完整上下文 · 约 9.3 万 token</text></g>
+<path class="edge" d="M520 58 H576" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="580" y="40" width="104" height="36" rx="18"/><text class="mid" x="632" y="58">发言或沉默</text></g>
+<g class="node orange"><rect x="344" y="140" width="176" height="48" rx="4"/><text class="mid b" x="432" y="156">判断模型</text><text class="mid small" x="432" y="173">只读最近 6 行 · 约 1,650 token</text></g>
+<path class="edge" d="M432 140 V86" marker-end="url(#arrow)"/>
+<text class="small" x="440" y="114">概率 ≥ 阈值</text>
+<path class="edge" d="M520 164 H576" marker-end="url(#arrow)"/>
+<text class="small mid" x="548" y="152">&lt; 阈值</text>
+<g class="node plain"><rect x="580" y="146" width="104" height="36" rx="18"/><text class="mid small" x="632" y="164">静默围观</text></g>
+</svg>
+<svg viewBox="0 0 340 356">
+<rect class="panel" x="0" y="0" width="340" height="356" rx="12"/>
+<g class="node clay"><rect x="96" y="16" width="148" height="34" rx="17"/><text class="mid" x="170" y="33">群友消息</text></g>
+<path class="edge" d="M170 50 V68" marker-end="url(#arrow)"/>
+<g class="node"><rect x="46" y="72" width="248" height="46" rx="4"/><text class="mid b" x="170" y="88">@ / 回复 / 叫名字？</text><text class="mid small" x="170" y="105">确定性代码路由</text></g>
+<path class="edge" d="M96 118 V226" marker-end="url(#arrow)"/>
+<text class="small" x="104" y="140">是</text>
+<path class="edge" d="M228 118 V144" marker-end="url(#arrow)"/>
+<text class="small" x="236" y="135">否</text>
+<g class="node orange"><rect x="132" y="148" width="192" height="48" rx="4"/><text class="mid b" x="228" y="164">判断模型</text><text class="mid small" x="228" y="181">最近 6 行 · 约 1,650 token</text></g>
+<path class="edge" d="M180 196 V226" marker-end="url(#arrow)"/>
+<text class="small end" x="174" y="214">≥ 阈值</text>
+<path class="edge" d="M274 196 V236" marker-end="url(#arrow)"/>
+<text class="small" x="280" y="214">&lt; 阈值</text>
+<g class="node blue"><rect x="16" y="230" width="192" height="48" rx="4"/><text class="mid b" x="112" y="246">主模型</text><text class="mid small" x="112" y="263">完整上下文 · 约 9.3 万 token</text></g>
+<g class="node plain"><rect x="224" y="240" width="100" height="36" rx="18"/><text class="mid small" x="274" y="258">静默围观</text></g>
+<path class="edge" d="M112 278 V298" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="44" y="302" width="136" height="36" rx="18"/><text class="mid" x="112" y="320">发言或沉默</text></g>
+</svg>
 ```
 
 我选用的是 OpenRouter 上的专用小分类模型 `pplx-decider-v1.2`（在 Pi 1.5 原生 classify 抽象下驱动）。它便宜在三个不可替代的维度：
@@ -296,8 +327,8 @@ flowchart TD
 ```echarts title="判断一次“要不要接话”，要读多少 token" height="200" note="主模型取账本里的平均请求，判断模型是带上全部例子后的实测。每千次的费用：判断模型 $0.033；主模型取决于用哪个模型，约 $0.26 到 $1.50 以上。"
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "grid": {"top": 8, "right": 64},
-  "xAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+  "grid": {"top": 8, "left": 4, "right": 64, "bottom": 4},
+  "xAxis": {"type": "value", "max": 100000, "interval": 50000, "axisLabel": {"formatter": "{value}"}},
   "yAxis": {"type": "category", "inverse": true, "data": ["主模型读全文", "判断模型读切片"]},
   "series": [{
     "name": "输入", "type": "bar", "barWidth": 24,
@@ -457,8 +488,8 @@ flowchart TD
 ```echarts title="同样 53.4 亿输入 token，按 DeepSeek V4 Flash 计价" height="220" note="只算输入；输出 1,430 万 token 另计。98.7% 是实测的命中率，0% 是每次全价重读。这是假设性换算，不是我的实际账单。"
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}, "valueFormatter": "${value}"},
-  "grid": {"top": 8, "right": 56},
-  "xAxis": {"type": "value", "axisLabel": {"formatter": "${value}"}},
+  "grid": {"top": 8, "left": 4, "right": 56, "bottom": 4},
+  "xAxis": {"type": "value", "max": 800, "interval": 200, "axisLabel": {"formatter": "${value}"}},
   "yAxis": {"type": "category", "inverse": true, "data": ["不用缓存", "命中 85%", "命中 98.7%"]},
   "series": [{
     "name": "输入费用", "type": "bar", "barWidth": 22,
@@ -510,7 +541,7 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
   既然只能单调追加，那把贴纸信息伪装成正文拼进群友的消息里如何？
   灾难接踵而至：模型读到后，会真诚地认为“群友刚才把我的贴纸库泄露了”，进而在聊天中反复指责群友偷窥它的后台。更致命的是，当会话到达窗口上限触发压缩时，压缩器会把这句“群友泄露了贴纸库”的荒唐推测提炼成固定事实，永远写进长期摘要，造成无法修复的认知污染。
 
-```sketch title="动态信息只有一个位置放得下" note="每一行是放进贴纸列表之后的一次请求；clay 竖线是前缀断开、缓存从那里失效的位置。"
+```sketch title="动态信息只有一个位置放得下" note="每一行是放进贴纸列表之后的一次请求；橙红竖线是前缀断开、缓存从那里失效的位置。"
 <svg viewBox="0 0 704 288">
 <rect class="panel" x="0" y="0" width="704" height="288" rx="12"/>
 <text class="caps" x="24" y="24">动态的贴纸列表，放在请求的哪里</text>
@@ -618,97 +649,99 @@ bot 拥有自己的固定常用贴纸库，但群友日常聊天会发出各种�
 <text class="small" x="24" y="271">第 n+1 次</text>
 <g class="node blue"><rect x="112" y="254" width="72" height="34" rx="4"/><text class="mid" x="148" y="271">system</text></g>
 <g class="node plain"><rect x="188" y="254" width="236" height="34" rx="4"/><text class="mid" x="306" y="271">历史消息</text></g>
-<rect class="window" x="428" y="254" width="96" height="34" rx="4"/>
-<text class="small mid" x="476" y="271">上一轮的贴纸表</text>
-<circle cx="524" cy="254" r="7" fill="var(--card)" stroke="var(--clay)"/>
-<path class="edge hot" d="M521 251 527 257 M527 251 521 257"/>
-<g class="node plain"><rect x="528" y="254" width="64" height="34" rx="4"/><text class="mid" x="560" y="271">新消息</text></g>
-<g class="node orange"><rect x="596" y="254" width="84" height="34" rx="4"/><text class="mid" x="638" y="271">新贴纸表</text></g>
+<rect class="window" x="428" y="254" width="92" height="34" rx="4"/>
+<text class="small mid" x="474" y="271">上一轮的贴纸表</text>
+<g class="node plain"><rect x="532" y="254" width="64" height="34" rx="4"/><text class="mid" x="564" y="271">新消息</text></g>
+<g class="node orange"><rect x="600" y="254" width="80" height="34" rx="4"/><text class="mid" x="640" y="271">新贴纸表</text></g>
+<circle cx="520" cy="254" r="7" fill="var(--card)" stroke="var(--clay)"/>
+<path class="edge hot" d="M517 251 523 257 M523 251 517 257"/>
 <path class="edge hot" d="M426 246 V296"/>
 <text class="small accent" x="112" y="310">前缀从这里断开，后面的每个字节都按全价重读：实测下一轮一开始就漏掉 13,600 token 的缓存</text>
 </svg>
-<svg viewBox="0 0 340 348">
-<rect class="panel" x="0" y="0" width="340" height="348" rx="12"/>
+<svg viewBox="0 0 340 356">
+<rect class="panel" x="0" y="0" width="340" height="356" rx="12"/>
 <text class="caps" x="16" y="28">只追加：每次请求都是下一次的前缀</text>
 <text class="small" x="16" y="52">第 n 次</text>
 <g class="node blue"><rect x="16" y="62" width="48" height="32" rx="4"/><text class="mid small" x="40" y="78">system</text></g>
 <g class="node plain"><rect x="67" y="62" width="84" height="32" rx="4"/><text class="mid small" x="109" y="78">历史消息</text></g>
 <g class="node violet"><rect x="154" y="62" width="36" height="32" rx="4"/><text class="mid small" x="172" y="78">附注</text></g>
 <g class="node teal"><rect x="193" y="62" width="36" height="32" rx="4"/><text class="mid small" x="211" y="78">输出</text></g>
-<rect x="8" y="132" width="222.5" height="70" rx="8" fill="var(--clay-wash)"/>
-<text class="small" x="16" y="130">第 n+1 次</text>
-<g class="node blue"><rect x="16" y="140" width="48" height="32" rx="4"/><text class="mid small" x="40" y="156">system</text></g>
-<g class="node plain"><rect x="67" y="140" width="84" height="32" rx="4"/><text class="mid small" x="109" y="156">历史消息</text></g>
-<g class="node violet"><rect x="154" y="140" width="36" height="32" rx="4"/><text class="mid small" x="172" y="156">附注</text></g>
-<g class="node teal"><rect x="193" y="140" width="36" height="32" rx="4"/><text class="mid small" x="211" y="156">输出</text></g>
-<g class="node plain"><rect x="232" y="140" width="52" height="32" rx="4"/><text class="mid small" x="258" y="156">新消息</text></g>
-<g class="node violet"><rect x="287" y="140" width="34" height="32" rx="4"/><text class="mid small" x="304" y="156">附注</text></g>
-<path class="edge dash" d="M230.5 56 V202"/>
-<text class="small accent" x="16" y="190">逐字节相同：命中缓存，1/50 的价格</text>
-<text class="small mid" x="277.25" y="190">新增：全价</text>
-<text class="caps" x="16" y="226">错误做法：每轮换掉结尾的动态列表</text>
-<text class="small" x="16" y="248">第 n+1 次</text>
-<g class="node blue"><rect x="16" y="258" width="48" height="32" rx="4"/><text class="mid small" x="40" y="274">system</text></g>
-<g class="node plain"><rect x="67" y="258" width="84" height="32" rx="4"/><text class="mid small" x="109" y="274">历史消息</text></g>
-<rect class="window" x="154" y="258" width="60" height="32" rx="4"/>
-<text class="small mid" x="184" y="274">旧贴纸表</text>
-<circle cx="214" cy="258" r="7" fill="var(--card)" stroke="var(--clay)"/>
-<path class="edge hot" d="M211 255 217 261 M217 255 211 261"/>
-<g class="node plain"><rect x="217" y="258" width="44" height="32" rx="4"/><text class="mid small" x="239" y="274">新消息</text></g>
-<g class="node orange"><rect x="264" y="258" width="60" height="32" rx="4"/><text class="mid small" x="294" y="274">新贴纸表</text></g>
-<path class="edge hot" d="M152.5 250 V298"/>
-<text class="small accent" x="16" y="312">前缀从这里断开，后面全部按全价重读：</text>
-<text class="small accent" x="16" y="330">实测下一轮一开始就漏掉 13,600 token 的缓存</text>
+<text class="small" x="16" y="120">第 n+1 次</text>
+<rect x="8" y="134" width="222.5" height="70" rx="8" fill="var(--clay-wash)"/>
+<g class="node blue"><rect x="16" y="142" width="48" height="32" rx="4"/><text class="mid small" x="40" y="158">system</text></g>
+<g class="node plain"><rect x="67" y="142" width="84" height="32" rx="4"/><text class="mid small" x="109" y="158">历史消息</text></g>
+<g class="node violet"><rect x="154" y="142" width="36" height="32" rx="4"/><text class="mid small" x="172" y="158">附注</text></g>
+<g class="node teal"><rect x="193" y="142" width="36" height="32" rx="4"/><text class="mid small" x="211" y="158">输出</text></g>
+<g class="node plain"><rect x="232" y="142" width="52" height="32" rx="4"/><text class="mid small" x="258" y="158">新消息</text></g>
+<g class="node violet"><rect x="287" y="142" width="34" height="32" rx="4"/><text class="mid small" x="304" y="158">附注</text></g>
+<path class="edge dash" d="M230.5 56 V204"/>
+<text class="small accent" x="16" y="192">逐字节相同：命中缓存，1/50 的价格</text>
+<text class="small mid" x="277.25" y="192">新增：全价</text>
+<text class="caps" x="16" y="232">错误做法：每轮换掉结尾的动态列表</text>
+<text class="small" x="16" y="254">第 n+1 次</text>
+<g class="node blue"><rect x="16" y="264" width="48" height="32" rx="4"/><text class="mid small" x="40" y="280">system</text></g>
+<g class="node plain"><rect x="67" y="264" width="84" height="32" rx="4"/><text class="mid small" x="109" y="280">历史消息</text></g>
+<rect class="window" x="154" y="264" width="56" height="32" rx="4"/>
+<text class="small mid" x="182" y="280">旧贴纸表</text>
+<g class="node plain"><rect x="220" y="264" width="42" height="32" rx="4"/><text class="mid small" x="241" y="280">新消息</text></g>
+<g class="node orange"><rect x="265" y="264" width="59" height="32" rx="4"/><text class="mid small" x="294.5" y="280">新贴纸表</text></g>
+<circle cx="210" cy="264" r="7" fill="var(--card)" stroke="var(--clay)"/>
+<path class="edge hot" d="M207 261 213 267 M213 261 207 267"/>
+<path class="edge hot" d="M152.5 256 V304"/>
+<text class="small accent" x="16" y="318">前缀从这里断开，后面全部按全价重读：</text>
+<text class="small accent" x="16" y="336">实测下一轮一开始就漏掉 13,600 token 的缓存</text>
 </svg>
 ```
 
 在一次真实的请求体中，它呈现为这种极其工整的韵律：
 
-```sketch title="一次真实的请求" note="节选，删去了群友的用户名和贴纸的强度描述。虚线框是一次请求的全部输入，从上到下就是模型读到的顺序；每一段旁边的注释说明它为什么放在这里。"
-<svg viewBox="0 0 704 382">
-<rect class="panel" x="0" y="0" width="704" height="382" rx="12"/>
-<text class="caps" x="24" y="26">一次请求，从上到下</text>
-<rect class="window" x="24" y="34" width="444" height="324" rx="8"/>
-<text class="mono mute" x="36" y="79">system</text>
-<g class="node blue"><rect x="112" y="44" width="344" height="70" rx="4"/><text class="mono" x="124" y="61">…群聊协议、工具规则、人设…</text><text class="mono" x="124" y="79"># Sticker 目录（会话内冻结）</text><text class="mono" x="124" y="97">s3: 😺 得意的赞同  s4: 😭 委屈到哭</text></g>
-<path class="edge " d="M458 79.0 H478"/>
-<text class="small" x="484" y="79">冻结：整个会话里逐字节不变</text>
-<text class="mono mute" x="36" y="150">user</text>
-<g class="node plain"><rect x="112" y="124" width="344" height="52" rx="4"/><text class="mono" x="124" y="141">[21:03:11] #18452 群友 A：这也太离谱了</text><text class="mono" x="124" y="159">[21:03:15] #18453 群友 B：[sticker 😂]</text></g>
-<path class="edge " d="M458 150.0 H478"/>
-<text class="small" x="484" y="150">群消息按时间只追加</text>
-<text class="mono mute" x="36" y="212">user</text>
-<g class="node violet"><rect x="112" y="186" width="344" height="52" rx="4"/><text class="mono" x="124" y="203">〔系统附注〕这批消息里出现了你也能发的</text><text class="mono" x="124" y="221">sticker：s2091 😂</text></g>
-<path class="edge " d="M458 212.0 H478"/>
-<text class="small" x="484" y="212">附注紧跟这批输入，写下后不再改</text>
-<text class="mono mute" x="36" y="265">assistant</text>
-<g class="node teal"><rect x="112" y="248" width="344" height="34" rx="4"/><text class="mono" x="124" y="265">send({ message: "确实离谱", sticker: "s4" })</text></g>
-<path class="edge " d="M458 265.0 H478"/>
-<text class="small" x="484" y="265">发出去的话成为下一次请求的前缀</text>
-<text class="mono mute" x="36" y="318">user</text>
-<g class="node plain"><rect x="112" y="292" width="344" height="52" rx="4"/><text class="mono" x="124" y="309">[media_update #18453] [sticker: 笑到捶地]</text><text class="mono" x="124" y="327">[21:04:02] #18460 群友 A：接下来怎么办？</text></g>
-<path class="edge " d="M458 318.0 H478"/>
-<text class="small" x="484" y="310">迟到的识别结果作为新事件追加，</text>
-<text class="small" x="484" y="326">不回头改 #18453</text>
+```sketch title="一次真实的请求" note="节选，删去了群友的用户名和贴纸的强度描述。虚线框是一次请求的全部输入，从上到下就是模型读到的顺序；每一段的注释说明它为什么放在这里。"
+<svg viewBox="0 0 704 388">
+<rect class="panel" x="0" y="0" width="704" height="388" rx="12"/>
+<text class="caps" x="24" y="22">一次请求，从上到下</text>
+<rect class="window" x="24" y="38" width="444" height="326" rx="8"/>
+<text class="mono" fill="var(--muted)" x="36" y="83">system</text>
+<g class="node blue"><rect x="112" y="48" width="344" height="70" rx="4"/><text class="mono" x="124" y="65">…群聊协议、工具规则、人设…</text><text class="mono" x="124" y="83"># Sticker 目录（会话内冻结）</text><text class="mono" x="124" y="101">s3: 😺 得意的赞同  s4: 😭 委屈到哭</text></g>
+<path class="edge" d="M458 83.0 H478"/>
+<text class="small" x="484" y="83">冻结：整个会话里逐字节不变</text>
+<text class="mono" fill="var(--muted)" x="36" y="154">user</text>
+<g class="node plain"><rect x="112" y="128" width="344" height="52" rx="4"/><text class="mono" x="124" y="145">[21:03:11] #18452 群友 A：这也太离谱了</text><text class="mono" x="124" y="163">[21:03:15] #18453 群友 B：[sticker 😂]</text></g>
+<path class="edge" d="M458 154.0 H478"/>
+<text class="small" x="484" y="154">群消息按时间只追加</text>
+<text class="mono" fill="var(--muted)" x="36" y="216">user</text>
+<g class="node violet"><rect x="112" y="190" width="344" height="52" rx="4"/><text class="mono" x="124" y="207">〔系统附注〕这批消息里出现了你也能发的</text><text class="mono" x="124" y="225">sticker：s2091 😂</text></g>
+<path class="edge" d="M458 216.0 H478"/>
+<text class="small" x="484" y="216">附注紧跟这批输入，写下后不再改</text>
+<text class="mono" fill="var(--muted)" x="36" y="269">assistant</text>
+<g class="node teal"><rect x="112" y="252" width="344" height="34" rx="4"/><text class="mono" x="124" y="269">send({ message: "确实离谱", sticker: "s4" })</text></g>
+<path class="edge" d="M458 269.0 H478"/>
+<text class="small" x="484" y="269">发出去的话成为下一次请求的前缀</text>
+<text class="mono" fill="var(--muted)" x="36" y="322">user</text>
+<g class="node plain"><rect x="112" y="296" width="344" height="52" rx="4"/><text class="mono" x="124" y="313">[media_update #18453] [sticker: 笑到捶地]</text><text class="mono" x="124" y="331">[21:04:02] #18460 群友 A：接下来怎么办？</text></g>
+<path class="edge" d="M458 322.0 H478"/>
+<text class="small" x="484" y="314">迟到的识别结果作为新事件追加，</text>
+<text class="small" x="484" y="330">不回头改 #18453</text>
 </svg>
-<svg viewBox="0 0 340 710">
-<rect class="panel" x="0" y="0" width="340" height="710" rx="12"/>
-<text class="caps" x="16" y="24">一次请求，从上到下</text>
-<text class="mono mute" x="16" y="46">system</text>
-<g class="node blue"><rect x="16" y="56" width="308" height="88" rx="4"/><text class="mono" x="28" y="73">…群聊协议、工具规则、人设…</text><text class="mono" x="28" y="91"># Sticker 目录（会话内冻结）</text><text class="mono" x="28" y="109">s3: 😺 得意的赞同</text><text class="mono" x="28" y="127">s4: 😭 委屈到哭</text></g>
-<text class="small accent" x="16" y="158">冻结：整个会话里逐字节不变</text>
-<text class="mono mute" x="16" y="190">user</text>
-<g class="node plain"><rect x="16" y="200" width="308" height="88" rx="4"/><text class="mono" x="28" y="217">[21:03:11] #18452 群友 A：</text><text class="mono" x="28" y="235">  这也太离谱了</text><text class="mono" x="28" y="253">[21:03:15] #18453 群友 B：</text><text class="mono" x="28" y="271">  [sticker 😂]</text></g>
-<text class="small accent" x="16" y="302">群消息按时间只追加</text>
-<text class="mono mute" x="16" y="334">user</text>
-<g class="node violet"><rect x="16" y="344" width="308" height="70" rx="4"/><text class="mono" x="28" y="361">〔系统附注〕这批消息里出现了</text><text class="mono" x="28" y="379">你也能发的</text><text class="mono" x="28" y="397">sticker：s2091 😂</text></g>
-<text class="small accent" x="16" y="428">附注紧跟这批输入，写下后不再改</text>
-<text class="mono mute" x="16" y="460">assistant</text>
-<g class="node teal"><rect x="16" y="470" width="308" height="52" rx="4"/><text class="mono" x="28" y="487">send({ message: "确实离谱",</text><text class="mono" x="28" y="505">       sticker: "s4" })</text></g>
-<text class="small accent" x="16" y="536">发出去的话成为下一次请求的前缀</text>
-<text class="mono mute" x="16" y="568">user</text>
-<g class="node plain"><rect x="16" y="578" width="308" height="88" rx="4"/><text class="mono" x="28" y="595">[media_update #18453]</text><text class="mono" x="28" y="613">  [sticker: 笑到捶地]</text><text class="mono" x="28" y="631">[21:04:02] #18460 群友 A：</text><text class="mono" x="28" y="649">  接下来怎么办？</text></g>
-<text class="small accent" x="16" y="680">迟到的识别结果作为新事件追加，不回头改 #18453</text>
+<svg viewBox="0 0 340 736">
+<rect class="panel" x="0" y="0" width="340" height="736" rx="12"/>
+<text class="caps" x="16" y="22">一次请求，从上到下</text>
+<rect class="window" x="10" y="36" width="320" height="684" rx="8"/>
+<text class="mono" fill="var(--muted)" x="22" y="54">system</text>
+<g class="node blue"><rect x="22" y="64" width="296" height="88" rx="4"/><text class="mono" x="32" y="81">…群聊协议、工具规则、人设…</text><text class="mono" x="32" y="99"># Sticker 目录（会话内冻结）</text><text class="mono" x="32" y="117">s3: 😺 得意的赞同</text><text class="mono" x="32" y="135">s4: 😭 委屈到哭</text></g>
+<text class="small" x="22" y="166">冻结：整个会话里逐字节不变</text>
+<text class="mono" fill="var(--muted)" x="22" y="196">user</text>
+<g class="node plain"><rect x="22" y="206" width="296" height="88" rx="4"/><text class="mono" x="32" y="223">[21:03:11] #18452 群友 A：</text><text class="mono" x="32" y="241">  这也太离谱了</text><text class="mono" x="32" y="259">[21:03:15] #18453 群友 B：</text><text class="mono" x="32" y="277">  [sticker 😂]</text></g>
+<text class="small" x="22" y="308">群消息按时间只追加</text>
+<text class="mono" fill="var(--muted)" x="22" y="338">user</text>
+<g class="node violet"><rect x="22" y="348" width="296" height="70" rx="4"/><text class="mono" x="32" y="365">〔系统附注〕这批消息里出现了</text><text class="mono" x="32" y="383">你也能发的</text><text class="mono" x="32" y="401">sticker：s2091 😂</text></g>
+<text class="small" x="22" y="432">附注紧跟这批输入，写下后不再改</text>
+<text class="mono" fill="var(--muted)" x="22" y="462">assistant</text>
+<g class="node teal"><rect x="22" y="472" width="296" height="52" rx="4"/><text class="mono" x="32" y="489">send({ message: "确实离谱",</text><text class="mono" x="32" y="507">       sticker: "s4" })</text></g>
+<text class="small" x="22" y="538">发出去的话成为下一次请求的前缀</text>
+<text class="mono" fill="var(--muted)" x="22" y="568">user</text>
+<g class="node plain"><rect x="22" y="578" width="296" height="88" rx="4"/><text class="mono" x="32" y="595">[media_update #18453]</text><text class="mono" x="32" y="613">  [sticker: 笑到捶地]</text><text class="mono" x="32" y="631">[21:04:02] #18460 群友 A：</text><text class="mono" x="32" y="649">  接下来怎么办？</text></g>
+<text class="small" x="22" y="680">迟到的识别结果作为新事件追加，</text>
+<text class="small" x="22" y="698">不回头改 #18453</text>
 </svg>
 ```
 
@@ -767,7 +800,7 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
   ],
   "yAxis": [
     {"type": "value", "gridIndex": 0, "name": "平均输入（千 token）", "nameLocation": "end", "nameTextStyle": {"align": "left"}},
-    {"type": "value", "gridIndex": 1, "name": "压缩调用占比", "nameLocation": "end", "nameTextStyle": {"align": "left"}, "axisLabel": {"formatter": "{value}%"}}
+    {"type": "value", "gridIndex": 1, "max": 60, "interval": 20, "name": "压缩调用占比", "nameLocation": "end", "nameTextStyle": {"align": "left"}, "axisLabel": {"formatter": "{value}%"}}
   ],
   "series": [
     {"name": "平均输入（千 token）", "type": "line", "xAxisIndex": 0, "yAxisIndex": 0, "showSymbol": true, "symbolSize": 5, "itemStyle": {"color": "var(--stone)"}, "areaStyle": {"color": "var(--stone)", "opacity": 0.12},
@@ -776,7 +809,7 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
     {"name": "压缩调用占比", "type": "line", "xAxisIndex": 1, "yAxisIndex": 1, "showSymbol": true, "symbolSize": 5, "itemStyle": {"color": "var(--clay)"}, "areaStyle": {"color": "var(--clay)", "opacity": 0.15},
       "tooltip": {"valueFormatter": "{value}%"},
       "data": [0.1, 1.3, 12.5, 20.1, 3.6, 30.1, 34.6, 44.6, 12.3, 0.5, 0.5, 1.0, 0.8, 0.4],
-      "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"position": "right", "formatter": "44.6%：近一半调用在压缩", "color": "var(--clay)", "fontSize": 11}, "data": [{"type": "max"}]}}
+      "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"position": "top", "formatter": "44.6%：近一半调用在压缩", "color": "var(--clay)", "fontSize": 11}, "data": [{"type": "max"}]}}
   ]
 }
 ```
@@ -787,42 +820,42 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 **窗口收敛在 128K**，当上下文累积到 11 万 token 时触发底层 Pi 原生结构化压缩，稳定保留最近约 2 万 token 的原话。重度任务（检索、长程调研、代码调试）全部利用 `task` 剥离到独立的子会话中运转，只将凝练的成果带回群聊。主会话永远保持纯净——它只呈现“大家在聊什么”以及“我做了什么”，绝不沦为庞杂的调试日志。
 
 ```sketch title="窗口开多大" note="色带是示意，不是实测的成本曲线。对应用开发者来说 API 按 token 线性计价：窗口太小，压缩和冷缓存的开销压过省下的读取；太大，每一句闲聊都要读满一大段上下文。三张卡片里的数字都来自上文。"
-<svg viewBox="0 0 704 262">
-<rect class="panel" x="0" y="0" width="704" height="262" rx="12"/>
-<text class="caps" x="24" y="30">窗口太小</text>
-<text class="caps mid" x="516" y="30">刚好</text>
-<text class="caps end" x="680" y="30">窗口太大</text>
-<rect x="25.0" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
-<rect x="63.6" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
-<rect x="102.2" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.73"/>
-<rect x="140.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.63"/>
-<rect x="179.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
-<rect x="217.9" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.41"/>
-<rect x="256.5" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.30"/>
-<rect x="295.1" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
-<rect x="333.7" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.44"/>
-<rect x="372.3" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.58"/>
-<rect x="410.9" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
-<rect x="449.5" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.84"/>
-<rect x="488.1" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.97"/>
-<rect x="526.6" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
-<rect x="565.2" y="46" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
-<rect x="603.8" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
-<rect x="642.4" y="46" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
-<text class="small" x="26" y="86">16K</text>
-<text class="small mid" x="188" y="86">32K</text>
-<text class="small mid" x="352" y="86">64K</text>
-<text class="small mid" x="516" y="86">128K</text>
-<text class="small end" x="678" y="86">256K</text>
-<circle cx="119.9" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M119.9 65 V110 H128 V120"/>
-<g class="node orange"><rect x="24" y="120" width="208" height="118" rx="6"/><text class="b" x="38" y="142">16K–48K</text><text class="small" x="38" y="166">每次只读一点，但压缩很勤</text><text class="small" x="38" y="186">每次压缩都全量读一遍再写摘要</text><text class="small" x="38" y="206">压完前缀作废，下一轮全价</text></g>
-<circle cx="516.0" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M516.0 65 V110 H352 V120"/>
-<g class="node teal"><rect x="248" y="120" width="208" height="118" rx="6"/><text class="b" x="262" y="142">128K（现在）</text><text class="small" x="262" y="166">11 万时压缩，保留约 2 万原话</text><text class="small" x="262" y="186">检索、调研交给子会话</text><text class="small" x="262" y="206">主会话只留聊天和做了什么</text></g>
-<circle cx="656.0" cy="59" r="6" fill="var(--card)" stroke="var(--node-line)"/>
-<path class="edge " d="M656.0 65 V110 H576 V120"/>
-<g class="node orange"><rect x="472" y="120" width="208" height="118" rx="6"/><text class="b" x="486" y="142">256K</text><text class="small" x="486" y="166">几乎不用压缩</text><text class="small" x="486" y="186">但每次请求要读 13 万 token</text><text class="small" x="486" y="206">一句“哈哈确实”也一样</text></g>
+<svg viewBox="0 0 704 268">
+<rect class="panel" x="0" y="0" width="704" height="268" rx="12"/>
+<text class="caps" x="24" y="24">窗口太小</text>
+<text class="caps mid" x="516" y="24">刚好</text>
+<text class="caps end" x="680" y="24">窗口太大</text>
+<text class="small" x="26" y="44">16K</text>
+<text class="small mid" x="188" y="44">32K</text>
+<text class="small mid" x="352" y="44">64K</text>
+<text class="small mid" x="516" y="44">128K</text>
+<text class="small end" x="678" y="44">256K</text>
+<rect x="25.0" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
+<rect x="63.6" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<rect x="102.2" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.73"/>
+<rect x="140.8" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.63"/>
+<rect x="179.4" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="217.9" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.41"/>
+<rect x="256.5" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.30"/>
+<rect x="295.1" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
+<rect x="333.7" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.44"/>
+<rect x="372.3" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.58"/>
+<rect x="410.9" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
+<rect x="449.5" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.84"/>
+<rect x="488.1" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.97"/>
+<rect x="526.6" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.71"/>
+<rect x="565.2" y="54" width="36.6" height="26" rx="2" fill="var(--teal)" fill-opacity="0.31"/>
+<rect x="603.8" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.52"/>
+<rect x="642.4" y="54" width="36.6" height="26" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
+<circle cx="119.9" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M119.9 73 V112 H128 V124"/>
+<g class="node orange"><rect x="24" y="124" width="208" height="118" rx="6"/><text class="b" x="38" y="146">16K–48K</text><text class="small" x="38" y="170">每次只读一点，但压缩很勤</text><text class="small" x="38" y="190">每次压缩都全量读一遍再写摘要</text><text class="small" x="38" y="210">压完前缀作废，下一轮全价</text></g>
+<circle cx="516.0" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M516.0 73 V112 H352 V124"/>
+<g class="node teal"><rect x="248" y="124" width="208" height="118" rx="6"/><text class="b" x="262" y="146">128K（现在）</text><text class="small" x="262" y="170">11 万时压缩，保留约 2 万原话</text><text class="small" x="262" y="190">检索、调研交给子会话</text><text class="small" x="262" y="210">主会话只留聊天和做了什么</text></g>
+<circle cx="656.0" cy="67" r="6" fill="var(--card)" stroke="var(--node-line)"/>
+<path class="edge" d="M656.0 73 V112 H576 V124"/>
+<g class="node orange"><rect x="472" y="124" width="208" height="118" rx="6"/><text class="b" x="486" y="146">256K</text><text class="small" x="486" y="170">几乎不用压缩</text><text class="small" x="486" y="190">但每次请求要读 13 万 token</text><text class="small" x="486" y="210">一句“哈哈确实”也一样</text></g>
 </svg>
 <svg viewBox="0 0 340 426">
 <rect class="panel" x="0" y="0" width="340" height="426" rx="12"/>
@@ -869,8 +902,8 @@ NVIDIA 近期发表的论文 _You don't need long context_ (arXiv:2611.05306) �
 ```echarts title="把原文换成加工过的记忆，总分掉了多少" height="200" note="相对于直接用原始对话的总分变化。来源：Bao et al., Is Complex Agentic Memory Always Needed?（arXiv:2610.30755）。"
 {
   "tooltip": {"trigger": "axis", "axisPointer": {"type": "shadow"}},
-  "grid": {"top": 8, "left": 8, "right": 24},
-  "xAxis": {"type": "value", "max": 0, "min": -25},
+  "grid": {"top": 8, "left": 4, "right": 24, "bottom": 4},
+  "xAxis": {"type": "value", "max": 0, "min": -30, "interval": 10},
   "yAxis": {"type": "category", "inverse": true, "data": ["换成原子事实", "换成摘要", "加上图扩展"], "axisLine": {"show": false}},
   "series": [{
     "name": "总分变化", "type": "bar", "barWidth": 22,
@@ -1029,15 +1062,15 @@ v1.1.8 上线时窗口改成了 800 字，在生产库上按这套节奏重新�
 <rect x="322" y="74" width="10" height="14" rx="2" fill="var(--line)"/>
 <rect x="338" y="74" width="10" height="14" rx="2" fill="var(--line)"/>
 <text class="small mid" x="136" y="118">满 800 字</text>
-<text class="small mid" x="272" y="118">静默 &gt;30 分钟</text>
-<text class="small mid" x="328" y="134">还在聊</text>
+<text class="small mid" x="260" y="118">静默 &gt;30 分钟</text>
+<text class="small mid" x="336" y="118">还在聊</text>
 <path class="edge" d="M68 62 V46 H460 V54" marker-end="url(#arrow)"/>
 <path class="edge" d="M204 62 V46"/>
 <g class="node orange"><rect x="392" y="58" width="136" height="46" rx="4"/><text class="mid b" x="460" y="73">Gemini 向量</text><text class="mid small" x="460" y="90">768 维 · 一窗一次</text></g>
 <path class="edge" d="M528 81 H548" marker-end="url(#arrow)"/>
 <g class="node"><rect x="552" y="58" width="128" height="46" rx="4"/><text class="mid b" x="616" y="73">message_chunks</text><text class="mid small" x="616" y="90">float32 BLOB</text></g>
 <path class="edge dash" d="M616 106 V140 H416 V166" marker-end="url(#arrow)"/>
-<text class="small" x="424" y="134">常驻内存</text>
+<text class="small" x="424" y="126">常驻内存</text>
 <text class="caps" x="24" y="156">查询时</text>
 <g class="node clay"><rect x="24" y="176" width="140" height="34" rx="17"/><text class="mid" x="94" y="193">上次那个推荐键盘的</text></g>
 <path class="edge" d="M164 193 H184" marker-end="url(#arrow)"/>
@@ -1066,22 +1099,22 @@ v1.1.8 上线时窗口改成了 800 字，在生产库上按这套节奏重新�
 <rect x="282" y="50" width="10" height="14" rx="2" fill="var(--line)"/>
 <rect x="298" y="50" width="10" height="14" rx="2" fill="var(--line)"/>
 <text class="small mid" x="118" y="92">满 800 字</text>
-<text class="small mid" x="238" y="92">静默&gt;30分钟</text>
+<text class="small mid" x="238" y="92">静默 &gt;30 分钟</text>
 <text class="small mid" x="290" y="30">还在聊</text>
 <path class="edge" d="M58 76 V106" marker-end="url(#arrow)"/>
 <path class="edge" d="M178 76 V106" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="16" y="110" width="308" height="46" rx="4"/><text class="mid b" x="170" y="125">Gemini 向量</text><text class="mid small" x="170" y="142">768 维 · 一窗一次</text></g>
-<path class="edge" d="M170 158 V176" marker-end="url(#arrow)"/>
-<g class="node"><rect x="16" y="180" width="308" height="46" rx="4"/><text class="mid b" x="170" y="195">message_chunks</text><text class="mid small" x="170" y="212">float32 BLOB · 常驻内存</text></g>
+<g class="node orange"><rect x="16" y="110" width="296" height="46" rx="4"/><text class="mid b" x="164" y="125">Gemini 向量</text><text class="mid small" x="164" y="142">768 维 · 一窗一次</text></g>
+<path class="edge" d="M164 158 V176" marker-end="url(#arrow)"/>
+<g class="node"><rect x="16" y="180" width="296" height="46" rx="4"/><text class="mid b" x="164" y="195">message_chunks</text><text class="mid small" x="164" y="212">float32 BLOB · 常驻内存</text></g>
 <text class="caps" x="16" y="258">查询时</text>
-<g class="node clay"><rect x="16" y="270" width="308" height="34" rx="17"/><text class="mid" x="170" y="287">上次那个推荐键盘的</text></g>
-<path class="edge" d="M170 306 V324" marker-end="url(#arrow)"/>
-<g class="node orange"><rect x="16" y="328" width="308" height="46" rx="4"/><text class="mid b" x="170" y="343">Gemini 向量</text><text class="mid small" x="170" y="360">同一模型 · query 前缀</text></g>
-<path class="edge" d="M170 376 V394" marker-end="url(#arrow)"/>
-<g class="node"><rect x="16" y="398" width="300" height="46" rx="4"/><text class="mid b" x="166" y="413">逐窗算余弦</text><text class="mid small" x="166" y="430">内存里暴力扫一遍</text></g>
-<path class="edge dash" d="M324 203 H332 V421 H320" marker-end="url(#arrow)"/>
-<path class="edge" d="M170 446 V464" marker-end="url(#arrow)"/>
-<g class="node teal"><rect x="16" y="468" width="308" height="46" rx="4"/><text class="mid b" x="170" y="483">整段原话</text><text class="mid small" x="170" y="500">+ matches 分数</text></g>
+<g class="node clay"><rect x="16" y="270" width="296" height="34" rx="17"/><text class="mid" x="164" y="287">上次那个推荐键盘的</text></g>
+<path class="edge" d="M164 306 V324" marker-end="url(#arrow)"/>
+<g class="node orange"><rect x="16" y="328" width="296" height="46" rx="4"/><text class="mid b" x="164" y="343">Gemini 向量</text><text class="mid small" x="164" y="360">同一模型 · query 前缀</text></g>
+<path class="edge" d="M164 376 V394" marker-end="url(#arrow)"/>
+<g class="node"><rect x="16" y="398" width="296" height="46" rx="4"/><text class="mid b" x="164" y="413">逐窗算余弦</text><text class="mid small" x="164" y="430">内存里暴力扫一遍</text></g>
+<path class="edge dash" d="M312 203 H326 V421 H316" marker-end="url(#arrow)"/>
+<path class="edge" d="M164 446 V464" marker-end="url(#arrow)"/>
+<g class="node teal"><rect x="16" y="468" width="296" height="46" rx="4"/><text class="mid b" x="164" y="483">整段原话</text><text class="mid small" x="164" y="500">+ matches 分数</text></g>
 <text class="small" x="16" y="536">模型再用 before_id / after_id 往两边翻</text>
 </svg>
 ```
@@ -1305,25 +1338,25 @@ text({
 <svg viewBox="0 0 704 344">
 <rect class="panel" x="0" y="0" width="704" height="344" rx="12"/>
 <text class="caps" x="24" y="30">宿主机</text>
-<g class="node "><rect x="24" y="104" width="160" height="64" rx="4"/><text class="mid b" x="104" y="128">bot 守护进程</text><text class="mid small" x="104" y="145">密钥和 token 在这里</text></g>
-<g class="node clay"><rect x="24" y="250" width="160" height="40" rx="20"/><text class="mid" x="104" y="270">模型 API</text></g>
-<path class="edge " d="M104 170 V246" marker-end="url(#arrow)"/>
-<text class="small" x="112" y="208">代为请求</text>
-<rect class="window" x="236" y="48" width="444" height="276" rx="10"/>
-<text class="small b" x="252" y="68">系统用户 tgbox · rootless Docker</text>
-<g class="node plain"><rect x="256" y="84" width="404" height="206" rx="8"/></g>
-<text class="small b" x="272" y="104">容器 · uid 1000</text>
-<g class="node "><rect x="272" y="120" width="120" height="28" rx="3"/><text class="mid small" x="332" y="134">只读根文件系统</text></g>
-<g class="node "><rect x="398" y="120" width="124" height="28" rx="3"/><text class="mid small" x="460" y="134">cap-drop ALL</text></g>
-<g class="node "><rect x="528" y="120" width="116" height="28" rx="3"/><text class="mid small" x="586" y="134">no-new-privileges</text></g>
-<g class="node "><rect x="464" y="156" width="180" height="28" rx="3"/><text class="mid small" x="554" y="170">/tmp：256 MB tmpfs</text></g>
-<g class="node "><rect x="272" y="156" width="186" height="28" rx="3"/><text class="mid small" x="365" y="170">内存、CPU、进程数上限</text></g>
-<g class="node teal"><rect x="272" y="202" width="372" height="72" rx="6"/><text class="mid b" x="458" y="230">/work</text><text class="mid small" x="458" y="247">唯一可写、会保留的目录 · 每周一 05:00 清空</text></g>
-<path class="edge " d="M186 122 H252" marker-end="url(#arrow)"/>
-<text class="small mid" x="219" y="108">bash</text>
-<path class="edge " d="M252 150 H188" marker-end="url(#arrow)"/>
-<text class="small mid" x="219" y="166">send.files</text>
-<text class="small" x="256" y="308">网络可以一键关断；发出的文件先解析真实路径，符号链接逃不出去</text>
+<g class="node "><rect x="24" y="104" width="148" height="64" rx="4"/><text class="mid b" x="98" y="128">bot 守护进程</text><text class="mid small" x="98" y="145">密钥和 token 在这里</text></g>
+<g class="node clay"><rect x="24" y="250" width="148" height="40" rx="20"/><text class="mid" x="98" y="270">模型 API</text></g>
+<path class="edge" d="M98 170 V246" marker-end="url(#arrow)"/>
+<text class="small" x="106" y="208">代为请求</text>
+<rect class="window" x="248" y="48" width="432" height="276" rx="10"/>
+<text class="small b" x="264" y="68">系统用户 tgbox · rootless Docker</text>
+<g class="node plain"><rect x="266" y="84" width="396" height="206" rx="8"/></g>
+<text class="small b" x="280" y="104">容器 · uid 1000</text>
+<g class="node "><rect x="280" y="120" width="118" height="28" rx="3"/><text class="mid small" x="339" y="134">只读根文件系统</text></g>
+<g class="node "><rect x="404" y="120" width="120" height="28" rx="3"/><text class="mid small" x="464" y="134">cap-drop ALL</text></g>
+<g class="node "><rect x="530" y="120" width="118" height="28" rx="3"/><text class="mid small" x="589" y="134">no-new-privileges</text></g>
+<g class="node "><rect x="468" y="156" width="180" height="28" rx="3"/><text class="mid small" x="558" y="170">/tmp：256 MB tmpfs</text></g>
+<g class="node "><rect x="280" y="156" width="182" height="28" rx="3"/><text class="mid small" x="371" y="170">内存、CPU、进程数上限</text></g>
+<g class="node teal"><rect x="280" y="202" width="368" height="72" rx="6"/><text class="mid b" x="464" y="230">/work</text><text class="mid small" x="464" y="247">唯一可写、会保留的目录 · 每周一 05:00 清空</text></g>
+<path class="edge" d="M174 122 H262" marker-end="url(#arrow)"/>
+<text class="small mid" x="210" y="108">bash</text>
+<path class="edge" d="M262 150 H176" marker-end="url(#arrow)"/>
+<text class="small mid" x="210" y="166">send.files</text>
+<text class="small" x="266" y="308">网络可以一键关断；发出的文件先解析真实路径，符号链接逃不出去</text>
 </svg>
 <svg viewBox="0 0 340 452">
 <rect class="panel" x="0" y="0" width="340" height="452" rx="12"/>
@@ -1366,16 +1399,16 @@ text({
 ```echarts title="src/ 的代码行数演进轨迹" height="300" note="每个日期取当天提交的 src/**/*.ts 总行数统计；横轴按真实日期等距。"
 {
   "tooltip": {"trigger": "axis", "valueFormatter": "{value} 行"},
-  "grid": {"right": 24, "top": 28},
+  "grid": {"left": 4, "right": 28, "top": 32, "bottom": 4},
   "xAxis": {"type": "time", "minInterval": 1209600000, "axisLabel": {"formatter": "{MM}-{dd}", "hideOverlap": true}},
-  "yAxis": {"type": "value", "axisLabel": {"formatter": "{value}"}},
+  "yAxis": {"type": "value", "max": 20000, "axisLabel": {"formatter": "{value}"}},
   "series": [{
     "name": "src/ 行数", "type": "line", "showSymbol": true, "symbolSize": 5,
     "itemStyle": {"color": "var(--clay)"}, "areaStyle": {"color": "var(--clay)", "opacity": 0.12},
     "data": [["2026-08-07", 2079], ["2026-08-08", 7441], ["2026-08-09", 11661], ["2026-08-10", 13173], ["2026-08-13", 13639], ["2026-08-26", 14085], ["2026-09-07", 14532], ["2026-10-06", 14754], ["2026-11-01", 17522], ["2026-11-02", 13834], ["2026-11-04", 8452], ["2026-11-05", 8089]],
     "markPoint": {"symbol": "circle", "symbolSize": 7, "label": {"color": "var(--ink)", "fontSize": 11}, "data": [
-      {"coord": ["2026-11-01", 17522], "label": {"position": "left", "formatter": "17,522"}},
-      {"coord": ["2026-11-05", 8089], "label": {"position": "left", "formatter": "8,089"}}
+      {"coord": ["2026-11-01", 17522], "label": {"position": "top", "formatter": "17,522"}},
+      {"coord": ["2026-11-05", 8089], "label": {"position": "bottom", "offset": [-8, 2], "formatter": "8,089"}}
     ]}
   }]
 }
@@ -1403,17 +1436,17 @@ text({
 <path class="edge" d="M664.0 36 V44"/>
 <text class="small mid" x="664" y="24">10-10</text>
 <circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M164.8 46 V60 H97 V76"/>
-<g class="node plain"><rect x="24" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="36" y="98">09-16</text><text class="b" x="36" y="122">几乎每轮都在压缩，</text><text class="b" x="36" y="139">上下文却完全不减</text><text class="caps" x="36" y="166">根因</text><text class="small" x="36" y="184">按字符估算 token，</text><text class="small" x="36" y="200">图片被算成 0</text><g class="node clay"><rect x="80" y="88" width="71" height="20" rx="10"/><text class="mid small" x="115.5" y="98">自研压缩器</text></g>
+<path class="edge" d="M164.8 46 V60 H97 V76"/>
+<g class="node plain"><rect x="20" y="80" width="154" height="150" rx="6"/></g><text class="mono accent" x="32" y="98">09-16</text><text class="b" x="32" y="122">几乎每轮都在压缩，</text><text class="b" x="32" y="139">上下文却完全不减</text><text class="caps" x="32" y="166">根因</text><text class="small" x="32" y="184">按字符估算 token，</text><text class="small" x="32" y="200">图片被算成 0</text><g class="node clay"><rect x="92" y="88" width="72" height="20" rx="10"/><text class="mid small" x="128" y="98">自研压缩器</text></g>
 <circle cx="164.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M164.8 46 V60 H267 V76"/>
-<g class="node plain"><rect x="194" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="206" y="98">09-16</text><text class="b" x="206" y="122">遇到 429 后，被 @ 的</text><text class="b" x="206" y="139">消息被误标为已完成</text><text class="caps" x="206" y="166">根因</text><text class="small" x="206" y="184">重试耗尽后，状态机</text><text class="small" x="206" y="200">草率退出了 turn</text><g class="node clay"><rect x="250" y="88" width="60" height="20" rx="10"/><text class="mid small" x="280.0" y="98">自研重试</text></g>
+<path class="edge" d="M164.8 46 V60 H267 V76"/>
+<g class="node plain"><rect x="190" y="80" width="154" height="150" rx="6"/></g><text class="mono accent" x="202" y="98">09-16</text><text class="b" x="202" y="122">遇到 429 后，</text><text class="b" x="202" y="139">被 @ 消息误标完成</text><text class="caps" x="202" y="166">根因</text><text class="small" x="202" y="184">重试耗尽后，状态机</text><text class="small" x="202" y="200">草率退出了 turn</text><g class="node clay"><rect x="272" y="88" width="62" height="20" rx="10"/><text class="mid small" x="303" y="98">自研重试</text></g>
 <circle cx="539.2" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M539.2 46 V60 H437 V76"/>
-<g class="node plain"><rect x="364" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="376" y="98">10-04</text><text class="b" x="376" y="122">20 分钟死寂，</text><text class="b" x="376" y="139">完全失联</text><text class="caps" x="376" y="166">根因</text><text class="small" x="376" y="184">图片 token 突增超出</text><text class="small" x="376" y="200">预算，预检压缩死锁</text><g class="node clay"><rect x="420" y="88" width="82" height="20" rx="10"/><text class="mid small" x="461.0" y="98">自研预检压缩</text></g>
+<path class="edge" d="M539.2 46 V60 H437 V76"/>
+<g class="node plain"><rect x="360" y="80" width="154" height="150" rx="6"/></g><text class="mono accent" x="372" y="98">10-04</text><text class="b" x="372" y="122">20 分钟死寂，</text><text class="b" x="372" y="139">完全失联</text><text class="caps" x="372" y="166">根因</text><text class="small" x="372" y="184">图片 token 突增超出</text><text class="small" x="372" y="200">预算，预检压缩死锁</text><g class="node clay"><rect x="422" y="88" width="82" height="20" rx="10"/><text class="mid small" x="463" y="98">自研预检压缩</text></g>
 <circle cx="580.8" cy="40" r="5" fill="var(--clay)"/>
-<path class="edge " d="M580.8 46 V60 H607 V76"/>
-<g class="node plain"><rect x="534" y="80" width="146" height="150" rx="6"/></g><text class="mono accent" x="546" y="98">10-06</text><text class="b" x="546" y="122">在群里指责群友</text><text class="b" x="546" y="139">窃取了它的后台数据</text><text class="caps" x="546" y="166">根因</text><text class="small" x="546" y="184">动态列表拼进正文，</text><text class="small" x="546" y="200">摘要把臆测当成事实</text><g class="node clay"><rect x="590" y="88" width="60" height="20" rx="10"/><text class="mid small" x="620.0" y="98">自研摘要</text></g>
+<path class="edge" d="M580.8 46 V60 H607 V76"/>
+<g class="node plain"><rect x="530" y="80" width="154" height="150" rx="6"/></g><text class="mono accent" x="542" y="98">10-06</text><text class="b" x="542" y="122">在群里指责群友</text><text class="b" x="542" y="139">窃取它的后台数据</text><text class="caps" x="542" y="166">根因</text><text class="small" x="542" y="184">动态列表拼进正文，</text><text class="small" x="542" y="200">摘要把臆测当成事实</text><g class="node clay"><rect x="612" y="88" width="62" height="20" rx="10"/><text class="mid small" x="643" y="98">自研摘要</text></g>
 </svg>
 <svg viewBox="0 0 340 672">
 <rect class="panel" x="0" y="0" width="340" height="672" rx="12"/>
@@ -1448,24 +1481,24 @@ text({
 ```sketch title="删掉的交给 Pi，留下的只有群聊语义" note="迁移那次提交删掉的四块自研代码，各自由 Pi 1.5 的哪项能力接替；留下的代码只做另外那四件事。"
 <svg viewBox="0 0 704 300">
 <rect class="panel" x="0" y="0" width="452" height="300" rx="12"/>
-<text class="caps" x="24" y="28">删掉 7,877 行，交给 Pi 1.5</text>
+<text class="small b" x="24" y="28">删掉 7,877 行，交给 Pi 1.5</text>
 <rect class="panel" x="468" y="0" width="236" height="300" rx="12"/>
-<text class="caps" x="488" y="28">留下的约 8,000 行</text>
+<text class="small b" x="488" y="28">留下的约 8,000 行</text>
 <rect class="window" x="24" y="48" width="188" height="40" rx="4"/>
 <text class="small mid" x="118" y="68">session 状态机与指纹对比</text>
-<path class="edge " d="M214 68 H236" marker-end="url(#arrow)"/>
+<path class="edge" d="M214 68 H236" marker-end="url(#arrow)"/>
 <g class="node blue"><rect x="240" y="48" width="188" height="40" rx="4"/><text class="mid small" x="334" y="68">持久化会话、状态恢复</text></g>
 <rect class="window" x="24" y="108" width="188" height="40" rx="4"/>
 <text class="small mid" x="118" y="128">token 估算器与中文摘要打包</text>
-<path class="edge " d="M214 128 H236" marker-end="url(#arrow)"/>
+<path class="edge" d="M214 128 H236" marker-end="url(#arrow)"/>
 <g class="node blue"><rect x="240" y="108" width="188" height="40" rx="4"/><text class="mid small" x="334" y="128">基于 AST 的压缩</text></g>
 <rect class="window" x="24" y="168" width="188" height="40" rx="4"/>
 <text class="small mid" x="118" y="188">子进程 bridge 与调度管道</text>
-<path class="edge " d="M214 188 H236" marker-end="url(#arrow)"/>
+<path class="edge" d="M214 188 H236" marker-end="url(#arrow)"/>
 <g class="node blue"><rect x="240" y="168" width="188" height="40" rx="4"/><text class="mid small" x="334" y="188">执行队列、沙箱调度</text></g>
 <rect class="window" x="24" y="228" width="188" height="40" rx="4"/>
 <text class="small mid" x="118" y="248">300 行工具示例文档</text>
-<path class="edge " d="M214 248 H236" marker-end="url(#arrow)"/>
+<path class="edge" d="M214 248 H236" marker-end="url(#arrow)"/>
 <g class="node blue"><rect x="240" y="228" width="188" height="40" rx="4"/><text class="mid small" x="334" y="248">TypeBox 参数 Schema</text></g>
 <g class="node teal"><rect x="488" y="48" width="196" height="40" rx="4"/><text class="mid small" x="586" y="68">消息归档与 Trigram 检索</text></g>
 <g class="node teal"><rect x="488" y="108" width="196" height="40" rx="4"/><text class="mid small" x="586" y="128">前缀不变的批次序列化</text></g>
@@ -1473,31 +1506,32 @@ text({
 <g class="node teal"><rect x="488" y="228" width="196" height="40" rx="4"/><text class="mid small" x="586" y="248">rootless 容器的安全边界</text></g>
 <text class="small mid accent" x="226" y="286">凡是不属于“Telegram 群聊语义”的，都不自己写</text>
 </svg>
-<svg viewBox="0 0 340 564">
-<rect class="panel" x="0" y="0" width="340" height="316" rx="12"/>
-<text class="caps" x="16" y="26">删掉 7,877 行，交给 Pi 1.5</text>
+<svg viewBox="0 0 340 648">
+<rect class="panel" x="0" y="0" width="340" height="378" rx="12"/>
+<text class="small b" x="16" y="26">删掉 7,877 行，交给 Pi 1.5</text>
 <rect class="window" x="16" y="42" width="308" height="26" rx="4"/>
 <text class="small mid" x="170" y="55">session 状态机与指纹对比</text>
-<path class="edge " d="M170 69 V74"/>
-<g class="node blue"><rect x="16" y="76" width="308" height="26" rx="4"/><text class="mid small" x="170" y="89">→ 持久化会话、状态恢复</text></g>
-<rect class="window" x="16" y="108" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="121">token 估算器与中文摘要打包</text>
-<path class="edge " d="M170 135 V140"/>
-<g class="node blue"><rect x="16" y="142" width="308" height="26" rx="4"/><text class="mid small" x="170" y="155">→ 基于 AST 的压缩</text></g>
-<rect class="window" x="16" y="174" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="187">子进程 bridge 与调度管道</text>
-<path class="edge " d="M170 201 V206"/>
-<g class="node blue"><rect x="16" y="208" width="308" height="26" rx="4"/><text class="mid small" x="170" y="221">→ 执行队列、沙箱调度</text></g>
-<rect class="window" x="16" y="240" width="308" height="26" rx="4"/>
-<text class="small mid" x="170" y="253">300 行工具示例文档</text>
-<path class="edge " d="M170 267 V272"/>
-<g class="node blue"><rect x="16" y="274" width="308" height="26" rx="4"/><text class="mid small" x="170" y="287">→ TypeBox 参数 Schema</text></g>
-<rect class="panel" x="0" y="332" width="340" height="232" rx="12"/>
-<text class="caps" x="16" y="358">留下的约 8,000 行：群聊语义</text>
-<g class="node teal"><rect x="16" y="374" width="308" height="34" rx="4"/><text class="mid small" x="170" y="391">消息归档与 Trigram 检索</text></g>
-<g class="node teal"><rect x="16" y="418" width="308" height="34" rx="4"/><text class="mid small" x="170" y="435">前缀不变的批次序列化</text></g>
-<g class="node teal"><rect x="16" y="462" width="308" height="34" rx="4"/><text class="mid small" x="170" y="479">小分类模型的接话裁决</text></g>
-<g class="node teal"><rect x="16" y="506" width="308" height="34" rx="4"/><text class="mid small" x="170" y="523">rootless 容器的安全边界</text></g>
+<path class="edge" d="M170 68 V79" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="83" width="308" height="26" rx="4"/><text class="mid small" x="170" y="96">持久化会话、状态恢复</text></g>
+<rect class="window" x="16" y="127" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="140">token 估算器与中文摘要打包</text>
+<path class="edge" d="M170 153 V164" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="168" width="308" height="26" rx="4"/><text class="mid small" x="170" y="181">基于 AST 的压缩</text></g>
+<rect class="window" x="16" y="212" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="225">子进程 bridge 与调度管道</text>
+<path class="edge" d="M170 238 V249" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="253" width="308" height="26" rx="4"/><text class="mid small" x="170" y="266">执行队列、沙箱调度</text></g>
+<rect class="window" x="16" y="297" width="308" height="26" rx="4"/>
+<text class="small mid" x="170" y="310">300 行工具示例文档</text>
+<path class="edge" d="M170 323 V334" marker-end="url(#arrow)"/>
+<g class="node blue"><rect x="16" y="338" width="308" height="26" rx="4"/><text class="mid small" x="170" y="351">TypeBox 参数 Schema</text></g>
+<rect class="panel" x="0" y="392" width="340" height="256" rx="12"/>
+<text class="small b" x="16" y="418">留下的约 8,000 行：群聊语义</text>
+<g class="node teal"><rect x="16" y="434" width="308" height="32" rx="4"/><text class="mid small" x="170" y="450">消息归档与 Trigram 检索</text></g>
+<g class="node teal"><rect x="16" y="476" width="308" height="32" rx="4"/><text class="mid small" x="170" y="492">前缀不变的批次序列化</text></g>
+<g class="node teal"><rect x="16" y="518" width="308" height="32" rx="4"/><text class="mid small" x="170" y="534">小分类模型的接话裁决</text></g>
+<g class="node teal"><rect x="16" y="560" width="308" height="32" rx="4"/><text class="mid small" x="170" y="576">rootless 容器的安全边界</text></g>
+<text class="small mid accent" x="170" y="622">凡是不属于“Telegram 群聊语义”的，都不自己写</text>
 </svg>
 ```
 

@@ -204,7 +204,7 @@ Lockwood 和 Kunda 在 1997 年做过一组非常漂亮的实验[@lockwood1997]�
   <g class="node plain"><rect x="40" y="118" width="72" height="34" rx="4"/><text class="mid" x="76" y="135">排名</text></g>
   <path class="edge hot" d="M112 135 H196" marker-end="url(#arrow)"/>
   <g class="node teal"><rect x="200" y="118" width="100" height="34" rx="4"/><text class="mid" x="250" y="135">自我价值</text></g>
-  <text class="small" x="24" y="226">排名一掉，整间屋子断电</text>
+  <text class="small" x="24" y="232">排名一掉，整间屋子断电</text>
   <rect class="panel" x="360" y="0" width="344" height="250" rx="12"/>
   <text class="caps" x="384" y="32">多路供电</text>
   <g class="node plain"><rect x="400" y="60" width="72" height="30" rx="4"/><text class="mid" x="436" y="75">排名</text></g>
@@ -216,7 +216,7 @@ Lockwood 和 Kunda 在 1997 年做过一组非常漂亮的实验[@lockwood1997]�
   <path class="edge" d="M472 155 H524"/>
   <path class="edge" d="M472 195 H524 V135 H556" marker-end="url(#arrow)"/>
   <g class="node teal"><rect x="560" y="118" width="100" height="34" rx="4"/><text class="mid" x="610" y="135">自我价值</text></g>
-  <text class="small" x="384" y="236">一路掉了，灯还亮着</text>
+  <text class="small" x="384" y="232">一路掉了，灯还亮着</text>
 </svg>
 <svg viewBox="0 0 340 416">
   <rect class="panel" x="0" y="0" width="340" height="150" rx="12"/>
@@ -554,8 +554,8 @@ Roghanizad 和 Bohns[@roghanizad2017]做过一组绝佳的对比实验：让参�
 这就是为什么我给自己立下一条死规矩：**每一次出手，必须设计“两份交付”。**
 
 ```sketch title="一次出手，设计两份交付" note="向外的一份看天意和缘分，成了是惊喜；向内的一份完全由自己掌控，写成可检查、可复用的零件，直接装进下一次尝试。结合 Yin 等（2019）的部件复用模型。"
-<svg viewBox="0 0 704 236">
-  <rect class="panel" x="0" y="0" width="704" height="236" rx="12"/>
+<svg viewBox="0 0 704 252">
+  <rect class="panel" x="0" y="0" width="704" height="252" rx="12"/>
   <g class="node"><rect x="24" y="88" width="136" height="44" rx="4"/><text class="mid b" x="92" y="105">一次主动出手</text><text class="mid small" x="92" y="122">发信 / 申请 / 发布</text></g>
 
   <path class="edge dash" d="M162 98 H206 V56 H236" marker-end="url(#arrow)"/>
@@ -570,7 +570,7 @@ Roghanizad 和 Bohns[@roghanizad2017]做过一组绝佳的对比实验：让参�
   <path class="edge" d="M462 156 H506" marker-end="url(#arrow)"/>
   <g class="node blue"><rect x="510" y="134" width="166" height="44" rx="4"/><text class="mid b" x="593" y="151">100% 留存的零件</text><text class="mid small" x="593" y="168">原样装进下一次出手</text></g>
 
-  <path class="edge" d="M593 180 V208 H92 V136" marker-end="url(#arrow)"/>
+  <path class="edge" d="M593 180 V220 H92 V136" marker-end="url(#arrow)"/>
   <text class="small mid" x="350" y="202">带着做对的零件出发，只改最弱的一块</text>
 </svg>
 <svg viewBox="0 0 340 388">

@@ -33,6 +33,15 @@ Web Clipper 把网页内容传给 Obsidian 时，需要 Obsidian 被正确唤起
 
 ## 解决方案
 
-在 KDE 里给 Obsidian 添加一条窗口规则：打开 `系统设置 → 窗口管理 → 窗口规则`，按下图设置即可。
+在 KDE 里给 Obsidian 添加一条窗口规则：打开 `系统设置 → 窗口管理 → 窗口规则`，新建规则并按以下五项填写：
+
+```data title="Obsidian 的 KDE 窗口规则配置"
+属性 | 匹配方式 / 策略 | 取值
+窗口类（应用程序） | 完全匹配 | obsidian
+匹配整个窗口类 | — | 否
+窗口类型 | — | 选中所有项
+阻止焦点抢占 | 强制 | 无
+接受焦点 | 强制 | 是
+```
 
 ![KDE 系统设置中 Obsidian 的窗口规则配置界面](../images/obsidian-kde-window-rule.png)

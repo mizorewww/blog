@@ -30,6 +30,16 @@ So this is a window focus and activation permission issue in KDE, not a misconfi
 
 ## Solution
 
-Add a window rule for Obsidian in KDE: open `System Settings → Window Management → Window Rules` and configure it as shown below.
+Add a window rule for Obsidian in KDE: open `System Settings → Window Management → Window Rules`, click **Add New…**, and set the five properties below:
+
+```data title="KDE Window Rule for Obsidian" note="Exact English labels in KDE Plasma 6 System Settings (paired with the Chinese UI labels shown in the screenshot below)."
+Property | Policy / Match | Value
+Window class (application) | Exact Match | obsidian
+Match whole window class | — | No
+Window types | — | All selected
+Focus stealing prevention | Force | None
+Accept focus | Force | Yes
+```
 
 ![Obsidian window rule configuration in KDE System Settings](../../images/obsidian-kde-window-rule.png)
+*Chinese-locale KDE Window Rules pane showing the five fields above: `窗口类 (应用程序)` = `完全匹配` `obsidian`, `匹配整个窗口类` = `否`, `窗口类型` = `选中所有项`, `阻止焦点抢占` = `强制` `无`, and `接受焦点` = `强制` `是`.*

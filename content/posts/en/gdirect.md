@@ -83,74 +83,85 @@ To upgrade later, run `brew update && brew upgrade gdirect`.
 
 ## One-Time Google Cloud Setup Guide (~10 Minutes)
 
-To avoid rate-limiting (`429 Too Many Requests`) or bans caused by everyone sharing a single public OAuth client, `gdirect` does not ship a shared client ID. Instead, you create your own **Desktop app** OAuth client in your personal Google Cloud project. You only need to do this once, and it is completely free.
+To avoid rate-limiting (`429 Too Many Requests`) or bans caused by everyone sharing a single public OAuth client, `gdirect` does not ship a shared client ID. Instead, you create your own **Desktop app** OAuth client in your personal Google Cloud project. You only need to do this once, and it is completely free. (The screenshots below come from a Chinese-locale Google Cloud Console; each caption maps the numbered callouts `①` / `②` directly to the English UI labels.)
 
 ### 1. Create a Project and Enable the Drive API
 
-1. Open the [Google Cloud Console](https://console.cloud.google.com/), click the project picker at the top of the page, and click **New project** in the top-right corner. Name it anything you like (e.g. `gdirect`), leave **Location** as **No organization** for a personal account, click **Create**, and make sure the new project is selected at the top.
+1. Open the [Google Cloud Console](https://console.cloud.google.com/), click the project picker at the top of the page, and click **New project** (`新建项目`) in the top-right corner. Name it anything you like (e.g. `gdirect`), leave **Location** (`父级资源`) as **No organization** (`无组织`) for a personal account, click **Create** (`创建`), and make sure the new project is selected at the top.
 
    ![Creating a new project in the Google Cloud Console](../../images/gdirect/01-project.png)
+   *`①` **Project name** (`项目名称`): `gdirect-personal-…` · `②` **Location** (`无组织` = **No organization**), then click **Create** (`创建`).*
 
-2. Open the [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com) page, confirm your new project is selected at the top, and click **Enable**.
+2. Open the [Google Drive API](https://console.cloud.google.com/apis/library/drive.googleapis.com) page, confirm your new project is selected at the top, and click **Enable** (`启用`).
 
    ![Enabling the Google Drive API](../../images/gdirect/02-enable-api.png)
+   *`①` Confirm your new project in the top picker · `②` Click **Enable** (`启用`) under **Google Drive API**.*
 
-   Once enabled, the page shows the service name `drive.googleapis.com` with status **Enabled**.
+   Once enabled, the page shows the service name `drive.googleapis.com` with status **Enabled** (`已启用`).
 
    ![Confirming that the Google Drive API is enabled](../../images/gdirect/03-api-enabled.png)
+   *`①` Verify **Service name** (`服务名称`): `drive.googleapis.com` and **Status** (`状态`): **Enabled** (`已启用`).*
 
 ### 2. Configure the OAuth App
 
-1. Open [Google Auth Platform](https://console.cloud.google.com/auth/overview) and click **Get started**.
-2. **App information**: Enter an app name (e.g. `gdirect`, shown on the consent screen), select your email address as the user support email, and click **Next**.
+1. Open [Google Auth Platform](https://console.cloud.google.com/auth/overview) and click **Get started** (`开始`).
+2. **App information** (`应用信息`): Enter an app name (e.g. `gdirect`, shown on the consent screen), select your email address as the user support email, and click **Next** (`下一步`).
 
    ![Entering the OAuth app name and support email](../../images/gdirect/04-branding.png)
+   *`①` **App name** (`应用名称`) · `②` **User support email** (`用户支持邮箱`), then click **Next** (`下一步`).*
 
-3. **Audience**: Choose **External** and click **Next** (personal accounts cannot choose Internal).
+3. **Audience** (`受众群体`): Choose **External** (`外部`) and click **Next** (`下一步`) (personal accounts cannot choose Internal).
 
    ![Selecting External audience](../../images/gdirect/05-audience.png)
+   *`①` Select **External** (`外部`), then click **Next** (`下一步`).*
 
-4. **Contact information**: Enter your email address and click **Next**.
-5. **Finish**: Check the box agreeing to the Google API Services User Data Policy, click **Continue**, and then click **Create**.
+4. **Contact information** (`联系信息`): Enter your email address and click **Next** (`下一步`).
+5. **Finish** (`完成`): Check the box agreeing to the Google API Services User Data Policy, click **Continue** (`继续`), and then click **Create** (`创建`).
 
    ![Agreeing to the user data policy and creating the app](../../images/gdirect/06-policy.png)
+   *`①` Check **I agree to the Google API Services: User Data Policy** (`我同意…`), then click **Continue** (`继续`) and **Create** (`创建`).*
 
 ### 3. Add the Drive Scope
 
-1. Open **Data Access** in the left sidebar and click **Add or remove scopes**.
-2. In the drawer that opens, select `.../auth/drive` ("See, edit, create, and delete all of your Google Drive files"). If you don't see it in the table, paste the URL below into **Manually add scopes**, click **Add to table**, and then click **Update**:
+1. Open **Data Access** (`数据访问`) in the left sidebar and click **Add or remove scopes** (`添加或移除范围`).
+2. In the drawer that opens, select `.../auth/drive` ("See, edit, create, and delete all of your Google Drive files"). If you don't see it in the table, paste the URL below into **Manually add scopes** (`手动添加范围`), click **Add to table** (`添加到表`), and then click **Update** (`更新`):
 
    ```text
    https://www.googleapis.com/auth/drive
    ```
 
    ![Adding and selecting the auth/drive scope](../../images/gdirect/07-add-scope.png)
+   *`①` Check `.../auth/drive` (or paste into **Manually add scopes** / `手动添加范围` → **Add to table** / `添加到表`), then click **Update** (`更新`) at the bottom.*
 
 3. **Important**: After returning to the Data Access page, make sure to click **Save** at the bottom of the page. Clicking Update in the drawer alone does not persist the change.
 
    ![Clicking Save at the bottom of the Data Access page](../../images/gdirect/08-scope-saved.png)
+   *`①` Confirm `.../auth/drive` appears under **Your restricted scopes** (`您的受限范围`) · `②` Click **Save** at the bottom until the confirmation toast (`已保存数据访问权限更改！` = "Data access changes saved!") appears.*
 
 ### 4. Create a Desktop Client and Download the JSON
 
-1. Open **Clients** in the left sidebar and click **Create client**. Set **Application type** to **Desktop app** (Web application clients, API keys, and service-account JSONs will not work), give it any name (e.g. `gdirect Desktop`), and click **Create**.
+1. Open **Clients** (`客户端`) in the left sidebar and click **Create client** (`创建客户端`). Set **Application type** (`应用类型`) to **Desktop app** (`桌面应用`) (Web application clients, API keys, and service-account JSONs will not work), give it any name (e.g. `gdirect Desktop`), and click **Create** (`创建`).
 
    ![Creating a Desktop app OAuth client](../../images/gdirect/09-desktop-client.png)
+   *`①` **Application type** (`应用类型`): **Desktop app** (`桌面应用`) · `②` **Name** (`名称`): `gdirect Desktop`, then click **Create** (`创建`).*
 
-2. In the dialog that pops up, click **Download JSON** **before closing the modal**. Once closed, Google won't let you download the secret JSON again (if you close it by mistake, just create a new client).
+2. In the dialog that pops up, click **Download JSON** (`下载 JSON`) **before closing the modal**. Once closed, Google won't let you download the secret JSON again (if you close it by mistake, just create a new client).
 
    ![Downloading the client secret JSON file](../../images/gdirect/10-client-created.png)
+   *`①` **OAuth client created** (`OAuth 客户端已创建`) modal · `②` Click **Download JSON** (`下载 JSON`) before clicking **OK** (`确定`).*
 
 ### 5. Allow Your Account to Sign In (and Avoid the 7-Day Expiry)
 
 Newly created apps start in **Testing** mode, where only listed test users are allowed to sign in:
 
-1. Open **Audience** in the left sidebar, click **Add users** under **Test users**, enter the Google account email you want to use with `gdirect`, and click **Save**.
+1. Open **Audience** (`目标对象`) in the left sidebar, click **+ Add users** under **Test users** (`测试用户`), enter the Google account email you want to use with `gdirect`, and click **Save** (`保存`).
 
    ![Adding your Google account as a test user](../../images/gdirect/11-test-user.png)
+   *`①` Under **Test users** (`测试用户`), click **+ Add users** and add your Google account email.*
 
 While the app stays in Testing mode, refresh tokens expire after **7 days**, requiring `gdirect login --reauth` once a week.
 
-If you don't want to re-authenticate every week, simply click **Publish app** at the top of the **Audience** page to switch the status to **In production**. A personal app used only by you does not need to go through Google's verification review, and publishing it removes the 7-day token expiration limit.
+If you don't want to re-authenticate every week, simply click **Publish app** (`发布应用`) at the top of the **Audience** page to switch the status to **In production**. A personal app used only by you does not need to go through Google's verification review, and publishing it removes the 7-day token expiration limit.
 
 ### 6. Log In from the Terminal
 
@@ -161,15 +172,17 @@ gdirect login --client-secret ~/Downloads/client_secret.json
 ```
 
 1. Your browser will open automatically (if it doesn't, copy the URL printed in the terminal and open it in a browser **on the same machine**, since the OAuth flow redirects back to a temporary localhost port).
-2. Choose your Google account. Google will warn that "Google hasn't verified this app"—this is completely normal because you just created it yourself:
-   - **Testing mode**: Click **Continue** (not "Back to safety").
-   - **In production**: Click **Advanced** in the bottom-left corner, then click **Go to <your app name> (unsafe)**.
+2. Choose your Google account. Google will warn that "Google hasn't verified this app" (`此应用未经 Google 验证`)—this is completely normal because you just created it yourself:
+   - **Testing mode**: Click **Continue** (`继续`) (not "Back to safety" / `返回到安全网页`).
+   - **In production**: Click **Advanced** (`高级`) in the bottom-left corner, then click **Go to <your app name> (unsafe)**.
 
    ![Clicking Continue on the unverified app screen](../../images/gdirect/12-unverified.png)
+   *`①` On "Google hasn't verified this app" (`此应用未经 Google 验证`), click **Continue** (`继续`).*
 
-3. Verify the app name and Google Drive permission scope, then click **Continue**.
+3. Verify the app name and Google Drive permission scope, then click **Continue** (`继续`).
 
    ![Granting Google Drive access on the consent screen](../../images/gdirect/13-consent.png)
+   *`①` Confirm Google Drive access (`查看、修改、创建和删除您的所有 Google 云端硬盘文件`) · `②` Click **Continue** (`继续`).*
 
 4. Back in the terminal, once you see `Logged in`, you're all set. You can delete the downloaded JSON file now—the client credentials are saved inside local SQLite, and re-authenticating or switching accounts later only requires `gdirect login --reauth`.
 
