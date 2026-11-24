@@ -399,10 +399,24 @@ func (b *builder) writeHeaders() error {
 	for _, entry := range entries {
 		name := entry.Name()
 		switch {
-		case name == "static" || name == "images" || name == "widgets" || name == "404.html" || strings.HasPrefix(name, "_"):
+		case name == "static":
+			staticEntries, err := os.ReadDir(filepath.Join(b.stage, "static"))
+			if err != nil {
+				return err
+			}
+			for _, sub := range staticEntries {
+				switch {
+				case sub.Name() == b.version:
+				case sub.IsDir():
+					routes = append(routes, "/static/"+sub.Name()+"/*")
+				default:
+					routes = append(routes, "/static/"+sub.Name())
+				}
+			}
+		case name == "images" || name == "widgets" || name == "404.html" || strings.HasPrefix(name, "_"):
 		case entry.IsDir():
 			routes = append(routes, "/"+name+"/*")
-		case slices.Contains([]string{".html", ".xml", ".json", ".txt"}, filepath.Ext(name)):
+		case slices.Contains([]string{".html", ".xml", ".json", ".txt", ".ico", ".png"}, filepath.Ext(name)):
 			routes = append(routes, "/"+name)
 		}
 	}
