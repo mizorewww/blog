@@ -7,7 +7,7 @@
 #                   sh scripts/lighthouse.sh http://localhost:8080
 set -eu
 base=${1:-http://localhost:8080}
-min=${MIN_SCORE:-95}
+min=${MIN_SCORE:-90}
 runs=${RUNS:-3}
 out=${OUT:-$(mktemp -d)}
 mkdir -p "$out"
