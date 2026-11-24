@@ -31,7 +31,7 @@ func escapePath(path string) string {
 	return strings.Join(segments, "/")
 }
 
-var generatedPrefixes = []string{"/posts/", "/en/posts/", "/tags/", "/en/tags/", "/categories/", "/en/categories/", "/search/", "/en/search/", "/static/", "/images/"}
+var generatedPrefixes = []string{"/posts/", "/en/posts/", "/tags/", "/en/tags/", "/categories/", "/en/categories/", "/search/", "/en/search/", "/about/", "/en/about/", "/static/", "/images/"}
 
 func validAlias(alias string) error {
 	clean := filepath.ToSlash(filepath.Clean(alias)) + "/"

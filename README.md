@@ -1,4 +1,4 @@
-# mizore / notes
+# 雨夹雪 · mizorewww
 
 一个用 Go 写的静态博客框架。文章是带 YAML Front Matter 的 Markdown，构建结果是纯静态的 HTML、RSS 和 sitemap：中英双语、按页面子集化的自托管字体、构建时渲染的公式、代码高亮、数据表格、SVG 图表，构建时画好的 ECharts 图表和 Mermaid 图，手写 SVG 的示意图，带回链的参考文献引用，以及文章自带脚本的交互图（没有 JavaScript 时显示构建时的静态图），正文不依赖 JavaScript。
 

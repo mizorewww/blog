@@ -32,6 +32,13 @@ type Site struct {
 // Link points at the same page in another edition.
 type Link struct{ Lang, Path, Label string }
 
+// Dashboard holds build-time summary metrics for an edition's home page.
+type Dashboard struct {
+	PostCount, TagCount, Minutes int
+	WordsValue, WordsUnit        string
+	Span, Latest                 string
+}
+
 type Page struct {
 	Site                           Site
 	Lang                           *Lang
@@ -43,6 +50,7 @@ type Page struct {
 	Term                           *Term
 	TermKind, Stats                string
 	Categories, Tags               []*Term
+	Dashboard                      *Dashboard
 	Switch                         *Link
 	Alternates                     []Link
 }

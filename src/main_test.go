@@ -125,18 +125,18 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
-	for _, route := range []string{"/notes/\n", "/notes/index.html\n", "/notes/posts/*\n", "/notes/en/*\n", "/notes/search.json\n", "/notes/feed.xml\n", "/notes/robots.txt\n"} {
+	for _, route := range []string{"/notes/\n", "/notes/index.html\n", "/notes/about/*\n", "/notes/posts/*\n", "/notes/en/*\n", "/notes/search.json\n", "/notes/feed.xml\n", "/notes/robots.txt\n"} {
 		if !strings.Contains(string(headers), route+"  Cache-Control: no-cache") {
 			t.Fatalf("documents must revalidate: %s missing from\n%s", route, headers)
 		}
 	}
-	for _, name := range []string{"index.html", "posts/beta/index.html", "404.html"} {
+	for _, name := range []string{"index.html", "about/index.html", "posts/beta/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
 		if err != nil {
 			t.Fatal(err)
 		}
 		html := string(b)
-		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+3 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="https://about.mizore.blog" rel="me">关于`) {
+		if strings.Count(html, "<script") > strings.Count(html, `<script type="application/ld+json">`)+3 || !strings.Contains(html, `<style>@font-face`) || !strings.Contains(html, `url("/notes/static/`+version+`/fonts/`) || !strings.Contains(html, `href="/notes/static/`) || !strings.Contains(html, `<main id="main">`) || !strings.Contains(html, `<a href="/notes/about/"`) {
 			t.Fatalf("invalid static page %s", name)
 		}
 		if strings.Contains(html, "og:image") || strings.Contains(html, "summary_large_image") || strings.Contains(html, "max-image-preview") || !strings.Contains(html, `<meta name="twitter:card" content="summary">`) {
@@ -166,8 +166,27 @@ func TestBuild(t *testing.T) {
 		}
 	}
 	home, _ := os.ReadFile("public/index.html")
-	if !strings.Contains(string(home), `matches(".theme")`) || strings.Contains(string(home), "tradingview") || strings.Contains(string(home), `querySelector(".toc")`) {
+	if !strings.Contains(string(home), `matches(".theme")`) || strings.Contains(string(home), "tradingview") || strings.Contains(string(home), `querySelector(".toc")`) || strings.Contains(string(home), "[data-copy]") {
 		t.Fatal("the home page needs the base script only")
+	}
+	if strings.Contains(string(home), `class="intro"`) || !strings.Contains(string(home), `class="ledger"`) || !strings.Contains(string(home), "<title>雨夹雪</title>") || !strings.Contains(string(home), "2026.09–2026.10") {
+		t.Fatal("the home page must display its edition title and editorial dashboard without intro tagline")
+	}
+	enHome, _ := os.ReadFile("public/en/index.html")
+	if !strings.Contains(string(enHome), "<title>mizorewww</title>") || !strings.Contains(string(enHome), `content="Writing by mizorewww."`) || !strings.Contains(string(enHome), `class="ledger"`) {
+		t.Fatal("the English home page must use its own brand title, description and dashboard")
+	}
+	aboutZH, _ := os.ReadFile("public/about/index.html")
+	for _, want := range []string{`aria-current="page">关于</a>`, "上海电力大学", "https://www.shiep.edu.cn", "github.com/mizorewww", "x.com/mizorewww", "/notes/feed.xml", "t.me/aac6fef", "https://t.me/+skT95sLJe9xhZDc1", "aac6fef@gmail.com", "www@mizore.blog", "57D7 F6DD 93E5 F4B6 F0FD 8C2B 0161 BB7D 23FB 7918", "BEGIN PGP PUBLIC KEY BLOCK", "https://buymeacoffee.com/mizorewww", "0xea169FFfF00034DB719107A2d7F02C427E8BBaE3", `"[data-copy]"`, `"ProfilePage"`} {
+		if !strings.Contains(string(aboutZH), want) {
+			t.Fatalf("Chinese about page lacks %s", want)
+		}
+	}
+	aboutEN, _ := os.ReadFile("public/en/about/index.html")
+	for _, want := range []string{`aria-current="page">About</a>`, "First-year student at ", "SHIEP", "Join my Telegram group", "BSC · ETH · ARB · POL and other EVM chains", "0xea169FFfF00034DB719107A2d7F02C427E8BBaE3"} {
+		if !strings.Contains(string(aboutEN), want) {
+			t.Fatalf("English about page lacks %s", want)
+		}
 	}
 	alpha, _ := os.ReadFile("public/posts/alpha/index.html")
 	if !strings.Contains(string(alpha), `querySelector(".toc")`) {
@@ -218,8 +237,8 @@ func TestBuild(t *testing.T) {
 	}
 	var sitemap Sitemap
 	b, _ = os.ReadFile("public/sitemap.xml")
-	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 10 {
-		t.Fatalf("invalid sitemap: %v", err)
+	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 12 {
+		t.Fatalf("invalid sitemap: %v (%d urls)", err, len(sitemap.URLs))
 	}
 	for _, u := range sitemap.URLs {
 		if u.LastMod != "2026-10-02" && u.LastMod != "2026-09-28" {
@@ -463,6 +482,14 @@ func TestStructuredData(t *testing.T) {
 	if structuredData(Page{Site: site, Kind: "404"}) != "" {
 		t.Fatal("404 pages carry no structured data")
 	}
+	homeLD := string(structuredData(Page{Site: site, UI: UI{Title: "mizorewww"}, Path: "/en/", Kind: "home", Description: "Writing"}))
+	if err := json.Unmarshal([]byte(homeLD), &data); err != nil || data["@type"] != "WebSite" || data["name"] != "mizorewww" || data["url"] != "https://example.com/en/" {
+		t.Fatalf("unexpected home JSON-LD: %v %v", err, data)
+	}
+	aboutLD := string(structuredData(Page{Site: site, Path: "/about/", Title: "关于 — 雨夹雪", Description: "Bio", Kind: "about"}))
+	if err := json.Unmarshal([]byte(aboutLD), &data); err != nil || data["@type"] != "ProfilePage" || data["url"] != "https://example.com/about/" || data["mainEntity"].(map[string]any)["name"] != "A" {
+		t.Fatalf("unexpected about JSON-LD: %v %v", err, data)
+	}
 }
 
 func TestTermCollision(t *testing.T) {
@@ -498,7 +525,7 @@ func TestRedirects(t *testing.T) {
 	if page := files["old-en/index.html"]; !strings.Contains(page, `<html lang="en">`) || !strings.Contains(page, "This post has moved") {
 		t.Fatalf("redirect pages must use the post's language: %q", page)
 	}
-	for _, bad := range [][]string{{"zh/x/"}, {"/zh/x"}, {"/zh/../x/"}, {"/posts/y/"}, {"/"}, {"/a/", "/a/"}} {
+	for _, bad := range [][]string{{"zh/x/"}, {"/zh/x"}, {"/zh/../x/"}, {"/posts/y/"}, {"/about/"}, {"/en/about/"}, {"/"}, {"/a/", "/a/"}} {
 		p := *posts[0]
 		p.Aliases = bad
 		if err := writeRedirects(site, "", []*Post{&p}, write); err == nil {

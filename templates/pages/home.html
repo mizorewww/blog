@@ -1,7 +1,17 @@
 {{define "main"}}
-<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{.Site.Title}}</h1>
-<div class="intro-block"><p class="intro"><span>{{.UI.Description}}</span></p>
-{{if .Posts}}<p class="profile"><span>{{.Stats}}</span>{{if .Categories}}<span class="cats">{{range .Categories}}<a href="{{local .Path}}">{{.Name}}<sup>{{len .Posts}}</sup></a>{{end}}</span>{{end}}</p>{{end}}<i class="rule" aria-hidden="true"></i></div>
+<section class="writing" aria-labelledby="writing-title"><h1 id="writing-title" class="sr-only">{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}</h1>
+{{with .Dashboard}}<div class="ledger">
+<div class="ledger-meta"><span class="ledger-label">{{$.UI.LedgerLabel}}</span>{{if .Span}}<span>{{.Span}}</span>{{end}}<span>{{printf $.UI.Updated .Latest}}</span></div>
+<div class="ledger-body">
+<dl class="ledger-kpis">
+<div><dt>{{$.UI.PostsLabel}}</dt><dd>{{.PostCount}}{{if $.UI.PostsUnit}}<span class="kpi-u">{{$.UI.PostsUnit}}</span>{{end}}</dd></div>
+<div><dt>{{$.UI.WordsLabel}}</dt><dd>{{.WordsValue}}{{if .WordsUnit}}<span class="kpi-u">{{.WordsUnit}}</span>{{end}}</dd></div>
+<div><dt>{{$.UI.ReadingLabel}}</dt><dd>{{.Minutes}}<span class="kpi-u">{{$.UI.ReadingUnit}}</span></dd></div>
+<div><dt>{{$.UI.Tags}}</dt><dd>{{if $.Tags}}<a href="{{local $.Lang.Base}}/tags/">{{.TagCount}}{{if $.UI.TagsUnit}}<span class="kpi-u">{{$.UI.TagsUnit}}</span>{{end}}</a>{{else}}0{{end}}</dd></div>
+</dl>{{if $.Categories}}
+<div class="ledger-cats"><div class="cat-bar" aria-hidden="true">{{range $i, $c := $.Categories}}<i class="c{{mod $i 5}}" style="flex:{{len $c.Posts}}"></i>{{end}}</div><ul class="cat-list">{{range $i, $c := $.Categories}}<li><a href="{{local $c.Path}}"><i class="c{{mod $i 5}}" aria-hidden="true"></i>{{.Name}}<span>{{len .Posts}}</span></a></li>{{end}}</ul></div>{{end}}
+</div>
+<i class="rule" aria-hidden="true"></i></div>{{end}}
 {{range .Posts}}{{template "row" .}}{{else}}<p class="empty">{{.UI.Empty}}</p>{{end}}
 </section>
 {{end}}

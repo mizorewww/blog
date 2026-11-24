@@ -61,5 +61,5 @@ func (b *builder) writeSearch(e *edition) error {
 		return err
 	}
 	// Snippets appear only after a search, so their glyphs get a font of their own.
-	return b.page(e.lang.Base+"/search/", Page{Lang: e.lang, Title: e.lang.UI.Search + " — " + b.site.Title, Description: e.lang.UI.SearchLabel, Kind: "search", Posts: e.posts, Switch: b.switchTo(e, "/search/")}, corpus.String())
+	return b.page(e.lang.Base+"/search/", Page{Lang: e.lang, Title: e.lang.UI.Search + " — " + e.lang.UI.Title, Description: e.lang.UI.SearchLabel, Kind: "search", Posts: e.posts, Switch: b.switchTo(e, "/search/")}, corpus.String())
 }

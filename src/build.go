@@ -25,6 +25,7 @@ type edition struct {
 	posts            []*Post
 	categories, tags []*Term
 	stats            string
+	dashboard        *Dashboard
 }
 
 // published reports whether the edition gets pages: the root one always does,
@@ -110,10 +111,14 @@ func (b *builder) loadSite() error {
 	if err = json.Unmarshal(data, &b.site); err != nil {
 		return fmt.Errorf("site.json: %w", err)
 	}
+	origURL := strings.TrimRight(b.site.URL, "/")
 	if b.URL != "" {
 		b.site.URL = b.URL
 	}
 	b.site.URL = strings.TrimRight(b.site.URL, "/")
+	if origURL != "" && strings.HasPrefix(b.site.About, origURL+"/") {
+		b.site.About = b.site.URL + strings.TrimPrefix(b.site.About, origURL)
+	}
 	b.site.Commit = gitHead()
 	u, err := url.Parse(b.site.URL)
 	if err != nil || u.Host == "" || (u.Scheme != "http" && u.Scheme != "https") || u.RawQuery != "" || u.Fragment != "" {
@@ -123,6 +128,7 @@ func (b *builder) loadSite() error {
 	// Each build gets its own copy of the editions, so nothing global changes.
 	for _, lang := range languages {
 		if lang.Base == "" {
+			lang.UI.Title = b.site.Title
 			lang.UI.Description = b.site.Description
 		}
 		b.editions = append(b.editions, &edition{lang: &lang})
@@ -152,7 +158,9 @@ func (b *builder) prepare() error {
 		"year":    func() string { return b.year },
 		"anchors": withAnchors,
 		"profile": profileName,
+		"bare":    func(u string) string { return strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://") },
 		"script":  scripts.For,
+		"mod":     func(a, b int) int { return a % b },
 	}).ParseFiles("templates/page.html")
 	if err != nil {
 		return err
@@ -260,7 +268,7 @@ func (b *builder) writeEdition(e *edition) error {
 	if err := b.indexTerms(e); err != nil {
 		return err
 	}
-	steps := []func(*edition) error{b.writeHome, b.writePosts, b.writeNotFound}
+	steps := []func(*edition) error{b.writeHome, b.writeAbout, b.writePosts, b.writeNotFound}
 	if len(e.posts) > 0 {
 		steps = append(steps, b.writeTerms, b.writeSearch)
 	}
@@ -274,11 +282,12 @@ func (b *builder) writeEdition(e *edition) error {
 
 func (b *builder) writeHome(e *edition) error {
 	home := e.lang.Base + "/"
-	if err := b.page(home, Page{Lang: e.lang, Title: b.site.Title, Description: e.lang.UI.Description, Kind: "home", Posts: e.posts, Categories: e.categories, Tags: e.tags, Stats: e.stats, Switch: b.switchTo(e, "/")}, ""); err != nil {
+	ui := e.lang.UI
+	if err := b.page(home, Page{Lang: e.lang, Title: ui.Title, Description: ui.Description, Kind: "home", Posts: e.posts, Categories: e.categories, Tags: e.tags, Stats: e.stats, Dashboard: e.dashboard, Switch: b.switchTo(e, "/")}, ""); err != nil {
 		return err
 	}
 	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + home, newestOf(e.posts)})
-	b.feed(e.lang, e.lang.Base+"/feed.xml", b.site.Title, e.lang.UI.Description, e.posts)
+	b.feed(e.lang, e.lang.Base+"/feed.xml", ui.Title, ui.Description, e.posts)
 	return nil
 }
 
@@ -295,7 +304,7 @@ func (b *builder) writePosts(e *edition) error {
 		if p.Translation != nil {
 			sw = &Link{p.Translation.Lang.HTML, p.Translation.Path, e.lang.UI.Switch}
 		}
-		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + b.site.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, p.scripted); err != nil {
+		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + e.lang.UI.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, p.scripted); err != nil {
 			return err
 		}
 		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + p.Path, p.Modified()})
@@ -306,7 +315,7 @@ func (b *builder) writePosts(e *edition) error {
 // writeTerms writes the tag overview and a page and feed per category and tag.
 func (b *builder) writeTerms(e *edition) error {
 	ui := e.lang.UI
-	if err := b.page(e.lang.Base+"/tags/", Page{Lang: e.lang, Title: ui.TagsTitle + " — " + b.site.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+	if err := b.page(e.lang.Base+"/tags/", Page{Lang: e.lang, Title: ui.TagsTitle + " — " + ui.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
 		return err
 	}
 	for _, group := range []struct {
@@ -315,10 +324,10 @@ func (b *builder) writeTerms(e *edition) error {
 	}{{ui.Category, e.categories}, {ui.Tag, e.tags}} {
 		for _, t := range group.terms {
 			count := fmt.Sprintf(ui.Count, len(t.Posts))
-			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + b.site.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + ui.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
 				return err
 			}
-			b.feed(e.lang, t.Path+"feed.xml", t.Name+" — "+b.site.Title, count, t.Posts)
+			b.feed(e.lang, t.Path+"feed.xml", t.Name+" — "+ui.Title, count, t.Posts)
 			b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + t.Path, newestOf(t.Posts)})
 		}
 	}
@@ -327,7 +336,7 @@ func (b *builder) writeTerms(e *edition) error {
 
 // writeNotFound writes the edition's 404.html; Cloudflare Pages serves the nearest one.
 func (b *builder) writeNotFound(e *edition) error {
-	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + b.site.Title, Description: e.lang.UI.NotFoundDek, Kind: "404"}, "")
+	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + e.lang.UI.Title, Description: e.lang.UI.NotFoundDek, Kind: "404"}, "")
 }
 
 func (b *builder) write(name string, body []byte) error {

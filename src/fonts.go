@@ -191,7 +191,7 @@ serif:
 			return serif500
 		case (e.tag == "h2" || e.tag == "h3") && within("prose"):
 			return serif600
-		case e.tag == "h1" || e.is("intro") || e.is("brand") || e.tag == "a" && parent(i).is("post-pagination"):
+		case e.tag == "h1" || e.is("brand") || e.tag == "a" && parent(i).is("post-pagination"):
 			return serif400
 		}
 	}
@@ -206,7 +206,7 @@ serif:
 			e.tag == "tr" && e.is("mark") && within("data"),
 			e.is("dl"),
 			e.tag == "b" && (parent(i).is("stats-group") || within("ticker")),
-			e.tag == "dd" && within("kpi") && !e.is("s"),
+			e.tag == "dd" && (within("kpi") && !e.is("s") || within("ledger-kpis")),
 			e.is("b") && within("sketch"),
 			e.is("case-q"):
 			return sans500

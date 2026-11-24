@@ -17,14 +17,29 @@ func structuredData(p Page) template.JS {
 	if p.Lang != nil {
 		lang = p.Lang.HTML
 	}
+	siteTitle := p.UI.Title
+	if siteTitle == "" {
+		siteTitle = p.Site.Title
+	}
 	data := map[string]any{"@context": "https://schema.org", "inLanguage": lang}
 	switch p.Kind {
 	case "home":
+		url := p.Site.URL + "/"
+		if p.Path != "" {
+			url = p.Site.URL + p.Path
+		}
 		data["@type"] = "WebSite"
-		data["name"] = p.Site.Title
-		data["url"] = p.Site.URL + "/"
+		data["name"] = siteTitle
+		data["url"] = url
 		data["description"] = p.Description
 		data["author"] = author
+	case "about":
+		url := p.Site.URL + p.Path
+		data["@type"] = "ProfilePage"
+		data["name"] = p.Title
+		data["description"] = p.Description
+		data["url"] = url
+		data["mainEntity"] = author
 	case "post":
 		url := p.Site.URL + p.Post.Path
 		data["@type"] = "BlogPosting"

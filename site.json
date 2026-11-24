@@ -1,9 +1,9 @@
 {
-  "title": "mizore / notes",
+  "title": "雨夹雪",
   "author": "mizorewww",
-  "description": "关于代码、工具，以及把事情做简单的练习。",
+  "description": "雨夹雪的博客。",
   "url": "https://mizore.blog",
-  "about": "https://about.mizore.blog",
+  "about": "https://mizore.blog/about/",
   "repo": "https://github.com/mizorewww/blog",
   "email": "www@mizore.blog",
   "sameAs": [
@@ -13,12 +13,12 @@
   ],
   "redirects": [
     {
-      "from": "/about",
-      "to": "https://about.mizore.blog"
+      "from": "/zh/about",
+      "to": "/about/"
     },
     {
-      "from": "/about/",
-      "to": "https://about.mizore.blog"
+      "from": "/zh/about/",
+      "to": "/about/"
     },
     {
       "from": "/zh/search",

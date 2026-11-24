@@ -72,9 +72,10 @@ func (b *builder) indexTerms(e *edition) error {
 	if e.tags, err = collectTerms(e.posts, e.lang.Base, "tags", func(p *Post) []string { return p.Tags }); err != nil {
 		return err
 	}
-	units := 0
+	units, minutes := 0, 0
 	for _, p := range e.posts {
 		units += p.Units
+		minutes += p.Minutes
 		for _, c := range e.categories {
 			if c.Slug == termSlug(p.Tag) {
 				p.Category = c
@@ -89,6 +90,24 @@ func (b *builder) indexTerms(e *edition) error {
 		}
 	}
 	e.stats = fmt.Sprintf(e.lang.UI.Stats, len(e.posts), len(e.categories), len(e.tags), wordCount(e.lang, units))
+	if len(e.posts) > 0 {
+		wordsVal, wordsUnit := splitWordCount(e.lang, units)
+		newestMonth := strings.ReplaceAll(e.posts[0].Date[:7], "-", ".")
+		oldestMonth := strings.ReplaceAll(e.posts[len(e.posts)-1].Date[:7], "-", ".")
+		span := newestMonth
+		if oldestMonth != newestMonth {
+			span = oldestMonth + "–" + newestMonth
+		}
+		e.dashboard = &Dashboard{
+			PostCount:  len(e.posts),
+			TagCount:   len(e.tags),
+			Minutes:    minutes,
+			WordsValue: wordsVal,
+			WordsUnit:  wordsUnit,
+			Span:       span,
+			Latest:     newestOf(e.posts),
+		}
+	}
 	return nil
 }
 
@@ -101,4 +120,18 @@ func wordCount(lang *Lang, units int) string {
 		return strconv.FormatFloat(float64(units)/1000, 'f', 1, 64) + "k"
 	}
 	return strconv.Itoa(units)
+}
+
+// splitWordCount separates the numeric figure and unit suffix for KPI display.
+func splitWordCount(lang *Lang, units int) (string, string) {
+	switch {
+	case lang.Code == "zh" && units >= 10000:
+		return strconv.FormatFloat(float64(units)/10000, 'f', 1, 64), lang.UI.WordsWan
+	case lang.Code == "zh":
+		return strconv.Itoa(units), lang.UI.WordsChar
+	case units >= 1000:
+		return strconv.FormatFloat(float64(units)/1000, 'f', 1, 64), "k"
+	default:
+		return strconv.Itoa(units), ""
+	}
 }

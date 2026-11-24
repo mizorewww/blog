@@ -11,7 +11,7 @@ import (
 // base script plus only the parts its content uses, compacted and inline.
 type pageScripts map[string]string
 
-var scriptParts = []string{"base", "tip", "cite", "ticker", "toc", "draw", "chart-theme", "echart", "widget", "search"}
+var scriptParts = []string{"base", "tip", "cite", "ticker", "toc", "draw", "chart-theme", "echart", "widget", "search", "about"}
 
 // loadScripts reads the parts; echarts is the URL echart.js loads ECharts from.
 func loadScripts(echarts string) (pageScripts, error) {
@@ -66,6 +66,9 @@ func (s pageScripts) For(p Page) template.JS {
 	}
 	if p.Kind == "search" {
 		parts = append(parts, s["search"])
+	}
+	if p.Kind == "about" {
+		parts = append(parts, s["about"])
 	}
 	return template.JS("{\n" + strings.Join(parts, "\n") + "\n}")
 }

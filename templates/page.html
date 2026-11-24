@@ -12,7 +12,7 @@
 {{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
 {{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{$.Site.URL}}{{.Path}}">
 {{end}}<link rel="author" href="{{.Site.About}}">
-<meta property="og:site_name" content="{{.Site.Title}}">
+<meta property="og:site_name" content="{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}">
 <meta property="og:locale" content="{{.Lang.OG}}">
 <meta property="og:title" content="{{if .Post}}{{.Post.Title}}{{else}}{{.Title}}{{end}}">
 <meta property="og:description" content="{{.Description}}">
@@ -29,15 +29,15 @@
 <script>try{const t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 <style>{{css}}</style>
 <noscript><style>:root{--cjk:"Blog Sans","Blog Sans Late";--cjk-serif:"Blog Serif","Blog Serif Late"}</style></noscript>
-<link rel="alternate" type="application/rss+xml" title="{{.Site.Title}}" href="{{local .Lang.Base}}/feed.xml">
-{{if eq .Kind "term"}}<link rel="alternate" type="application/rss+xml" title="{{.Term.Name}} — {{.Site.Title}}" href="{{local .Term.Path}}feed.xml">
+<link rel="alternate" type="application/rss+xml" title="{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}" href="{{local .Lang.Base}}/feed.xml">
+{{if eq .Kind "term"}}<link rel="alternate" type="application/rss+xml" title="{{.Term.Name}} — {{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}" href="{{local .Term.Path}}feed.xml">
 {{end}}<script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"{{local "/*"}}"},{"not":{"href_matches":"{{local "/*.xml"}}"}},{"not":{"href_matches":"{{local "/*.json"}}"}}]},"eagerness":"moderate"}]}</script>
 </head>
 <body id="top">
 <a class="skip" href="#main">{{.UI.Skip}}</a>
 {{if eq .Kind "post"}}<div class="progress" aria-hidden="true"></div>
 {{end}}<div class="shell">
-<header class="site-header"><a class="brand" href="{{local .Lang.Base}}/"{{if eq .Kind "home"}} aria-current="page"{{end}}><img src="{{local "/static/avatar.webp"}}" alt="" width="24" height="24">{{.Site.Title}}</a><nav aria-label="{{.UI.Nav}}"><a href="{{local .Lang.Base}}/tags/"{{if or (eq .Kind "tags") (eq .Kind "term")}} aria-current="page"{{end}}>{{.UI.Tags}}</a><a href="{{local .Lang.Base}}/search/"{{if eq .Kind "search"}} aria-current="page"{{end}}>{{.UI.Search}}</a><a href="{{.Site.About}}" rel="me">{{.UI.About}}<span aria-hidden="true">↗</span></a>{{with .Switch}}<a href="{{local .Path}}" hreflang="{{.Lang}}" lang="{{.Lang}}">{{.Label}}</a>{{end}}<button class="theme" type="button" aria-label="{{.UI.Theme}}"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button></nav></header>
+<header class="site-header"><a class="brand" href="{{local .Lang.Base}}/"{{if eq .Kind "home"}} aria-current="page"{{end}}><img src="{{local "/static/avatar.webp"}}" alt="" width="24" height="24">{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}</a><nav aria-label="{{.UI.Nav}}"><a href="{{local .Lang.Base}}/tags/"{{if or (eq .Kind "tags") (eq .Kind "term")}} aria-current="page"{{end}}>{{.UI.Tags}}</a><a href="{{local .Lang.Base}}/search/"{{if eq .Kind "search"}} aria-current="page"{{end}}>{{.UI.Search}}</a><a href="{{local .Lang.Base}}/about/"{{if eq .Kind "about"}} aria-current="page"{{end}}>{{.UI.About}}</a>{{with .Switch}}<a href="{{local .Path}}" hreflang="{{.Lang}}" lang="{{.Lang}}">{{.Label}}</a>{{end}}<button class="theme" type="button" aria-label="{{.UI.Theme}}"><svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true"><circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M8 1.75a6.25 6.25 0 0 1 0 12.5z" fill="currentColor"/></svg></button></nav></header>
 <main id="main">
 {{template "main" .}}
 </main>
