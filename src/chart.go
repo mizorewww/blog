@@ -177,6 +177,11 @@ func renderChart(info string, lines []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	for _, key := range []string{"xfmt", "yfmt"} {
+		if f := attrs[key]; f != "" && strings.Contains(fmt.Sprintf(f, 0.0), "%!") {
+			return "", fmt.Errorf("invalid %s %q", key, f)
+		}
+	}
 	rows, err := blockRows(lines)
 	if err != nil {
 		return "", err
@@ -202,6 +207,14 @@ func renderChart(info string, lines []string) (string, error) {
 		s := chartSeries{name: header[col]}
 		for _, row := range rows {
 			v, ok := dataValue(row[col])
+			if kind == "scatter" {
+				clean := strings.TrimPrefix(strings.NewReplacer("−", "-", ",", "").Replace(strings.TrimSuffix(row[col], "%")), "+")
+				parsed, err := strconv.ParseFloat(clean, 64)
+				if err != nil {
+					return "", fmt.Errorf("scatter y %q is not a number", row[col])
+				}
+				v, ok = parsed, true
+			}
 			s.text, s.vals, s.ok = append(s.text, row[col]), append(s.vals, v), append(s.ok, ok)
 		}
 		series = append(series, s)
@@ -595,7 +608,7 @@ func renderChart(info string, lines []string) (string, error) {
 						color = chartPalette[si]
 					}
 					text := minus.Replace(s.text[best])
-					if strings.HasSuffix(attrs["yfmt"], "%%") {
+					if strings.HasSuffix(attrs["yfmt"], "%%") && !strings.HasSuffix(text, "%") {
 						text += "%"
 					}
 					if xKind == "category" {

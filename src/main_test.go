@@ -377,7 +377,20 @@ func TestBlocks(t *testing.T) {
 	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
 		t.Fatalf("ticker button must follow the edition: %s %v", en, err)
 	}
-	for _, bad := range []string{"```chart pie\nx | y\n1 | 2\n```\n", "```chart line\nx\n1\n```\n", "```chart scatter\n点 | x | y\np | a | 1\n```\n", "```stats\n## A\n```\n"} {
+	pct, _, err := render([]byte("```chart bar yfmt=\"%.0f%%\"\n项 | 占比\nA | 24.0%\nB | 10.0%\n```\n"), nil)
+	if err != nil || !strings.Contains(string(pct), "24.0% · A") || strings.Contains(string(pct), "24.0%%") {
+		t.Fatalf("percent cell with %% yfmt must not double %%: %v %s", err, pct)
+	}
+	for _, bad := range []string{
+		"```chart pie\nx | y\n1 | 2\n```\n",
+		"```chart line\nx\n1\n```\n",
+		"```chart scatter\n点 | x | y\np | a | 1\n```\n",
+		"```chart scatter\n点 | x | y\np | 1 | a\n```\n",
+		"```chart scatter\n点 | x | y\np | 1 | —\n```\n",
+		"```chart line yfmt=\"%.0f%\"\nx | y\n1 | 2\n```\n",
+		"```chart line xfmt=\"%d\"\nx | y\n1 | 2\n```\n",
+		"```stats\n## A\n```\n",
+	} {
 		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("expected an error for %q", bad)
 		}
