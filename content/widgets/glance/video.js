@@ -1,10 +1,12 @@
 // Big Buck Bunny, one frame every 4 s, four box questions per frame
 // (video.json: real outputs, plus the author's frame-by-frame labels).
 // Drag along the curves to scrub; the dial sets where "present" starts.
-import { el, json, image, fmt, slider, whenSeen, credit, still } from "./common.js";
+import { el, EN, json, image, fmt, slider, whenSeen, credit, still } from "./common.js";
 
 const HUE = { rabbit: "clay", squirrel: "violet", butterfly: "teal", car: "blue" };
-const NAME = { rabbit: "兔子", squirrel: "飞鼠", butterfly: "蝴蝶", car: "红色汽车" };
+const NAME = EN
+  ? { rabbit: "Rabbit", squirrel: "Squirrel", butterfly: "Butterfly", car: "Red car" }
+  : { rabbit: "兔子", squirrel: "飞鼠", butterfly: "蝴蝶", car: "红色汽车" };
 const clock = s => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 
 export default async function video(stage, { base }) {
@@ -18,21 +20,20 @@ export default async function video(stage, { base }) {
   const img = el("img", { alt: "", draggable: "false" });
   const boxes = el("div.g-boxes");
   const time = el("span.g-time");
-  const play = el("button.g-play", { type: "button", "aria-label": "播放", on: { click: () => toggle() } });
+  const play = el("button.g-play", { type: "button", "aria-label": EN ? "Play" : "播放", on: { click: () => toggle() } });
   const chips = el("div.g-chips", {}, ...data.queries.map(q => el("button.g-chip", {
     type: "button", style: `--c:var(--${HUE[q.id]})`, "aria-pressed": "true", "data-id": q.id,
     on: { click: e => { on[q.id] = !on[q.id]; e.currentTarget.setAttribute("aria-pressed", String(on[q.id])); draw(); } },
     title: q.text,
   }, el("span.g-q-dot"), NAME[q.id], el("small", { text: q.text }))));
   const agree = el("div.g-agree");
-  const dial = slider({ label: "“不在”的阈值", value: threshold, min: 0.02, max: 0.98, oninput: v => { threshold = v; draw(); } });
+  const dial = slider({ label: EN ? "“Not present” threshold" : "“不在”的阈值", value: threshold, min: 0.02, max: 0.98, oninput: v => { threshold = v; draw(); } });
 
-  // The timeline: one lane per question, P(t) as an area, the labels as a strip under it.
   const lane = 30, strip = 5, gap = 12, top = 6, Wt = 1000;
   const Ht = top + data.queries.length * (lane + strip + gap);
   const x = i => (i + 0.5) / n * Wt;
   const svg = el("svg.g-timeline", { viewBox: `0 0 ${Wt} ${Ht}`, preserveAspectRatio: "none", role: "slider", tabindex: "0",
-    "aria-label": "视频时间", "aria-valuemin": "0", "aria-valuemax": String(data.t[n - 1]) });
+    "aria-label": EN ? "Video timeline" : "视频时间", "aria-valuemin": "0", "aria-valuemax": String(data.t[n - 1]) });
   const lanes = data.queries.map((q, k) => {
     const y0 = top + k * (lane + strip + gap), y = p => y0 + lane - p * lane;
     const line = q.p.map((p, i) => `${i ? "L" : "M"}${x(i).toFixed(1)} ${y(p).toFixed(1)}`).join("");
@@ -58,10 +59,14 @@ export default async function video(stage, { base }) {
     el("div.g-video-top", {}, chips, el("div.g-video-clock", {}, play, time)),
     el("div.g-shot.seen", {}, el("div.g-shot-frame", { style: `aspect-ratio:${W}/${H}` }, img, boxes)),
     el("div.g-track", {}, labels, svg, axis),
-    el("p.g-legend", {}, el("span.g-legend-area"), "Glance 给的 P(present)", el("span.g-legend-gt"), "人工标注“在”", el("span.g-legend-unsure"), "看不清", el("span.g-legend-thr"), "阈值"),
+    el("p.g-legend", {},
+      el("span.g-legend-item", {}, el("i.g-legend-area"), EN ? "Glance P(present)" : "Glance 给的 P(present)"),
+      el("span.g-legend-item", {}, el("i.g-legend-gt"), EN ? "Human label “present”" : "人工标注“在”"),
+      el("span.g-legend-item", {}, el("i.g-legend-unsure"), EN ? "Unclear" : "看不清"),
+      el("span.g-legend-item", {}, el("i.g-legend-thr"), EN ? "Threshold" : "阈值")),
     el("div.g-hero-foot", {}, dial),
     agree,
-    el("div.g-credits", {}, credit(["Big Buck Bunny", "© 2008 Blender Foundation · www.bigbuckbunny.org", "https://peach.blender.org/", "CC BY 3.0", "https://creativecommons.org/licenses/by/3.0/", "前 8 分钟，每 4 秒一帧，缩放到 448 px 宽"]))));
+    el("div.g-credits", {}, credit(["Big Buck Bunny", "© 2008 Blender Foundation · www.bigbuckbunny.org", "https://peach.blender.org/", "CC BY 3.0", "https://creativecommons.org/licenses/by/3.0/", EN ? "First 8 min, 1 frame every 4 s, resized to 448 px wide" : "前 8 分钟，每 4 秒一帧，缩放到 448 px 宽"]))));
 
   function seek(i) {
     at = Math.max(0, Math.min(n - 1, i));
@@ -76,7 +81,7 @@ export default async function video(stage, { base }) {
     head.setAttribute("x1", x(at));
     head.setAttribute("x2", x(at));
     let shown = at;
-    while (!frames[shown] && shown > 0) shown--; // nearest loaded frame before it
+    while (!frames[shown] && shown > 0) shown--;
     if (frames[shown]) img.src = frames[shown].src;
     boxes.replaceChildren(...data.queries.map(q => {
       const p = q.p[at];
@@ -93,14 +98,13 @@ export default async function video(stage, { base }) {
       thr.setAttribute("y1", g.y(threshold));
       thr.setAttribute("y2", g.y(threshold));
     });
-    agree.replaceChildren(el("span", { text: "和人工逐帧标注一致：" }), ...data.queries.map(q => {
+    agree.replaceChildren(el("span", { text: EN ? "Agreement with human frame labels:" : "和人工逐帧标注一致：" }), ...data.queries.map(q => {
       let ok = 0, m = 0;
       q.gt.forEach((v, i) => { if (v != null) { m++; ok += (q.p[i] >= threshold) == (v == 1); } });
       return el("span.g-agree-item", { style: `--c:var(--${HUE[q.id]})` }, NAME[q.id] + " ", el("b", { text: `${ok}/${m}` }));
     }));
   }
 
-  // Scrub with the pointer anywhere on the curves, or the arrow keys.
   const pick = e => {
     const r = svg.getBoundingClientRect();
     seek(Math.floor((e.clientX - r.left) / r.width * n));
@@ -117,14 +121,14 @@ export default async function video(stage, { base }) {
   function stop() {
     playing = 0;
     play.classList.remove("on");
-    play.setAttribute("aria-label", "播放");
+    play.setAttribute("aria-label", EN ? "Play" : "播放");
   }
   function toggle() {
     if (playing) return stop();
     if (at >= n - 1) at = 0;
     playing = 1;
     play.classList.add("on");
-    play.setAttribute("aria-label", "暂停");
+    play.setAttribute("aria-label", EN ? "Pause" : "暂停");
     let last = 0;
     const tick = now => {
       if (!playing) return;
@@ -135,7 +139,6 @@ export default async function video(stage, { base }) {
   }
 
   draw();
-  // Every frame, a few at a time, once the figure is in view.
   whenSeen(stage, async () => {
     const order = [...data.t.keys()].sort((a, b) => Math.abs(a - at) - Math.abs(b - at));
     const next = async () => {

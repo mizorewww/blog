@@ -1,6 +1,13 @@
 // Shared helpers for the Glance post's widgets. Colours are CSS tokens, so the
 // figures follow the page's light and dark themes without redrawing.
 export const SVG = "http://www.w3.org/2000/svg";
+export const EN = document.documentElement.lang.startsWith("en");
+
+const CREDIT_EXTRA_EN = {
+  "COCO val2017 #275198，缩放，叠加了模型输出": "COCO val2017 #275198, resized, model outputs overlaid",
+  "COCO val2017 #54605，缩放，叠加了模型输出": "COCO val2017 #54605, resized, model outputs overlaid",
+  "Glance 仓库的示例界面": "Mock UI from the Glance repo",
+};
 
 // el("div.a.b", {attr: v, style: "…", on: {click: f}}, child, "text", …)
 export function el(tag, props = {}, ...children) {
@@ -46,7 +53,9 @@ export const pct = (v, d = 1) => (v < 0.1 && v > 0 ? v.toFixed(2) : v.toFixed(d)
 // One colour per question, in order; all are theme tokens.
 export const HUES = ["clay", "blue", "teal", "violet", "orange", "fig", "olive", "sky"];
 
-export const KIND = { box: "框", yesno: "是否", choice: "选择", score: "打分" };
+export const KIND = EN
+  ? { box: "box", yesno: "y/n", choice: "pick", score: "risk" }
+  : { box: "框", yesno: "是否", choice: "选择", score: "打分" };
 
 // A labelled range input that reports while dragging.
 export function slider({ label, min = 0.05, max = 0.95, step = 0.01, value = 0.5, format = v => v.toFixed(2), oninput }) {
@@ -97,8 +106,10 @@ export function whenSeen(node, f) {
 }
 
 export function credit([title, author, url, license, licenseUrl, extra]) {
+  const t = EN && CREDIT_EXTRA_EN[title] ? CREDIT_EXTRA_EN[title] : title;
+  const ex = EN && CREDIT_EXTRA_EN[extra] ? CREDIT_EXTRA_EN[extra] : extra;
   return el("p.g-credit", {},
-    el("a", { href: url, text: title, rel: "noopener" }), " · " + author + " · ",
+    el("a", { href: url, text: t, rel: "noopener" }), " · " + author + " · ",
     el("a", { href: licenseUrl, text: license, rel: "license noopener" }),
-    extra ? " · " + extra : "");
+    ex ? " · " + ex : "");
 }
