@@ -209,7 +209,8 @@ $$
     "type": "category",
     "inverse": true,
     "axisTick": {"show": false},
-    "data": ["无 AI 基准\n(纯人类)", "Minimal AGI\n(1.69, 0.78)", "Supercomp.\n(12, 0.78)", "Supercoop.\n(1.69, 1.60)", "第四幕：ASI\n(12, 1.05)"]
+    "axisLabel": {"lineHeight": 15},
+    "data": ["无 AI 基准\n(纯人类)", "最小 AGI\n(1.69, 0.78)", "超胜任力\n(12, 0.78)", "超协同\n(1.69, 1.60)", "超智能 ASI\n(12, 1.05)"]
   },
   "series": [
     {
@@ -251,10 +252,10 @@ $$
 
 在这场爬坡的前半段（$y_*^M$ 从 $0.85$ 升向 $0.99$），市场上发生了一件让所有人类管理者欣喜若狂的事：**人类协调者的薪水不仅没有因为 AI 协同能力的进步而下跌，反而迎来了第二春，一路逆势暴涨！** 猎头们开出天价年薪争抢任何懂复杂系统管理的资深人类总监，财经媒体纷纷撰文宣布：《AI 越强，人类管理者的护城河越深》。
 
-然而，就在 2028 年 3 月中旬、新模型协同指数跨过 $1.01$ 的那一个星期里，整个行业经历了如同“过冷水瞬间结冰”般的剧变：
+然而，就在 2028 年 3 月中旬、新模型协同指数突破 $1.0$（论文算例取 $y_*^M = 1.60$）的那一个星期里，主流深度市场经历了如同“过冷水瞬间结冰”般的剧变：
 
-1. **巨无霸吞噬市场**：此前遍布行业的数万家 7 到 20 人的中小型 AI 工作室，在短短几周内丧失了全部价格竞争力。算力与订单以光速向单一的超级 AI 集群汇聚——在这家拥有数十万个并发 Agent 的巨型虚拟企业里，没有任何一个人类员工，但它的平均生产成本随着规模扩大无限逼近于零。
-2. **从年薪百万到瞬间归零**：前一个月还在拿天价薪水的人类协调者，连同那些在传统企业里抱团取暖的人类技术专家，没有经历“每年裁员 10%”的温和缓冲，而是在同一批企业倒闭潮中**瞬间全部出局**，全行业人类工资溢价在一夜之间跌穿至最低生存底线 $\underline w$。
+1. **巨无霸吞噬主流市场**：此前遍布主流行业的数万家 7 到 20 人的中小型 AI 工作室，在短短几周内丧失了全部价格竞争力。算力与订单以光速向单一的超级 AI 集群汇聚——在这家拥有数十万个并发 Agent 的巨型虚拟企业里，没有任何一个人类员工，但它的平均生产成本随着规模扩大无限逼近于零。
+2. **协调者溢价一夜归零，人类退守小众池塘**：前一个月还在拿天价薪水的人类协调者，连同仍留在主流市场企业里的人类技术专家，没有经历“每年裁员 10%”的温和缓冲，而是在主流企业倒闭潮中**同时从深度市场出局**。人类协调者的工资溢价在一夜之间跌停至保留底线 $\underline w = 0.25$，就业人数腰斩至 $0.97 / 2$——仅剩不到一半能跟随 12 名专家退守到需求受限、巨型蜂群施展不开的边缘利基市场（在该快照中 AI 单兵能力仍为 $1.69$，专家靠拼图智能将工资勉强维持在 $0.41$，直到第四幕 ASI 降临时协调者彻底清零、专家工资进一步跌至 $0.27$）。
 
 ### 理论拆解：三大定理揭开“相变”与“假象陷阱”
 
@@ -290,7 +291,7 @@ $$
 $$
 
 - **技术效应**（固定公司现有的规模和人员比例不变）：随着 AI 自己的协同能力越来越强，人类协调者相对于 AI 的优势 $(y_*^H - y_*^M)$ 在不断缩小，所以**纯粹的技术效应对人类协调者工资的影响永远是负的**（如果公司不重组，你的工资应该一路下跌）。
-- **重组效应**（公司随着 AI 变强而动态调整规模 $m$ 和人员结构 $s$）：在微观经济学里，大家习惯用“包络定理（Envelope Theorem）”把一阶调整项消掉；但论文指出，**市场均衡最大化的是全社会的总剩余，而不是某一个工人的工资！** 因此包络定理对工资不成立，**企业的重组效应是一阶的，甚至可以徹底逆转技术效应的正负号！**
+- **重组效应**（公司随着 AI 变强而动态调整规模 $m$ 和人员结构 $s$）：在微观经济学里，大家习惯用“包络定理（Envelope Theorem）”把一阶调整项消掉；但论文指出，**市场均衡最大化的是全社会的总剩余，而不是某一个工人的工资！** 因此包络定理对工资不成立，**企业的重组效应是一阶的，甚至可以彻底逆转技术效应的正负号！**
 
 当 AI 协同力从 $0.90$ 升向 $0.99$ 时，在“规模放大器”的作用下，企业的最优规模 $m$ 从十几人迅速膨胀到上百人。因为大企业对协同能力的饥渴程度（$\propto \log(1+m)$）随规模急剧膨胀，**“公司变大带来的协调溢价暴涨（$\partial_m b_f \frac{\mathrm{d}m}{\mathrm{d}\theta} \gg 0$）”在短期内压倒了“AI 追赶带来的技术贬值（$\partial_\theta b_f < 0$）”**！
 
@@ -474,7 +475,7 @@ $$
 
 最后，作为一篇局部均衡（Partial Equilibrium）色彩浓厚的产业组织论文，模型中的需求曲线 $P_N(Q)$ 是外生给定的。
 
-这在第一幕和第二幕没有问题；但在第三幕和第四幕中，全体人类劳动者的工资都跌到了最低躺平底线 $\underline w$，而企业又是零利润的。如果不额外引入“全民基本收入（UBI）”或“全体公民平均持有 AI 算力资本股权”的宏观分配闭环，那条外生给定的高昂需求曲线 $P_N(Q)$ 在现实中根本不可能维持——**如果所有人类工人都失去了工资溢价，是谁在市场上掏钱买下巨型 AI 蜂群生产出来的海量商品？**
+这在第一幕和第二幕没有问题；但在第三幕和第四幕中，人类协调者的工资跌停在保留底线 $\underline w$，技术专家的工资也跌到了贴近 $\underline w$ 的微薄水平，而企业又是零利润的。如果不额外引入“全民基本收入（UBI）”或“全体公民平均持有 AI 算力资本股权”的宏观分配闭环，那条外生给定的高昂需求曲线 $P_N(Q)$ 在现实中根本不可能维持——**如果所有人类工人都失去了工资溢价，是谁在市场上掏钱买下巨型 AI 蜂群生产出来的海量商品？**
 
 ---
 
@@ -498,8 +499,8 @@ $$
 - [@yotzov2026firmdata] Yotzov, I., et al. (2026). Firm-Level Adoption and Economic Impacts of Generative AI. _Working Paper_.
 - [@humlum2025llm] Humlum, A., & Vestergaard, E. (2025). The Labor Market Effects of Generative AI: Evidence from Administrative and Survey Data. _Working Paper_.
 - [@imas2026organizing] Imas, A., Koh, A., & Legg, S. (2026). [Organizing Intelligence](https://arxiv.org/abs/2611.05417). _arXiv:2611.05417_.
-- [@leggHutter2007] Legg, S., & Hutter, M. (2007). [Universal Intelligence: A Definition of Machine Intelligence](https://doi.org/10.1007/s11023-007-9079-x). _Minds and Machines, 17_(4), 391–444.
 - [@samuelson1948] Samuelson, P. A. (1948). _Economics: An Introductory Analysis_. McGraw-Hill.
+- [@leggHutter2007] Legg, S., & Hutter, M. (2007). [Universal Intelligence: A Definition of Machine Intelligence](https://doi.org/10.1007/s11023-007-9079-x). _Minds and Machines, 17_(4), 391–444.
 - [@hui2024shortterm] Hui, X., Reshef, O., & Zhou, L. (2024). [The Short-Term Effects of Generative Artificial Intelligence on Employment: Evidence from an Online Labor Market](https://doi.org/10.1287/orsc.2023.18441). _Organization Science, 35_(6), 1977–1989.
 - [@demirci2025replacing] Demirci, O., Hannane, J., & Zhu, X. (2025). Who Is AI Replacing? The Impact of Generative AI on Online Freelancing Platforms. _Management Science_.
 - [@kremer1993] Kremer, M. (1993). [The O-Ring Theory of Economic Development](https://doi.org/10.2307/2118400). _Quarterly Journal of Economics, 108_(3), 551–575.

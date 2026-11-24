@@ -209,7 +209,8 @@ However, the shadow price of coordination $\beta_*^f$ has a crucial property: **
     "type": "category",
     "inverse": true,
     "axisTick": {"show": false},
-    "data": ["Pre-AI\n(Humans)", "Minimal AGI\n(1.69, 0.78)", "Supercomp.\n(12, 0.78)", "Supercoop.\n(1.69, 1.60)", "Act IV: ASI\n(12, 1.05)"]
+    "axisLabel": {"lineHeight": 15},
+    "data": ["Pre-AI\n(Humans)", "Minimal AGI\n(1.69, 0.78)", "Supercomp.\n(12, 0.78)", "Supercoop.\n(1.69, 1.60)", "ASI\n(12, 1.05)"]
   },
   "series": [
     {
@@ -251,10 +252,10 @@ Frontier labs finally realize that grinding solo benchmark scores from 99 to 99.
 
 During the first half of this climb ($y_*^M$ rising from $0.85$ toward $0.99$), something exhilarating happens in the labor market for human managers: **far from falling as AI coordination improves, human Coordinator salaries experience a second spring, surging against the tide!** Headhunters offer astronomical packages for seasoned directors who know how to orchestrate complex systems, and financial outlets run triumphant headlines: _"The Stronger AI Gets, the Deeper the Moat for Human Managers."_
 
-Then, during a single week in mid-March 2028 when the new model's coordination index crosses $1.01$, the entire industry undergoes a phase transition like supercooled water freezing on impact:
+Then, during a single week in mid-March 2028 when the new model's coordination index breaches $1.0$ (the paper's Supercooperative snapshot sets $y_*^M = 1.60$), the mainstream deep market undergoes a phase transition like supercooled water freezing on impact:
 
-1. **A Leviathan swallows the market**: Tens of thousands of small and mid-sized AI studios of 7 to 20 agents lose all price competitiveness within weeks. Compute and orders gravitate at light speed toward a single mega-cluster—a colossal virtual enterprise running hundreds of thousands of concurrent agents with zero human employees, whose average cost of production approaches zero as it scales.
-2. **From seven-figure salaries to zero overnight**: Human Coordinators who were collecting record paychecks a month earlier, along with technical specialists huddled in traditional firms, do not experience a gentle buffer of "10% layoffs per year." Instead, they are **wiped out simultaneously** in a single wave of firm exits, as human wage premiums across the industry crash overnight to the bare reservation floor $\underline w$.
+1. **A Leviathan swallows the mainstream market**: Across the deep market, tens of thousands of small and mid-sized AI studios of 7 to 20 agents lose all price competitiveness within weeks. Compute and orders gravitate at light speed toward a single mega-cluster—a colossal virtual enterprise running hundreds of thousands of concurrent agents with zero human employees, whose average cost of production approaches zero as it scales.
+2. **Coordinator premiums vanish overnight as humans retreat to niche ponds**: Human Coordinators who were collecting record paychecks a month earlier—along with any human specialists still operating in mainstream firms—do not experience a gentle buffer of "10% layoffs per year," but are **swept out of the deep market simultaneously** in a single wave of firm exits. Coordinator wages crash overnight to the reservation floor $\underline w = 0.25$ and their employment falls in half to $0.97 / 2$: fewer than half survive by retreating alongside the 12 specialists into the capacity-capped niche market where mega-swarms cannot form (because solo AI competence in this snapshot is still $1.69$, mosaic human teams nudge specialist wages slightly up to $0.41$, until Act IV's ASI drives Coordinator employment to $0.00 / 2$ and specialist wages down to $0.27$).
 
 ### Theoretical Breakdown: Three Theorems Unpack the Phase Transition and the Mirage Trap
 
@@ -474,7 +475,7 @@ In real commerce, however, vast categories of roles—certified public accountan
 
 Finally, as an industrial-organization paper rooted in partial equilibrium, the model treats the demand curve $P_N(Q)$ as exogenously fixed.
 
-That is harmless in Acts I and II. By Acts III and IV, however, every human worker's wage has collapsed to the bare subsistence floor $\underline w$, while firms earn zero profit. Without explicitly introducing a macroeconomic redistribution loop—such as Universal Basic Income (UBI) or broad citizen ownership of AI compute equity—that high, exogenous demand curve $P_N(Q)$ cannot possibly hold up in reality. **If every human worker loses their wage premium, who has the purchasing power to buy the ocean of goods produced by giant AI swarms?**
+That is harmless in Acts I and II. By Acts III and IV, however, Coordinator wages are pinned at the reservation floor $\underline w$ and specialist wages have collapsed close to $\underline w$, while firms earn zero profit. Without explicitly introducing a macroeconomic redistribution loop—such as Universal Basic Income (UBI) or broad citizen ownership of AI compute equity—that high, exogenous demand curve $P_N(Q)$ cannot possibly hold up in reality. **If every human worker loses their wage premium, who has the purchasing power to buy the ocean of goods produced by giant AI swarms?**
 
 ---
 
@@ -498,8 +499,8 @@ Until that day arrives, rather than locking horns with raw compute on the solo t
 - [@yotzov2026firmdata] Yotzov, I., et al. (2026). Firm-Level Adoption and Economic Impacts of Generative AI. _Working Paper_.
 - [@humlum2025llm] Humlum, A., & Vestergaard, E. (2025). The Labor Market Effects of Generative AI: Evidence from Administrative and Survey Data. _Working Paper_.
 - [@imas2026organizing] Imas, A., Koh, A., & Legg, S. (2026). [Organizing Intelligence](https://arxiv.org/abs/2611.05417). _arXiv:2611.05417_.
-- [@leggHutter2007] Legg, S., & Hutter, M. (2007). [Universal Intelligence: A Definition of Machine Intelligence](https://doi.org/10.1007/s11023-007-9079-x). _Minds and Machines, 17_(4), 391–444.
 - [@samuelson1948] Samuelson, P. A. (1948). _Economics: An Introductory Analysis_. McGraw-Hill.
+- [@leggHutter2007] Legg, S., & Hutter, M. (2007). [Universal Intelligence: A Definition of Machine Intelligence](https://doi.org/10.1007/s11023-007-9079-x). _Minds and Machines, 17_(4), 391–444.
 - [@hui2024shortterm] Hui, X., Reshef, O., & Zhou, L. (2024). [The Short-Term Effects of Generative Artificial Intelligence on Employment: Evidence from an Online Labor Market](https://doi.org/10.1287/orsc.2023.18441). _Organization Science, 35_(6), 1977–1989.
 - [@demirci2025replacing] Demirci, O., Hannane, J., & Zhu, X. (2025). Who Is AI Replacing? The Impact of Generative AI on Online Freelancing Platforms. _Management Science_.
 - [@kremer1993] Kremer, M. (1993). [The O-Ring Theory of Economic Development](https://doi.org/10.2307/2118400). _Quarterly Journal of Economics, 108_(3), 551–575.
