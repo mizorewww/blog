@@ -205,8 +205,11 @@ func TestBuild(t *testing.T) {
 	if _, err := os.Stat("public/posts/draft/index.html"); err == nil {
 		t.Fatal("drafts must not be published")
 	}
-	if en404, err := os.ReadFile("public/en/404.html"); err != nil || !strings.Contains(string(en404), `<html lang="en">`) || !strings.Contains(string(en404), "Page not found") {
-		t.Fatal("the English edition needs its own 404 page")
+	if en404, err := os.ReadFile("public/en/404.html"); err != nil || !strings.Contains(string(en404), `<html lang="en">`) || !strings.Contains(string(en404), "Page not found") || !strings.Contains(string(en404), `<a href="/notes/en/">← Home</a>`) || !strings.Contains(string(en404), `href="/notes/" hreflang="zh-CN"`) || strings.Contains(string(en404), `rel="alternate" hreflang=`) {
+		t.Fatal("the English edition needs its own 404 page, edition home link, and header switcher")
+	}
+	if zh404, err := os.ReadFile("public/404.html"); err != nil || !strings.Contains(string(zh404), `<a href="/notes/">← 回到首页</a>`) || !strings.Contains(string(zh404), `href="/notes/en/" hreflang="en"`) {
+		t.Fatal("the root 404 page needs its home link and header switcher")
 	}
 	en, _ := os.ReadFile("public/en/posts/alpha/index.html")
 	if !strings.Contains(string(en), `<html lang="en">`) || !strings.Contains(string(en), "1 min read") || !strings.Contains(string(en), `href="/notes/posts/alpha/" hreflang="zh-CN"`) {

@@ -336,7 +336,7 @@ func (b *builder) writeTerms(e *edition) error {
 
 // writeNotFound writes the edition's 404.html; Cloudflare Pages serves the nearest one.
 func (b *builder) writeNotFound(e *edition) error {
-	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + e.lang.UI.Title, Description: e.lang.UI.NotFoundDek, Kind: "404"}, "")
+	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + e.lang.UI.Title, Description: e.lang.UI.NotFoundDek, Kind: "404", Switch: b.switchTo(e, "/")}, "")
 }
 
 func (b *builder) write(name string, body []byte) error {
@@ -357,7 +357,7 @@ func (b *builder) page(path string, p Page, extra string) error {
 		p.Path = path
 		name += "index.html"
 	}
-	if p.Switch != nil {
+	if p.Switch != nil && p.Path != "" {
 		p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
 	}
 	tmpl := b.pages[p.Kind]
