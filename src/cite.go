@@ -99,6 +99,7 @@ func resolveCitations(doc ast.Node) error {
 		return ast.WalkContinue, nil
 	})
 	refs := map[string]*citation{}
+	seenLists := map[*ast.List]bool{}
 	for i, d := range defs {
 		if refs[d.Key] != nil {
 			return fmt.Errorf("reference [@%s] is defined twice", d.Key)
@@ -107,9 +108,10 @@ func resolveCitations(doc ast.Node) error {
 		item := definitionItem(d)
 		item.SetAttributeString("id", "ref-"+d.Key)
 		list := item.Parent().(*ast.List)
-		if list.FirstChild() != item {
+		if seenLists[list] {
 			continue
 		}
+		seenLists[list] = true
 		for li := list.FirstChild(); li != nil; li = li.NextSibling() {
 			var first ast.Node
 			if li.FirstChild() != nil {
