@@ -168,6 +168,7 @@ func (b *builder) prepare() error {
 		"profile": profileName,
 		"bare":    func(u string) string { return strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://") },
 		"script":  scripts.For,
+		"escape":  escapePath,
 		"mod":     func(a, b int) int { return a % b },
 	}).ParseFiles("templates/page.html")
 	if err != nil {
@@ -291,7 +292,7 @@ func (b *builder) writeHome(e *edition) error {
 	if err := b.page(home, Page{Lang: e.lang, Title: ui.Title, Description: ui.Description, Kind: "home", Posts: e.posts, Categories: e.categories, Tags: e.tags, Stats: e.stats, Dashboard: e.dashboard, Switch: b.switchTo(e, "/")}, ""); err != nil {
 		return err
 	}
-	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + home, newestOf(e.posts)})
+	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(home), newestOf(e.posts)})
 	b.feed(e.lang, e.lang.Base+"/feed.xml", ui.Title, ui.Description, e.posts)
 	return nil
 }
@@ -312,7 +313,7 @@ func (b *builder) writePosts(e *edition) error {
 		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + e.lang.UI.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, p.scripted); err != nil {
 			return err
 		}
-		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + p.Path, p.Modified()})
+		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(p.Path), p.Modified()})
 	}
 	return nil
 }
@@ -320,9 +321,11 @@ func (b *builder) writePosts(e *edition) error {
 // writeTerms writes the tag overview and a page and feed per category and tag.
 func (b *builder) writeTerms(e *edition) error {
 	ui := e.lang.UI
-	if err := b.page(e.lang.Base+"/tags/", Page{Lang: e.lang, Title: ui.TagsTitle + " — " + ui.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+	tagsPath := e.lang.Base + "/tags/"
+	if err := b.page(tagsPath, Page{Lang: e.lang, Title: ui.TagsTitle + " — " + ui.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
 		return err
 	}
+	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(tagsPath), newestOf(e.posts)})
 	for _, group := range []struct {
 		kind  string
 		terms []*Term
@@ -337,7 +340,7 @@ func (b *builder) writeTerms(e *edition) error {
 				return err
 			}
 			b.feed(e.lang, t.Path+"feed.xml", t.Name+" — "+ui.Title, count, t.Posts)
-			b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + t.Path, newestOf(t.Posts)})
+			b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(t.Path), newestOf(t.Posts)})
 		}
 	}
 	return nil

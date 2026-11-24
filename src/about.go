@@ -7,6 +7,6 @@ func (b *builder) writeAbout(e *edition) error {
 	if err := b.page(about, Page{Lang: e.lang, Title: ui.About + " — " + ui.Title, Description: ui.AboutDesc, Kind: "about", Switch: b.switchTo(e, "/about/")}, ""); err != nil {
 		return err
 	}
-	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + about, newestOf(e.posts)})
+	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(about), newestOf(e.posts)})
 	return nil
 }

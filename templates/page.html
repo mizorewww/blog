@@ -9,15 +9,15 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#151714" media="(prefers-color-scheme: dark)">
-{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{.Path}}">{{end}}
-{{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{$.Site.URL}}{{.Path}}">
+{{if eq .Kind "404"}}<meta name="robots" content="noindex">{{else}}<link rel="canonical" href="{{.Site.URL}}{{escape .Path}}">{{end}}
+{{range .Alternates}}<link rel="alternate" hreflang="{{.Lang}}" href="{{$.Site.URL}}{{escape .Path}}">
 {{end}}<link rel="author" href="{{.Site.About}}">
 <meta property="og:site_name" content="{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}">
 <meta property="og:locale" content="{{.Lang.OG}}">
 <meta property="og:title" content="{{if .Post}}{{.Post.Title}}{{else}}{{.Title}}{{end}}">
 <meta property="og:description" content="{{.Description}}">
 <meta property="og:type" content="{{if eq .Kind "post"}}article{{else}}website{{end}}">
-{{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{.Path}}">{{end}}
+{{if .Path}}<meta property="og:url" content="{{.Site.URL}}{{escape .Path}}">{{end}}
 <meta name="twitter:card" content="summary">
 {{with .Post}}<meta property="article:published_time" content="{{.Date}}">
 <meta property="article:modified_time" content="{{.Modified}}">

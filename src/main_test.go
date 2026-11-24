@@ -248,8 +248,19 @@ func TestBuild(t *testing.T) {
 	}
 	var sitemap Sitemap
 	b, _ = os.ReadFile("public/sitemap.xml")
-	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 12 {
+	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 14 {
 		t.Fatalf("invalid sitemap: %v (%d urls)", err, len(sitemap.URLs))
+	}
+	for _, want := range []string{"<loc>https://example.com/notes/tags/</loc>", "<loc>https://example.com/notes/en/tags/</loc>", "<loc>https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/</loc>"} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("sitemap lacks %s in\n%s", want, b)
+		}
+	}
+	techCat, _ := os.ReadFile("public/categories/技术/index.html")
+	for _, want := range []string{`<link rel="canonical" href="https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/">`, `<meta property="og:url" content="https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/">`} {
+		if !strings.Contains(string(techCat), want) {
+			t.Fatalf("CJK category page lacks %s", want)
+		}
 	}
 	for _, u := range sitemap.URLs {
 		if u.LastMod != "2026-10-02" && u.LastMod != "2026-09-28" {
