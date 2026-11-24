@@ -93,8 +93,9 @@ func localTarget(from, link, siteURL, prefix string) (target, fragment string, o
 		if !strings.HasSuffix(dir, "/") {
 			dir = path.Dir(dir) + "/"
 		}
+		slash := strings.HasSuffix(u.Path, "/") || u.Path == "." || u.Path == ".." || strings.HasSuffix(u.Path, "/.") || strings.HasSuffix(u.Path, "/..")
 		u.Path = prefix + path.Join(dir, u.Path)
-		if strings.HasSuffix(link, "/") {
+		if slash && !strings.HasSuffix(u.Path, "/") {
 			u.Path += "/"
 		}
 	}
