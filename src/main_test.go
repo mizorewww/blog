@@ -399,8 +399,8 @@ func TestDataTable(t *testing.T) {
 	for _, want := range []string{
 		`<figcaption>Sharpe &lt;x&gt;</figcaption>`,
 		`<th class="num">BTC</th><th>说明</th>`,
-		`<td class="num bar neg" style="--a:0.0%;--b:25.0%;--z:25.0%">−1.00</td><td>&lt;b&gt;</td>`,
-		`<tr class="mark"><td>Δ0.35</td><td class="num bar" style="--a:25.0%;--b:100.0%;--z:25.0%">3.00</td>`,
+		`<td class="num bar neg" style="--vw:5ch"><span class="bar-cell"><span class="bar-track zero" style="--z:25.0%" aria-hidden="true"><i class="bar-fill" style="left:0.0%;width:25.0%"></i></span><span class="bar-val">−1.00</span></span></td><td>&lt;b&gt;</td>`,
+		`<tr class="mark"><td class="row-key mono-key">Δ0.35</td><td class="num bar" style="--vw:5ch"><span class="bar-cell"><span class="bar-track zero" style="--z:25.0%" aria-hidden="true"><i class="bar-fill" style="left:25.0%;width:75.0%"></i></span><span class="bar-val">3.00</span></span></td>`,
 		`<p class="data-note">周频</p>`,
 	} {
 		if !strings.Contains(html, want) {
@@ -409,8 +409,24 @@ func TestDataTable(t *testing.T) {
 	}
 	shared, _, _ := render([]byte("```data bars=\"A,B\"\nx | A | B\na | 1 | 4\n```\n"), nil)
 	column, _, _ := render([]byte("```data bars=\"A,B\" scale=\"column\"\nx | A | B\na | 1 | 4\n```\n"), nil)
-	if !strings.Contains(string(shared), `--b:25.0%">1</td>`) || !strings.Contains(string(column), `--b:100.0%">1</td>`) {
+	if !strings.Contains(string(shared), `width:25.0%"></i></span><span class="bar-val">1</span>`) || !strings.Contains(string(column), `width:100.0%"></i></span><span class="bar-val">1</span>`) {
 		t.Fatalf("bars must share a scale unless scale=column: %s %s", shared, column)
+	}
+	sub, _, _ := render([]byte("```data\n组别 | 得分 | 结构\nA | 8.90 | 2 家 7 人混编公司\nB | -7.88（不显著） | -\n```\n"), nil)
+	for _, want := range []string{`<span class="num-main">−7.88</span><span class="num-sub">（不显著）</span>`, `<td class="prose-col">2 家 7 人混编公司</td>`} {
+		if !strings.Contains(string(sub), want) {
+			t.Fatalf("missing %q in %s", want, sub)
+		}
+	}
+	gfm, _, _ := render([]byte("| Delta | PnL |\n| --- | ---: |\n| 0.05 | +1.2 |\n"), nil)
+	if !strings.Contains(string(gfm), `<div class="table-scroll" tabindex="0"><table>`) || !strings.Contains(string(gfm), `<td class="mono-key">0.05</td>`) || !strings.Contains(string(gfm), `<td class="num" style="text-align:right">+1.2</td>`) {
+		t.Fatalf("GFM table should wrap in .table-scroll and classify numeric cells: %s", gfm)
+	}
+	st, _, _ := render([]byte("```stats\n## 人类供给（共 14 人）\n程序员 | 6 人 | 详情 -0.1\n文案 | 6 人\n协调者 | 2 人\n```\n"), nil)
+	for _, want := range []string{`<b>人类供给</b>（共 14 人）`, `style="--k:3"`, `6<span class="kpi-u"> 人</span>`, `详情 −0.1`} {
+		if !strings.Contains(string(st), want) {
+			t.Fatalf("missing %q in %s", want, st)
+		}
 	}
 	for _, bad := range []string{
 		"```data colour=\"red\"\na | b\n1 | 2\n```",

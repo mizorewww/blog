@@ -7,6 +7,7 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -16,9 +17,61 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// A ```stats fence is a card of headline numbers. "## " lines start a group
-// (first word bold), other lines are label | value | detail. Values with a
-// leading "+" take the accent color.
+var (
+	kpiTrailingUnit  = regexp.MustCompile(`^([+−-]?\d[\d.,/%a-zA-Z–-]*)(\s+\S.*)$`)
+	kpiDetailNegSign = regexp.MustCompile(`(^|[\s(（·])-(\d)`)
+)
+
+// splitStatsGroup separates a "## " group line into its bold title and optional
+// muted qualifier without slicing multi-word titles or parentheticals in half.
+func splitStatsGroup(s string) (string, string) {
+	if i := strings.IndexAny(s, "(（"); i > 0 {
+		return strings.TrimSpace(s[:i]), strings.TrimSpace(s[i:])
+	}
+	first, after, ok := strings.Cut(s, " ")
+	if !ok {
+		return s, ""
+	}
+	after = strings.TrimSpace(after)
+	hasCJK := strings.ContainsFunc(s, func(r rune) bool { return unicode.Is(unicode.Han, r) })
+	allCaps := first != "" && strings.ToUpper(first) == first && strings.ContainsFunc(first, unicode.IsLetter)
+	var nextRune rune
+	for _, r := range after {
+		nextRune = r
+		break
+	}
+	if hasCJK || allCaps || !unicode.IsUpper(nextRune) {
+		return first, after
+	}
+	return s, ""
+}
+
+// kpiCols picks a balanced column count so groups of 2, 3, 4, 6, or 8 items
+// never leave an awkward empty slot at the end of a row.
+func kpiCols(n int) int {
+	switch {
+	case n <= 1:
+		return 1
+	case n == 2:
+		return 2
+	case n == 3 || n == 5 || n == 6:
+		return 3
+	default:
+		return 4
+	}
+}
+
+func formatKPIValue(raw string) string {
+	val := strings.Replace(raw, "-", "−", 1)
+	if m := kpiTrailingUnit.FindStringSubmatch(val); m != nil {
+		return html.EscapeString(m[1]) + `<span class="kpi-u">` + html.EscapeString(m[2]) + `</span>`
+	}
+	return html.EscapeString(val)
+}
+
+// A ```stats fence is a set of headline numbers. "## " lines start a group,
+// other lines are label | value | detail. Values with a leading "+" take the
+// accent color.
 //
 //	```stats title="35Δ 周末卖方策略" meta="Deribit · 208 周"
 //	## BTC 单利币本位
@@ -28,51 +81,67 @@ func renderStats(info string, lines []string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	var b strings.Builder
-	b.WriteString(`<figure class="stats">`)
-	if attrs["title"] != "" || attrs["meta"] != "" {
-		fmt.Fprintf(&b, `<figcaption><span>%s</span><span class="key">%s</span></figcaption>`, html.EscapeString(attrs["title"]), html.EscapeString(attrs["meta"]))
+	type statsGroup struct {
+		name, rest string
+		hasHeader  bool
+		rows       [][]string
 	}
-	open := false
-	closeGroup := func() {
-		if open {
-			b.WriteString("</dl>")
-			open = false
-		}
-	}
-	items := 0
+	var groups []statsGroup
+	total := 0
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		switch {
 		case line == "":
 		case strings.HasPrefix(line, "## "):
-			closeGroup()
-			name, rest, _ := strings.Cut(strings.TrimSpace(line[3:]), " ")
-			fmt.Fprintf(&b, `<p class="stats-group"><b>%s</b>%s</p>`, html.EscapeString(name), html.EscapeString(rest))
+			name, rest := splitStatsGroup(strings.TrimSpace(line[3:]))
+			groups = append(groups, statsGroup{name: name, rest: rest, hasHeader: true})
 		default:
 			cells := dataCells(line)
 			if len(cells) < 2 || len(cells) > 3 {
 				return "", fmt.Errorf("%q: write label | value | detail", line)
 			}
-			if !open {
-				b.WriteString(`<dl class="kpi">`)
-				open = true
+			if len(groups) == 0 {
+				groups = append(groups, statsGroup{})
 			}
-			class := ""
-			if strings.HasPrefix(cells[1], "+") {
-				class = ` class="up"`
-			}
-			fmt.Fprintf(&b, `<div><dt>%s</dt><dd%s>%s</dd>`, html.EscapeString(cells[0]), class, html.EscapeString(strings.Replace(cells[1], "-", "−", 1)))
-			if len(cells) == 3 && cells[2] != "" {
-				fmt.Fprintf(&b, `<dd class="s">%s</dd>`, html.EscapeString(cells[2]))
-			}
-			b.WriteString("</div>")
-			items++
+			groups[len(groups)-1].rows = append(groups[len(groups)-1].rows, cells)
+			total++
 		}
 	}
-	closeGroup()
-	if items == 0 {
+	if total == 0 {
 		return "", fmt.Errorf("no label | value lines")
+	}
+
+	var b strings.Builder
+	b.WriteString(`<figure class="stats">`)
+	if attrs["title"] != "" || attrs["meta"] != "" {
+		fmt.Fprintf(&b, `<figcaption><span>%s</span><span class="key">%s</span></figcaption>`, html.EscapeString(attrs["title"]), html.EscapeString(attrs["meta"]))
+	}
+	for _, g := range groups {
+		if g.hasHeader {
+			fmt.Fprintf(&b, `<p class="stats-group"><b>%s</b>%s</p>`, html.EscapeString(g.name), html.EscapeString(g.rest))
+		}
+		if len(g.rows) == 0 {
+			continue
+		}
+		cols := kpiCols(len(g.rows))
+		fmt.Fprintf(&b, `<dl class="kpi" style="--k:%d">`, cols)
+		for i, cells := range g.rows {
+			divClass := ""
+			if i >= cols {
+				divClass = ` class="r2"`
+			}
+			ddClass := ""
+			if strings.HasPrefix(cells[1], "+") {
+				ddClass = ` class="up"`
+			}
+			fmt.Fprintf(&b, `<div%s><dt>%s</dt><dd%s>%s</dd>`, divClass, html.EscapeString(cells[0]), ddClass, formatKPIValue(cells[1]))
+			if len(cells) == 3 && cells[2] != "" {
+				detail := kpiDetailNegSign.ReplaceAllString(cells[2], "${1}−${2}")
+				fmt.Fprintf(&b, `<dd class="s">%s</dd>`, html.EscapeString(detail))
+			}
+			b.WriteString("</div>")
+		}
+		b.WriteString("</dl>")
 	}
 	if attrs["note"] != "" {
 		fmt.Fprintf(&b, `<p class="data-note">%s</p>`, html.EscapeString(attrs["note"]))

@@ -198,8 +198,11 @@ serif:
 	for i := n - 1; i >= 0; i-- {
 		e := stack[i]
 		switch {
+		case e.is("num-sub") || e.is("kpi-u"):
+			return sans400
 		case e.tag == "strong" && within("prose"),
-			e.tag == "th" && within("prose") && !within("data"),
+			e.tag == "th" && within("prose"),
+			e.is("row-key") && within("data"),
 			e.tag == "tr" && e.is("mark") && within("data"),
 			e.is("dl"),
 			e.tag == "b" && (parent(i).is("stats-group") || within("ticker")),
