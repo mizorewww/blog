@@ -165,7 +165,7 @@ func f1(v float64) string {
 	return strings.TrimSuffix(strconv.FormatFloat(math.Round(v*10)/10, 'f', 1, 64), ".0")
 }
 
-func renderChart(info string, lines []string) (string, error) {
+func renderChart(info string, lines []string, listSep string) (string, error) {
 	kind, rest := "", info
 	if m := chartType.FindStringSubmatch(strings.TrimSpace(info)); m != nil {
 		kind, rest = m[1], "chart "+strings.TrimSpace(m[2])
@@ -672,7 +672,10 @@ func renderChart(info string, lines []string) (string, error) {
 	}
 	label := title
 	if label == "" {
-		label = strings.Join(header[first:], "、")
+		if listSep == "" {
+			listSep = "、"
+		}
+		label = strings.Join(header[first:], listSep)
 	}
 	// Hovering a line, area or bar chart reads its values (see templates/page.html).
 	tip := ""

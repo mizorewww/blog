@@ -329,8 +329,11 @@ func TestCodeHighlighting(t *testing.T) {
 	if !strings.Contains(html, `<pre tabindex="0" class="chroma">`) || !strings.Contains(html, `<span class="kd">func</span>`) {
 		t.Fatalf("known languages must be highlighted with classes and stay focusable: %s", html)
 	}
-	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) {
-		t.Fatalf("unknown languages must stay plain and escaped, with the language named: %s", html)
+	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) || !strings.Contains(html, `>复制</button>`) {
+		t.Fatalf("unknown languages must stay plain and escaped, with the language and edition copy label: %s", html)
+	}
+	if enCode, _, err := renderContent(languages[1].markdown(), []byte("```go\nx := 1\n```\n"), contentHooks{}); err != nil || !strings.Contains(string(enCode), `>copy</button>`) {
+		t.Fatalf("English code blocks must use English copy label: %s %v", enCode, err)
 	}
 	body, _, err = render([]byte("```go src=\"https://github.com/o/r/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/a/b.go#L76-L77\" title=\"T\"\nx := 1\ny := 2\n```\n"), nil)
 	if err != nil {
@@ -374,8 +377,11 @@ func TestBlocks(t *testing.T) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
 	}
-	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
-		t.Fatalf("ticker button must follow the edition: %s %v", en, err)
+	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n\n```chart bar mirror=\"true\"\nx | A | B\n0 | 3 | 1\n```\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") || !strings.Contains(string(en), `aria-label="A, B"`) {
+		t.Fatalf("ticker button and untitled chart aria-label must follow the edition: %s %v", en, err)
+	}
+	if !strings.Contains(html, `aria-label="A、B"`) {
+		t.Fatalf("Chinese untitled chart aria-label must join with 、: %s", html)
 	}
 	pct, _, err := render([]byte("```chart bar yfmt=\"%.0f%%\"\n项 | 占比\nA | 24.0%\nB | 10.0%\n```\n"), nil)
 	if err != nil || !strings.Contains(string(pct), "24.0% · A") || strings.Contains(string(pct), "24.0%%") {

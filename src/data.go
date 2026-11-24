@@ -21,7 +21,7 @@ import (
 
 // A ```data fence is a captioned table whose chosen columns carry thin
 // inline bars. ```chart and ```stats fences share the same table syntax.
-type dataExtension struct{}
+type dataExtension struct{ listSep string }
 
 var (
 	kindData          = ast.NewNodeKind("Data")
@@ -43,21 +43,21 @@ type dataBlock struct {
 
 var dataRenderers = map[string]func(info string, lines []string) (string, error){
 	"data":  renderData,
-	"chart": renderChart,
+	"chart": func(info string, lines []string) (string, error) { return renderChart(info, lines, "、") },
 	"stats": renderStats,
 	"trace": renderTrace,
 }
 
 type dataTransformer struct{}
-type dataRenderer struct{}
+type dataRenderer struct{ listSep string }
 
 func (n *dataBlock) Kind() ast.NodeKind            { return kindData }
 func (n *dataBlock) Dump(source []byte, level int) { ast.DumpHelper(n, source, level, nil, nil) }
 func (n *dataBlock) IsRaw() bool                   { return true }
 
-func (dataExtension) Extend(m goldmark.Markdown) {
+func (e dataExtension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(dataTransformer{}, 100)))
-	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(dataRenderer{}, 100)))
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(dataRenderer{e.listSep}, 100)))
 }
 
 func (dataTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
@@ -99,7 +99,7 @@ func gfmFirstColMono(tbl *ast.Node, source []byte) bool {
 	return rows > 0
 }
 
-func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+func (dr dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(kindData, func(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -110,7 +110,15 @@ func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			lines = append(lines, string(line.Value(source)))
 		}
 		block := n.(*dataBlock)
-		table, err := dataRenderers[block.Lang](block.Info, lines)
+		var (
+			table string
+			err   error
+		)
+		if block.Lang == "chart" {
+			table, err = renderChart(block.Info, lines, dr.listSep)
+		} else {
+			table, err = dataRenderers[block.Lang](block.Info, lines)
+		}
 		if err != nil {
 			return ast.WalkStop, fmt.Errorf("%s block %q: %w", block.Lang, block.Info, err)
 		}

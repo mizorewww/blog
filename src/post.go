@@ -67,12 +67,11 @@ func init() {
 	gmhtml.ImageAttributeFilter = gmhtml.ImageAttributeFilter.Extend([]byte("fetchpriority"))
 }
 
-// newMarkdown is the renderer of one edition; only the ticker button text and
-// the citation back-link label differ.
+// newMarkdown is the renderer of one edition, localized with ui.
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, mediaExtension{}, widgetExtension{hint: ui.WidgetStill}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{listSep: ui.ListSep}, figureExtension{}, mediaExtension{}, widgetExtension{hint: ui.WidgetStill}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{copy: ui.Copy}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
