@@ -3,7 +3,7 @@
 <header class="article-header"><p class="article-meta"><a class="back" href="{{local .Lang.Base}}/">{{.UI.AllPosts}}</a><span class="sep" aria-hidden="true">/</span><time datetime="{{.Post.Date}}">{{.Post.Date}}</time>{{with .Post.Category}}<a class="tag" href="{{local .Path}}">{{.Name}}</a>{{end}}<span>{{printf .UI.Read .Post.Minutes}}</span>{{if .Post.Updated}}<span>{{printf .UI.Updated .Post.Updated}}</span>{{end}}</p><h1>{{.Post.Title}}</h1><p class="dek">{{.Post.Description}}</p>{{with .Post.Terms}}<p class="tags">{{range .}}<a href="{{local .Path}}">#{{.Name}}</a>{{end}}</p>{{end}}<i class="rule" aria-hidden="true"></i></header>
 {{if .Post.TOC}}<details class="toc-mobile"><summary>{{.UI.TOC}}</summary>{{template "toc" .}}</details>{{end}}
 <div class="article-body">
-{{if .Post.TOC}}<aside class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</aside>{{end}}
+{{if .Post.TOC}}<div class="toc"><p>{{.UI.TOC}}</p>{{template "toc" .}}</div>{{end}}
 <div class="prose">{{anchors .Post.Content}}</div>
 <footer class="colophon"><dl>
 {{with .Post.History}}<div><dt>{{$.UI.History}}</dt><dd><details><summary>{{printf $.UI.Commits (len .) (index . 0).Date}}</summary><ol>{{range .}}<li><a href="{{$.Site.Repo}}/commit/{{.Hash}}"><code>{{.Short}}</code><time datetime="{{.Date}}">{{.Date}}</time><span>{{.Subject}}</span></a></li>{{end}}</ol></details></dd></div>{{end}}
