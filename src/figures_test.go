@@ -150,6 +150,9 @@ func TestFigureScript(t *testing.T) {
 	if without := string(scripts.For(Page{Post: &Post{Content: `<figure class="diagram">`}})); strings.Contains(without, "chartTheme") {
 		t.Fatal("diagrams need no script")
 	}
+	if chart, _, err := render([]byte("```chart line title=\"T\"\nx | y\n1 | 2\n2 | 3\n```\n"), nil); err != nil || !strings.Contains(string(chart), `class="yl" aria-hidden="true"`) || !strings.Contains(string(chart), `class="xl" aria-hidden="true"`) {
+		t.Fatalf("chart ticks must be aria-hidden: %v %s", err, chart)
+	}
 	if _, err := os.Stat(filepath.Join("static", echartsFile)); err != nil {
 		t.Fatal(err)
 	}

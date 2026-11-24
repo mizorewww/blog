@@ -148,7 +148,11 @@ func (c *chartCanvas) path(d, attrs string) {
 
 // label places text at an SVG point; class picks the anchor (yl, xl, dl).
 func (c *chartCanvas) label(class string, x, y float64, text, style string) {
-	fmt.Fprintf(&c.labels, `<span class="%s" style="left:%s;top:%s%s">%s</span>`, class, chartPct(x, chartW), chartPct(y, c.h), style, html.EscapeString(text))
+	hidden := ""
+	if class == "yl" || class == "xl" || strings.HasPrefix(class, "xl ") {
+		hidden = ` aria-hidden="true"`
+	}
+	fmt.Fprintf(&c.labels, `<span class="%s"%s style="left:%s;top:%s%s">%s</span>`, class, hidden, chartPct(x, chartW), chartPct(y, c.h), style, html.EscapeString(text))
 }
 
 type chartPanel struct {
