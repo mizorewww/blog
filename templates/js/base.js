@@ -20,15 +20,17 @@ document.addEventListener("click", async e => {
     root.dataset.theme = dark() ? "light" : "dark";
     try { localStorage.setItem("theme", root.dataset.theme) } catch {}
   } else if (button?.matches(".copy")) {
+    const idle = button.dataset.idle ??= button.textContent;
     const pre = button.closest(".code").querySelector("pre").cloneNode(true);
     pre.querySelectorAll(".ln").forEach(n => n.remove());
     try {
       await navigator.clipboard.writeText(pre.textContent);
-      button.textContent = "copied";
+      button.textContent = "{{copied}}";
     } catch {
-      button.textContent = "failed";
+      button.textContent = "{{failed}}";
     }
-    setTimeout(() => button.textContent = "copy", 1600);
+    clearTimeout(button._t);
+    button._t = setTimeout(() => button.textContent = idle, 1600);
   }
 });
 // Page transitions (style.css): the rules on screen are named top to bottom,

@@ -74,6 +74,14 @@ func build(opts Options) error {
 	}
 	b.linkTranslations()
 	for _, e := range b.editions {
+		if e.published() {
+			if err = b.indexTerms(e); err != nil {
+				return err
+			}
+		}
+	}
+	b.linkTerms()
+	for _, e := range b.editions {
 		if !e.published() {
 			continue
 		}
@@ -160,6 +168,7 @@ func (b *builder) prepare() error {
 		"profile": profileName,
 		"bare":    func(u string) string { return strings.TrimPrefix(strings.TrimPrefix(u, "https://"), "http://") },
 		"script":  scripts.For,
+		"escape":  escapePath,
 		"mod":     func(a, b int) int { return a % b },
 	}).ParseFiles("templates/page.html")
 	if err != nil {
@@ -265,9 +274,6 @@ func (b *builder) switchTo(from *edition, path string) *Link {
 
 // writeEdition writes every page and feed of one language.
 func (b *builder) writeEdition(e *edition) error {
-	if err := b.indexTerms(e); err != nil {
-		return err
-	}
 	steps := []func(*edition) error{b.writeHome, b.writeAbout, b.writePosts, b.writeNotFound}
 	if len(e.posts) > 0 {
 		steps = append(steps, b.writeTerms, b.writeSearch)
@@ -286,7 +292,7 @@ func (b *builder) writeHome(e *edition) error {
 	if err := b.page(home, Page{Lang: e.lang, Title: ui.Title, Description: ui.Description, Kind: "home", Posts: e.posts, Categories: e.categories, Tags: e.tags, Stats: e.stats, Dashboard: e.dashboard, Switch: b.switchTo(e, "/")}, ""); err != nil {
 		return err
 	}
-	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + home, newestOf(e.posts)})
+	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(home), newestOf(e.posts)})
 	b.feed(e.lang, e.lang.Base+"/feed.xml", ui.Title, ui.Description, e.posts)
 	return nil
 }
@@ -307,7 +313,7 @@ func (b *builder) writePosts(e *edition) error {
 		if err := b.page(p.Path, Page{Lang: e.lang, Title: p.Title + " — " + e.lang.UI.Title, Description: p.Description, Kind: "post", Post: p, Previous: previous, Next: next, Switch: sw}, p.scripted); err != nil {
 			return err
 		}
-		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + p.Path, p.Modified()})
+		b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(p.Path), p.Modified()})
 	}
 	return nil
 }
@@ -315,20 +321,26 @@ func (b *builder) writePosts(e *edition) error {
 // writeTerms writes the tag overview and a page and feed per category and tag.
 func (b *builder) writeTerms(e *edition) error {
 	ui := e.lang.UI
-	if err := b.page(e.lang.Base+"/tags/", Page{Lang: e.lang, Title: ui.TagsTitle + " — " + ui.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+	tagsPath := e.lang.Base + "/tags/"
+	if err := b.page(tagsPath, Page{Lang: e.lang, Title: ui.TagsTitle + " — " + ui.Title, Description: e.stats, Kind: "tags", Categories: e.categories, Tags: e.tags, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
 		return err
 	}
+	b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(tagsPath), newestOf(e.posts)})
 	for _, group := range []struct {
 		kind  string
 		terms []*Term
 	}{{ui.Category, e.categories}, {ui.Tag, e.tags}} {
 		for _, t := range group.terms {
 			count := fmt.Sprintf(ui.Count, len(t.Posts))
-			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + ui.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: b.switchTo(e, "/tags/")}, ""); err != nil {
+			sw := b.switchTo(e, "/tags/")
+			if t.Translation != nil {
+				sw = &Link{t.Translation.Lang.HTML, t.Translation.Path, e.lang.UI.Switch}
+			}
+			if err := b.page(t.Path, Page{Lang: e.lang, Title: t.Name + " — " + ui.Title, Description: group.kind + " · " + t.Name + " · " + count, Kind: "term", TermKind: group.kind, Term: t, Posts: t.Posts, Switch: sw}, ""); err != nil {
 				return err
 			}
 			b.feed(e.lang, t.Path+"feed.xml", t.Name+" — "+ui.Title, count, t.Posts)
-			b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + t.Path, newestOf(t.Posts)})
+			b.sitemap.URLs = append(b.sitemap.URLs, Location{b.site.URL + escapePath(t.Path), newestOf(t.Posts)})
 		}
 	}
 	return nil
@@ -336,7 +348,7 @@ func (b *builder) writeTerms(e *edition) error {
 
 // writeNotFound writes the edition's 404.html; Cloudflare Pages serves the nearest one.
 func (b *builder) writeNotFound(e *edition) error {
-	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + e.lang.UI.Title, Description: e.lang.UI.NotFoundDek, Kind: "404"}, "")
+	return b.page(e.lang.Base+"/404.html", Page{Lang: e.lang, Title: e.lang.UI.NotFoundTitle + " — " + e.lang.UI.Title, Description: e.lang.UI.NotFoundDek, Kind: "404", Switch: b.switchTo(e, "/")}, "")
 }
 
 func (b *builder) write(name string, body []byte) error {
@@ -357,7 +369,7 @@ func (b *builder) page(path string, p Page, extra string) error {
 		p.Path = path
 		name += "index.html"
 	}
-	if p.Switch != nil {
+	if p.Switch != nil && p.Path != "" && (p.Term == nil || p.Term.Translation != nil) {
 		p.Alternates = []Link{{p.Lang.HTML, p.Path, ""}, {p.Lang.UI.SwitchLang, p.Switch.Path, ""}}
 	}
 	tmpl := b.pages[p.Kind]
@@ -387,10 +399,24 @@ func (b *builder) writeHeaders() error {
 	for _, entry := range entries {
 		name := entry.Name()
 		switch {
-		case name == "static" || name == "images" || name == "widgets" || name == "404.html" || strings.HasPrefix(name, "_"):
+		case name == "static":
+			staticEntries, err := os.ReadDir(filepath.Join(b.stage, "static"))
+			if err != nil {
+				return err
+			}
+			for _, sub := range staticEntries {
+				switch {
+				case sub.Name() == b.version:
+				case sub.IsDir():
+					routes = append(routes, "/static/"+sub.Name()+"/*")
+				default:
+					routes = append(routes, "/static/"+sub.Name())
+				}
+			}
+		case name == "images" || name == "widgets" || name == "404.html" || strings.HasPrefix(name, "_"):
 		case entry.IsDir():
 			routes = append(routes, "/"+name+"/*")
-		case slices.Contains([]string{".html", ".xml", ".json", ".txt"}, filepath.Ext(name)):
+		case slices.Contains([]string{".html", ".xml", ".json", ".txt", ".ico", ".png"}, filepath.Ext(name)):
 			routes = append(routes, "/"+name)
 		}
 	}

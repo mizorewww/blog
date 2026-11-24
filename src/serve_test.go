@@ -14,7 +14,15 @@ import (
 func TestServeCacheAndCompression(t *testing.T) {
 	root := t.TempDir()
 	asset := "/static/0123456789abcdef/style.css"
-	for name, body := range map[string]string{"index.html": "<h1>Hello</h1>", "404.html": "missing", "en/404.html": "gone", strings.TrimPrefix(asset, "/"): strings.Repeat("body{color:red}", 100)} {
+	widget := "/widgets/glance-0123456789ab/hero.js"
+	for name, body := range map[string]string{
+		"index.html":                    "<h1>Hello</h1>",
+		"404.html":                      "missing",
+		"en/404.html":                   "gone",
+		"search.json":                   `{"a":"` + strings.Repeat("x", 100) + `"}`,
+		strings.TrimPrefix(asset, "/"):  strings.Repeat("body{color:red}", 100),
+		strings.TrimPrefix(widget, "/"): "export default () => {}",
+	} {
 		target := filepath.Join(root, name)
 		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil {
 			t.Fatal(err)
@@ -52,6 +60,21 @@ func TestServeCacheAndCompression(t *testing.T) {
 	}
 	if !strings.Contains(plain.Header().Get("Cache-Control"), "immutable") {
 		t.Fatal("versioned assets must be immutable")
+	}
+	if !strings.Contains(request("GET", widget, nil).Header().Get("Cache-Control"), "immutable") {
+		t.Fatal("hashed widget assets must be immutable")
+	}
+	if request("GET", "/search.json", map[string]string{"Accept-Encoding": "gzip"}).Header().Get("Content-Encoding") != "gzip" {
+		t.Fatal("JSON must be gzipped")
+	}
+	sub := serveSitePrefix(root, "/blog")
+	subReq := func(path string) *httptest.ResponseRecorder {
+		rec := httptest.NewRecorder()
+		sub.ServeHTTP(rec, httptest.NewRequest("GET", path, nil))
+		return rec
+	}
+	if subReq("/blog").Code != 301 || subReq("/blog/").Code != 200 || !strings.Contains(subReq("/blog"+widget).Header().Get("Cache-Control"), "immutable") || subReq("/other").Code != 404 {
+		t.Fatal("subpath serving failed")
 	}
 	for _, encoding := range []string{"", "gzip"} {
 		original := request("GET", "/", map[string]string{"Accept-Encoding": encoding})

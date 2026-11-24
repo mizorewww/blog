@@ -27,9 +27,10 @@ func TestCitations(t *testing.T) {
 		}
 	}
 	for name, src := range map[string]string{
-		"undefined": "见[@nope]。\n",
-		"duplicate": "- [@a] A.\n- [@a] A again.\n",
-		"mixed":     "- [@a] A.\n- just an item\n",
+		"undefined":     "见[@nope]。\n",
+		"duplicate":     "- [@a] A.\n- [@a] A again.\n",
+		"mixed":         "- [@a] A.\n- just an item\n",
+		"mixed-leading": "- just an item\n- [@a] A.\n",
 	} {
 		if _, _, err := renderContent(languages[0].markdown(), []byte(src), contentHooks{}); err == nil {
 			t.Errorf("%s: must fail", name)

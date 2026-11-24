@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"unicode"
 
@@ -159,7 +160,7 @@ var kindTicker = ast.NewNodeKind("Ticker")
 
 type tickerBlock struct {
 	ast.BaseBlock
-	Symbol, Label, Interval, Height string
+	Raw string
 }
 
 func (n *tickerBlock) Kind() ast.NodeKind            { return kindTicker }
@@ -190,36 +191,43 @@ func (tickerTransformer) Transform(doc *ast.Document, reader text.Reader, _ pars
 	var found []*ast.Paragraph
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if p, ok := n.(*ast.Paragraph); entering && ok && p.Lines().Len() == 1 {
-			if text := strings.TrimSpace(paragraphText(p, reader.Source())); strings.HasPrefix(text, "::tv ") || shortTicker.MatchString(text) {
+			if text := strings.TrimSpace(paragraphText(p, reader.Source())); text == "::tv" || strings.HasPrefix(text, "::tv ") || shortTicker.MatchString(text) {
 				found = append(found, p)
 			}
 		}
 		return ast.WalkContinue, nil
 	})
 	for _, p := range found {
-		text := strings.TrimSpace(paragraphText(p, reader.Source()))
-		t := &tickerBlock{}
-		if m := shortTicker.FindStringSubmatch(text); m != nil {
-			t.Symbol = tickerSymbol(m[1])
-		} else {
-			var words []string
-			for _, word := range strings.Fields(text[5:]) {
-				switch key, value, _ := strings.Cut(word, "="); {
-				case key == "interval" && value != "":
-					t.Interval = value
-				case key == "height" && value != "":
-					t.Height = value
-				case !strings.Contains(word, "="):
-					words = append(words, word)
-				}
-			}
-			if len(words) == 0 {
-				continue
-			}
-			t.Symbol, t.Label = tickerSymbol(words[0]), strings.Join(words[1:], " ")
-		}
-		p.Parent().ReplaceChild(p.Parent(), p, t)
+		p.Parent().ReplaceChild(p.Parent(), p, &tickerBlock{Raw: strings.TrimSpace(paragraphText(p, reader.Source()))})
 	}
+}
+
+func parseTicker(text string) (symbol, label, interval, height string, err error) {
+	if m := shortTicker.FindStringSubmatch(text); m != nil {
+		return tickerSymbol(m[1]), "", "", "", nil
+	}
+	var words []string
+	for _, word := range strings.Fields(strings.TrimPrefix(text, "::tv")) {
+		key, value, hasEq := strings.Cut(word, "=")
+		switch {
+		case !hasEq:
+			words = append(words, word)
+		case key == "interval" && value != "":
+			interval = value
+		case key == "height":
+			h, err := strconv.Atoi(value)
+			if err != nil || h <= 0 {
+				return "", "", "", "", fmt.Errorf("height %q must be a positive integer", value)
+			}
+			height = value
+		default:
+			return "", "", "", "", fmt.Errorf("invalid option %q (use interval=…, height=…)", word)
+		}
+	}
+	if len(words) == 0 {
+		return "", "", "", "", fmt.Errorf("missing symbol")
+	}
+	return tickerSymbol(words[0]), strings.Join(words[1:], " "), interval, height, nil
 }
 
 func paragraphText(p *ast.Paragraph, source []byte) string {
@@ -233,13 +241,17 @@ func (tr tickerRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			return ast.WalkContinue, nil
 		}
 		t := n.(*tickerBlock)
-		path := strings.ReplaceAll(t.Symbol, ":", "-")
-		label := ""
-		if t.Label != "" {
-			label = `<span class="ticker-label">` + html.EscapeString(t.Label) + `</span>`
+		symbol, labelText, interval, height, err := parseTicker(t.Raw)
+		if err != nil {
+			return ast.WalkStop, fmt.Errorf("ticker %q: %w", t.Raw, err)
 		}
-		_, err := fmt.Fprintf(w, `<div class="ticker" data-symbol="%s" data-interval="%s" data-height="%s"><span><b>%s</b>%s</span><span class="ticker-go"><button type="button">%s</button><a href="https://www.tradingview.com/symbols/%s/">TradingView ↗</a></span></div>`+"\n",
-			html.EscapeString(t.Symbol), html.EscapeString(t.Interval), html.EscapeString(t.Height), html.EscapeString(t.Symbol), label, html.EscapeString(tr.button), url.PathEscape(path))
+		path := strings.ReplaceAll(symbol, ":", "-")
+		label := ""
+		if labelText != "" {
+			label = `<span class="ticker-label">` + html.EscapeString(labelText) + `</span>`
+		}
+		_, err = fmt.Fprintf(w, `<div class="ticker" data-symbol="%s" data-interval="%s" data-height="%s"><span><b>%s</b>%s</span><span class="ticker-go"><button type="button">%s</button><a href="https://www.tradingview.com/symbols/%s/">TradingView ↗</a></span></div>`+"\n",
+			html.EscapeString(symbol), html.EscapeString(interval), html.EscapeString(height), html.EscapeString(symbol), label, html.EscapeString(tr.button), url.PathEscape(path))
 		return ast.WalkSkipChildren, err
 	})
 }

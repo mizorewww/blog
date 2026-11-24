@@ -28,7 +28,7 @@ import (
 // stays readable when the chart shrinks.
 var (
 	chartAttributes = []string{"title", "note", "panels", "mirror", "diag", "ref", "mark", "xfmt", "xscale", "yfmt"}
-	chartType       = regexp.MustCompile(`^chart\s+(\w+)`)
+	chartType       = regexp.MustCompile(`^chart(?:\s+(\S+))?(.*)$`)
 	chartPalette    = []string{"var(--green)", "var(--c2)", "var(--c3)"}
 )
 
@@ -148,7 +148,11 @@ func (c *chartCanvas) path(d, attrs string) {
 
 // label places text at an SVG point; class picks the anchor (yl, xl, dl).
 func (c *chartCanvas) label(class string, x, y float64, text, style string) {
-	fmt.Fprintf(&c.labels, `<span class="%s" style="left:%s;top:%s%s">%s</span>`, class, chartPct(x, chartW), chartPct(y, c.h), style, html.EscapeString(text))
+	hidden := ""
+	if class == "yl" || class == "xl" || strings.HasPrefix(class, "xl ") {
+		hidden = ` aria-hidden="true"`
+	}
+	fmt.Fprintf(&c.labels, `<span class="%s"%s style="left:%s;top:%s%s">%s</span>`, class, hidden, chartPct(x, chartW), chartPct(y, c.h), style, html.EscapeString(text))
 }
 
 type chartPanel struct {
@@ -165,17 +169,22 @@ func f1(v float64) string {
 	return strings.TrimSuffix(strconv.FormatFloat(math.Round(v*10)/10, 'f', 1, 64), ".0")
 }
 
-func renderChart(info string, lines []string) (string, error) {
-	kind := ""
-	if m := chartType.FindStringSubmatch(info); m != nil {
-		kind = m[1]
+func renderChart(info string, lines []string, listSep string) (string, error) {
+	kind, rest := "", info
+	if m := chartType.FindStringSubmatch(strings.TrimSpace(info)); m != nil {
+		kind, rest = m[1], "chart "+strings.TrimSpace(m[2])
 	}
 	if !slices.Contains([]string{"line", "area", "bar", "scatter"}, kind) {
 		return "", fmt.Errorf("start with a chart type: line, area, bar or scatter")
 	}
-	attrs, err := blockAttributes(info, chartAttributes)
+	attrs, err := blockAttributes(rest, chartAttributes)
 	if err != nil {
 		return "", err
+	}
+	for _, key := range []string{"xfmt", "yfmt"} {
+		if f := attrs[key]; f != "" && strings.Contains(fmt.Sprintf(f, 0.0), "%!") {
+			return "", fmt.Errorf("invalid %s %q", key, f)
+		}
 	}
 	rows, err := blockRows(lines)
 	if err != nil {
@@ -202,6 +211,14 @@ func renderChart(info string, lines []string) (string, error) {
 		s := chartSeries{name: header[col]}
 		for _, row := range rows {
 			v, ok := dataValue(row[col])
+			if kind == "scatter" {
+				clean := strings.TrimPrefix(strings.NewReplacer("−", "-", ",", "").Replace(strings.TrimSuffix(row[col], "%")), "+")
+				parsed, err := strconv.ParseFloat(clean, 64)
+				if err != nil {
+					return "", fmt.Errorf("scatter y %q is not a number", row[col])
+				}
+				v, ok = parsed, true
+			}
 			s.text, s.vals, s.ok = append(s.text, row[col]), append(s.vals, v), append(s.ok, ok)
 		}
 		series = append(series, s)
@@ -595,7 +612,7 @@ func renderChart(info string, lines []string) (string, error) {
 						color = chartPalette[si]
 					}
 					text := minus.Replace(s.text[best])
-					if strings.HasSuffix(attrs["yfmt"], "%%") {
+					if strings.HasSuffix(attrs["yfmt"], "%%") && !strings.HasSuffix(text, "%") {
 						text += "%"
 					}
 					if xKind == "category" {
@@ -659,7 +676,10 @@ func renderChart(info string, lines []string) (string, error) {
 	}
 	label := title
 	if label == "" {
-		label = strings.Join(header[first:], "、")
+		if listSep == "" {
+			listSep = "、"
+		}
+		label = strings.Join(header[first:], listSep)
 	}
 	// Hovering a line, area or bar chart reads its values (see templates/page.html).
 	tip := ""

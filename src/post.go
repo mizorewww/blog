@@ -67,12 +67,11 @@ func init() {
 	gmhtml.ImageAttributeFilter = gmhtml.ImageAttributeFilter.Extend([]byte("fetchpriority"))
 }
 
-// newMarkdown is the renderer of one edition; only the ticker button text and
-// the citation back-link label differ.
+// newMarkdown is the renderer of one edition, localized with ui.
 // CommonMark won't open or close ** between CJK punctuation and a letter, as in
 // 用**“引语”**完成; the CJK-friendly parsers allow it.
 func newMarkdown(ui UI) goldmark.Markdown {
-	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{}, figureExtension{}, mediaExtension{}, widgetExtension{hint: ui.WidgetStill}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
+	return goldmark.New(goldmark.WithExtensions(extension.GFM, cjkfriendly.CJKFriendlyEmphasisAndStrikethrough, mathExtension{}, dataExtension{listSep: ui.ListSep}, figureExtension{}, mediaExtension{}, widgetExtension{hint: ui.WidgetStill}, tickerExtension{button: ui.LiveChart}, citeExtension{back: ui.BackToText}, codeExtension{copy: ui.Copy}), goldmark.WithParserOptions(parser.WithAutoHeadingID()))
 }
 
 var slugPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -234,20 +233,35 @@ func (p *Post) render(hooks contentHooks) (err error) {
 	return err
 }
 
+// fencePrefix returns a leading run of three or more backticks or tildes and the trimmed remainder.
+func fencePrefix(trimmed string) (string, string) {
+	if len(trimmed) < 3 || (trimmed[0] != '`' && trimmed[0] != '~') {
+		return "", ""
+	}
+	i := 0
+	for i < len(trimmed) && trimmed[i] == trimmed[0] {
+		i++
+	}
+	if i < 3 {
+		return "", ""
+	}
+	return trimmed[:i], strings.TrimSpace(trimmed[i:])
+}
+
 // readingUnits counts each Han character and each other word once, skipping
 // fenced code and data blocks, which readers scan rather than read.
 func readingUnits(src string) int {
 	units, fence, inWord := 0, "", false
 	for _, line := range strings.Split(src, "\n") {
-		if trimmed := strings.TrimSpace(line); strings.HasPrefix(trimmed, "```") || strings.HasPrefix(trimmed, "~~~") {
-			if fence == "" {
-				fence = trimmed[:3]
-			} else if strings.HasPrefix(trimmed, fence) {
+		trimmed := strings.TrimSpace(line)
+		if fence != "" {
+			if mark, rest := fencePrefix(trimmed); rest == "" && len(mark) >= len(fence) && mark[0] == fence[0] {
 				fence = ""
 			}
 			continue
 		}
-		if fence != "" {
+		if mark, rest := fencePrefix(trimmed); mark != "" && (mark[0] != '`' || !strings.ContainsRune(rest, '`')) {
+			fence = mark
 			continue
 		}
 		for _, r := range line + " " {

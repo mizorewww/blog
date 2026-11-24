@@ -21,11 +21,11 @@ import (
 
 // A ```data fence is a captioned table whose chosen columns carry thin
 // inline bars. ```chart and ```stats fences share the same table syntax.
-type dataExtension struct{}
+type dataExtension struct{ listSep string }
 
 var (
 	kindData          = ast.NewNodeKind("Data")
-	dataAttribute     = regexp.MustCompile(`(\w+)="([^"]*)"`)
+	dataAttribute     = regexp.MustCompile(`^(\w+)="([^"]*)"`)
 	dataNumber        = regexp.MustCompile(`[-+−]?\d[\d,]*(?:\.\d+)?`)
 	dataNumericHead   = regexp.MustCompile(`^[\s$€¥£~≈<>≤≥+-−±]*\d`)
 	dataLeadingHyphen = regexp.MustCompile(`^([\s$€¥£~≈<>≤≥]*)-(\d)`)
@@ -43,21 +43,21 @@ type dataBlock struct {
 
 var dataRenderers = map[string]func(info string, lines []string) (string, error){
 	"data":  renderData,
-	"chart": renderChart,
+	"chart": func(info string, lines []string) (string, error) { return renderChart(info, lines, "、") },
 	"stats": renderStats,
 	"trace": renderTrace,
 }
 
 type dataTransformer struct{}
-type dataRenderer struct{}
+type dataRenderer struct{ listSep string }
 
 func (n *dataBlock) Kind() ast.NodeKind            { return kindData }
 func (n *dataBlock) Dump(source []byte, level int) { ast.DumpHelper(n, source, level, nil, nil) }
 func (n *dataBlock) IsRaw() bool                   { return true }
 
-func (dataExtension) Extend(m goldmark.Markdown) {
+func (e dataExtension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithASTTransformers(util.Prioritized(dataTransformer{}, 100)))
-	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(dataRenderer{}, 100)))
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(dataRenderer{e.listSep}, 100)))
 }
 
 func (dataTransformer) Transform(doc *ast.Document, reader text.Reader, _ parser.Context) {
@@ -99,7 +99,7 @@ func gfmFirstColMono(tbl *ast.Node, source []byte) bool {
 	return rows > 0
 }
 
-func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+func (dr dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 	r.Register(kindData, func(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -110,7 +110,15 @@ func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			lines = append(lines, string(line.Value(source)))
 		}
 		block := n.(*dataBlock)
-		table, err := dataRenderers[block.Lang](block.Info, lines)
+		var (
+			table string
+			err   error
+		)
+		if block.Lang == "chart" {
+			table, err = renderChart(block.Info, lines, dr.listSep)
+		} else {
+			table, err = dataRenderers[block.Lang](block.Info, lines)
+		}
 		if err != nil {
 			return ast.WalkStop, fmt.Errorf("%s block %q: %w", block.Lang, block.Info, err)
 		}
@@ -166,7 +174,9 @@ func (dataRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 
 func dataCells(line string) []string {
 	line = strings.TrimSpace(line)
-	line = strings.TrimSuffix(strings.TrimPrefix(line, "|"), "|")
+	if len(line) >= 2 && strings.HasPrefix(line, "|") && strings.HasSuffix(line, "|") {
+		line = line[1 : len(line)-1]
+	}
 	cells := strings.Split(line, "|")
 	for i := range cells {
 		cells[i] = strings.TrimSpace(cells[i])
@@ -233,12 +243,31 @@ func cellCharWidth(cell string) int {
 	return max(w, 3)
 }
 
-// blockAttributes reads key="value" pairs; allowed lists the keys a block accepts.
+// blockAttributes reads key="value" pairs after an optional leading fence
+// language; allowed lists the keys a block accepts.
 func blockAttributes(info string, allowed []string) (map[string]string, error) {
 	attrs := map[string]string{}
-	for _, m := range dataAttribute.FindAllStringSubmatch(info, -1) {
+	rest := strings.TrimSpace(info)
+	if i := strings.IndexFunc(rest, unicode.IsSpace); i >= 0 && !strings.ContainsAny(rest[:i], `="'`) {
+		rest = strings.TrimSpace(rest[i:])
+	} else if i < 0 && !strings.ContainsAny(rest, `="'`) {
+		rest = ""
+	}
+	for rest != "" {
+		m := dataAttribute.FindStringSubmatch(rest)
+		if m == nil {
+			return nil, fmt.Errorf(`invalid attribute %q (write key="value")`, rest)
+		}
+		rest = rest[len(m[0]):]
+		if rest != "" && !unicode.IsSpace(rune(rest[0])) {
+			return nil, fmt.Errorf(`invalid attribute %q (separate key="value" pairs with spaces)`, m[0]+rest)
+		}
+		rest = strings.TrimSpace(rest)
 		if !slices.Contains(allowed, m[1]) {
 			return nil, fmt.Errorf("unknown attribute %q (use %s)", m[1], strings.Join(allowed, ", "))
+		}
+		if _, dup := attrs[m[1]]; dup {
+			return nil, fmt.Errorf("duplicate attribute %q", m[1])
 		}
 		attrs[m[1]] = m[2]
 	}
@@ -344,7 +373,11 @@ func renderData(info string, lines []string) (string, error) {
 	marks := map[string]bool{}
 	if attrs["mark"] != "" {
 		for _, name := range strings.Split(attrs["mark"], ",") {
-			marks[strings.TrimSpace(name)] = true
+			name = strings.TrimSpace(name)
+			if name == "" || !slices.ContainsFunc(rows[1:], func(row []string) bool { return row[0] == name }) {
+				return "", fmt.Errorf("mark %q is not a row label", name)
+			}
+			marks[name] = true
 		}
 	}
 	figClasses := []string{"data"}

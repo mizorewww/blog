@@ -125,10 +125,13 @@ func TestBuild(t *testing.T) {
 	if !strings.Contains(string(headers), "/notes/static/"+version+"/*") || !strings.Contains(string(headers), "/notes/images/*\n  Cache-Control: public, max-age=31536000, immutable") {
 		t.Fatal("deployment cache rules must include the base path and content version")
 	}
-	for _, route := range []string{"/notes/\n", "/notes/index.html\n", "/notes/about/*\n", "/notes/posts/*\n", "/notes/en/*\n", "/notes/search.json\n", "/notes/feed.xml\n", "/notes/robots.txt\n"} {
+	for _, route := range []string{"/notes/\n", "/notes/index.html\n", "/notes/about/*\n", "/notes/posts/*\n", "/notes/en/*\n", "/notes/search.json\n", "/notes/feed.xml\n", "/notes/robots.txt\n", "/notes/favicon.ico\n", "/notes/apple-touch-icon.png\n", "/notes/static/avatar.webp\n", "/notes/static/avatar.png\n", "/notes/static/photo.svg\n"} {
 		if !strings.Contains(string(headers), route+"  Cache-Control: no-cache") {
 			t.Fatalf("documents must revalidate: %s missing from\n%s", route, headers)
 		}
+	}
+	if redirects, _ := os.ReadFile("public/_redirects"); !strings.Contains(string(redirects), "/notes/en/categories/trading /notes/en/categories/trading/ 301\n") {
+		t.Fatalf("_redirects lacks trading category redirect:\n%s", redirects)
 	}
 	for _, name := range []string{"index.html", "about/index.html", "posts/beta/index.html", "404.html"} {
 		b, err := os.ReadFile(filepath.Join("public", name))
@@ -205,12 +208,23 @@ func TestBuild(t *testing.T) {
 	if _, err := os.Stat("public/posts/draft/index.html"); err == nil {
 		t.Fatal("drafts must not be published")
 	}
-	if en404, err := os.ReadFile("public/en/404.html"); err != nil || !strings.Contains(string(en404), `<html lang="en">`) || !strings.Contains(string(en404), "Page not found") {
-		t.Fatal("the English edition needs its own 404 page")
+	if en404, err := os.ReadFile("public/en/404.html"); err != nil || !strings.Contains(string(en404), `<html lang="en">`) || !strings.Contains(string(en404), "Page not found") || !strings.Contains(string(en404), `<a href="/notes/en/">← Home</a>`) || !strings.Contains(string(en404), `href="/notes/" hreflang="zh-CN"`) || strings.Contains(string(en404), `rel="alternate" hreflang=`) {
+		t.Fatal("the English edition needs its own 404 page, edition home link, and header switcher")
+	}
+	if zh404, err := os.ReadFile("public/404.html"); err != nil || !strings.Contains(string(zh404), `<a href="/notes/">← 回到首页</a>`) || !strings.Contains(string(zh404), `href="/notes/en/" hreflang="en"`) {
+		t.Fatal("the root 404 page needs its home link and header switcher")
 	}
 	en, _ := os.ReadFile("public/en/posts/alpha/index.html")
 	if !strings.Contains(string(en), `<html lang="en">`) || !strings.Contains(string(en), "1 min read") || !strings.Contains(string(en), `href="/notes/posts/alpha/" hreflang="zh-CN"`) {
 		t.Fatal("English edition must use its own language and link its translation")
+	}
+	linuxZH, _ := os.ReadFile("public/tags/linux/index.html")
+	nextjsZH, _ := os.ReadFile("public/tags/nextjs/index.html")
+	if !strings.Contains(string(linuxZH), `rel="alternate" hreflang="en" href="https://example.com/notes/en/tags/linux/"`) {
+		t.Fatal("matched tag pages must emit reciprocal hreflang")
+	}
+	if strings.Contains(string(nextjsZH), `rel="alternate" hreflang=`) || !strings.Contains(string(nextjsZH), `href="/notes/en/tags/" hreflang="en"`) {
+		t.Fatal("unmatched tag pages must omit hreflang while keeping the header language switch")
 	}
 	var index map[string]struct{ T, X string }
 	b, _ := os.ReadFile("public/search.json")
@@ -218,8 +232,8 @@ func TestBuild(t *testing.T) {
 		t.Fatalf("invalid search index: %v %v", err, index)
 	}
 	search, _ := os.ReadFile("public/search/index.html")
-	if !strings.Contains(string(search), `font-family:"Blog Search"`) {
-		t.Fatal("search snippets need their font")
+	if !strings.Contains(string(search), `font-family:"Blog Search"`) || !strings.Contains(string(search), "搜索需要开启 JavaScript") || !strings.Contains(string(search), ".theme,.copy,.textbtn,.ticker button") {
+		t.Fatal("search snippets need their font and no-JS fallback")
 	}
 	var rss Feed
 	b, _ = os.ReadFile("public/feed.xml")
@@ -237,8 +251,19 @@ func TestBuild(t *testing.T) {
 	}
 	var sitemap Sitemap
 	b, _ = os.ReadFile("public/sitemap.xml")
-	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 12 {
+	if err = xml.Unmarshal(b, &sitemap); err != nil || len(sitemap.URLs) != 14 {
 		t.Fatalf("invalid sitemap: %v (%d urls)", err, len(sitemap.URLs))
+	}
+	for _, want := range []string{"<loc>https://example.com/notes/tags/</loc>", "<loc>https://example.com/notes/en/tags/</loc>", "<loc>https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/</loc>"} {
+		if !strings.Contains(string(b), want) {
+			t.Fatalf("sitemap lacks %s in\n%s", want, b)
+		}
+	}
+	techCat, _ := os.ReadFile("public/categories/技术/index.html")
+	for _, want := range []string{`<link rel="canonical" href="https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/">`, `<meta property="og:url" content="https://example.com/notes/categories/%E6%8A%80%E6%9C%AF/">`} {
+		if !strings.Contains(string(techCat), want) {
+			t.Fatalf("CJK category page lacks %s", want)
+		}
 	}
 	for _, u := range sitemap.URLs {
 		if u.LastMod != "2026-10-02" && u.LastMod != "2026-09-28" {
@@ -329,8 +354,11 @@ func TestCodeHighlighting(t *testing.T) {
 	if !strings.Contains(html, `<pre tabindex="0" class="chroma">`) || !strings.Contains(html, `<span class="kd">func</span>`) {
 		t.Fatalf("known languages must be highlighted with classes and stay focusable: %s", html)
 	}
-	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) {
-		t.Fatalf("unknown languages must stay plain and escaped, with the language named: %s", html)
+	if strings.Contains(html, "style=") || !strings.Contains(html, `<code>&lt;b&gt;x&lt;/b&gt;</code>`) || !strings.Contains(html, `<span class="lang">go</span>`) || !strings.Contains(html, `>复制</button>`) {
+		t.Fatalf("unknown languages must stay plain and escaped, with the language and edition copy label: %s", html)
+	}
+	if enCode, _, err := renderContent(languages[1].markdown(), []byte("```go\nx := 1\n```\n"), contentHooks{}); err != nil || !strings.Contains(string(enCode), `>copy</button>`) {
+		t.Fatalf("English code blocks must use English copy label: %s %v", enCode, err)
 	}
 	body, _, err = render([]byte("```go src=\"https://github.com/o/r/blob/ad8012c1a0926822307f56454bd26be9ef9dd2dc/a/b.go#L76-L77\" title=\"T\"\nx := 1\ny := 2\n```\n"), nil)
 	if err != nil {
@@ -374,10 +402,31 @@ func TestBlocks(t *testing.T) {
 			t.Fatalf("missing %s in %s", want, html)
 		}
 	}
-	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") {
-		t.Fatalf("ticker button must follow the edition: %s %v", en, err)
+	if en, _, err := renderContent(languages[1].markdown(), []byte("$BTC\n\n```chart bar mirror=\"true\"\nx | A | B\n0 | 3 | 1\n```\n"), contentHooks{}); err != nil || !strings.Contains(string(en), ">Live chart</button>") || !strings.Contains(string(en), `aria-label="A, B"`) {
+		t.Fatalf("ticker button and untitled chart aria-label must follow the edition: %s %v", en, err)
 	}
-	for _, bad := range []string{"```chart pie\nx | y\n1 | 2\n```\n", "```chart line\nx\n1\n```\n", "```chart scatter\n点 | x | y\np | a | 1\n```\n", "```stats\n## A\n```\n"} {
+	if !strings.Contains(html, `aria-label="A、B"`) {
+		t.Fatalf("Chinese untitled chart aria-label must join with 、: %s", html)
+	}
+	pct, _, err := render([]byte("```chart bar yfmt=\"%.0f%%\"\n项 | 占比\nA | 24.0%\nB | 10.0%\n```\n"), nil)
+	if err != nil || !strings.Contains(string(pct), "24.0% · A") || strings.Contains(string(pct), "24.0%%") {
+		t.Fatalf("percent cell with %% yfmt must not double %%: %v %s", err, pct)
+	}
+	for _, bad := range []string{
+		"```chart pie\nx | y\n1 | 2\n```\n",
+		"```chart line\nx\n1\n```\n",
+		"```chart scatter\n点 | x | y\np | a | 1\n```\n",
+		"```chart scatter\n点 | x | y\np | 1 | a\n```\n",
+		"```chart scatter\n点 | x | y\np | 1 | —\n```\n",
+		"```chart line yfmt=\"%.0f%\"\nx | y\n1 | 2\n```\n",
+		"```chart line xfmt=\"%d\"\nx | y\n1 | 2\n```\n",
+		"```stats\n## A\n```\n",
+		"::tv\n",
+		"::tv interval=W\n",
+		"::tv BINANCE:BTCUSDT intervl=W\n",
+		"::tv BINANCE:BTCUSDT height=480px\n",
+		"::tv BINANCE:BTCUSDT height=0\n",
+	} {
 		if _, _, err := render([]byte(bad), nil); err == nil {
 			t.Fatalf("expected an error for %q", bad)
 		}
@@ -437,6 +486,10 @@ func TestDataTable(t *testing.T) {
 			t.Fatalf("missing %q in %s", want, sub)
 		}
 	}
+	emptyEdge, _, err := render([]byte("```data\nA | B | C\n1 | 2 |\n| 3 | 4\n```\n\n```data\n| A | B | C |\n| 1 | 2 | |\n| | 3 | 4 |\n```\n"), nil)
+	if err != nil || strings.Count(string(emptyEdge), `<td class="num"></td>`) != 2 || strings.Count(string(emptyEdge), `<td class="row-key mono-key"></td>`) != 2 {
+		t.Fatalf("empty leading or trailing cells must be preserved: %v\n%s", err, emptyEdge)
+	}
 	gfm, _, _ := render([]byte("| Delta | PnL |\n| --- | ---: |\n| 0.05 | +1.2 |\n"), nil)
 	if !strings.Contains(string(gfm), `<div class="table-scroll" tabindex="0"><table>`) || !strings.Contains(string(gfm), `<td class="mono-key">0.05</td>`) || !strings.Contains(string(gfm), `<td class="num" style="text-align:right">+1.2</td>`) {
 		t.Fatalf("GFM table should wrap in .table-scroll and classify numeric cells: %s", gfm)
@@ -450,6 +503,7 @@ func TestDataTable(t *testing.T) {
 	for _, bad := range []string{
 		"```data colour=\"red\"\na | b\n1 | 2\n```",
 		"```data bars=\"C\"\na | b\n1 | 2\n```",
+		"```data mark=\"missing\"\na | b\n1 | 2\n```",
 		"```data\na | b\n1\n```",
 		"```data\na | b\n```",
 	} {
@@ -462,6 +516,10 @@ func TestDataTable(t *testing.T) {
 func TestReadingUnits(t *testing.T) {
 	if n := readingUnits("中文字 and English words\n\n```go\nfunc ignored() {}\n```\n\n2026 年"); n != 3+3+1+1 {
 		t.Fatalf("got %d units", n)
+	}
+	nested := "前言\n\n````md\n```go\nignored code here\n```\n````\n\n~~~txt\n````\nignored tilde\n~~~~\n\n结尾"
+	if n := readingUnits(nested); n != 4 {
+		t.Fatalf("nested and tilde fences: got %d units, want 4", n)
 	}
 }
 

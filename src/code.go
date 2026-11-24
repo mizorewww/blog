@@ -20,16 +20,13 @@ import (
 // turns it into a source quote with a path header and real line numbers:
 //
 //	```go src="https://github.com/o/r/blob/<sha>/main.go#L76-L103" title="…"
-type codeExtension struct{}
-type codeRenderer struct{}
-
-// copyButton is wired up by the page script; without scripts it does nothing.
-const copyButton = `<button class="copy" type="button">copy</button>`
+type codeExtension struct{ copy string }
+type codeRenderer struct{ copy string }
 
 var githubBlob = regexp.MustCompile(`^https://github\.com/[^/]+/[^/]+/blob/([0-9a-f]{7,40})/([^#]+)(?:#L(\d+)(?:-L(\d+))?)?$`)
 
-func (codeExtension) Extend(m goldmark.Markdown) {
-	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(codeRenderer{}, 100)))
+func (e codeExtension) Extend(m goldmark.Markdown) {
+	m.Renderer().AddOptions(renderer.WithNodeRenderers(util.Prioritized(codeRenderer{e.copy}, 100)))
 }
 
 // tokenClass is chroma's short class for a token, falling back to its
@@ -84,7 +81,12 @@ func highlight(w util.BufWriter, tokens []chroma.Token, first int) {
 	w.WriteString("</code></pre>")
 }
 
-func (codeRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+func (cr codeRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
+	copyLabel := cr.copy
+	if copyLabel == "" {
+		copyLabel = "copy"
+	}
+	copyButton := `<button class="copy" type="button">` + html.EscapeString(copyLabel) + `</button>`
 	r.Register(ast.KindFencedCodeBlock, func(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil

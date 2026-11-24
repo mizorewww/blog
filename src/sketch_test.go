@@ -53,6 +53,9 @@ func TestSketch(t *testing.T) {
 		`<svg viewBox="0 0 10 10"><rect/></svg>text`,
 		`<svg viewBox="0 0 704 10"><rect/></svg><svg viewBox="0 0 500 10"><rect/></svg>`,
 		`<svg viewBox="0 0 704 10"/><svg viewBox="0 0 300 10"/><svg viewBox="0 0 200 10"/>`,
+		`<svg viewBox="0 0 704 0"><rect/></svg>`,
+		`<svg viewBox="0 0 0 100"><rect/></svg>`,
+		`<svg viewBox="0 0 704 1..2"><rect/></svg>`,
 	} {
 		if _, _, err := render([]byte("```sketch title=\"T\"\n"+bad+"\n```\n"), nil); err == nil {
 			t.Errorf("expected an error for %s", bad)
@@ -81,7 +84,9 @@ func TestSketchPhoneLayout(t *testing.T) {
 
 // Feed readers load no style.css, so a drawn figure becomes a link to the post.
 func TestFiguresInFeed(t *testing.T) {
-	src := "```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n" +
+	src := "见[前文](/posts/b/)。\n\n" +
+		"```widget src=\"../widgets/demo/hero.js\" title=\"W\"\n../images/a.png | 静态图\n```\n\n" +
+		"```sketch title=\"图\"\n<svg viewBox=\"0 0 704 10\"><rect class=\"panel\"/></svg><svg viewBox=\"0 0 340 10\"><rect/></svg>\n```\n\n" +
 		"```mermaid title=\"M\"\nflowchart TD\n  A --> B\n```\n\n```echarts title=\"E\" note=\"n\"\n{\"series\": [{\"type\": \"bar\", \"data\": [1]}]}\n```\n\n" +
 		"```chart line title=\"C\"\nx | y\n1 | 2\n2 | 3\n```\n"
 	body, _, err := renderContent(languages[0].markdown(), []byte(src), contentHooks{figure: func(f *figureBlock) error {
@@ -93,9 +98,9 @@ func TestFiguresInFeed(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	feed := feedContent(string(body), "https://example.com/posts/a/?x=1&y=2", languages[0].UI)
+	feed := feedContent(string(body), "https://example.com", "https://example.com/posts/a/?x=1&y=2", languages[0].UI)
 	link := `<p><a href="https://example.com/posts/a/?x=1&amp;y=2">（图见原文）</a></p>`
-	for _, want := range []string{`<figcaption>图</figcaption>` + link + `</figure>`, `<figcaption>M</figcaption>` + link + `</figure>`, `<figcaption>E</figcaption>` + link + `<p class="figure-note">n</p></figure>`} {
+	for _, want := range []string{`<a href="https://example.com/posts/b/">前文</a>`, `<figcaption>图</figcaption>` + link + `</figure>`, `<figcaption>M</figcaption>` + link + `</figure>`, `<figcaption>E</figcaption>` + link + `<p class="figure-note">n</p></figure>`} {
 		if !strings.Contains(feed, want) {
 			t.Fatalf("missing %s in %s", want, feed)
 		}
@@ -103,7 +108,7 @@ func TestFiguresInFeed(t *testing.T) {
 	if !strings.Contains(feed, `<figure class="chart"><figcaption><span>C</span>`) || !strings.Contains(feed, `</figcaption>`+link) {
 		t.Fatalf("a chart keeps its caption and links to the post: %s", feed)
 	}
-	if strings.Contains(feed, "<svg") || strings.Contains(feed, "application/json") {
-		t.Fatalf("drawings must not reach the feed: %s", feed)
+	if strings.Contains(feed, "<svg") || strings.Contains(feed, "application/json") || strings.Contains(feed, "widget-hint") {
+		t.Fatalf("drawings and widget hints must not reach the feed: %s", feed)
 	}
 }

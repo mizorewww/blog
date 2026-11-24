@@ -19,7 +19,7 @@ def prepare(source, cache):
     manifest = cache / (key + ".json")
     if manifest.exists():
         result = json.loads(manifest.read_text())
-        if Path(result["path"]).is_file():
+        if Path(result["path"]).is_file() and ("small" not in result or Path(result["small"]["path"]).is_file()):
             return result
     with Image.open(io.BytesIO(original)) as image:
         if image.format not in {"JPEG", "PNG", "WEBP", "GIF", "AVIF"}:

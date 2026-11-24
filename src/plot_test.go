@@ -43,7 +43,7 @@ func TestPlot(t *testing.T) {
 	if len(requests) != 2 || !strings.Contains(requests[0], `"data":[{"c":1,"n":2},{"c":10,"n":20}]`) || strings.Contains(requests[0], `"title"`) {
 		t.Fatalf("requests: %v", requests)
 	}
-	feed := feedContent(html, "https://example.com/p/", languages[0].UI)
+	feed := feedContent(html, "https://example.com", "https://example.com/p/", languages[0].UI)
 	if strings.Contains(feed, "<svg") || strings.Contains(feed, "plot-legend") || !strings.Contains(feed, `<p class="plot-xlabel">`) {
 		t.Fatalf("feed: %s", feed)
 	}

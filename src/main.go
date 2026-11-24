@@ -1,11 +1,28 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"strings"
 )
+
+func sitePrefix(urlOverride string) string {
+	raw := urlOverride
+	if raw == "" {
+		var site Site
+		if data, err := os.ReadFile("site.json"); err == nil && json.Unmarshal(data, &site) == nil {
+			raw = site.URL
+		}
+	}
+	if u, err := url.Parse(strings.TrimRight(raw, "/")); err == nil {
+		return strings.TrimRight(u.Path, "/")
+	}
+	return ""
+}
 
 func main() {
 	if len(os.Args) > 1 && os.Args[1] == "new" {
@@ -26,7 +43,8 @@ func main() {
 		log.Fatal(err)
 	}
 	if *serve != "" {
-		log.Printf("Preview: http://%s (re-run after editing)", *serve)
-		log.Fatal(http.ListenAndServe(*serve, serveSite("public")))
+		prefix := sitePrefix(opts.URL)
+		log.Printf("Preview: http://%s%s/ (re-run after editing)", *serve, prefix)
+		log.Fatal(http.ListenAndServe(*serve, serveSitePrefix("public", prefix)))
 	}
 }

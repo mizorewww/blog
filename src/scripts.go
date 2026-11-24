@@ -40,7 +40,14 @@ func compactScript(src string) string {
 
 // For is the script of one page, in a block so its names stay local.
 func (s pageScripts) For(p Page) template.JS {
-	parts := []string{s["base"]}
+	copied, failed := strings.ToLower(p.UI.Copied), p.UI.CopyFailed
+	if copied == "" {
+		copied = "copied"
+	}
+	if failed == "" {
+		failed = "failed"
+	}
+	parts := []string{strings.NewReplacer("{{copied}}", copied, "{{failed}}", failed).Replace(s["base"])}
 	if p.Post != nil {
 		if strings.Contains(string(p.Post.Content), ` data-tip="`) {
 			parts = append(parts, s["tip"])
