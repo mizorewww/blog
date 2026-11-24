@@ -481,7 +481,7 @@ Our engineering rule is uncompromising: **retries are permitted only on determin
 If cutting call volume is our first line of defense, Prompt Caching is the core lever that determines life or death.
 
 At their core, the caching mechanisms of all modern frontier models (DeepSeek, Anthropic, OpenAI) work via **Prefix Matching**:
-As long as the prefix of your request is byte-for-byte identical to the previous turn, the price of the matched portion drops off a cliff. On DeepSeek V4 Flash, a cache hit costs amere **1/50th** of a cache miss.
+As long as the prefix of your request is byte-for-byte identical to the previous turn, the price of the matched portion drops off a cliff. On DeepSeek V4 Flash, a cache hit costs a mere **1/50th** of a cache miss.
 
 Let's run the numbers on the 5.34 billion input tokens we actually processed over three months:
 
@@ -862,7 +862,7 @@ Our current architecture rests at a battle-tested equilibrium:
 <svg viewBox="0 0 340 426">
 <rect class="panel" x="0" y="0" width="340" height="426" rx="12"/>
 <text class="caps" x="16" y="28">TOO SMALL</text>
-<text class="caps mid" x="175" y="28">SWEET SPOT</text>
+<text class="caps mid" x="200" y="28">SWEET SPOT</text>
 <text class="caps end" x="324" y="28">TOO LARGE</text>
 <rect x="17.0" y="42" width="16.1" height="22" rx="2" fill="var(--orange)" fill-opacity="0.95"/>
 <rect x="35.1" y="42" width="16.1" height="22" rx="2" fill="var(--orange)" fill-opacity="0.84"/>
@@ -1164,14 +1164,14 @@ The experiment also caught a result-shaping bug: when `limit` was set to 30–40
 
 We tuned our windowing parameters on the 30-day subset:
 
-```data title="Choosing Windowing Parameters" bars="P@1,P@5" mark="800 chars (shipped)" note="30-day subset, 21 queries plus 3 negative queries for events that never happened. Baseline is 30-min silence, 1,500 chars, 40 messages. P@1, P@5: fraction of relevant windows in top 1 and top 5; MRR: mean reciprocal rank of the first relevant window; Msg Precision: fraction of the 40-message budget landing inside relevant windows. Raising the character limit alone to 3,000 hit the 40-message cap first and changed nothing, so that row also raised the cap to 80 messages."
-Config | Windows | P@1 | P@5 | MRR | Msg Precision
-Baseline | 2,241 | 0.76 | 0.47 | 0.83 | 0.73
-10-min silence | 2,562 | 0.76 | 0.48 | 0.83 | 0.74
-800 chars (shipped) | 3,720 | 0.81 | 0.57 | 0.84 | 0.78
-3,000 chars / 80 msgs | 1,145 | 0.62 | 0.46 | 0.74 | 0.62
-Drop bot messages | 1,948 | 0.48 | 0.39 | 0.62 | 0.48
-Drop index prefix | 2,238 | 0.71 | 0.47 | 0.77 | 0.68
+```data title="Choosing Windowing Parameters" bars="P@1" mark="800 chars (shipped)" note="30-day subset, 21 queries plus 3 negative queries for events that never happened. Baseline is 30-min silence, 1,500 chars, 40 messages. P@1, P@5: fraction of relevant windows in top 1 and top 5; MRR: mean reciprocal rank of the first relevant window; Msg Prec. (message precision): fraction of the 40-message budget landing inside relevant windows. Raising the character limit alone to 3,000 hit the 40-message cap first and changed nothing, so that row also raised the cap to 80 messages."
+Config | P@1 | P@5 | MRR | Msg Prec. | Windows
+Baseline | 0.76 | 0.47 | 0.83 | 0.73 | 2,241
+10-min silence | 0.76 | 0.48 | 0.83 | 0.74 | 2,562
+800 chars (shipped) | 0.81 | 0.57 | 0.84 | 0.78 | 3,720
+3,000 chars / 80 msgs | 0.62 | 0.46 | 0.74 | 0.62 | 1,145
+Drop bot messages | 0.48 | 0.39 | 0.62 | 0.48 | 1,948
+Drop index prefix | 0.71 | 0.47 | 0.77 | 0.68 | 2,238
 ```
 
 Three takeaways jumped out. First, smaller windows are more accurate: 800 characters won on every single metric while keeping total character count—and therefore embedding token cost—completely unchanged. Second, a 10-minute vs. 30-minute silence threshold made almost no difference, confirming again that window boundaries are driven primarily by character length. Most surprising of all were the bot's own messages: they accounted for 75% of total character volume and looked like noise we should strip out, yet the bot's explanations carried the exact topical vocabulary that anchored retrieval—dropping bot messages tanked P@1 from 0.76 down to 0.48.
