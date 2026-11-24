@@ -350,7 +350,7 @@ func renderChart(info string, lines []string) (string, error) {
 			} else {
 				fmt.Fprintf(&grid, "M%s %sH%s", f1(chartLeft), f1(y), f1(plotR))
 			}
-			c.label("yl", 0, y, chartNumber(v, p.axis.step, signed, attrs["yfmt"]), ";width:"+chartPct(chartLeft-8, chartW))
+			c.label("yl", chartLeft, y, chartNumber(v, p.axis.step, signed, attrs["yfmt"]), "")
 		}
 	}
 	if kind == "scatter" {
@@ -400,16 +400,23 @@ func renderChart(info string, lines []string) (string, error) {
 			}
 		}
 	default:
-		every := max(1, (len(xText)+5)/6)
+		every := max(1, (len(xText)+7)/8)
 		for i := every / 2; i < len(xText); i += every {
 			tick(i/every, xpx(xs[i]), strings.ReplaceAll(xText[i], "-", "−"))
 		}
 	}
 
-	// Phones show every other tick once there are more than four.
+	// Phones show every other tick once there are more than five, keeping 0.
+	keepParity := 0
+	for n, t := range xTicks {
+		if t.text == "0" || t.text == "0%" || t.text == "0.0" || t.text == "0.0%" || t.text == "0.00" {
+			keepParity = n % 2
+			break
+		}
+	}
 	for n, t := range xTicks {
 		class := "xl"
-		if n%2 == 1 && len(xTicks) > 4 {
+		if n%2 != keepParity && len(xTicks) > 5 {
 			class = "xl alt"
 		}
 		c.label(class, t.x, base, t.text, "")
@@ -428,7 +435,11 @@ func renderChart(info string, lines []string) (string, error) {
 			if x < (chartLeft+plotR)/2 {
 				style = ";transform:translate(calc(-100% - 6px),0)"
 			}
-			c.label("dl", x, ps[0].top+2, chartNumber(v, 1, false, ""), style)
+			refText := chartNumber(v, 1, false, "")
+			if strings.HasPrefix(attrs["xfmt"], "$") {
+				refText = "$" + refText
+			}
+			c.label("dl", x, ps[0].top+2, refText, style)
 		}
 		c.path(d.String(), `stroke="`+chartMuted+`" stroke-dasharray="2 3" fill="none"`)
 	}
@@ -592,6 +603,11 @@ func renderChart(info string, lines []string) (string, error) {
 					} else {
 						text += " · " + xText[best]
 					}
+					if kind == "area" && v > 0 && y-p.top < 8 {
+						y -= 7
+					} else if v < 0 && !mirror && p.bottom-y >= 10 {
+						y += 9
+					}
 					note(xpx(xs[best]), y, band/2, text, color)
 				}
 			}
@@ -626,9 +642,9 @@ func renderChart(info string, lines []string) (string, error) {
 	var b strings.Builder
 	title := attrs["title"]
 	b.WriteString(`<figure class="chart">`)
-	if title != "" || len(series) > 1 && !panels {
+	if title != "" || len(series) > 1 && !panels && !mirror {
 		fmt.Fprintf(&b, "<figcaption><span>%s</span>", html.EscapeString(title))
-		if len(series) > 1 && !panels {
+		if len(series) > 1 && !panels && !mirror {
 			b.WriteString(`<span class="key">`)
 			for i, s := range series {
 				shape := ""

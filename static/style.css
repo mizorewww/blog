@@ -153,6 +153,7 @@ mark{background:var(--sel);color:inherit}
 .chroma :is(.c,.ch,.cm,.c1,.cs,.gp){color:var(--cmt);font-style:italic}
 .chroma .ge{font-style:italic}
 .prose img{display:block;max-width:100%;height:auto;border:1px solid var(--line)}
+.prose p>img+em{display:block;margin-top:8px;font-size:12.5px;line-height:1.75;color:var(--muted);font-style:normal}
 .prose .math{overflow-x:auto;margin:1.6em 0;padding:4px 0}
 @property --ml{syntax:"<length>";inherits:false;initial-value:0px}
 @property --mr{syntax:"<length>";inherits:false;initial-value:0px}
@@ -176,7 +177,7 @@ mark{background:var(--sel);color:inherit}
 .prose td.date{white-space:nowrap;color:var(--body)}
 .prose td.mono-key{white-space:nowrap;color:var(--ink)}
 .prose td.null{color:var(--faint)}
-:is(.chart,.ticker){margin:2.2em 0;background:var(--card);border:1px solid var(--line)}
+:is(.chart,.ticker){margin:2.2em 0;background:var(--card);border:1px solid var(--line);overflow:hidden}
 :is(.data,.stats){margin:2.4em 0}
 .stats:not(:has(.data-note)){border-bottom:1px solid var(--line);padding-bottom:2px}
 :is(.data,.chart,.stats) figcaption{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:4px 16px;margin:0;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.55;color:var(--ink)}
@@ -238,7 +239,7 @@ mark{background:var(--sel);color:inherit}
 .plot{position:relative;margin:14px 20px 6px}
 .plot svg{display:block;width:100%;height:auto;aspect-ratio:664/var(--h);overflow:visible}
 .plot span{position:absolute;font-family:var(--mono);font-size:10px;line-height:1;color:var(--muted);white-space:nowrap}
-.plot .yl{text-align:right;transform:translateY(-50%)}
+.plot .yl{text-align:right;transform:translate(calc(-100% - 6px),-50%)}
 .plot .xl{transform:translateX(-50%)}
 .plot .dl{font-size:10.5px;font-weight:500}
 .plot .tip{position:absolute;top:0;bottom:16px;width:0;pointer-events:none;z-index:2}
@@ -479,7 +480,7 @@ main::after{bottom:0}
 .intro{font-size:19px}
 .page-head h1{font-size:26px}
 .terms{padding:28px 20px 8px}
-.to-top{right:14px;bottom:14px}
+.to-top{right:4px;bottom:8px;width:28px;height:28px;font-size:12px}
 .colophon dl>div{grid-template-columns:1fr;gap:0}
 .colophon dt{line-height:1.8}
 .colophon li a{grid-template-columns:auto minmax(0,1fr)}
@@ -513,10 +514,10 @@ main::after{bottom:0}
 .prose :is(td,th):last-child{padding-right:0}
 .num-sub{font-size:10.5px}
 .chart .data-note{padding:8px 14px 12px}
-.plot{margin:10px 12px 4px}
+.plot{margin:10px 12px 4px 28px}
+.plot:has(.end):not(:has(.tag)){margin-right:-18px}
 .plot .alt,.plot .end{display:none}
 .plot svg{aspect-ratio:auto;height:calc(var(--h) * .75px)}
-.plot .tag{transform:translate(calc(-100% - 4px),-50%)!important}
 .prose .frames-strip{grid-template-columns:repeat(var(--cols-n),minmax(0,1fr))}
 .case{padding:14px}
 .case.with-image{grid-template-columns:72px minmax(0,1fr)}
