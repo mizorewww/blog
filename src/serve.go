@@ -15,19 +15,39 @@ import (
 	"strings"
 )
 
-var versionedAsset = regexp.MustCompile(`^/(static/[0-9a-f]{16}/|images/[0-9a-f]{64}\.)`)
+var versionedAsset = regexp.MustCompile(`^/(static/[0-9a-f]{16}/|images/[0-9a-f]{64}\.|widgets/[^/]+-[0-9a-f]{12}/)`)
 
-func serveSite(root string) http.Handler {
+func serveSite(root string) http.Handler { return serveSitePrefix(root, "") }
+
+func serveSitePrefix(root, prefix string) http.Handler {
+	prefix = strings.TrimRight(prefix, "/")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet && r.Method != http.MethodHead {
 			w.Header().Set("Allow", "GET, HEAD")
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		name := filepath.Join(root, filepath.FromSlash(path.Clean("/"+r.URL.Path)))
+		reqPath := r.URL.Path
+		if prefix != "" {
+			if reqPath == prefix {
+				target := *r.URL
+				target.Path += "/"
+				target.RawPath = ""
+				http.Redirect(w, r, target.String(), http.StatusMovedPermanently)
+				return
+			}
+			if !strings.HasPrefix(reqPath, prefix+"/") {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Header().Set("Cache-Control", "no-store")
+				w.WriteHeader(http.StatusNotFound)
+				return
+			}
+			reqPath = strings.TrimPrefix(reqPath, prefix)
+		}
+		name := filepath.Join(root, filepath.FromSlash(path.Clean("/"+reqPath)))
 		info, err := os.Stat(name)
 		if err == nil && info.IsDir() {
-			if !strings.HasSuffix(r.URL.Path, "/") {
+			if !strings.HasSuffix(reqPath, "/") {
 				target := *r.URL
 				target.Path += "/"
 				target.RawPath = ""
@@ -38,7 +58,7 @@ func serveSite(root string) http.Handler {
 			info, err = os.Stat(name)
 		}
 		if err != nil || info.IsDir() {
-			body := notFoundPage(root, r.URL.Path)
+			body := notFoundPage(root, reqPath)
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
 			w.Header().Set("Cache-Control", "no-store")
 			w.WriteHeader(http.StatusNotFound)
@@ -59,10 +79,10 @@ func serveSite(root string) http.Handler {
 		w.Header().Set("Content-Type", contentType)
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Cache-Control", "no-cache")
-		if versionedAsset.MatchString(r.URL.Path) {
+		if versionedAsset.MatchString(reqPath) {
 			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 		}
-		if strings.HasPrefix(contentType, "text/") || strings.Contains(contentType, "xml") {
+		if strings.HasPrefix(contentType, "text/") || strings.Contains(contentType, "xml") || strings.Contains(contentType, "json") || strings.Contains(contentType, "javascript") {
 			w.Header().Set("Vary", "Accept-Encoding")
 			if acceptsGzip(r.Header.Get("Accept-Encoding")) {
 				var compressed bytes.Buffer
