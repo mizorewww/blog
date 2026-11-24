@@ -14,3 +14,7 @@
 ## 改框架代码时
 
 按 `REVIEW.md` 的审查标准做：`go vet ./...`、`go test ./...`、`gofmt -l .` 无输出，`go run ./src` 能完整构建；改了文章组件就同步改 `post-components` skill，改了 CLI 就改 `README.md`。提交保持原子。
+
+## 推送之后
+
+推送到 `main` 会触发 GitHub Actions（`.github/workflows/pages.yml`）：构建并部署到 Cloudflare Pages，同时在手机模式下测每个页面的 Lighthouse 性能分，低于 95 这次运行就失败。**这次运行必须通过**，文章和框架改动都一样：推送后用 `gh run list` 找到运行、等它结束（`gh run view <id> --json jobs` 看每个 job 的结论），失败就看日志（`gh run view <id> --log-failed`）修好再推，直到全绿才算完成。本地 `sh scripts/lighthouse.sh` 的分数通常比 Actions 高 2–4 分，不能代替它。

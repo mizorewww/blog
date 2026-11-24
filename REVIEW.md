@@ -19,7 +19,7 @@
 - 不新增运行时第三方请求；需要外部脚本的功能（如 TradingView）必须是读者点击后才加载。
 - 不新增浏览器端依赖、框架或 bundler；页面脚本写在 `templates/js/`，只做增强，禁用 JS 时正文、目录、导航完整可用。新脚本要在 `src/scripts.go` 里按页面内容决定是否带上。唯一的例外是 ECharts（`static/vendor/`，自托管、固定版本）：只在带 ` ```echarts ` 图的页面、页面 load 之后、图快要进入视口时才加载；构建时已经画好的静态 SVG 是它加载前和加载失败时的样子。Mermaid 和 Observable Plot（` ```plot `）只在构建时运行，页面上只有它们画好的 SVG。` ```video ` 片段 `preload="none"`，读者播放前不下载，`autoplay` 的片段由 `templates/js/video.js` 只在屏幕上时播放。另一个例外是文章自己的 ` ```widget ` 交互图（`src/widget.go`）：模块和数据放在 `content/widgets/` 里随文章发布，同样只在 load 之后、图快进入视口时加载，不请求第三方地址；构建时的静态图是它加载前和加载失败时的样子。
 - 不输出 `og:image` 等分享预览图（`TestBuild` 检查）。
-- Lighthouse 性能分 ≥ 97（手机）。改动字体、CSS、首屏 HTML 结构、图片加载属性或页面脚本时，本地运行 `sh scripts/lighthouse.sh` 测量每一篇文章；CI 每次推送也会测量。
+- Lighthouse 性能分 ≥ 95（手机，以 GitHub Actions 上的测量为准；Actions 的机器比本地慢，本地一般高 2–4 分）。改动字体、CSS、首屏 HTML 结构、图片加载属性或页面脚本时，本地运行 `sh scripts/lighthouse.sh` 测量每一篇文章；CI 每次推送也会测量。
 - 同样的内容和提交构建出同样的文件；日期只来自内容或 git，不来自时钟；不按 Go map 的顺序输出。
 
 ### 3. 可维护性（应当通过）
@@ -37,7 +37,7 @@
 1. 先读 diff 涉及的完整函数，而不只是改动行。
 2. 本地 `go test ./... && go run ./src -url http://localhost:8080 -serve localhost:8080`，至少打开首页、一篇带图/表/公式的文章、英文版、搜索页。
 3. 按上面 1→3 逐项过；发现的问题按"会出错 / 违反约束 / 可维护性"三级记录。
-4. 推送到 `main` 就会部署到 Cloudflare Pages，所以只有全部"必须通过"项通过才合并。
+4. 推送到 `main` 就会部署到 Cloudflare Pages，所以只有全部"必须通过"项通过才合并。推送之后 GitHub Actions 的整次运行（构建部署和 Lighthouse）必须通过，失败就是没做完。
 
 ## 二、2026-10-25 审查与处理结果
 
@@ -76,7 +76,7 @@
 ### 质量门禁
 
 - 构建时检查站内链接与锚点（`src/links.go`）。
-- `scripts/lighthouse.sh` 测量首页、搜索和每篇文章，每页取 3 次的中位数并打印 FCP、LCP、TBT、CLS 和发生位移的元素；CI 与部署并行运行，低于 97 时标红但不阻止部署。本地和 CI 全部为 99–100。
+- `scripts/lighthouse.sh` 测量首页、搜索和每篇文章，每页取 3 次的中位数并打印 FCP、LCP、TBT、CLS 和发生位移的元素；CI 与部署并行运行，低于 95 时这次运行失败（标红），但不阻止部署。本地和 CI 全部为 99–100。
 - CI 的 runner 必须装 CJK 字体（`fonts-noto-cjk`）。没有任何中文字体的机器上，内嵌字体解码前的中文按回退字体排版，首页和长文会出现约 0.2 的 CLS（约 90 分）；真实设备都自带中文字体，不受影响。
 
 ### 有意保留
