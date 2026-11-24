@@ -8,12 +8,12 @@ import (
 	"time"
 )
 
-// feedFigure matches the drawing of a ```chart, ```echarts, ```mermaid or
-// ```sketch figure, and an ECharts option after it. Their colors are var(--token)
+// feedFigure matches the drawing of a ```chart, ```echarts, ```mermaid,
+// ```sketch or ```plot figure, and an ECharts option after it. Their colors are var(--token)
 // and classes from style.css, which feed readers do not load, so fills turn
 // black: a heatmap or a diagram would be a black block. The feed keeps the
 // figure's title and note and links to the post instead.
-var feedFigure = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="[^"]*">.*?</div>(<script type="application/json">.*?</script>)?|<div class="plot"[^>]*>.*?</div>`)
+var feedFigure = regexp.MustCompile(`(?s)<div class="figure-plot" role="img" aria-label="[^"]*">.*?</div>(<script type="application/json">.*?</script>)?|<div class="plot"[^>]*>.*?</div>|(<ul class="plot-legend">.*?</ul>)?<div class="plot-grid".*?<!--/plot-grid-->`)
 
 // feedContent is a post's HTML as the feed carries it.
 func feedContent(content, link string, ui UI) string {

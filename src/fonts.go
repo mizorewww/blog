@@ -185,7 +185,7 @@ serif:
 		switch {
 		case e.is("key") || e.is("code-path") || e.tag == "span" && parent(i).tag == "a" && within("post-pagination"):
 			break serif // mono or sans inside a serif block
-		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats") || parent(i).is("echart") || parent(i).is("diagram") || parent(i).is("frames") || parent(i).is("cases") || parent(i).is("trace")):
+		case e.tag == "figcaption" && (parent(i).is("data") || parent(i).is("chart") || parent(i).is("stats") || parent(i).is("echart") || parent(i).is("diagram") || parent(i).is("plotfig") || parent(i).is("video") || parent(i).is("frames") || parent(i).is("cases") || parent(i).is("trace") || parent(i).is("widget")):
 			return serif600
 		case e.tag == "h1" && within("article-header") || e.tag == "h2" && within("post-summary"):
 			return serif500
@@ -208,7 +208,8 @@ serif:
 			e.tag == "b" && (parent(i).is("stats-group") || within("ticker")),
 			e.tag == "dd" && (within("kpi") && !e.is("s") || within("ledger-kpis")),
 			e.is("b") && within("sketch"),
-			e.is("case-q"):
+			e.is("case-q"),
+			e.is("plot-title"):
 			return sans500
 		}
 	}
@@ -239,6 +240,14 @@ func pageText(page string) (first, rest [5]map[rune]bool) {
 				if string(key) == "class" {
 					e.class = strings.Fields(string(value))
 				}
+				// A plot's hover text is shown in the page's sans (style.css .plot-tip).
+				if string(key) == "data-t" {
+					for _, r := range string(value) {
+						if r > ' ' {
+							rest[sans400][r] = true
+						}
+					}
+				}
 			}
 			switch e.tag {
 			case "area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "source", "track", "wbr":
@@ -258,7 +267,7 @@ func pageText(page string) (first, rest [5]map[rune]bool) {
 			}
 		case html.TextToken:
 			// A figure's SVG and option hold text it shows, before and after ECharts takes over.
-			figure := slices.ContainsFunc(stack, func(e textElement) bool { return e.is("echart") || e.is("diagram") })
+			figure := slices.ContainsFunc(stack, func(e textElement) bool { return e.is("echart") || e.is("diagram") || e.is("plotfig") })
 			if slices.ContainsFunc(stack, func(e textElement) bool {
 				return slices.Contains(skippedText, e.tag) && !(figure && (e.tag == "svg" || e.tag == "script")) || e.is("sr-only")
 			}) {

@@ -63,8 +63,9 @@ type figureBlock struct {
 	title      string
 	note       string
 	height     int
-	source     string // the Mermaid text, or the compacted ECharts option
-	SVG        string // set by the build's figure hook
+	source     string    // the Mermaid text, or the compacted ECharts option
+	SVG        string    // set by the build's figure hook
+	plot       *plotSpec // a ```plot figure's panels, drawn by the same hook
 }
 
 func (n *figureBlock) Kind() ast.NodeKind            { return kindFigure }
@@ -83,7 +84,7 @@ func (figureTransformer) Transform(doc *ast.Document, reader text.Reader, _ pars
 	var fences []*ast.FencedCodeBlock
 	_ = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if fence, ok := n.(*ast.FencedCodeBlock); entering && ok {
-			if lang := string(fence.Language(reader.Source())); lang == "echarts" || lang == "mermaid" || lang == "sketch" {
+			if lang := string(fence.Language(reader.Source())); lang == "echarts" || lang == "mermaid" || lang == "sketch" || lang == "plot" {
 				fences = append(fences, fence)
 			}
 		}
@@ -97,6 +98,14 @@ func (figureTransformer) Transform(doc *ast.Document, reader text.Reader, _ pars
 			src.Write(line.Value(reader.Source()))
 		}
 		block.source = src.String()
+		if block.Lang == "sketch" {
+			// The image hook publishes each picture; the renderer links it in.
+			for _, path := range sketchImages(block.source) {
+				img := ast.NewImage(ast.NewLink())
+				img.Destination = []byte(path)
+				block.AppendChild(block, img)
+			}
+		}
 		fence.Parent().ReplaceChild(fence.Parent(), fence, block)
 	}
 }
@@ -120,6 +129,10 @@ func (n *figureBlock) parse() error {
 		}
 		if n.Lang == "sketch" {
 			n.SVG, err = sketchSVG(n.source)
+			return err
+		}
+		if n.Lang == "plot" {
+			n.plot, err = parsePlot(n.source)
 			return err
 		}
 		return checkDiagramColors(n.source)
@@ -204,6 +217,12 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			return ast.WalkContinue, nil
 		}
 		f := n.(*figureBlock)
+		if f.Lang == "plot" {
+			var b bytes.Buffer
+			renderPlot(&b, f)
+			_, err := w.Write(b.Bytes())
+			return ast.WalkSkipChildren, err
+		}
 		class, style := "diagram", ""
 		if f.Lang == "echarts" {
 			class, style = "echart", fmt.Sprintf(` style="--h:%dpx"`, f.height)
@@ -218,7 +237,11 @@ func (figureRenderer) RegisterFuncs(r renderer.NodeRendererFuncRegisterer) {
 			}
 		}
 		title := html.EscapeString(f.title)
-		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, f.SVG)
+		svg := f.SVG
+		for i, c := 0, f.FirstChild(); c != nil; i, c = i+1, c.NextSibling() {
+			svg = strings.Replace(svg, sketchImageMark(i), html.EscapeString(string(c.(*ast.Image).Destination)), 1)
+		}
+		fmt.Fprintf(w, `<figure class="%s"%s><figcaption>%s</figcaption><div class="figure-plot" role="img" aria-label="%s">%s</div>`, class, style, title, title, svg)
 		if f.Lang == "echarts" {
 			// The option is compacted JSON; escaping <, > and & keeps it inside its script element.
 			var option bytes.Buffer
@@ -332,26 +355,46 @@ func (d *figureDrawer) cached(request []byte) (string, error) {
 	return filepath.Join(figureCache, fmt.Sprintf("%x.svg", sha256.Sum256(append(d.key, request...)))), nil
 }
 
-// draw fills a parsed figure's SVG; a sketch is its own drawing.
+// draw fills a parsed figure's SVG; a sketch is its own drawing, and a plot
+// has two for each panel.
 func (d *figureDrawer) draw(f *figureBlock) error {
-	if f.Lang == "sketch" {
+	var err error
+	switch f.Lang {
+	case "sketch":
+		return nil
+	case "plot":
+		wide, phone := f.plot.plotWidths()
+		for i := range f.plot.drawn {
+			p := &f.plot.drawn[i]
+			if p.wide, err = d.drawOne(figureRequest{"plot", p.options, wide, p.height}); err != nil {
+				return err
+			}
+			if p.phone, err = d.drawOne(figureRequest{"plot", p.options, phone, p.narrow}); err != nil {
+				return err
+			}
+		}
 		return nil
 	}
-	request, err := json.Marshal(figureRequest{f.Lang, f.source, figureWidth, f.height})
+	f.SVG, err = d.drawOne(figureRequest{f.Lang, f.source, figureWidth, f.height})
+	return err
+}
+
+// drawOne answers one request from the cache, or from render-figures.py.
+func (d *figureDrawer) drawOne(r figureRequest) (string, error) {
+	request, err := json.Marshal(r)
 	if err != nil {
-		return err
+		return "", err
 	}
 	cached, err := d.cached(request)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if svg, err := os.ReadFile(cached); err == nil {
-		f.SVG = string(svg)
-		return nil
+		return string(svg), nil
 	}
 	if d.cmd == nil {
 		if err := d.start(); err != nil {
-			return err
+			return "", err
 		}
 	}
 	var answer struct{ SVG, Error string }
@@ -362,19 +405,18 @@ func (d *figureDrawer) draw(f *figureBlock) error {
 		}
 	}
 	if err != nil {
-		return fmt.Errorf("draw figures (requires uv and Chrome): %w", err)
+		return "", fmt.Errorf("draw figures (requires uv and Chrome): %w", err)
 	}
 	if answer.Error != "" {
-		return errors.New(answer.Error)
+		return "", errors.New(answer.Error)
 	}
 	if err = os.MkdirAll(figureCache, 0755); err != nil {
-		return err
+		return "", err
 	}
-	f.SVG = answer.SVG
 	// Written whole or not at all: a build killed mid-write must not cache half an SVG.
 	temp, err := os.CreateTemp(figureCache, "drawing-*")
 	if err != nil {
-		return err
+		return "", err
 	}
 	if _, err = temp.WriteString(answer.SVG); err == nil {
 		err = temp.Close()
@@ -385,7 +427,7 @@ func (d *figureDrawer) draw(f *figureBlock) error {
 	if err != nil {
 		os.Remove(temp.Name())
 	}
-	return err
+	return answer.SVG, err
 }
 
 func (d *figureDrawer) start() error {

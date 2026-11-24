@@ -302,9 +302,9 @@ mark{background:var(--sel);color:inherit}
 .tip span i{width:8px;height:2px}
 .tip em{font-style:normal}
 /* ```echarts and ```mermaid figures (src/figures.go): open on the page, a numbered label over the title, the note under a rule. */
-:is(.echart,.diagram,.frames,.cases,.trace,.widget){margin:2.6em 0;counter-increment:figure}
-:is(.echart,.diagram,.frames,.cases,.trace,.widget) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
-:is(.echart,.diagram,.frames,.cases,.trace,.widget) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
+:is(.echart,.diagram,.plotfig,.video,.frames,.cases,.trace,.widget){margin:2.6em 0;counter-increment:figure}
+:is(.echart,.diagram,.plotfig,.video,.frames,.cases,.trace,.widget) figcaption{margin:0 0 16px;font-family:var(--serif);font-size:15px;font-weight:600;line-height:1.6;color:var(--ink)}
+:is(.echart,.diagram,.plotfig,.video,.frames,.cases,.trace,.widget) figcaption::before{content:"FIGURE " counter(figure);display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;color:var(--clay)}
 /* Inline drawings are heavy to lay out and paint: skip them until they come near, so the first screen paints as fast as a page without them. */
 .figure-plot{position:relative;content-visibility:auto;contain-intrinsic-size:auto 480px}
 .echart .figure-plot{height:var(--h);contain-intrinsic-size:auto var(--h);font-family:var(--mono)}
@@ -347,6 +347,25 @@ mark{background:var(--sel);color:inherit}
 .sketch .ink{fill:var(--ink)}
 .sketch .mute{fill:var(--muted)}
 .sketch .accent{fill:var(--clay)}
+.video video{display:block;width:100%;height:auto;border-radius:8px;background:var(--wash)}
+.plot-legend{display:flex;flex-wrap:wrap;gap:4px 18px;margin:0 0 14px;padding:0;list-style:none;font-size:12.5px;color:var(--body)}
+.plot-legend li{display:flex;align-items:center;gap:7px}
+.plot-legend li::before{content:"";flex:none;width:16px;height:2px;background:var(--c)}
+.plot-legend .dot::before{width:8px;height:8px;border-radius:50%}
+.plot-legend .dash::before{background:repeating-linear-gradient(90deg,var(--c) 0 5px,transparent 5px 8px)}
+.plot-legend .band::before{height:10px;background:color-mix(in srgb,var(--c) 25%,transparent)}
+.plot-legend .ramp::before{width:40px;height:6px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 20%,transparent),var(--c))}
+.plot-grid{display:grid;grid-template-columns:repeat(var(--cols),minmax(0,1fr));gap:20px 24px}
+.plot-title{margin:0 0 4px;font-size:13px;font-weight:500;line-height:1.4;color:var(--ink)}
+.plot-panel svg{display:block;width:100%;height:auto;overflow:visible;font-family:var(--sans);font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.plot-panel svg text{fill:currentColor}
+.plot-panel svg .grid{color:var(--grid);stroke-opacity:1}
+.plot-panel{position:relative}
+.plot-panel .phone{display:none}
+.plot-panel svg .on{stroke:var(--ink)!important;stroke-width:2px!important}
+.plot-xlabel{margin:10px 0 0;text-align:center;font-size:12px;color:var(--muted)}
+@media(max-width:640px){.plot-grid{grid-template-columns:repeat(var(--ncols),minmax(0,1fr));gap:18px 16px}.plot-panel .wide{display:none}.plot-panel .phone{display:block}}
+.plot-tip{position:absolute;z-index:3;pointer-events:none;padding:6px 9px;border:1px solid var(--line);border-radius:6px;background:var(--card);box-shadow:0 2px 10px rgb(0 0 0/.08);font-size:12px;line-height:1.5;white-space:pre;color:var(--ink);font-variant-numeric:tabular-nums}
 .figure-note{margin:14px 0 0;padding-top:10px;border-top:1px solid var(--line);font-size:12.5px;line-height:1.8;color:var(--muted)}
 /* ```widget figures (src/widget.go, templates/js/widget.js): a still picture until the post's own module has drawn the live figure in its place. */
 .widget-stage{position:relative}

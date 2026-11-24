@@ -69,7 +69,7 @@ func imageSource(document, destination string) (string, error) {
 	return "", fmt.Errorf("image must be inside content/ or static/: %s", destination)
 }
 
-// publish copies a file to /images/ under its content hash, so it never needs
+// publish copies a file (a picture, or a ```video clip) to /images/ under its content hash, so it never needs
 // the CSS version, and returns its absolute URL, which also works in the RSS feed.
 func (p *imagePipeline) publish(path string) (string, error) {
 	data, err := os.ReadFile(path)
@@ -126,7 +126,11 @@ func (p *imagePipeline) process(source string) (imageInfo, error) {
 		return info, nil
 	}
 	info := imageInfo{Path: source}
-	if cached, ok := cachedImage(source); ok {
+	if isVideo(source) {
+		if err := checkVideo(source); err != nil {
+			return info, err
+		}
+	} else if cached, ok := cachedImage(source); ok {
 		info = cached
 	} else if !strings.EqualFold(filepath.Ext(source), ".svg") {
 		cmd := exec.Command("uv", "run", "--script", imageScript, source, imageCache)

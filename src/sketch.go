@@ -19,12 +19,16 @@ import (
 //     content, events and external references fail the build;
 //   - paint is a class, none, currentColor or var(--token), so the drawing
 //     follows the color scheme;
-//   - ids are scoped to the drawing, and url(#arrow) is the house arrowhead.
+//   - ids are scoped to the drawing, and url(#arrow) is the house arrowhead;
+//   - an <image> names a local picture, which goes through the image
+//     pipeline like any other (the fence holds it as an ast.Image child) and
+//     is linked in when the figure renders: photos and sample grids with the
+//     labels, arrows and charts around them drawn as vector text.
 //
 // A second <svg>, at most 400 wide, is the same figure laid out for a phone:
 // the page shows it instead of the first below 640 px (style.css).
 var (
-	sketchElements = []string{"svg", "g", "rect", "circle", "ellipse", "line", "path", "polyline", "polygon", "text", "tspan", "title", "desc", "defs", "marker", "use", "symbol", "clipPath"}
+	sketchElements = []string{"svg", "g", "rect", "circle", "ellipse", "line", "path", "polyline", "polygon", "text", "tspan", "title", "desc", "defs", "marker", "use", "symbol", "clipPath", "image"}
 	sketchAttrs    = []string{"viewBox", "class", "id", "transform", "x", "y", "x1", "y1", "x2", "y2", "cx", "cy", "r", "rx", "ry", "width", "height", "d", "points",
 		"fill", "stroke", "stroke-width", "stroke-dasharray", "stroke-linecap", "stroke-linejoin", "opacity", "fill-opacity", "stroke-opacity",
 		"text-anchor", "dominant-baseline", "font-size", "letter-spacing", "dx", "dy", "href", "clip-path", "marker-start", "marker-mid", "marker-end",
@@ -33,6 +37,30 @@ var (
 	sketchURL     = regexp.MustCompile(`^url\(#([\w-]+)\)$`)
 	sketchViewBox = regexp.MustCompile(`^0 0 ([\d.]+) ([\d.]+)$`)
 )
+
+// sketchImages lists the pictures a sketch shows, in the order sketchSVG
+// meets them; read the same way, so a commented-out <image> is not one.
+func sketchImages(source string) []string {
+	var paths []string
+	decoder := xml.NewDecoder(strings.NewReader(source))
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return paths
+		}
+		if t, ok := token.(xml.StartElement); ok && t.Name.Local == "image" {
+			for _, a := range t.Attr {
+				if a.Name.Local == "href" {
+					paths = append(paths, a.Value)
+				}
+			}
+		}
+	}
+}
+
+// sketchImageMark stands for the URL of a sketch's n-th picture until the
+// image pipeline has published it.
+func sketchImageMark(n int) string { return fmt.Sprintf("\x00image%d\x00", n) }
 
 // sketchNarrow is the widest a phone drawing may be.
 const sketchNarrow = 400
@@ -49,6 +77,7 @@ func sketchSVG(source string) (string, error) {
 	var prefixes []string // one id scope per drawing
 	var widths []float64
 	arrows := map[int]bool{}
+	images := 0
 	for {
 		token, err := decoder.Token()
 		if err == io.EOF {
@@ -109,6 +138,13 @@ func sketchSVG(source string) (string, error) {
 					return "", fmt.Errorf(`%s=%q: paint is a class, none, currentColor or var(--name) with one of %s`, key, value, strings.Join(figureTokens, ", "))
 				case key == "id":
 					value = scope(value)
+				case key == "href" && name == "image":
+					if strings.HasPrefix(value, "#") || strings.Contains(value, ":") || strings.HasPrefix(value, "//") {
+						return "", fmt.Errorf("<image href=%q> must be a picture under content/ or static/, like a Markdown image", value)
+					}
+					attrs = append(attrs, `href="`+sketchImageMark(images)+`"`)
+					images++
+					continue
 				case key == "href":
 					if !strings.HasPrefix(value, "#") {
 						return "", fmt.Errorf("href %q must point inside the sketch (#id)", value)
@@ -123,6 +159,13 @@ func sketchSVG(source string) (string, error) {
 					value = "url(#" + scope(m[1]) + ")"
 				}
 				attrs = append(attrs, fmt.Sprintf(`%s="%s"`, key, xmlEscape(value)))
+			}
+			if name == "image" {
+				for _, need := range []string{"href", "width", "height"} {
+					if !slices.ContainsFunc(t.Attr, func(a xml.Attr) bool { return a.Name.Local == need }) {
+						return "", fmt.Errorf("<image> needs %s", need)
+					}
+				}
 			}
 			if depth == 0 {
 				if widths[root] == 0 {

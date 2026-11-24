@@ -42,6 +42,7 @@ type mediaFence struct {
 var mediaFences = map[string]mediaFence{
 	"frames": {frameImage, renderFrames},
 	"cases":  {caseImage, renderCases},
+	"video":  {videoImage, renderVideo},
 }
 
 type mediaTransformer struct{}
