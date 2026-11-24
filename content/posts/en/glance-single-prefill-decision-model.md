@@ -215,16 +215,16 @@ The most common pattern for an agent is asking follow-up questions about a scree
 
 There are also cases where Glance is not faster. When a call is dominated by prefill, the time saved by skipping decoding isn't enough: asking just 1 question on a large 4,096-visual-token screenshot, or 1 question per frame across 32–64 video frames, leaves Glance tied or slower (0.5–1.0×). It loses there because our research engine is slower than vLLM at prefilling long sequences and multi-image batches, not because of the readout mechanism.
 
-```data title="Latency across workloads (ms): Glance vs. strongest generative config" bars="Speedup" mark="Follow-up 8"
-Workload | Speedup | Glance | Baseline
-Ask 8 boxes | 3.0× | 45 | 134
-Ask 32 boxes | 3.8× | 61 | 229
+```data title="Latency across workloads (ms): Glance vs. strongest generative config" bars="Speedup" mark="Follow-up 8" note="vLLM: Qwen3.5-4B FP8 with prefix cache, CUDA graphs, and MTP. 2K/4K UI: screenshot queries; 64 frames: 1 query per frame."
+Workload | Speedup | Glance | vLLM
+8 boxes | 3.0× | 45 | 134
+32 boxes | 3.8× | 61 | 229
 Follow-up 8 | 8.3× | 14 | 113
-L4, ask 32 | 5.4× | 354 | 1,909
-4 types, 8 queries | 2.3× | 54 | 122
-2K screenshot, 32 queries | 2.7× | 155 | 419
-4K screenshot, 1 query | 0.88× | 299 | 262
-64 frames, 1 query each | 0.52× | 1,161 | 609
+L4, 32 box | 5.4× | 354 | 1,909
+4 types × 8 | 2.3× | 54 | 122
+2K UI × 32 | 2.7× | 155 | 419
+4K UI × 1 | 0.88× | 299 | 262
+64 frames | 0.52× | 1,161 | 609
 ```
 
 ## Surprise 1: Whether It Hallucinates Absent Boxes Is a Setting
@@ -509,12 +509,12 @@ In the chart below, the x-axis is the false rejection rate—how often the targe
 
 **Whether the model says so is decided by how votes are counted.** Across 21,586 present targets in RefCOCO, thresholding the digits head at P(none) ≥ 0.5 calls only 0.47% “not present,” and greedy decoding calls 0.60% “not present.” Rule A in the widget above uses an approximation: comparing the full-sequence probability of the greedily decoded coordinate string against `none`. To confirm this wasn't an artifact of the approximation, we ran exact best-first search on a sampled subset of targets to find the highest-probability complete sequence; the digits head landed at 34–41% (an interval because some queries did not terminate within the search budget), matching the approximation. Lining up all four representations side by side:
 
-```data title="Share of present targets called “not present” (%)" bars="Exact MAP" mark="Digits" note="Sampled subset; beam: width 4, keeping none as a candidate."
-Output head | Exact MAP | Beam | Greedy | Threshold
+```data title="Share of present targets called “not present” (%)" bars="Exact MAP" mark="Digits" note="Sampled subset; Hier. = Hierarchical, Atom = Atomic; Beam: width 4, keeping none as a candidate; Grdy = Greedy; Thr = P(none) ≥ 0.5 threshold."
+Head | Exact MAP | Beam | Grdy | Thr
 Digits | 34–41 | 39.2 | 0.6 | 0.4
-Hierarchical | 23–25 | 22.6 | 0.7 | 0.4
-Atomic 1000 | 12.3 | 10.4 | 1.9 | 0.6
-Atomic 100 | 4.6 | 3.9 | 0.8 | 0.4
+Hier. | 23–25 | 22.6 | 0.7 | 0.4
+Atom 1K | 12.3 | 10.4 | 1.9 | 0.6
+Atom 100 | 4.6 | 3.9 | 0.8 | 0.4
 ```
 
 Thresholding and greedy decoding barely change across representations (all under 2%); Rule A climbs from 4.6% on Atomic 100 all the way to 34–41% on Digits, tracking how much probability mass the single most likely coordinate string can hold onto: the more tokens a box takes to write and the more uncertain each step is, the smaller any single string's probability becomes, and the easier it is for `none` to win. On the present targets that Rule A calls “not present,” the model actually knows where the object is most of the time: the box greedily decoded by the digits head is correct 88% of the time.
