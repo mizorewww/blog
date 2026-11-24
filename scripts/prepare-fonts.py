@@ -40,7 +40,11 @@ for cp in range(0x4E00, 0xA000):
         chars.add(cp)
     except UnicodeEncodeError:
         pass
-corpus = "".join(p.read_text() for pattern in ("content/**/*.md", "templates/*.html", "site.json") for p in root.glob(pattern))
+corpus = "".join(
+    p.read_text()
+    for pattern in ("content/**/*.md", "content/widgets/**/*.js", "content/widgets/**/*.json", "templates/*.html", "templates/pages/*.html", "src/i18n.go", "site.json")
+    for p in sorted(root.glob(pattern))
+)
 chars |= {ord(c) for c in corpus}
 
 
