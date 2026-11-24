@@ -218,8 +218,8 @@ func TestBuild(t *testing.T) {
 		t.Fatalf("invalid search index: %v %v", err, index)
 	}
 	search, _ := os.ReadFile("public/search/index.html")
-	if !strings.Contains(string(search), `font-family:"Blog Search"`) {
-		t.Fatal("search snippets need their font")
+	if !strings.Contains(string(search), `font-family:"Blog Search"`) || !strings.Contains(string(search), "搜索需要开启 JavaScript") || !strings.Contains(string(search), ".theme,.copy,.textbtn,.ticker button") {
+		t.Fatal("search snippets need their font and no-JS fallback")
 	}
 	var rss Feed
 	b, _ = os.ReadFile("public/feed.xml")

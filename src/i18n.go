@@ -16,7 +16,7 @@ type Lang struct {
 type UI struct {
 	Title, Description, Skip, Nav, Home, About, Tags, Search, Categories, AllPosts, Minutes, Read, Updated, TOC string
 	Previous, Next, Adjacent, Elsewhere, Theme, Top, Empty, NotFound, NotFoundDek, BackHome                     string
-	Stats, Count, Category, Tag, TagsTitle, SearchLabel, SearchFound, SearchNone, Copy                          string
+	Stats, Count, Category, Tag, TagsTitle, SearchLabel, SearchFound, SearchNone, SearchNoJS, Copy              string
 	LedgerLabel, PostsLabel, PostsUnit, WordsLabel, WordsWan, WordsChar, ReadingLabel, ReadingUnit, TagsUnit    string
 	AboutDesc, AboutHandle, BioPrefix, BioLink, BioSuffix                                                       string
 	Contact, Group, JoinGroup, EmailLabel, PGPHint, ShowKey, HideKey, CopyKey                                   string
@@ -51,7 +51,7 @@ var languages = []Lang{
 		Previous: "← 上一篇", Next: "下一篇 →", Adjacent: "相邻文章", Elsewhere: "其他地方", Theme: "切换深浅色", Top: "回到顶部",
 		Empty: "还没有文章。第一篇，很快见。", NotFound: "这页，还没有写。", NotFoundDek: "链接可能变了，也可能从未存在。", BackHome: "← 回到首页",
 		Stats: "%d 篇文章 · %d 个分类 · %d 个标签 · %s字", Count: "%d 篇", Category: "分类", Tag: "标签", TagsTitle: "分类与标签",
-		SearchLabel: "搜索标题、正文和标签", SearchFound: "找到 %d 篇", SearchNone: "没有找到相关文章", Copy: "复制",
+		SearchLabel: "搜索标题、正文和标签", SearchFound: "找到 %d 篇", SearchNone: "没有找到相关文章", SearchNoJS: "搜索需要开启 JavaScript；以下列出全部文章。", Copy: "复制",
 		LedgerLabel: "写作概览", PostsLabel: "文章", PostsUnit: " 篇", WordsLabel: "总字数", WordsWan: " 万", WordsChar: " 字", ReadingLabel: "预计阅读", ReadingUnit: " 分钟", TagsUnit: " 个",
 		AboutDesc: "雨夹雪（mizorewww）— 上海电力大学（SHIEP）大一学生。", AboutHandle: "mizorewww",
 		BioPrefix: "", BioLink: "上海电力大学", BioSuffix: "（SHIEP）大一学生。",
@@ -70,7 +70,7 @@ var languages = []Lang{
 		Previous: "← Previous", Next: "Next →", Adjacent: "More posts", Elsewhere: "Elsewhere", Theme: "Toggle dark mode", Top: "Back to top",
 		Empty: "No posts yet.", NotFound: "Nothing here yet.", NotFoundDek: "The link may have changed, or never existed.", BackHome: "← Home",
 		Stats: "%d posts · %d categories · %d tags · %s words", Count: "%d posts", Category: "Category", Tag: "Tag", TagsTitle: "Categories & tags",
-		SearchLabel: "Search titles, text and tags", SearchFound: "%d found", SearchNone: "Nothing found", Copy: "copy",
+		SearchLabel: "Search titles, text and tags", SearchFound: "%d found", SearchNone: "Nothing found", SearchNoJS: "Search requires JavaScript; all posts are listed below.", Copy: "copy",
 		LedgerLabel: "Archive", PostsLabel: "Posts", WordsLabel: "Words", ReadingLabel: "Reading", ReadingUnit: " min",
 		AboutDesc: "mizorewww — first-year student at SHIEP.",
 		BioPrefix: "First-year student at ", BioLink: "SHIEP", BioSuffix: ".",
