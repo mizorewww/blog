@@ -133,13 +133,27 @@ type contentHooks struct {
 
 // renderContent renders a post body with an edition's renderer.
 func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (template.HTML, []Heading, error) {
+	srcStr := string(src)
+	cardsSec, err := findCardsSection(srcStr)
+	if err != nil {
+		return "", nil, err
+	}
+	var cardsHTML string
+	if cardsSec != nil {
+		cardsBody := srcStr[cardsSec.contentStartOffset:cardsSec.endOffset]
+		cardsHTML, err = renderCardsDeck(cardsBody, markdown, uiForMarkdown(markdown), hooks)
+		if err != nil {
+			return "", nil, err
+		}
+		src = []byte(srcStr[:cardsSec.startOffset] + srcStr[cardsSec.endOffset:])
+	}
 	ctx := parser.NewContext(parser.WithIDs(headingIDs{}))
 	doc := markdown.Parser().Parse(text.NewReader(src), parser.WithContext(ctx))
 	if err := resolveCitations(doc); err != nil {
 		return "", nil, err
 	}
 	var toc []Heading
-	err := ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
+	err = ast.Walk(doc, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if node, ok := n.(*ast.Image); entering && ok && hooks.image != nil {
 			if err := hooks.image(node); err != nil {
 				return ast.WalkStop, err
@@ -171,7 +185,7 @@ func renderContent(markdown goldmark.Markdown, src []byte, hooks contentHooks) (
 	var out bytes.Buffer
 	err = markdown.Renderer().Render(&out, src, doc)
 	// Only Goldmark output crosses the template trust boundary. Raw HTML stays disabled.
-	html := strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`)
+	html := strings.ReplaceAll(out.String(), "<pre>", `<pre tabindex="0">`) + cardsHTML
 	return template.HTML(html), toc, err
 }
 
@@ -255,6 +269,7 @@ func fencePrefix(trimmed string) (string, string) {
 // readingUnits counts each Han character and each other word once, skipping
 // fenced code and data blocks, which readers scan rather than read.
 func readingUnits(src string) int {
+	src = stripCardsSection(src)
 	units, fence, inWord := 0, "", false
 	for _, line := range strings.Split(src, "\n") {
 		trimmed := strings.TrimSpace(line)

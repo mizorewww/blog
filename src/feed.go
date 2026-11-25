@@ -19,11 +19,13 @@ var (
 	feedMathBlock  = regexp.MustCompile(`(?s)<div class="math"[^>]*>\s*<svg class="math-svg"[^>]*\saria-label="([^"]*)"[^>]*>.*?</svg>\s*</div>`)
 	feedMathInline = regexp.MustCompile(`(?s)<span class="math-inline"><svg class="math-svg"[^>]*\saria-label="([^"]*)"[^>]*>.*?</svg></span>`)
 	feedWidgetHint = regexp.MustCompile(`(?s)<p class="widget-hint">.*?</p>`)
+	feedCards      = regexp.MustCompile(`(?s)<details class="cards-deck"[^>]*>.*?</details><!--/cards-deck-->\s*`)
 	feedRootAttr   = regexp.MustCompile(`\b(href|src)="/([^"]*)"`)
 )
 
 // feedContent is a post's HTML as the feed carries it.
 func feedContent(content, siteURL, link string, ui UI) string {
+	content = feedCards.ReplaceAllString(content, "")
 	out := feedFigure.ReplaceAllString(content, `<p><a href="`+html.EscapeString(link)+`">`+html.EscapeString(ui.FigureInPost)+`</a></p>`)
 	out = feedMathBlock.ReplaceAllStringFunc(out, func(m string) string {
 		return `<p><code>$$` + feedMathBlock.FindStringSubmatch(m)[1] + `$$</code></p>`

@@ -24,6 +24,7 @@ type UI struct {
 	History, Commits, Source, License, LicenseText, LicenseNote                                                 string
 	Switch, SwitchLang                                                                                          string
 	NotFoundTitle, LiveChart, WidgetStill, Moved, MovedTo, FigureInPost, BackToText                             string
+	CardsTitle, CardsMeta, CardsRevealAll, CardsHideAll, CardShowBack, CardExtra                                string
 }
 
 // markdowns holds one renderer per edition, keyed by Lang.Code.
@@ -41,6 +42,15 @@ func (l *Lang) markdown() goldmark.Markdown {
 		return markdowns[languages[0].Code]
 	}
 	return markdowns[l.Code]
+}
+
+func uiForMarkdown(md goldmark.Markdown) UI {
+	for _, l := range languages {
+		if markdowns[l.Code] == md {
+			return l.UI
+		}
+	}
+	return languages[0].UI
 }
 
 var languages = []Lang{
@@ -62,6 +72,7 @@ var languages = []Lang{
 		LicenseText: "除另有说明，本文采用 ", LicenseNote: " 许可。转载或改编请署名、非商业使用，并以相同方式共享。",
 		Switch: "EN", SwitchLang: "en",
 		NotFoundTitle: "页面未找到", LiveChart: "实时图表", WidgetStill: "这是静态截图，开启 JavaScript 后可以操作。", Moved: "已移动", MovedTo: "这篇文章已移动到 ", FigureInPost: "（图见原文）", BackToText: "回到引用处",
+		CardsTitle: "Anki 复习卡片", CardsMeta: "%d 张卡片 · 点击展开自测", CardsRevealAll: "全部显答", CardsHideAll: "全部遮盖", CardShowBack: "显示答案", CardExtra: "补充解析",
 	}},
 	{"en", "/en", "en", "en_US", UI{
 		Title: "mizorewww", Description: "Writing by mizorewww.",
@@ -81,5 +92,6 @@ var languages = []Lang{
 		LicenseText: "Unless noted otherwise, this post is licensed under ", LicenseNote: ". Please attribute, use non-commercially, and share adaptations alike.",
 		Switch: "中文", SwitchLang: "zh-CN",
 		NotFoundTitle: "Page not found", LiveChart: "Live chart", WidgetStill: "A still picture: turn on JavaScript to use it.", Moved: "Moved", MovedTo: "This post has moved to ", FigureInPost: "(See the figure in the post.)", BackToText: "Back to citation",
+		CardsTitle: "Anki Review Cards", CardsMeta: "%d cards · click to review", CardsRevealAll: "Reveal all", CardsHideAll: "Hide all", CardShowBack: "Show answer", CardExtra: "Extra",
 	}},
 }

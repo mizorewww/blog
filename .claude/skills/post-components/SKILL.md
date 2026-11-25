@@ -460,3 +460,40 @@ error | technical_error: unfinished tool activity at turn completion
 ```
 
 或只写 `$BTC`、`$NASDAQ:AAPL`。常见币种（BTC、ETH、SOL……）自动对应 Binance 的 USDT 交易对。生成一张带 TradingView 链接的卡片，读者点击按钮后才加载实时图表。`interval` 默认 `D`，`height` 默认 420。
+
+## Anki 复习卡片 `# Cards`
+
+文章末尾（如 `## 参考资料` 之后）可放一个一级标题 `# Cards`，按 `anki-card-authoring`（v1.0.0）契约书写复习卡片，多张卡之间用单独一行 `---` 分隔。Obsidian 中由 `obsidian-anki-sync` 同步至 Anki；博客构建时自动渲染为末尾**默认折叠**的自测卡片区（不污染正文目录、不计入预计阅读时长、不进入 RSS 全文）。
+
+````markdown
+# Cards
+
+type: cloze
+tags: ML/Optimizer
+uuid: 11111111-2222-4333-8444-555555555555
+
+## RMSNorm 径向正交性
+
+对任意输入 $x \in \mathbb{R}^D$，`RMSNorm` 的反向梯度恒满足 **$x^\top \nabla_x L = 0$**，原因是前向具有 **{{c1::正标量尺度不变性}}**，且回传梯度自带 **{{c2::$1 / r(x)$}}** 阻尼因子。
+
+Extra
+因此 `RMSNorm` 的缩放参数 $\gamma$ 通常设 `weight_decay = 0.0`。
+
+---
+
+type: basic
+tags: ML/Optimizer
+uuid: 66666666-7777-4888-8999-aaaaaaaaaaaa
+
+## 耦合 L2 与 AdamW 解耦衰减
+
+Front
+为什么在 `Adam` 中把 $\lambda \theta$ 加进梯度不等价于等比例权重衰减？
+
+Back
+预条件矩阵 $P_t = \mathrm{diag}(\sqrt{\hat{v}_t}) + \epsilon I$ 非标量单位阵，耦合惩罚项实际变成 $\theta^\top P_t^{-1} \theta$，导致历史梯度越大的坐标衰减越弱。
+````
+
+- 支持 `cloze`（点击 `[c1]` 切换同卡同编号全部挖空，全部揭晓后展开 `Extra`）与 `basic` / `reversed`（点击展开 `Back` 答案），顶部带“全部显答 / 全部遮盖”工具条；无 JS 时自动展开全部答案。
+- 避免 Dataview 行内字段冲突：非代码块行中不要把 `{{c1::...}}` 放在半角括号 `(...)` 或 `[...]` 内（中文用全角 `（...）`），也不要用反引号直接包裹 `{{c1::...}}`。
+

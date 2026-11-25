@@ -28,7 +28,7 @@
 <link rel="apple-touch-icon" href="{{local "/apple-touch-icon.png"}}">
 <script>try{const t=localStorage.getItem("theme");if(t)document.documentElement.dataset.theme=t}catch{}</script>
 <style>{{css}}</style>
-<noscript><style>:root{--cjk:"Blog Sans","Blog Sans Late";--cjk-serif:"Blog Serif","Blog Serif Late"}.theme,.copy,.textbtn,.ticker button,.code>.code-tools:not(:has(.lang)),.about-actions:not(.pgp-box),.search-form,.search-status{display:none}.search-nojs[hidden]{display:block!important}</style></noscript>
+<noscript><style>:root{--cjk:"Blog Sans","Blog Sans Late";--cjk-serif:"Blog Serif","Blog Serif Late"}.theme,.copy,.textbtn,.ticker button,.code>.code-tools:not(:has(.lang)),.about-actions:not(.pgp-box),.search-form,.search-status,.cards-tools,.cloze-mask{display:none}.search-nojs[hidden]{display:block!important}.cloze{padding:0;border:0;background:none;cursor:text}.cloze .cloze-ans{display:inline!important}.anki-extra{display:block!important}</style></noscript>
 <link rel="alternate" type="application/rss+xml" title="{{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}" href="{{local .Lang.Base}}/feed.xml">
 {{if eq .Kind "term"}}<link rel="alternate" type="application/rss+xml" title="{{.Term.Name}} — {{if .UI.Title}}{{.UI.Title}}{{else}}{{.Site.Title}}{{end}}" href="{{local .Term.Path}}feed.xml">
 {{end}}<script type="speculationrules">{"prerender":[{"where":{"and":[{"href_matches":"{{local "/*"}}"},{"not":{"href_matches":"{{local "/*.xml"}}"}},{"not":{"href_matches":"{{local "/*.json"}}"}}]},"eagerness":"moderate"}]}</script>

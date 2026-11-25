@@ -79,6 +79,10 @@ var fontRules = []string{
 	`.kpi dd.s { font-family:var(--sans); font-weight:400 }`,
 	`.ticker b { font-family:var(--mono); font-weight:500 }`,
 	`.ticker-go { font-family:var(--mono) }`,
+	`.cards-title { font-family:var(--serif); font-weight:600 }`,
+	`.cards-tools { font-family:var(--mono) }`,
+	`.prose .anki-title { font-weight:500 }`,
+	`.cloze-mask { font-family:var(--mono); font-weight:400 }`,
 	`.toc,.toc-mobile { font-family:var(--mono) }`,
 	`.colophon dt { font-family:var(--mono) }`,
 	`.colophon code,.colophon time { font-family:var(--mono) }`,
@@ -163,6 +167,9 @@ func TestFaceFor(t *testing.T) {
 		{[]textElement{el("figure", "frames"), el("ol", "frames-strip"), el("li", "in"), el("p", "frames-p"), el("b")}, sans400},
 		{[]textElement{el("figure", "diagram"), el("div", "figure-plot"), el("svg", "sketch"), el("text", "b")}, sans500},
 		{[]textElement{el("figure", "diagram"), el("div", "figure-plot"), el("svg"), el("text")}, sans400},
+		{[]textElement{el("details", "cards-deck"), el("summary", "cards-summary"), el("span", "cards-title")}, serif600},
+		{[]textElement{el("div", "prose"), el("details", "cards-deck"), el("article", "anki-card"), el("p", "anki-title")}, sans500},
+		{[]textElement{el("div", "prose"), el("p"), el("strong"), el("button", "cloze"), el("span", "cloze-mask")}, sans400},
 	} {
 		if got := faceFor(tc.stack); got != tc.want {
 			t.Errorf("faceFor(%v) = %d, want %d", tc.stack, got, tc.want)
