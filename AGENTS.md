@@ -4,8 +4,9 @@
 
 ## 写或改博客文章时
 
-动笔之前先读这两个 skill，写作过程中按它们来：
+动笔之前先读这三个 skill，写作过程中按它们来：
 
+- `.claude/skills/post-writing/SKILL.md`：文章的逻辑链组织（开头立路线图、先搭框架再逐层递进、章节因果衔接）与语言风格（平实质朴、不一惊一乍、短句易读、多分段）。
 - `.claude/skills/post-components/SKILL.md`：文章能用的组件和确切语法（元数据、公式、代码、`data`、`chart`、`echarts`、`mermaid`、`sketch`、`stats`……），以及图表风格。
 - `.claude/skills/post-diagrams/SKILL.md`：什么时候该画示意图（多画）、本博客的示意图风格、好图的标准和画图流程。
 
