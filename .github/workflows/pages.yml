@@ -82,6 +82,21 @@ jobs:
           command: pages deploy public --project-name=${{ vars.CLOUDFLARE_PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Trigger profile README sync
+        if: github.ref == 'refs/heads/main'
+        env:
+          PROFILE_SYNC_TOKEN: ${{ secrets.PROFILE_SYNC_TOKEN }}
+        run: |
+          if [ -z "$PROFILE_SYNC_TOKEN" ]; then
+            echo "PROFILE_SYNC_TOKEN not configured; falling back to scheduled sync."
+            exit 0
+          fi
+          curl -fsSL -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer $PROFILE_SYNC_TOKEN" \
+            https://api.github.com/repos/mizorewww/mizorewww/dispatches \
+            -d '{"event_type":"blog-updated"}'
+
   # Reports performance regressions on every push. It runs beside the deploy
   # rather than gating it: shared runners make single scores noisy.
   lighthouse:
